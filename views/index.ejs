@@ -1,0 +1,324 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Puffer Isle Resort | Tropical Escape</title>
+  <link rel="icon" type="image/png" href="/images/islelogo.png">
+
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
+
+    :root {
+      /* Swapped: Teal is now the subtle accent, Yellow is the Brand Power */
+      --brand-color: #FFD700; 
+      --brand-hover: #e6c200;
+      --accent-teal: #008080;
+      --dark: #1a1a1a;
+      --light-bg: #ffffff;
+      --text-muted: #555;
+      --glass: rgba(255, 255, 255, 0.1);
+    }
+
+    * { margin:0; padding:0; box-sizing:border-box; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      scroll-behavior: smooth;
+      color: var(--dark);
+      background-color: var(--light-bg);
+      line-height: 1.6;
+    }
+
+    /* ================= HERO ================= */
+    .hero {
+      position: relative;
+      height: 100vh;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .hero video {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      filter: brightness(50%); /* Darker for better text pop */
+    }
+
+    .hero-text {
+      position: relative;
+      z-index: 2;
+      color: white;
+      text-align: center;
+      padding: 3rem;
+      border-radius: 24px;
+      backdrop-filter: blur(8px);
+      background: rgba(0,0,0,0.3);
+      border: 1px solid rgba(255,255,255,0.1);
+      animation: fadeInUp 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+      max-width: 800px;
+    }
+
+    @keyframes fadeInUp {
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    .hero-text h2 {
+      font-size: clamp(2rem, 5vw, 3.5rem);
+      margin-bottom: 1rem;
+      font-weight: 700;
+    }
+
+    .hero-text span {
+      color: var(--brand-color);
+    }
+
+    .hero-text p {
+      margin-bottom: 2rem;
+      font-size: 1.2rem;
+      font-weight: 300;
+      letter-spacing: 1px;
+    }
+
+    .hero-logo {
+      width: 170px;
+      margin-bottom: 1.5rem;
+      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+    }
+
+    .hero-btn {
+      background: var(--brand-color);
+      color: var(--dark);
+      font-weight: 700;
+      padding: 16px 40px;
+      border-radius: 50px;
+      text-decoration: none;
+      transition: all 0.4s ease;
+      font-size: 1.1rem;
+      display: inline-block;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+    }
+
+    .hero-btn:hover {
+      background: white;
+      color: var(--dark);
+      transform: translateY(-5px);
+      box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+    }
+
+    /* ================= SLEEK ABOUT SECTION ================= */
+    #about {
+      padding: 100px 10%;
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 60px;
+      align-items: center;
+    }
+
+    .about-image-stack {
+      position: relative;
+    }
+
+    .about-image-stack img {
+      width: 100%;
+      border-radius: 20px;
+      box-shadow: 20px 20px 0px var(--brand-color);
+    }
+
+    .about-content {
+      text-align: left;
+    }
+
+    .about-content h2 {
+      font-size: 2.5rem;
+      color: var(--dark);
+      margin-bottom: 1.5rem;
+      position: relative;
+      display: inline-block;
+    }
+
+    .about-content h2::after {
+      content: '';
+      position: absolute;
+      bottom: -10px;
+      left: 0;
+      width: 60px;
+      height: 5px;
+      background: var(--brand-color);
+    }
+
+    .about-content p {
+      font-size: 1.1rem;
+      color: var(--text-muted);
+      margin-bottom: 1.5rem;
+    }
+
+    /* ================= CONTACT SECTION ================= */
+    #contact { 
+      padding: 100px 5%;
+      background: #fdfdfd; 
+    }
+
+    #contact h2 {
+      font-size: 2.5rem;
+      margin-bottom: 3rem;
+      text-align: center;
+      color: var(--dark);
+    }
+
+    .contact-container {
+      display: grid;
+      grid-template-columns: 1.5fr 1fr;
+      gap: 30px;
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+
+    .map {
+      border-radius: 24px;
+      overflow: hidden;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.05);
+      height: 450px;
+    }
+
+    .contact-info {
+      background: var(--dark);
+      color: white;
+      border-radius: 24px;
+      padding: 3rem;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+    }
+
+    .contact-info h3 {
+      color: var(--brand-color);
+      font-size: 1.8rem;
+      margin-bottom: 1.5rem;
+    }
+
+    .contact-info p {
+      margin-bottom: 1rem;
+      font-size: 1.1rem;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .contact-btn {
+      margin-top: 2rem;
+      display: inline-block;
+      background: var(--brand-color);
+      color: var(--dark);
+      padding: 14px 28px;
+      border-radius: 12px;
+      font-weight: bold;
+      text-decoration: none;
+      transition: 0.3s;
+      text-align: center;
+    }
+
+    .contact-btn:hover {
+      background: white;
+      transform: scale(1.02);
+    }
+
+    /* ================= FOOTER ================= */
+    footer {
+      background: #111;
+      color: rgba(255,255,255,0.6);
+      text-align: center;
+      padding: 3rem;
+      font-size: 0.9rem;
+    }
+
+    /* ================= RESPONSIVE ================= */
+    @media (max-width: 992px) {
+      #about { grid-template-columns: 1fr; text-align: center; }
+      .about-content h2::after { left: 50%; transform: translateX(-50%); }
+      .contact-container { grid-template-columns: 1fr; }
+      .map { height: 300px; order: 2; }
+    }
+  </style>
+</head>
+<body>
+
+  <%- include('partials/navbar') %>
+
+  <section class="hero" id="home">
+    <video autoplay muted loop playsinline poster="/images/resort1.jpg">
+      <source src="/videos/resort2.mp4" type="video/mp4">
+    </video>
+
+    <div class="hero-text">
+      <img src="/images/islelogo.png" alt="Resort Logo" class="hero-logo">
+      <h2>Experience <span>Puffer Isle</span></h2>
+      <p>A sanctuary where the sky kisses the sea and luxury meets the wild.</p>
+
+      <% if (user) { %>
+        <a href="/booking" class="hero-btn">Start Your Journey</a>
+      <% } else { %>
+        <a href="#" id="heroBookingBtn" class="hero-btn">Start Your Journey</a>
+      <% } %>
+    </div>
+  </section>
+
+  <section id="about">
+    <div class="about-image-stack">
+      <img src="/images/resort1.jpg" alt="Resort View">
+    </div>
+    <div class="about-content">
+      <h2>About Our Isle</h2>
+      <p>
+        Puffer Isle Resort offers a transcendent escape into nature, blending traditional Filipino hospitality with modern coastal comfort. From our climate-controlled suites to the rustic charm of our seaside <strong>Bahay Kubo</strong>, every corner is designed for serenity.
+      </p>
+      <p>
+        Whether you're lounging by our crystal-clear pools, pitching a tent under the starlit canopy, or enjoying a private dinner by the shore, your time here is defined by peace. <strong>Our mission is to provide more than just a stay; we provide a space where memories are woven into the very fabric of the island's breeze.</strong>
+      </p>
+    </div>
+  </section>
+
+  <section id="contact">
+    <h2>Connect With Us</h2>
+
+    <div class="contact-container">
+      <div class="map">
+        <iframe 
+          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.794746437253!2d121.3917462153302!3d15.259247498997667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339743e2cdc9555f%3A0x7564b23bbd7617b9!2sPuffer%20Isle%20Resort!5e0!3m2!1sen!2sph!4v1700000000000!5m2!1sen!2sph" 
+          width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy">
+        </iframe >
+      </div>
+
+      <div class="contact-info">
+        <h3>Get in Touch</h3>
+        <p><strong>📞</strong> 0900-000-0000</p>
+        <p><strong>✉️</strong> info@pufferisleresort.com</p>
+        <p><strong>📍</strong> Puffer Isle, Coastal Road, Philippines</p>
+        <a href="#" class="contact-btn">Message Us on Facebook</a>
+      </div>
+    </div>
+  </section>
+
+  <footer>
+    <p>© 2026 Puffer Isle Resort. Designed for Ultimate Serenity.</p>
+  </footer>
+
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      const heroBookingBtn = document.getElementById("heroBookingBtn");
+      const modal = document.getElementById("authModal");
+
+      heroBookingBtn?.addEventListener("click", (e) => {
+        e.preventDefault();
+        if(modal) modal.style.display = "flex";
+      });
+    });
+  </script>
+
+</body>
+</html>

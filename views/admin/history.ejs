@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Booking Archive | Puffer Isle Resort</title>
+  <link rel="icon" type="image/png" href="/images/islelogo.png">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --brand-teal: #008080;
+      --brand-yellow: #FFD700;
+      --bg-dark: #0a0c0e;
+      --card-bg: rgba(255, 255, 255, 0.03); 
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #ffffff;
+      --text-muted: #a0a0a0;
+      --success: #2ecc71;
+      --danger: #e74c3c;
+      --warning: #f1c40f;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg-dark);
+      color: var(--text-main);
+      min-height: 100vh;
+      background-image: radial-gradient(circle at top right, rgba(0, 128, 128, 0.05), transparent);
+    }
+
+    .container { max-width: 1600px; margin: 40px auto; padding: 0 40px; }
+
+    /* --- HEADER & BREADCRUMBS --- */
+    .page-header { 
+      display: flex; 
+      justify-content: space-between; 
+      align-items: flex-end; 
+      margin-bottom: 40px; 
+    }
+    .breadcrumbs { font-size: 0.75rem; text-transform: uppercase; letter-spacing: 2px; color: var(--brand-teal); margin-bottom: 10px; }
+    .breadcrumbs a { color: var(--text-muted); text-decoration: none; transition: 0.3s; }
+    .breadcrumbs a:hover { color: var(--brand-yellow); }
+    .page-header h1 { font-family: 'Playfair Display', serif; font-size: 2.8rem; }
+    .page-header h1 span { color: var(--brand-yellow); }
+    
+    .archive-stats { text-align: right; color: var(--text-muted); font-size: 0.9rem; }
+    .archive-stats span { color: var(--brand-teal); font-weight: 700; }
+
+    /* --- FILTER BAR --- */
+    .filter-bar {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      padding: 20px 30px;
+      border-radius: 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 30px;
+      backdrop-filter: blur(10px);
+    }
+
+    .search-wrapper { position: relative; width: 400px; }
+    .search-wrapper i { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: var(--text-muted); }
+    .search-wrapper input {
+      width: 100%; background: rgba(255,255,255,0.05); border: 1px solid var(--card-border);
+      padding: 12px 15px 12px 45px; border-radius: 12px; color: white; outline: none; transition: 0.3s;
+    }
+    .search-wrapper input:focus { border-color: var(--brand-teal); background: rgba(255,255,255,0.1); }
+
+    .filter-group { display: flex; gap: 15px; }
+
+    .filter-select {
+      background: rgba(255,255,255,0.05); 
+      border: 1px solid var(--card-border);
+      color: white; 
+      padding: 12px 40px 12px 20px; 
+      border-radius: 12px; 
+      outline: none; 
+      cursor: pointer;
+      appearance: none;
+      font-family: 'Poppins', sans-serif;
+      font-size: 0.85rem;
+      background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 24 24' stroke='%23008080'%3E%3Cpath stroke-linecap='round' stroke-linejoin='round' stroke-width='2' d='M19 9l-7 7-7-7'%3E%3C/path%3E%3C/svg%3E");
+      background-repeat: no-repeat;
+      background-position: right 15px center;
+      background-size: 15px;
+      transition: 0.3s;
+    }
+    .filter-select:hover { border-color: var(--brand-teal); background-color: rgba(255,255,255,0.1); }
+    .filter-select option { background: #0a0c0e; color: white; padding: 10px; }
+
+    .btn-export {
+      background: var(--brand-teal); 
+      border: none;
+      color: white;
+      padding: 0 25px;
+      border-radius: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      transition: 0.3s;
+    }
+    .btn-export:hover { background: #009999; transform: translateY(-2px); }
+
+    /* --- DATA TABLE --- */
+    .table-container {
+      background: var(--card-bg);
+      border: 1px solid var(--card-border);
+      border-radius: 30px;
+      padding: 20px;
+      overflow: hidden;
+    }
+
+    .luxury-table { width: 100%; border-collapse: separate; border-spacing: 0 8px; }
+    .luxury-table th { text-align: left; padding: 15px 20px; color: var(--text-muted); font-size: 0.75rem; text-transform: uppercase; letter-spacing: 1px; }
+    .luxury-table tr td { background: rgba(255,255,255,0.01); padding: 18px 20px; border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); transition: 0.3s; }
+    .luxury-table tr td:first-child { border-radius: 15px 0 0 15px; border-left: 1px solid var(--card-border); }
+    .luxury-table tr td:last-child { border-radius: 0 15px 15px 0; border-right: 1px solid var(--card-border); }
+    
+    .luxury-table tr:hover td { background: rgba(0, 128, 128, 0.08); border-color: var(--brand-teal); }
+
+    /* --- STATUS PILLS --- */
+    .status-pill { padding: 6px 14px; border-radius: 8px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
+    .status-pending { background: rgba(241, 196, 15, 0.1); color: var(--warning); border-color: rgba(241, 196, 15, 0.2); }
+    .status-accepted { background: rgba(46, 204, 113, 0.1); color: var(--success); border-color: rgba(46, 204, 113, 0.2); }
+    .status-declined { background: rgba(231, 76, 60, 0.1); color: var(--danger); border-color: rgba(231, 76, 60, 0.2); }
+
+    /* --- ACTIONS --- */
+    .action-group { display: flex; gap: 8px; justify-content: flex-end; }
+    .btn-action {
+      background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: white;
+      width: 36px; height: 36px; border-radius: 10px; cursor: pointer; transition: 0.3s; display: flex; align-items: center; justify-content: center;
+    }
+    .btn-action:hover { transform: translateY(-3px); box-shadow: 0 5px 15px rgba(0,0,0,0.3); }
+    .btn-confirm:hover { background: var(--success); border-color: var(--success); }
+    .btn-cancel:hover { background: var(--danger); border-color: var(--danger); }
+
+    .empty-state { text-align: center; padding: 100px 0; color: var(--text-muted); }
+    .empty-state i { font-size: 4rem; margin-bottom: 20px; opacity: 0.2; }
+
+    @media print {
+      .filter-bar, .action-group, .breadcrumbs, .navadmin { display: none !important; }
+      body { background: white; color: black; }
+      .table-container { border: none; }
+      .luxury-table tr td { border: 1px solid #ddd; color: black; }
+    }
+  </style>
+</head>
+<body>
+
+<%- include('../partials/navadmin') %>
+
+<div class="container">
+  <header class="page-header">
+    <div>
+      <div class="breadcrumbs">
+        <a href="/admin/dashboard">Command Center</a> / <span>Archive</span>
+      </div>
+      <h1>Isle <span>Archive</span></h1>
+    </div>
+    <div class="archive-stats">
+      Total Records: <span id="recordCount"><%= allBookings.length %></span><br>
+      Showing: <span id="visibleCount"><%= allBookings.length %></span>
+    </div>
+  </header>
+
+  <div class="filter-bar">
+    <div class="search-wrapper">
+      <i class="fas fa-search"></i>
+      <input type="text" id="searchInput" placeholder="Search by guest name or room..." onkeyup="filterTable()">
+    </div>
+    <div class="filter-group">
+      <select class="filter-select" id="statusFilter" onchange="filterTable()">
+        <option value="all">✧ All Statuses</option>
+        <option value="pending">🕒 Pending</option>
+        <option value="accepted">✅ Accepted</option>
+        <option value="declined">❌ Declined</option>
+      </select>
+      <button class="btn-export" onclick="window.print()">
+        <i class="fas fa-file-export"></i> Export PDF
+      </button>
+    </div>
+  </div>
+
+  <div class="table-container">
+    <table class="luxury-table" id="historyTable">
+      <thead>
+        <tr>
+          <th>Guest Detail</th>
+          <th>Accommodation</th>
+          <th>Period</th>
+          <th>Qty</th>
+          <th>Total Price</th>
+          <th>Status</th>
+          <th style="text-align: right;">Operations</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (allBookings && allBookings.length > 0) { %>
+          <% allBookings.forEach(booking => { %>
+            <tr id="row-<%= booking._id %>">
+              <td>
+                <div style="display: flex; flex-direction: column;">
+                  <span style="font-weight: 700; color: var(--brand-yellow);"><%= booking.userId ? booking.userId.fullname : 'Guest' %></span>
+                  <span style="font-size: 0.75rem; color: var(--text-muted);"><%= booking.contact %></span>
+                </div>
+              </td>
+              <td>
+                <span style="font-size: 0.85rem;">
+                    <i class="fas fa-bed" style="margin-right: 8px; opacity: 0.4;"></i>
+                    <%= booking.room %> <%= booking.cottageAddon ? '+ Cottage' : '' %>
+                </span>
+              </td>
+              <td>
+                <span style="font-size: 0.85rem;">
+                  <%= new Date(booking.checkin).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) %> 
+                  <i class="fas fa-long-arrow-alt-right" style="margin: 0 5px; opacity: 0.3;"></i>
+                  <%= new Date(booking.checkout).toLocaleDateString('en-US', {month: 'short', day: 'numeric', year: 'numeric'}) %>
+                </span>
+              </td>
+              <td><%= booking.guests %></td>
+              <td style="font-weight: 600; color: var(--success);">
+                ₱<%= (booking.totalPrice || 0).toLocaleString() %>
+              </td>
+              <td>
+                <span class="status-pill status-<%= (booking.status || 'pending').toLowerCase() %>" id="pill-<%= booking._id %>">
+                  <%= booking.status || 'Pending' %>
+                </span>
+              </td>
+              <td>
+                <div class="action-group">
+                  <button class="btn-action btn-confirm" title="Accept" onclick="updateStatus('<%= booking._id %>', 'accepted')">
+                    <i class="fas fa-check"></i>
+                  </button>
+                  <button class="btn-action btn-cancel" title="Decline" onclick="updateStatus('<%= booking._id %>', 'declined')">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        <% } else { %>
+          <tr>
+            <td colspan="7">
+              <div class="empty-state">
+                <i class="fas fa-folder-open"></i>
+                <p>The archives are currently empty.</p>
+              </div>
+            </td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<script>
+  function filterTable() {
+    const searchVal = document.getElementById("searchInput").value.toLowerCase();
+    const statusVal = document.getElementById("statusFilter").value.toLowerCase();
+    const rows = document.querySelectorAll("#historyTable tbody tr");
+    let visibleCount = 0;
+
+    rows.forEach(row => {
+      // Skip the "Empty State" row if it exists
+      if (row.cells.length < 5) return;
+
+      const name = row.cells[0].innerText.toLowerCase();
+      const room = row.cells[1].innerText.toLowerCase();
+      // Status is now cell index 5 due to added Total Price column
+      const status = row.cells[5].innerText.toLowerCase().trim();
+
+      const matchesSearch = name.includes(searchVal) || room.includes(searchVal);
+      const matchesStatus = statusVal === "all" || status === statusVal;
+
+      if (matchesSearch && matchesStatus) {
+        row.style.display = "";
+        visibleCount++;
+      } else {
+        row.style.display = "none";
+      }
+    });
+
+    document.getElementById("visibleCount").innerText = visibleCount;
+  }
+
+  async function updateStatus(bookingId, newStatus) {
+    const confirmAction = confirm(`Set this booking to ${newStatus.toUpperCase()}?`);
+    if (!confirmAction) return;
+
+    try {
+      const response = await fetch('/admin/booking/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, status: newStatus })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        const pill = document.getElementById(`pill-${bookingId}`);
+        pill.innerText = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+        pill.className = `status-pill status-${newStatus.toLowerCase()}`;
+        
+        const row = document.getElementById(`row-${bookingId}`);
+        row.style.background = 'rgba(46, 204, 113, 0.08)';
+        setTimeout(() => {
+          row.style.background = 'rgba(255,255,255,0.01)';
+        }, 1500);
+        
+        filterTable();
+      } else {
+        alert("Operation failed: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network error.");
+    }
+  }
+</script>
+
+</body>
+</html>

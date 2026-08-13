@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Admin Portal | Puffer Isle Resort</title>
+  <link rel="icon" type="image/png" href="/images/islelogo.png">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+  <style>
+    :root {
+      --brand-yellow: #FFD700; 
+      --brand-hover: #e6c200;
+      --accent-teal: #008080;
+      --dark-overlay: rgba(0, 0, 0, 0.6);
+      --glass-bg: rgba(0, 0, 0, 0.45);
+      --error: #ff4757;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #000;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+
+    /* ================= HERO VIDEO BACKGROUND (Matching Index) ================= */
+    .hero-video {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      z-index: -2;
+      filter: brightness(40%); /* Slightly darker than index for form legibility */
+    }
+
+    .hero-overlay {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: radial-gradient(circle, transparent 20%, rgba(0,0,0,0.8) 100%);
+      z-index: -1;
+    }
+
+    /* ================= LOGIN CONTAINER (The "Vibe" Match) ================= */
+    .login-container {
+      position: relative;
+      z-index: 2;
+      width: 100%;
+      max-width: 450px;
+      padding: 40px;
+      text-align: center;
+      animation: fadeInUp 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
+    }
+
+    @keyframes fadeInUp {
+      0% { opacity: 0; transform: translateY(30px); }
+      100% { opacity: 1; transform: translateY(0); }
+    }
+
+    /* Glassmorphism Card */
+    .login-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 24px;
+      padding: 50px 40px;
+      box-shadow: 0 25px 50px rgba(0, 0, 0, 0.5);
+    }
+
+    .hero-logo {
+      width: 120px;
+      margin-bottom: 1.5rem;
+      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.3));
+    }
+
+    h2 {
+      font-family: 'Playfair Display', serif;
+      color: white;
+      font-size: 2.2rem;
+      margin-bottom: 5px;
+    }
+
+    h2 span { color: var(--brand-yellow); }
+
+    .subtitle {
+      color: rgba(255, 255, 255, 0.7);
+      font-size: 0.85rem;
+      margin-bottom: 35px;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      font-weight: 300;
+    }
+
+    /* ================= FORM ELEMENTS ================= */
+    .form-group {
+      margin-bottom: 20px;
+      position: relative;
+      text-align: left;
+    }
+
+    .form-group i {
+      position: absolute;
+      left: 20px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--brand-yellow);
+      font-size: 1.1rem;
+    }
+
+    .form-group input {
+      width: 100%;
+      padding: 16px 20px 16px 55px;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      border-radius: 50px; /* Rounded like the Hero button */
+      color: white;
+      font-size: 0.95rem;
+      transition: all 0.3s ease;
+      outline: none;
+    }
+
+    .form-group input:focus {
+      background: rgba(255, 255, 255, 0.15);
+      border-color: var(--brand-yellow);
+      box-shadow: 0 0 15px rgba(255, 215, 0, 0.2);
+    }
+
+    .login-btn {
+      width: 100%;
+      padding: 16px;
+      background: var(--brand-yellow);
+      color: #1a1a1a;
+      border: none;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 1.1rem;
+      cursor: pointer;
+      transition: all 0.4s ease;
+      margin-top: 10px;
+      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.2);
+    }
+
+    .login-btn:hover {
+      background: white;
+      transform: translateY(-3px);
+      box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+    }
+
+    .error-msg {
+      background: rgba(255, 71, 87, 0.1);
+      border: 1px solid var(--error);
+      color: var(--error);
+      padding: 12px;
+      border-radius: 12px;
+      font-size: 0.85rem;
+      margin-top: 20px;
+      display: none;
+    }
+
+    .back-to-site {
+      margin-top: 30px;
+      display: inline-block;
+      color: rgba(255, 255, 255, 0.5);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: 0.3s;
+    }
+
+    .back-to-site:hover {
+      color: var(--brand-yellow);
+    }
+
+  </style>
+</head>
+<body>
+
+  <video autoplay muted loop playsinline class="hero-video">
+    <source src="/videos/resort2.mp4" type="video/mp4">
+  </video>
+  <div class="hero-overlay"></div>
+
+  <div class="login-container">
+    <div class="login-card">
+      <img src="/images/islelogo.png" alt="Resort Logo" class="hero-logo">
+      
+      <h2>Isle <span>Admin</span></h2>
+      <p class="subtitle">Secure Staff Access</p>
+
+      <form action="/admin/login" method="POST">
+        <div class="form-group">
+          <i class="fas fa-user-shield"></i>
+          <input type="text" name="email" placeholder="Admin Username" required>
+        </div>
+
+        <div class="form-group">
+          <i class="fas fa-key"></i>
+          <input type="password" name="password" placeholder="Access Code" required>
+        </div>
+
+        <button type="submit" class="login-btn">
+          Enter Sanctuary
+        </button>
+
+        <% if (locals.error) { %>
+          <div class="error-msg" style="display: block;">
+            <i class="fas fa-exclamation-triangle"></i> <%= error %>
+          </div>
+        <% } %>
+      </form>
+    </div>
+
+    <a href="/" class="back-to-site">
+      <i class="fas fa-arrow-left"></i> Return to Puffer Isle
+    </a>
+  </div>
+
+</body>
+</html>

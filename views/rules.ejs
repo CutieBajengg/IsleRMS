@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Resort Amenities & Rules | Puffer Isle Resort</title>
+
+  <link rel="icon" type="image/png" href="/images/islelogo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/all.min.css">
+
+  <style>
+    :root {
+      --brand-color: #FFD700; 
+      --brand-hover: #e6c200;
+      --accent-teal: #008080;
+      --dark: #1a1a1a;
+      --light-bg: #f9f9f9;
+      --glass: rgba(255, 255, 255, 0.9);
+      --danger: #d90429;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: "Poppins", sans-serif;
+      background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+      color: var(--dark);
+      min-height: 100vh;
+    }
+
+    main {
+      padding: 140px 20px 80px 20px;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .rules-container {
+      max-width: 1100px;
+      width: 100%;
+      background: var(--glass);
+      backdrop-filter: blur(10px);
+      border-radius: 40px;
+      display: grid;
+      grid-template-columns: 1.2fr 0.8fr; /* Matching your 1.2fr 0.8fr layout */
+      overflow: hidden;
+      box-shadow: 0 40px 100px rgba(0,0,0,0.15);
+      border: 1px solid rgba(255,255,255,0.3);
+      animation: slideUp 1s cubic-bezier(0.23, 1, 0.32, 1);
+    }
+
+    @keyframes slideUp {
+      from { opacity: 0; transform: translateY(50px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* ================= LEFT SIDE: CONTENT ================= */
+    .content-side {
+      padding: 50px;
+      background: white;
+    }
+
+    .content-side h2 {
+      font-size: 2.5rem;
+      font-weight: 700;
+      margin-bottom: 10px;
+      color: var(--dark);
+    }
+
+    .section-label {
+      display: block;
+      font-weight: 700;
+      text-transform: uppercase;
+      font-size: 0.8rem;
+      letter-spacing: 1.5px;
+      margin-top: 30px;
+      margin-bottom: 20px;
+      color: var(--accent-teal);
+    }
+
+    .description-text {
+      color: #555;
+      line-height: 1.8;
+      margin-bottom: 20px;
+      font-size: 0.95rem;
+    }
+
+    /* AMENITY GRID (Matching Room Card Vibe) */
+    .amenity-grid {
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      gap: 15px;
+      margin-top: 10px;
+    }
+
+    .amenity-item {
+      padding: 15px;
+      background: #fdfdfd;
+      border-radius: 20px;
+      border: 1px solid #eee;
+      display: flex;
+      align-items: center;
+      transition: 0.3s;
+    }
+
+    .amenity-item:hover {
+      border-color: var(--brand-color);
+      transform: translateY(-3px);
+    }
+
+    .amenity-item i {
+      font-size: 1.2rem;
+      color: var(--accent-teal);
+      margin-right: 15px;
+      width: 25px;
+      text-align: center;
+    }
+
+    .amenity-item span {
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    /* ================= RIGHT SIDE: IMPORTANT INFO ================= */
+    .info-side {
+      padding: 50px;
+      background: var(--dark);
+      color: white;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .info-header {
+      border-bottom: 1px solid rgba(255,255,255,0.1);
+      padding-bottom: 20px;
+      margin-bottom: 30px;
+    }
+
+    .fee-card {
+      background: rgba(255, 215, 0, 0.05);
+      padding: 20px;
+      border-radius: 20px;
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      margin-bottom: 20px;
+    }
+
+    .fee-card h4 {
+      color: var(--brand-color);
+      font-size: 0.9rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      margin-bottom: 10px;
+    }
+
+    .fee-card p {
+      font-size: 0.85rem;
+      color: rgba(255,255,255,0.8);
+      line-height: 1.6;
+    }
+
+    .tour-cta {
+      margin-top: auto;
+      background: var(--brand-color);
+      color: var(--dark);
+      padding: 20px;
+      border-radius: 20px;
+      text-align: center;
+      text-decoration: none;
+      font-weight: 700;
+      transition: 0.4s;
+    }
+
+    .tour-cta:hover {
+      background: white;
+      transform: translateY(-5px);
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 992px) {
+      .rules-container { grid-template-columns: 1fr; }
+      .info-side { border-radius: 0 0 40px 40px; }
+    }
+  </style>
+</head>
+<body>
+
+<%- include('partials/navbar') %>
+
+<main>
+  <div class="rules-container">
+    
+    <div class="content-side">
+      <h2>About the Space</h2>
+      <p class="description-text">
+        Welcome to <strong>Puffer Isle Resort</strong>! Our newly built Seabreeze rooms offer amazing views of the ocean and open up right into the beach. 
+        Wake up to the sound of waves and the fresh ocean breeze in our beachfront paradise.
+      </p>
+
+      <span class="section-label">Room Features</span>
+      <div class="amenity-grid">
+        <div class="amenity-item">
+          <i class="fas fa-users"></i>
+          <span>4-5 Guests Capacity</span>
+        </div>
+        <div class="amenity-item">
+          <i class="fas fa-wind"></i>
+          <span>AC and Fan Rooms</span>
+        </div>
+        <div class="amenity-item">
+          <i class="fas fa-sink"></i>
+          <span>Private Bath & Shower</span>
+        </div>
+        <div class="amenity-item">
+          <i class="fas fa-umbrella-beach"></i>
+          <span>Private Balcony</span>
+        </div>
+        <div class="amenity-item">
+          <i class="fas fa-soap"></i>
+          <span>Essential Toiletries</span>
+        </div>
+        <div class="amenity-item">
+          <i class="fas fa-chair"></i>
+          <span>Balcony Dining Set</span>
+        </div>
+      </div>
+
+      <span class="section-label">Resort Amenities</span>
+      <div class="amenity-grid">
+        <div class="amenity-item">
+          <i class="fas fa-swimmer"></i>
+          <span>Swimming Pool</span>
+        </div>
+        <div class="amenity-item">
+          <i class="fas fa-wifi"></i>
+          <span>Free Fast Wifi</span>
+        </div>
+        <div class="amenity-item">
+          <i class="fas fa-car"></i>
+          <span>Free Parking</span>
+        </div>
+        <div class="amenity-item">
+          <i class="fas fa-utensils"></i>
+          <span>Restaurant & Bar</span>
+        </div>
+        <div class="amenity-item">
+          <i class="fas fa-child"></i>
+          <span>Kids Play Area</span>
+        </div>
+        <div class="amenity-item">
+          <i class="fas fa-hamburger"></i>
+          <span>Main Dining Area</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-side">
+      <div class="info-header">
+        <h3 style="color: var(--brand-color);">Guest Information</h3>
+        <p style="font-size: 0.8rem; opacity: 0.6;">Dingalan, Aurora Local Policies</p>
+      </div>
+
+      <div class="fee-card">
+        <h4><i class="fas fa-leaf me-2"></i> Local Eco Fee</h4>
+        <p>Dingalan, Aurora charges an eco fee of <strong>₱50 per person</strong> for any non-local person. This is required upon check-in.</p>
+      </div>
+
+      <div class="fee-card">
+        <h4><i class="fas fa-shield-alt me-2"></i> Tourist Insurance</h4>
+        <p>A fee of <strong>₱100 per person</strong> is required for accident coverage during your stay. Terms available at the front desk.</p>
+      </div>
+
+      <div class="fee-card" style="border-style: dashed; background: transparent;">
+        <h4><i class="fas fa-concierge-bell me-2"></i> Custom Dining</h4>
+        <p>Indulge in local cuisine at our restaurant. For a fee, our chefs can cook specific dishes using ingredients you provide!</p>
+      </div>
+  
+      <p style="text-align: center; font-size: 0.7rem; margin-top: 15px; opacity: 0.5;">
+        Puffer Isle Resort © <%= new Date().getFullYear() %>
+      </p>
+    </div>
+
+  </div>
+</main>
+
+</body>
+</html>

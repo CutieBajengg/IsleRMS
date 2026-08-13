@@ -1,0 +1,266 @@
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+
+<header class="admin-header">
+  <div class="nav-wrapper">
+    <div class="logo-area">
+      <a href="/admin/dashboard" class="logo-link">
+        <div class="logo-bg">
+          <img src="/images/islelogo.png" alt="Puffer Isle Logo" class="admin-logo">
+        </div>
+        <div class="brand-text">
+          <span class="brand-title">Admin</span>
+          <span class="brand-subtitle">Panel</span>
+        </div>
+      </a>
+    </div>
+
+    <nav class="main-nav">
+      <ul class="nav-list">
+        <li>
+          <a href="/admin/dashboard" class="nav-link <%= title.includes('Dashboard') ? 'active' : '' %>">
+            <i class="fa-solid fa-chart-line"></i> Dashboard
+          </a>
+        </li>
+        <li>
+          <a href="/admin/analytics" class="nav-link <%= title.includes('Analytics') ? 'active' : '' %>">
+            <i class="fa-solid fa-chart-pie"></i> Analytics
+          </a>
+        </li>
+        <li>
+          <a href="/admin/history" class="nav-link <%= title.includes('History') ? 'active' : '' %>">
+            <i class="fa-solid fa-clock-rotate-left"></i> History
+          </a>
+        </li>
+        
+        <li class="nav-item dropdown">
+          <button class="nav-link dropbtn">
+            <i class="fa-solid fa-sliders"></i> Manage <i class="fa-solid fa-chevron-down s-icon"></i>
+          </button>
+          <div class="dropdown-menu">
+            <a href="/admin/users" class="dropdown-item <%= title.includes('Users') ? 'active' : '' %>">
+              <i class="fa-solid fa-users-gear"></i> User Management
+            </a>
+            <a href="/admin/rooms" class="dropdown-item">
+              <i class="fa-solid fa-bed"></i> Room Inventory
+            </a>
+          </div>
+        </li>
+      </ul>
+    </nav>
+
+    <div class="user-area">
+      <% if (admin) { %>
+        <div class="profile-dropdown">
+          <button class="profile-trigger">
+            <div class="avatar">
+              <i class="fa-solid fa-user-shield"></i>
+            </div>
+            <span class="username">pufferisleadmin</span>
+            <i class="fa-solid fa-angle-down"></i>
+          </button>
+          <div class="profile-menu">
+            <div class="menu-header">
+              <p>Signed in as</p>
+              <strong>Administrator</strong>
+            </div>
+            <hr>
+            <a href="/admin/settings" class="menu-item"><i class="fa-solid fa-cog"></i> Settings</a>
+            <a href="/admin/logout" class="menu-item logout"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a>
+          </div>
+        </div>
+      <% } %>
+    </div>
+  </div>
+</header>
+
+<style>
+  :root {
+    --admin-teal: #008080;
+    --admin-teal-dark: #006666;
+    --admin-accent: #FFD700; /* Matching your brand yellow */
+    --glass-bg: rgba(255, 255, 255, 0.1);
+    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  }
+
+  .admin-header {
+    background: var(--admin-teal);
+    background: linear-gradient(135deg, var(--admin-teal) 0%, var(--admin-teal-dark) 100%);
+    color: white;
+    padding: 0 40px;
+    height: 80px;
+    display: flex;
+    align-items: center;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
+  }
+
+  .nav-wrapper {
+    width: 100%;
+    max-width: 1600px;
+    margin: 0 auto;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  /* Logo Styling */
+  .logo-area .logo-link {
+    display: flex;
+    align-items: center;
+    text-decoration: none;
+    color: white;
+    gap: 15px;
+  }
+
+  .logo-bg {
+    background: white;
+    padding: 5px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
+  }
+
+  .admin-logo { width: 40px; height: 40px; }
+
+  .brand-text { display: flex; flex-direction: column; line-height: 1; }
+  .brand-title { font-weight: 700; font-size: 1.4rem; letter-spacing: 0.5px; }
+  .brand-subtitle { font-size: 0.8rem; text-transform: uppercase; color: var(--admin-accent); font-weight: 600; }
+
+  /* Navigation Links */
+  .main-nav .nav-list {
+    display: flex;
+    list-style: none;
+    gap: 10px;
+    align-items: center;
+  }
+
+  .nav-link {
+    color: rgba(255, 255, 255, 0.85);
+    text-decoration: none;
+    padding: 10px 18px;
+    border-radius: 10px;
+    font-weight: 500;
+    font-size: 0.95rem;
+    transition: var(--transition);
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    background: transparent;
+    border: none;
+    cursor: pointer;
+  }
+
+  .nav-link i { font-size: 1.1rem; }
+  .s-icon { font-size: 0.7rem !important; margin-left: 3px; }
+
+  .nav-link:hover {
+    background: var(--glass-bg);
+    color: white;
+    transform: translateY(-2px);
+  }
+
+  .nav-link.active {
+    background: white;
+    color: var(--admin-teal);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+  }
+
+  /* Dropdown Logic */
+  .dropdown, .profile-dropdown { position: relative; }
+
+  .dropdown-menu, .profile-menu {
+    position: absolute;
+    top: calc(100% + 15px);
+    right: 0;
+    background: white;
+    min-width: 220px;
+    border-radius: 15px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    padding: 10px;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+    transition: var(--transition);
+  }
+
+  .dropdown:hover .dropdown-menu,
+  .profile-dropdown:hover .profile-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+  }
+
+  .dropdown-item, .menu-item {
+    color: #444;
+    text-decoration: none;
+    padding: 12px 15px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    border-radius: 8px;
+    font-size: 0.9rem;
+    transition: var(--transition);
+  }
+
+  .dropdown-item:hover, .menu-item:hover {
+    background: #f4f7f7;
+    color: var(--admin-teal);
+    padding-left: 20px;
+  }
+
+  .dropdown-item.active {
+    background: rgba(0, 128, 128, 0.1);
+    color: var(--admin-teal);
+    font-weight: 600;
+  }
+
+  /* Profile Area */
+  .profile-trigger {
+    background: var(--glass-bg);
+    border: 1px solid rgba(255,255,255,0.2);
+    padding: 6px 15px 6px 6px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    cursor: pointer;
+    color: white;
+    transition: var(--transition);
+  }
+
+  .profile-trigger:hover { background: rgba(255,255,255,0.2); }
+
+  .avatar {
+    width: 35px;
+    height: 35px;
+    background: var(--admin-accent);
+    color: var(--admin-teal-dark);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.1rem;
+  }
+
+  .username { font-weight: 600; font-size: 0.9rem; }
+
+  .menu-header { padding: 10px 15px; }
+  .menu-header p { font-size: 0.75rem; color: #888; margin: 0; }
+  .menu-header strong { font-size: 0.95rem; color: #222; }
+  
+  hr { border: 0; border-top: 1px solid #eee; margin: 8px 0; }
+
+  .logout { color: #e74c3c !important; }
+  .logout:hover { background: #fdf2f2 !important; }
+
+  /* Responsive Mobile */
+  @media (max-width: 1024px) {
+    .brand-text { display: none; }
+    .nav-link span { display: none; } /* Show icons only */
+    .admin-header { padding: 0 20px; }
+  }
+</style>

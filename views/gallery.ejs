@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>360 Virtual Tour – Puffer Isle Resort</title>
+
+  <link rel="icon" type="image/png" href="/images/islelogo.png" />
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
+  
+  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+
+  <style>
+    :root {
+      --brand-color: #FFD700; /* New Brand Yellow */
+      --brand-hover: #e6c200;
+      --accent-teal: #008080;
+      --dark: #1a1a1a;
+      --light-bg: #ffffff;
+      --text-muted: #555;
+    }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--light-bg);
+      color: var(--dark);
+      overflow-x: hidden;
+      line-height: 1.6;
+    }
+
+    /* PAGE WRAPPER */
+    .tour-container {
+      padding-top: 120px; /* Space for Navbar */
+      padding-bottom: 80px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      min-height: 100vh;
+      max-width: 1400px;
+      margin: 0 auto;
+    }
+
+    .tour-header {
+      margin-bottom: 40px;
+      text-align: center;
+    }
+
+    .tour-header h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      color: var(--dark);
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+    }
+
+    .tour-header span {
+      color: var(--brand-color);
+      border-bottom: 6px solid var(--brand-color);
+    }
+
+    .tour-header p {
+      color: var(--text-muted);
+      margin-top: 10px;
+      font-weight: 300;
+    }
+
+    /* THE VIEWER */
+    .viewer-wrapper {
+      width: 95%;
+      height: 70vh;
+      min-height: 500px;
+      border-radius: 40px; /* More rounded like the About section */
+      overflow: hidden;
+      box-shadow: 0 30px 60px rgba(0,0,0,0.15);
+      border: 12px solid white; /* Thick premium border */
+      position: relative;
+      background: #000;
+    }
+
+    a-scene {
+      height: 100%;
+      width: 100%;
+    }
+
+    /* CONTROLS AREA */
+    .controls-container {
+      width: 100%;
+      margin-top: 40px;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 25px;
+    }
+
+    .btn-group {
+      display: flex;
+      align-items: center;
+      gap: 40px;
+    }
+
+    .btn {
+      padding: 16px 45px;
+      border-radius: 50px;
+      background: var(--dark);
+      color: var(--brand-color); /* Yellow on Dark */
+      border: none;
+      font-weight: 700;
+      font-size: 1rem;
+      cursor: pointer;
+      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .btn:hover:not(:disabled) {
+      background: var(--brand-color);
+      color: var(--dark);
+      transform: translateY(-5px);
+      box-shadow: 0 12px 25px rgba(255, 215, 0, 0.3);
+    }
+
+    .btn:disabled {
+      background: #eee;
+      color: #aaa;
+      cursor: not-allowed;
+      box-shadow: none;
+    }
+
+    /* NAVIGATION DOTS & PREVIEWS */
+    .nav-wrapper {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .dots { display: flex; gap: 15px; }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      background: #ddd;
+      transition: 0.4s;
+      border: 2px solid transparent;
+    }
+
+    .dot.active {
+      background: var(--brand-color);
+      transform: scale(1.8);
+      border-color: var(--dark);
+    }
+
+    .hint-box {
+      margin-top: 20px;
+      padding: 10px 30px;
+      background: rgba(255, 215, 0, 0.1);
+      border-radius: 50px;
+      font-size: 0.85rem;
+      color: var(--dark);
+      font-weight: 600;
+      letter-spacing: 0.5px;
+    }
+
+    /* RESPONSIVE */
+    @media (max-width: 768px) {
+      .viewer-wrapper { height: 50vh; border-width: 6px; }
+      .btn { padding: 12px 25px; font-size: 0.8rem; }
+      .tour-header h1 { font-size: 1.8rem; }
+    }
+  </style>
+</head>
+
+<body>
+
+<%- include('partials/navbar') %>
+
+<div class="tour-container">
+  <div class="tour-header">
+    <h1>Experience <span>The Isle</span></h1>
+    <p>Step inside our paradise through an immersive 360° perspective.</p>
+  </div>
+
+  <div class="viewer-wrapper">
+    <a-scene embedded vr-mode-ui="enabled: false">
+      <a-assets>
+        <img id="pano1" src="/images/pano.jpg">
+      </a-assets>
+
+      <a-entity position="0 0 0">
+        <a-camera id="camera" fov="80" look-controls="reverseMouseDrag: false" wasd-controls="enabled: false"></a-camera>
+      </a-entity>
+
+      <a-sky id="sky" src="#pano1" rotation="0 -90 0" transparent="true" opacity="1"></a-sky>
+    </a-scene>
+  </div>
+
+  <div class="controls-container">
+    <div class="btn-group">
+      <button class="btn" id="prevBtn">Previous</button>
+      
+      <div class="nav-wrapper">
+        <div class="dots">
+          <div class="dot active"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+          <div class="dot"></div>
+        </div>
+      </div>
+
+      <button class="btn" id="nextBtn">Next View</button>
+    </div>
+
+    <div class="hint-box">
+      ✨ <strong>INTERACTIVE:</strong> DRAG TO ROTATE • SCROLL TO ZOOM
+    </div>
+  </div>
+</div>
+
+<script>
+  const sky = document.querySelector('#sky');
+  const camera = document.querySelector('#camera');
+  const dots = document.querySelectorAll('.dot');
+  const nextBtn = document.getElementById('nextBtn');
+  const prevBtn = document.getElementById('prevBtn');
+
+  const scenes = [
+    "/images/pano.jpg",
+    "/images/pano2.jpg",
+    "/images/pano3.jpg",
+    "/images/pano4.jpg"
+  ];
+
+  let currentIndex = 0;
+
+  function updateUI() {
+    dots.forEach((dot, index) => {
+      dot.classList.toggle("active", index === currentIndex);
+    });
+    prevBtn.disabled = (currentIndex === 0);
+    nextBtn.disabled = (currentIndex === scenes.length - 1);
+  }
+
+  function fadeTo(image) {
+    // Smooth Fade Sequence
+    sky.setAttribute('animation', {
+      property: 'components.material.material.opacity',
+      to: 0,
+      dur: 400,
+      easing: 'easeInOutCubic'
+    });
+    
+    setTimeout(() => {
+      sky.setAttribute('src', image);
+      sky.setAttribute('animation', {
+        property: 'components.material.material.opacity',
+        to: 1,
+        dur: 400,
+        easing: 'easeInOutCubic'
+      });
+    }, 405);
+  }
+
+  nextBtn.onclick = () => {
+    if (currentIndex < scenes.length - 1) {
+      currentIndex++;
+      fadeTo(scenes[currentIndex]);
+      updateUI();
+    }
+  };
+
+  prevBtn.onclick = () => {
+    if (currentIndex > 0) {
+      currentIndex--;
+      fadeTo(scenes[currentIndex]);
+      updateUI();
+    }
+  };
+
+  // ZOOM CLAMPING - No more black screens
+  document.querySelector('.viewer-wrapper').addEventListener('wheel', (e) => {
+    e.preventDefault();
+    let fov = parseFloat(camera.getAttribute('fov'));
+    fov += (e.deltaY > 0) ? 3 : -3;
+    fov = Math.min(Math.max(fov, 30), 95); 
+    camera.setAttribute('fov', fov);
+  }, { passive: false });
+
+  updateUI();
+</script>
+
+</body>
+</html>

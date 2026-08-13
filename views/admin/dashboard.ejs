@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Command Center | Puffer Isle Resort</title>
+  <link rel="icon" type="image/png" href="/images/islelogo.png">
+  
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <style>
+    :root {
+      --brand-teal: #008080;
+      --brand-teal-dark: #004d4d;
+      --brand-yellow: #FFD700;
+      --bg-dark: #0a0c0e;
+      --card-bg: rgba(255, 255, 255, 0.03);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --text-main: #ffffff;
+      --text-muted: #a0a0a0;
+      --success: #2ecc71;
+      --danger: #e74c3c;
+      --warning: #f1c40f;
+    }
+
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg-dark); }
+    ::-webkit-scrollbar-thumb { background: var(--brand-teal); border-radius: 10px; }
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Poppins', sans-serif;
+      background-color: var(--bg-dark);
+      background-image: 
+        radial-gradient(circle at 10% 20%, rgba(0, 128, 128, 0.05) 0%, transparent 20%),
+        radial-gradient(circle at 90% 80%, rgba(255, 215, 0, 0.03) 0%, transparent 20%);
+      color: var(--text-main);
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
+
+    .dashboard-container { max-width: 1600px; margin: 40px auto; padding: 0 40px; }
+
+    .dash-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
+    .welcome-text h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; letter-spacing: -1px; }
+    .welcome-text h1 span { color: var(--brand-yellow); }
+    .welcome-text p { color: var(--text-muted); font-size: 0.95rem; }
+    .live-clock { background: var(--card-bg); border: 1px solid var(--card-border); padding: 10px 25px; border-radius: 15px; text-align: right; }
+    .live-clock span { display: block; color: var(--brand-yellow); font-weight: 700; font-size: 1.2rem; }
+
+    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 40px; }
+    .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); padding: 30px; border-radius: 24px; position: relative; overflow: hidden; transition: 0.3s; backdrop-filter: blur(10px); }
+    .stat-card:hover { border-color: var(--brand-teal); transform: translateY(-5px); }
+    .stat-card i { position: absolute; right: -10px; bottom: -10px; font-size: 5rem; color: rgba(255, 255, 255, 0.03); }
+    .stat-card .label { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
+    .stat-card .value { font-size: 2.2rem; font-weight: 700; margin: 5px 0; display: block; }
+    .stat-card .trend { font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 5px; }
+
+    .content-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 30px; padding: 35px; backdrop-filter: blur(10px); margin-bottom: 25px; }
+    .box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+    .luxury-table { width: 100%; border-collapse: separate; border-spacing: 0 12px; }
+    .luxury-table th { text-align: left; padding: 0 15px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
+    .luxury-table tr td { background: rgba(255,255,255,0.02); padding: 20px 15px; transition: 0.3s; border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
+    .luxury-table tr td:first-child { border-radius: 15px 0 0 15px; border-left: 1px solid var(--card-border); }
+    .luxury-table tr td:last-child { border-radius: 0 15px 15px 0; border-right: 1px solid var(--card-border); }
+    .luxury-table tr:hover td { background: rgba(0, 128, 128, 0.1); color: var(--brand-yellow); border-color: var(--brand-teal); }
+
+    .status-pill { padding: 6px 14px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
+    .status-pending { background: rgba(241, 196, 15, 0.1); color: var(--warning); border-color: rgba(241, 196, 15, 0.2); }
+    .status-accepted { background: rgba(46, 204, 113, 0.1); color: var(--success); border-color: rgba(46, 204, 113, 0.2); }
+    .status-declined { background: rgba(231, 76, 60, 0.1); color: var(--danger); border-color: rgba(231, 76, 60, 0.2); }
+
+    .command-group { display: flex; gap: 10px; justify-content: flex-end; }
+    .btn-command { 
+      background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: white; 
+      width: 35px; height: 35px; border-radius: 10px; cursor: pointer; transition: 0.3s; 
+      display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+    }
+    .btn-confirm:hover { background: var(--success); color: white; border-color: var(--success); box-shadow: 0 0 15px rgba(46, 204, 113, 0.3); }
+    .btn-cancel:hover { background: var(--danger); color: white; border-color: var(--danger); box-shadow: 0 0 15px rgba(231, 76, 60, 0.3); }
+
+    .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; }
+    .action-btn { width: 100%; background: var(--brand-teal); color: white; border: none; padding: 15px; border-radius: 15px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 10px; }
+    .action-btn:hover { background: var(--brand-yellow); color: var(--bg-dark); transform: translateY(-3px); }
+  </style>
+</head>
+<body>
+
+<%- include('../partials/navadmin') %>
+
+<div class="dashboard-container">
+  
+  <header class="dash-header">
+    <div class="welcome-text">
+      <p>System Overview</p>
+      <h1>Isle <span>Admin</span></h1>
+    </div>
+    <div class="live-clock">
+      <p>Dingalan Aurora, PH</p>
+      <span id="currentTime">00:00:00</span>
+    </div>
+  </header>
+
+  <div class="content-box">
+    <div class="box-header">
+      <h3 style="font-family: 'Playfair Display', serif; font-size: 1.6rem;">Recent Reservations</h3>
+      <a href="/admin/history" style="color: var(--brand-yellow); text-decoration: none; font-size: 0.85rem; font-weight: 600;">View History <i class="fas fa-arrow-right"></i></a>
+    </div>
+    <table class="luxury-table">
+      <thead>
+        <tr>
+          <th>Guest</th>
+          <th>Dwelling</th>
+          <th>Check In/Out</th>
+          <th>Qty</th>
+          <th>Status</th>
+          <th style="text-align: right;">Command</th>
+        </tr>
+      </thead>
+      <tbody>
+        <% if (recentBookings && recentBookings.length > 0) { %>
+          <% recentBookings.forEach(booking => { %>
+            <tr id="row-<%= booking._id %>">
+              <td>
+                <div style="display: flex; align-items: center; gap: 12px;">
+                  <div style="width: 32px; height: 32px; background: var(--brand-teal); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem;">
+                    <%= booking.userId && booking.userId.fullname ? booking.userId.fullname.charAt(0) : 'G' %>
+                  </div>
+                  <strong><%= booking.userId ? booking.userId.fullname : 'Guest User' %></strong>
+                </div>
+              </td>
+              <td style="font-size: 0.85rem;">
+                <i class="fas fa-umbrella-beach" style="color: var(--brand-yellow); opacity: 0.5; margin-right: 5px;"></i> 
+                <%= booking.roomDisplayName || booking.room %>
+              </td>
+              <td style="font-size: 0.85rem;"><%= new Date(booking.checkin).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) %> — <%= new Date(booking.checkout).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) %></td>
+              <td><%= booking.guests %></td>
+              <td>
+                <span class="status-pill status-<%= booking.status ? booking.status.toLowerCase() : 'pending' %>" id="pill-<%= booking._id %>">
+                  <%= booking.status || 'Pending' %>
+                </span>
+              </td>
+              <td>
+                <div class="command-group">
+                  <button class="btn-command btn-confirm" title="Accept Booking" onclick="handleStatusUpdate('<%= booking._id %>', 'accepted')">
+                    <i class="fas fa-check"></i>
+                  </button>
+                  <button class="btn-command btn-cancel" title="Decline Booking" onclick="handleStatusUpdate('<%= booking._id %>', 'declined')">
+                    <i class="fas fa-times"></i>
+                  </button>
+                </div>
+              </td>
+            </tr>
+          <% }) %>
+        <% } else { %>
+          <tr>
+            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px;">No pending actions found.</td>
+          </tr>
+        <% } %>
+      </tbody>
+    </table>
+  </div>
+
+  <section class="stats-grid">
+    <div class="stat-card">
+      <i class="fas fa-calendar-alt"></i>
+      <span class="label">Total Bookings</span>
+      <span class="value"><%= totalBookings %></span>
+      <span class="trend" style="color: var(--success)"><i class="fas fa-arrow-up"></i> Live</span>
+    </div>
+
+    <div class="stat-card" onclick="window.location.href='/admin/checkin-manager'" style="cursor: pointer;">
+      <i class="fas fa-bed"></i>
+      <span class="label">Live Occupancy</span>
+      <span class="value"><%= inHouseCount %> Guests</span>
+      <span class="trend" style="color: var(--brand-teal)">Manage Arrivals <i class="fas fa-chevron-right"></i></span>
+    </div>
+
+    <div class="stat-card">
+      <i class="fas fa-user-check"></i>
+      <span class="label">Active Admins</span>
+      <span class="value">1</span>
+      <span class="trend" style="color: var(--success)">Encrypted</span>
+    </div>
+    <div class="stat-card">
+      <i class="fas fa-star"></i>
+      <span class="label">Guest Rating</span>
+      <span class="value">4.9/5</span>
+      <span class="trend" style="color: var(--success)">Excellent</span>
+    </div>
+  </section>
+
+  <div class="main-grid">
+    <div class="content-box">
+      <div class="box-header">
+        <h3 style="font-family: 'Playfair Display', serif;">Engagement Analytics</h3>
+      </div>
+      <canvas id="revenueChart"></canvas>
+    </div>
+
+    <div class="content-box">
+      <div class="box-header">
+        <h3 style="font-family: 'Playfair Display', serif;">Quick Actions</h3>
+      </div>
+      
+      <button class="action-btn" onclick="window.location.href='/admin/checkin-manager'" style="background: var(--brand-yellow); color: var(--bg-dark); margin-bottom: 15px;">
+        <i class="fas fa-concierge-bell"></i> <strong>Open Front Desk</strong>
+      </button>
+
+      <button class="action-btn"><i class="fas fa-plus"></i> Manual Booking</button>
+      <button class="action-btn" style="background: transparent; border: 1px solid var(--card-border);"><i class="fas fa-file-invoice"></i> Export Analytics</button>
+      <button class="action-btn" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; margin-top: 20px;" onclick="window.location.href='/admin/logout'"><i class="fas fa-power-off"></i> System Logout</button>
+    </div>
+  </div>
+</div>
+
+<script>
+  function updateTime() {
+    const now = new Date();
+    document.getElementById('currentTime').innerText = now.toLocaleTimeString();
+  }
+  setInterval(updateTime, 1000);
+  updateTime();
+
+  async function handleStatusUpdate(bookingId, newStatus) {
+    const confirmAction = confirm(`Set this booking to ${newStatus.toUpperCase()}?`);
+    if (!confirmAction) return;
+
+    try {
+      const response = await fetch('/admin/booking/update-status', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ bookingId, status: newStatus })
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        const pill = document.getElementById(`pill-${bookingId}`);
+        pill.innerText = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
+        pill.className = `status-pill status-${newStatus.toLowerCase()}`;
+        
+        const row = document.getElementById(`row-${bookingId}`);
+        row.style.background = 'rgba(46, 204, 113, 0.05)';
+        setTimeout(() => row.style.background = 'transparent', 2000);
+      } else {
+        alert("Server Error: " + data.message);
+      }
+    } catch (err) {
+      console.error(err);
+      alert("Network Error: Could not update status.");
+    }
+  }
+
+  const ctx = document.getElementById('revenueChart').getContext('2d');
+  const gradient = ctx.createLinearGradient(0, 0, 0, 400);
+  gradient.addColorStop(0, 'rgba(0, 128, 128, 0.3)');
+  gradient.addColorStop(1, 'rgba(0, 128, 128, 0)');
+
+  new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
+      datasets: [{
+        label: 'Bookings',
+        data: [45, 59, 52, 81, 96, 120, 142],
+        borderColor: '#FFD700',
+        backgroundColor: gradient,
+        fill: true,
+        tension: 0.4,
+        borderWidth: 3,
+        pointRadius: 4,
+        pointBackgroundColor: '#FFD700'
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { display: false } },
+      scales: {
+        y: { display: false },
+        x: { grid: { display: false }, ticks: { color: '#a0a0a0' } }
+      }
+    }
+  });
+</script>
+
+</body>
+</html>

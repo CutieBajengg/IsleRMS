@@ -1,0 +1,274 @@
+<header>
+  <div class="logo-container">
+    <a href="/">
+      <img src="/images/islelogo.png" alt="Resort Logo" class="logo">
+    </a>
+    <h1 class="resort-title">Puffer Isle <span>Resort</span></h1>
+  </div>
+
+  <nav>
+    <a href="/" class="nav-link">Home</a>
+    <a href="/gallery" class="nav-link">Explore (360°)</a>
+    
+    <div class="dropdown">
+      <button class="dropbtn">Discover ▾</button>
+      <div class="dropdown-content">
+        <a href="/#about">The Story</a>
+        <a href="/#contact">Contact Us</a>
+        <a href="/rules">About the Space</a>
+      </div>
+    </div>
+
+    <% if (user) { %>
+      <a href="/booking" class="booking-nav-btn">Book Now</a>
+    <% } else { %>
+      <a href="#" id="bookingBtn" class="booking-nav-btn">Book Now</a>
+    <% } %>
+
+    <% if (user) { %>
+      <div class="dropdown">
+        <button class="dropbtn profile-pill">
+          <span class="avatar-icon">👤</span> 
+          <span class="user-name"><%= user.fullname.split(' ')[0] %></span>
+        </button>
+        <div class="dropdown-content profile-dropdown">
+          <a href="/profile">My Dashboard</a>
+          <a href="/logout" id="logoutTrigger" class="logout-text">Logout</a>
+        </div>
+      </div>
+    <% } else { %>
+      <button id="loginBtn" class="login-btn">Sign In</button>
+    <% } %>
+  </nav>
+</header>
+
+<% if (!user) { %>
+<div id="authModal" class="modal">
+  <div class="modal-content glass-card">
+    <span class="close">&times;</span>
+
+    <div id="loginForm" class="auth-box">
+      <div class="auth-header">
+        <h2>Welcome Back</h2>
+        <p>Login to manage your island escape</p>
+      </div>
+      <form method="POST" action="/login">
+        <div class="input-group">
+          <input type="email" name="username" placeholder="Email Address" required>
+        </div>
+        <div class="input-group">
+          <input type="password" name="password" placeholder="Password" required>
+        </div>
+        <button type="submit" class="auth-submit">Enter Paradise</button>
+      </form>
+      <p class="auth-footer">New to the Isle? <a href="#" id="showSignup">Create Account</a></p>
+    </div>
+
+    <div id="signupForm" class="auth-box hidden">
+      <div class="auth-header">
+        <h2>Join the Isle</h2>
+        <p>Start your journey with us today</p>
+      </div>
+      <form id="signupFormElem" method="POST" action="/signup">
+        <input type="text" name="fullname" placeholder="Full Name" required>
+        <input type="email" name="email" placeholder="Email Address" required>
+        <input type="password" name="password" placeholder="Create Password" required>
+        <input type="text" name="phone" id="phoneInput" placeholder="Contact (09xxxxxxxxx)" maxlength="11" required>
+        <small id="phoneError" class="error-msg">Please enter exactly 11 digits.</small>
+        <button type="submit" class="auth-submit">Register Now</button>
+      </form>
+      <p class="auth-footer">Already a member? <a href="#" id="showLogin">Sign In</a></p>
+    </div>
+  </div>
+</div>
+<% } %>
+
+<div id="logoutModal" class="modal">
+  <div class="modal-content glass-card">
+    <div class="auth-header">
+      <div style="font-size: 3rem; margin-bottom: 15px;">🏝️</div>
+      <h2>Leaving So Soon?</h2>
+      <p>Are you sure you want to log out? Any unsaved booking progress will be lost.</p>
+    </div>
+    <div style="display: flex; gap: 15px; margin-top: 20px;">
+      <button id="cancelLogout" class="auth-submit" style="background: rgba(255,255,255,0.1); color: white; border: 1px solid rgba(255,255,255,0.2);">Stay</button>
+      <a href="/logout" class="auth-submit" style="background: #ff4d4d; color: white; text-decoration: none; display: flex; align-items: center; justify-content: center;">Logout</a>
+    </div>
+  </div>
+</div>
+
+<style>
+/* --- BRAND VARIABLES --- */
+:root {
+  --brand-yellow: #FFD700;
+  --dark: #1a1a1a;
+  --glass-bg: rgba(20, 20, 20, 0.85); /* Darker to create clear boundaries */
+  --glass-border: rgba(255, 255, 255, 0.15);
+}
+
+/* --- HEADER --- */
+header {
+  display: flex; justify-content: space-between; align-items: center;
+  background: var(--dark); padding: 15px 60px; position: fixed;
+  width: 100%; top: 0; z-index: 1000; box-shadow: 0 10px 30px rgba(0,0,0,0.3);
+}
+
+.logo-container { display: flex; align-items: center; gap: 15px; }
+.logo { height: 45px; }
+.resort-title { font-size: 22px; font-weight: 700; color: white; margin: 0; }
+.resort-title span { color: var(--brand-yellow); }
+
+nav { display: flex; align-items: center; gap: 25px; }
+.nav-link, .dropbtn {
+  text-decoration: none; font-weight: 500; color: #ddd; background: none; 
+  border: none; cursor: pointer; font-size: 14px; text-transform: uppercase;
+}
+.nav-link:hover, .dropbtn:hover { color: var(--brand-yellow); }
+
+/* --- BUTTONS --- */
+.booking-nav-btn {
+  background: var(--brand-yellow); color: var(--dark) !important;
+  padding: 10px 22px; border-radius: 50px; text-decoration: none;
+  font-weight: 700; font-size: 13px; text-transform: uppercase;
+}
+
+.login-btn {
+  background: transparent; color: white; padding: 8px 20px;
+  border-radius: 50px; border: 2px solid rgba(255,255,255,0.2);
+  font-weight: 600; cursor: pointer;
+}
+
+/* --- DROPDOWNS --- */
+.dropdown { position: relative; display: flex; align-items: center; }
+.dropdown-content {
+  position: absolute; top: calc(100% + 15px); right: 0;
+  background: white; min-width: 200px; border-radius: 12px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2); opacity: 0; visibility: hidden; 
+  transform: translateY(10px); transition: 0.3s; z-index: 10;
+}
+.dropdown:hover .dropdown-content { opacity: 1; visibility: visible; transform: translateY(0); }
+.dropdown-content a { display: block; padding: 12px 20px; color: var(--dark); text-decoration: none; font-size: 14px; }
+.dropdown-content a:hover { background: var(--brand-yellow); }
+
+.profile-pill {
+  background: rgba(255,255,255,0.1) !important; padding: 8px 15px !important;
+  border-radius: 50px !important; display: flex; align-items: center; gap: 8px;
+}
+
+/* --- MODAL WRAPPER --- */
+.modal {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.6); /* Slightly lighter overlay */
+  backdrop-filter: blur(8px);
+  justify-content: center; align-items: center; z-index: 2000;
+}
+
+/* --- THE FLOATING CARD (Matches image_0e3801.png) --- */
+.glass-card {
+  background: var(--glass-bg);
+  border: 1px solid var(--glass-border);
+  padding: 50px 40px;
+  border-radius: 25px;
+  width: 90%;
+  max-width: 440px; /* Crucial for keeping it card-sized */
+  box-shadow: 0 30px 70px rgba(0,0,0,0.7);
+  text-align: center;
+  position: relative;
+  color: white;
+}
+
+.auth-header h2 { font-size: 2.5rem; color: #fff; margin-bottom: 8px; font-weight: 800; }
+.auth-header p { color: rgba(255,255,255,0.7); font-size: 1rem; margin-bottom: 30px; }
+
+.modal input {
+  width: 100%; margin-bottom: 15px; padding: 18px;
+  border-radius: 12px; border: none; background: #fff;
+  font-size: 1rem; color: #333;
+}
+
+.auth-submit {
+  width: 100%; background: #000; color: var(--brand-yellow);
+  border: none; padding: 16px; border-radius: 12px;
+  font-weight: 800; text-transform: uppercase; letter-spacing: 1px;
+  cursor: pointer; margin: 10px 0; transition: 0.3s;
+}
+.auth-submit:hover { transform: scale(1.03); background: #050505; }
+
+.auth-footer a { color: #00ced1; font-weight: 700; text-decoration: none; }
+
+.hidden { display: none; }
+.close { position: absolute; top: 20px; right: 25px; font-size: 30px; cursor: pointer; color: rgba(255,255,255,0.3); }
+.close:hover { color: #fff; }
+
+@media (max-width: 900px) {
+  header { padding: 15px 25px; }
+  .resort-title { display: none; }
+}
+</style>
+
+<script>
+document.addEventListener("DOMContentLoaded", () => {
+  const authModal = document.getElementById("authModal");
+  const logoutModal = document.getElementById("logoutModal");
+  const loginBtn = document.getElementById("loginBtn");
+  const bookingBtn = document.getElementById("bookingBtn");
+  const logoutTrigger = document.getElementById("logoutTrigger");
+  const closeBtn = document.querySelector(".close");
+  const cancelLogout = document.getElementById("cancelLogout");
+
+  const showSignup = document.getElementById("showSignup");
+  const showLogin = document.getElementById("showLogin");
+  const loginForm = document.getElementById("loginForm");
+  const signupForm = document.getElementById("signupForm");
+
+  // Open Login
+  function openAuth() {
+    if (!authModal) return;
+    authModal.style.display = "flex";
+    loginForm?.classList.remove("hidden");
+    signupForm?.classList.add("hidden");
+  }
+
+  loginBtn?.addEventListener("click", openAuth);
+  bookingBtn?.addEventListener("click", (e) => {
+    if(bookingBtn.getAttribute('href') === '#') {
+       e.preventDefault();
+       openAuth();
+    }
+  });
+
+  // Logout Trigger (The confirmation)
+  logoutTrigger?.addEventListener("click", (e) => {
+    e.preventDefault();
+    logoutModal.style.display = "flex";
+  });
+
+  // Closers
+  closeBtn?.addEventListener("click", () => authModal.style.display = "none");
+  cancelLogout?.addEventListener("click", () => logoutModal.style.display = "none");
+
+  window.addEventListener("click", (e) => {
+    if (e.target === authModal) authModal.style.display = "none";
+    if (e.target === logoutModal) logoutModal.style.display = "none";
+  });
+
+  // Toggles
+  showSignup?.addEventListener("click", (e) => {
+    e.preventDefault();
+    loginForm?.classList.add("hidden");
+    signupForm?.classList.remove("hidden");
+  });
+
+  showLogin?.addEventListener("click", (e) => {
+    e.preventDefault();
+    signupForm?.classList.add("hidden");
+    loginForm?.classList.remove("hidden");
+  });
+
+  // Validation
+  const phoneInput = document.getElementById("phoneInput");
+  phoneInput?.addEventListener("input", () => {
+    phoneInput.value = phoneInput.value.replace(/[^0-9]/g, '');
+  });
+});
+</script>
