@@ -1,324 +1,1815 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Puffer Isle Resort | Tropical Escape</title>
-  <link rel="icon" type="image/png" href="/images/islelogo.png">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>
+    Puffer Isle Resort | Tropical Escape
+  </title>
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/islelogo.png"
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
 
   <style>
-    @import url('https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap');
 
     :root {
-      /* Swapped: Teal is now the subtle accent, Yellow is the Brand Power */
-      --brand-color: #FFD700; 
+
+      --brand-color: #FFD700;
       --brand-hover: #e6c200;
+
       --accent-teal: #008080;
+
       --dark: #1a1a1a;
+      --dark-soft: #242424;
+
       --light-bg: #ffffff;
-      --text-muted: #555;
-      --glass: rgba(255, 255, 255, 0.1);
+      --section-bg: #f7f8f7;
+
+      --text: #222;
+      --text-muted: #666;
+
+      --border: #e8e8e8;
+
+      --shadow:
+        0 20px 50px rgba(0,0,0,0.08);
+
+      --shadow-heavy:
+        0 25px 70px rgba(0,0,0,0.14);
+
     }
 
-    * { margin:0; padding:0; box-sizing:border-box; }
+
+    /* ========================================
+       RESET
+    ======================================== */
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+
+    html {
+      scroll-behavior: smooth;
+    }
+
 
     body {
+
       font-family: 'Poppins', sans-serif;
-      scroll-behavior: smooth;
-      color: var(--dark);
-      background-color: var(--light-bg);
-      line-height: 1.6;
+
+      color: var(--text);
+
+      background:
+        var(--light-bg);
+
+      line-height: 1.7;
+
+      overflow-x: hidden;
+
     }
 
-    /* ================= HERO ================= */
+
+    a {
+      text-decoration: none;
+    }
+
+
+    /* ========================================
+       HERO
+    ======================================== */
+
     .hero {
+
       position: relative;
+
       height: 100vh;
+      min-height: 700px;
+
       overflow: hidden;
+
       display: flex;
+
       align-items: center;
       justify-content: center;
+
     }
+
 
     .hero video {
+
       position: absolute;
+
+      inset: 0;
+
       width: 100%;
       height: 100%;
+
       object-fit: cover;
-      filter: brightness(50%); /* Darker for better text pop */
+
+      filter:
+        brightness(45%)
+        saturate(90%);
+
+      transform: scale(1.02);
+
     }
+
+
+    .hero::after {
+
+      content: "";
+
+      position: absolute;
+
+      inset: 0;
+
+      background:
+        linear-gradient(
+          to bottom,
+          rgba(0,0,0,0.15),
+          rgba(0,0,0,0.55)
+        );
+
+      z-index: 1;
+
+    }
+
 
     .hero-text {
+
       position: relative;
+
       z-index: 2;
+
       color: white;
+
       text-align: center;
-      padding: 3rem;
-      border-radius: 24px;
-      backdrop-filter: blur(8px);
-      background: rgba(0,0,0,0.3);
-      border: 1px solid rgba(255,255,255,0.1);
-      animation: fadeInUp 1.2s cubic-bezier(0.23, 1, 0.32, 1) forwards;
-      max-width: 800px;
+
+      padding: 50px 55px;
+
+      border-radius: 28px;
+
+      background:
+        rgba(0,0,0,0.34);
+
+      backdrop-filter:
+        blur(12px);
+
+      -webkit-backdrop-filter:
+        blur(12px);
+
+      border:
+        1px solid
+        rgba(255,255,255,0.14);
+
+      box-shadow:
+        0 25px 80px
+        rgba(0,0,0,0.25);
+
+      animation:
+        fadeInUp
+        1.1s
+        cubic-bezier(0.23,1,0.32,1)
+        forwards;
+
+      max-width: 850px;
+
     }
+
 
     @keyframes fadeInUp {
-      0% { opacity: 0; transform: translateY(30px); }
-      100% { opacity: 1; transform: translateY(0); }
+
+      0% {
+        opacity: 0;
+        transform: translateY(35px);
+      }
+
+      100% {
+        opacity: 1;
+        transform: translateY(0);
+      }
+
     }
 
-    .hero-text h2 {
-      font-size: clamp(2rem, 5vw, 3.5rem);
-      margin-bottom: 1rem;
-      font-weight: 700;
-    }
-
-    .hero-text span {
-      color: var(--brand-color);
-    }
-
-    .hero-text p {
-      margin-bottom: 2rem;
-      font-size: 1.2rem;
-      font-weight: 300;
-      letter-spacing: 1px;
-    }
 
     .hero-logo {
-      width: 170px;
-      margin-bottom: 1.5rem;
-      filter: drop-shadow(0 0 10px rgba(255, 215, 0, 0.5));
+
+      width: 165px;
+
+      margin-bottom: 25px;
+
+      filter:
+        drop-shadow(
+          0 0 15px
+          rgba(255,215,0,0.45)
+        );
+
     }
+
+
+    .hero-text h2 {
+
+      font-size:
+        clamp(2.2rem, 5vw, 4rem);
+
+      line-height: 1.15;
+
+      margin-bottom: 20px;
+
+      font-weight: 700;
+
+      letter-spacing:
+        -1px;
+
+    }
+
+
+    .hero-text h2 span {
+      color: var(--brand-color);
+    }
+
+
+    .hero-text p {
+
+      margin: 0 auto 30px;
+
+      max-width: 650px;
+
+      font-size: 1.12rem;
+
+      font-weight: 300;
+
+      letter-spacing:
+        0.5px;
+
+      color:
+        rgba(255,255,255,0.88);
+
+    }
+
 
     .hero-btn {
-      background: var(--brand-color);
-      color: var(--dark);
-      font-weight: 700;
-      padding: 16px 40px;
-      border-radius: 50px;
-      text-decoration: none;
-      transition: all 0.4s ease;
-      font-size: 1.1rem;
-      display: inline-block;
-      box-shadow: 0 4px 15px rgba(255, 215, 0, 0.3);
+
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
+
+      font-weight:
+        700;
+
+      padding:
+        16px 38px;
+
+      border-radius:
+        50px;
+
+      display:
+        inline-block;
+
+      font-size:
+        1rem;
+
+      transition:
+        all 0.3s ease;
+
+      box-shadow:
+        0 10px 30px
+        rgba(255,215,0,0.25);
+
     }
+
 
     .hero-btn:hover {
-      background: white;
-      color: var(--dark);
-      transform: translateY(-5px);
-      box-shadow: 0 10px 25px rgba(255, 255, 255, 0.2);
+
+      background:
+        white;
+
+      transform:
+        translateY(-4px);
+
+      box-shadow:
+        0 15px 35px
+        rgba(255,255,255,0.18);
+
     }
 
-    /* ================= SLEEK ABOUT SECTION ================= */
-    #about {
-      padding: 100px 10%;
-      display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 60px;
-      align-items: center;
+
+    /* ========================================
+       SECTION HEADINGS
+    ======================================== */
+
+    .section-heading {
+
+      text-align:
+        center;
+
+      max-width:
+        720px;
+
+      margin:
+        0 auto 55px;
+
     }
+
+
+    .section-label {
+
+      display:
+        inline-block;
+
+      margin-bottom:
+        10px;
+
+      color:
+        var(--accent-teal);
+
+      font-size:
+        0.75rem;
+
+      font-weight:
+        700;
+
+      text-transform:
+        uppercase;
+
+      letter-spacing:
+        2.5px;
+
+    }
+
+
+    .section-heading h2 {
+
+      font-size:
+        clamp(2rem,4vw,3rem);
+
+      line-height:
+        1.2;
+
+      margin-bottom:
+        15px;
+
+      color:
+        var(--dark);
+
+    }
+
+
+    .section-heading p {
+
+      color:
+        var(--text-muted);
+
+      font-size:
+        1rem;
+
+    }
+
+
+    /* ========================================
+       ABOUT
+    ======================================== */
+
+    #about {
+
+      padding:
+        110px 8%;
+
+      display:
+        grid;
+
+      grid-template-columns:
+        1fr 1fr;
+
+      gap:
+        75px;
+
+      align-items:
+        center;
+
+      background:
+        var(--light-bg);
+
+    }
+
 
     .about-image-stack {
-      position: relative;
+
+      position:
+        relative;
+
+      padding:
+        0 18px 18px 0;
+
     }
+
+
+    .about-image-stack::after {
+
+      content:
+        "";
+
+      position:
+        absolute;
+
+      right:
+        0;
+
+      bottom:
+        0;
+
+      width:
+        85%;
+
+      height:
+        85%;
+
+      border:
+        3px solid
+        var(--brand-color);
+
+      border-radius:
+        24px;
+
+      z-index:
+        0;
+
+    }
+
 
     .about-image-stack img {
-      width: 100%;
-      border-radius: 20px;
-      box-shadow: 20px 20px 0px var(--brand-color);
+
+      position:
+        relative;
+
+      z-index:
+        1;
+
+      width:
+        100%;
+
+      display:
+        block;
+
+      border-radius:
+        24px;
+
+      box-shadow:
+        var(--shadow-heavy);
+
+      object-fit:
+        cover;
+
     }
+
 
     .about-content {
-      text-align: left;
+
+      position:
+        relative;
+
     }
+
+
+    .about-content .section-label {
+
+      text-align:
+        left;
+
+    }
+
 
     .about-content h2 {
-      font-size: 2.5rem;
-      color: var(--dark);
-      margin-bottom: 1.5rem;
-      position: relative;
-      display: inline-block;
+
+      font-size:
+        clamp(2rem,4vw,2.8rem);
+
+      line-height:
+        1.2;
+
+      color:
+        var(--dark);
+
+      margin-bottom:
+        22px;
+
     }
+
 
     .about-content h2::after {
-      content: '';
-      position: absolute;
-      bottom: -10px;
-      left: 0;
-      width: 60px;
-      height: 5px;
-      background: var(--brand-color);
+
+      content:
+        "";
+
+      display:
+        block;
+
+      width:
+        65px;
+
+      height:
+        5px;
+
+      background:
+        var(--brand-color);
+
+      border-radius:
+        20px;
+
+      margin-top:
+        15px;
+
     }
+
 
     .about-content p {
-      font-size: 1.1rem;
-      color: var(--text-muted);
-      margin-bottom: 1.5rem;
+
+      font-size:
+        1.02rem;
+
+      color:
+        var(--text-muted);
+
+      margin-bottom:
+        20px;
+
     }
 
-    /* ================= CONTACT SECTION ================= */
-    #contact { 
-      padding: 100px 5%;
-      background: #fdfdfd; 
+
+    .about-content strong {
+      color:
+        var(--dark);
     }
 
-    #contact h2 {
-      font-size: 2.5rem;
-      margin-bottom: 3rem;
-      text-align: center;
-      color: var(--dark);
+
+    /* ========================================
+       CONTACT SECTION
+    ======================================== */
+
+    #contact {
+
+      padding:
+        110px 6%;
+
+      background:
+        var(--section-bg);
+
+      position:
+        relative;
+
     }
 
-    .contact-container {
-      display: grid;
-      grid-template-columns: 1.5fr 1fr;
-      gap: 30px;
-      max-width: 1200px;
-      margin: 0 auto;
+
+    .contact-wrapper {
+
+      max-width:
+        1250px;
+
+      margin:
+        0 auto;
+
+      display:
+        grid;
+
+      grid-template-columns:
+        1.15fr 0.85fr;
+
+      gap:
+        30px;
+
+      align-items:
+        stretch;
+
     }
+
+
+    /* ========================================
+       MAP
+    ======================================== */
+
+    .map-card {
+
+      min-height:
+        560px;
+
+      background:
+        white;
+
+      border-radius:
+        28px;
+
+      overflow:
+        hidden;
+
+      box-shadow:
+        var(--shadow);
+
+      border:
+        1px solid
+        rgba(0,0,0,0.04);
+
+      position:
+        relative;
+
+    }
+
 
     .map {
-      border-radius: 24px;
-      overflow: hidden;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.05);
-      height: 450px;
+
+      width:
+        100%;
+
+      height:
+        100%;
+
+      min-height:
+        560px;
+
     }
 
-    .contact-info {
-      background: var(--dark);
-      color: white;
-      border-radius: 24px;
-      padding: 3rem;
-      display: flex;
-      flex-direction: column;
-      justify-content: center;
-      box-shadow: 0 20px 40px rgba(0,0,0,0.1);
+
+    .map iframe {
+
+      width:
+        100%;
+
+      height:
+        100%;
+
+      display:
+        block;
+
+      border:
+        0;
+
     }
 
-    .contact-info h3 {
-      color: var(--brand-color);
-      font-size: 1.8rem;
-      margin-bottom: 1.5rem;
+
+    .map-label {
+
+      position:
+        absolute;
+
+      left:
+        20px;
+
+      top:
+        20px;
+
+      z-index:
+        2;
+
+      background:
+        rgba(255,255,255,0.95);
+
+      padding:
+        10px 16px;
+
+      border-radius:
+        12px;
+
+      box-shadow:
+        0 8px 25px
+        rgba(0,0,0,0.12);
+
+      font-size:
+        0.8rem;
+
+      font-weight:
+        600;
+
+      color:
+        var(--dark);
+
+      backdrop-filter:
+        blur(8px);
+
     }
 
-    .contact-info p {
-      margin-bottom: 1rem;
-      font-size: 1.1rem;
-      display: flex;
-      align-items: center;
-      gap: 10px;
+
+    /* ========================================
+       CONTACT INFORMATION CARD
+    ======================================== */
+
+    .contact-card {
+
+      background:
+        var(--dark);
+
+      color:
+        white;
+
+      border-radius:
+        28px;
+
+      padding:
+        45px;
+
+      box-shadow:
+        var(--shadow-heavy);
+
+      display:
+        flex;
+
+      flex-direction:
+        column;
+
+      justify-content:
+        center;
+
+      position:
+        relative;
+
+      overflow:
+        hidden;
+
     }
+
+
+    .contact-card::before {
+
+      content:
+        "";
+
+      position:
+        absolute;
+
+      width:
+        260px;
+
+      height:
+        260px;
+
+      border-radius:
+        50%;
+
+      background:
+        rgba(255,215,0,0.06);
+
+      top:
+        -120px;
+
+      right:
+        -100px;
+
+    }
+
+
+    .contact-card::after {
+
+      content:
+        "";
+
+      position:
+        absolute;
+
+      width:
+        180px;
+
+      height:
+        180px;
+
+      border-radius:
+        50%;
+
+      border:
+        1px solid
+        rgba(255,215,0,0.12);
+
+      bottom:
+        -90px;
+
+      left:
+        -80px;
+
+    }
+
+
+    .contact-card-content {
+
+      position:
+        relative;
+
+      z-index:
+        2;
+
+    }
+
+
+    .contact-eyebrow {
+
+      color:
+        var(--brand-color);
+
+      font-size:
+        0.75rem;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        2px;
+
+      text-transform:
+        uppercase;
+
+      margin-bottom:
+        12px;
+
+    }
+
+
+    .contact-card h3 {
+
+      font-size:
+        clamp(1.8rem,3vw,2.35rem);
+
+      line-height:
+        1.2;
+
+      margin-bottom:
+        15px;
+
+    }
+
+
+    .contact-intro {
+
+      color:
+        rgba(255,255,255,0.7);
+
+      font-size:
+        0.95rem;
+
+      margin-bottom:
+        35px;
+
+      line-height:
+        1.7;
+
+    }
+
+
+    /* ========================================
+       CONTACT ITEMS
+    ======================================== */
+
+    .contact-details {
+
+      display:
+        flex;
+
+      flex-direction:
+        column;
+
+      gap:
+        22px;
+
+    }
+
+
+    .contact-item {
+
+      display:
+        flex;
+
+      align-items:
+        flex-start;
+
+      gap:
+        15px;
+
+    }
+
+
+    .contact-icon {
+
+      flex:
+        0 0 45px;
+
+      width:
+        45px;
+
+      height:
+        45px;
+
+      border-radius:
+        13px;
+
+      background:
+        rgba(255,215,0,0.1);
+
+      border:
+        1px solid
+        rgba(255,215,0,0.18);
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      color:
+        var(--brand-color);
+
+      font-size:
+        1.15rem;
+
+    }
+
+
+    .contact-item-text {
+
+      min-width:
+        0;
+
+    }
+
+
+    .contact-item-label {
+
+      display:
+        block;
+
+      color:
+        rgba(255,255,255,0.45);
+
+      font-size:
+        0.68rem;
+
+      text-transform:
+        uppercase;
+
+      letter-spacing:
+        1.5px;
+
+      margin-bottom:
+        2px;
+
+    }
+
+
+    .contact-item a,
+    .contact-item span.value {
+
+      color:
+        white;
+
+      font-size:
+        0.92rem;
+
+      word-break:
+        break-word;
+
+    }
+
+
+    .contact-item a {
+
+      transition:
+        color 0.25s ease;
+
+    }
+
+
+    .contact-item a:hover {
+
+      color:
+        var(--brand-color);
+
+    }
+
+
+    /* ========================================
+       BUSINESS HOURS
+    ======================================== */
+
+    .business-hours {
+
+      margin-top:
+        32px;
+
+      padding-top:
+        25px;
+
+      border-top:
+        1px solid
+        rgba(255,255,255,0.1);
+
+    }
+
+
+    .business-hours-title {
+
+      color:
+        white;
+
+      font-size:
+        0.85rem;
+
+      font-weight:
+        600;
+
+      margin-bottom:
+        10px;
+
+    }
+
+
+    .business-hours p {
+
+      color:
+        rgba(255,255,255,0.6);
+
+      font-size:
+        0.82rem;
+
+    }
+
+
+    /* ========================================
+       FACEBOOK BUTTON
+    ======================================== */
 
     .contact-btn {
-      margin-top: 2rem;
-      display: inline-block;
-      background: var(--brand-color);
-      color: var(--dark);
-      padding: 14px 28px;
-      border-radius: 12px;
-      font-weight: bold;
-      text-decoration: none;
-      transition: 0.3s;
-      text-align: center;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      gap:
+        10px;
+
+      margin-top:
+        30px;
+
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
+
+      padding:
+        15px 22px;
+
+      border-radius:
+        14px;
+
+      font-weight:
+        700;
+
+      font-size:
+        0.9rem;
+
+      transition:
+        all 0.3s ease;
+
+      box-shadow:
+        0 8px 20px
+        rgba(255,215,0,0.15);
+
     }
+
 
     .contact-btn:hover {
-      background: white;
-      transform: scale(1.02);
+
+      background:
+        white;
+
+      transform:
+        translateY(-3px);
+
+      box-shadow:
+        0 12px 25px
+        rgba(255,255,255,0.1);
+
     }
 
-    /* ================= FOOTER ================= */
+
+    /* ========================================
+       FOOTER
+    ======================================== */
+
     footer {
-      background: #111;
-      color: rgba(255,255,255,0.6);
-      text-align: center;
-      padding: 3rem;
-      font-size: 0.9rem;
+
+      background:
+        #111;
+
+      color:
+        rgba(255,255,255,0.6);
+
+      text-align:
+        center;
+
+      padding:
+        35px 20px;
+
+      font-size:
+        0.82rem;
+
     }
 
-    /* ================= RESPONSIVE ================= */
-    @media (max-width: 992px) {
-      #about { grid-template-columns: 1fr; text-align: center; }
-      .about-content h2::after { left: 50%; transform: translateX(-50%); }
-      .contact-container { grid-template-columns: 1fr; }
-      .map { height: 300px; order: 2; }
+
+    footer strong {
+
+      color:
+        var(--brand-color);
+
     }
+
+
+    /* ========================================
+       RESPONSIVE
+    ======================================== */
+
+    @media (max-width: 992px) {
+
+      #about {
+
+        grid-template-columns:
+          1fr;
+
+        padding:
+          85px 7%;
+
+        gap:
+          50px;
+
+      }
+
+
+      .about-content {
+
+        text-align:
+          center;
+
+      }
+
+
+      .about-content .section-label {
+
+        text-align:
+          center;
+
+      }
+
+
+      .about-content h2::after {
+
+        margin-left:
+          auto;
+
+        margin-right:
+          auto;
+
+      }
+
+
+      .contact-wrapper {
+
+        grid-template-columns:
+          1fr;
+
+      }
+
+
+      .map-card,
+      .map {
+
+        min-height:
+          400px;
+
+      }
+
+    }
+
+
+    @media (max-width: 600px) {
+
+      .hero {
+
+        min-height:
+          620px;
+
+      }
+
+
+      .hero-text {
+
+        width:
+          calc(100% - 30px);
+
+        padding:
+          40px 25px;
+
+        border-radius:
+          22px;
+
+      }
+
+
+      .hero-logo {
+
+        width:
+          130px;
+
+      }
+
+
+      .hero-text p {
+
+        font-size:
+          0.95rem;
+
+      }
+
+
+      .hero-btn {
+
+        padding:
+          14px 28px;
+
+        font-size:
+          0.9rem;
+
+      }
+
+
+      #about {
+
+        padding:
+          70px 20px;
+
+      }
+
+
+      #contact {
+
+        padding:
+          70px 15px;
+
+      }
+
+
+      .contact-card {
+
+        padding:
+          32px 25px;
+
+        border-radius:
+          22px;
+
+      }
+
+
+      .map-card {
+
+        border-radius:
+          22px;
+
+      }
+
+
+      .map,
+      .map-card {
+
+        min-height:
+          330px;
+
+      }
+
+
+      .contact-icon {
+
+        flex-basis:
+          40px;
+
+        width:
+          40px;
+
+        height:
+          40px;
+
+      }
+
+    }
+
   </style>
+
 </head>
+
+
 <body>
+
+
+  <!-- ======================================
+       NAVBAR
+  ======================================= -->
 
   <%- include('partials/navbar') %>
 
-  <section class="hero" id="home">
-    <video autoplay muted loop playsinline poster="/images/resort1.jpg">
-      <source src="/videos/resort2.mp4" type="video/mp4">
+
+  <!-- ======================================
+       HERO
+  ======================================= -->
+
+  <section
+    class="hero"
+    id="home"
+  >
+
+    <video
+      autoplay
+      muted
+      loop
+      playsinline
+      poster="/images/resort1.jpg"
+    >
+
+      <source
+        src="/videos/resort2.mp4"
+        type="video/mp4"
+      >
+
     </video>
 
+
     <div class="hero-text">
-      <img src="/images/islelogo.png" alt="Resort Logo" class="hero-logo">
-      <h2>Experience <span>Puffer Isle</span></h2>
-      <p>A sanctuary where the sky kisses the sea and luxury meets the wild.</p>
+
+      <img
+        src="/images/islelogo.png"
+        alt="Puffer Isle Resort Logo"
+        class="hero-logo"
+      >
+
+
+      <h2>
+        Experience
+        <span>Puffer Isle</span>
+      </h2>
+
+
+      <p>
+        A sanctuary where the sky kisses the sea
+        and luxury meets the wild.
+      </p>
+
 
       <% if (user) { %>
-        <a href="/booking" class="hero-btn">Start Your Journey</a>
+
+        <a
+          href="/booking"
+          class="hero-btn"
+        >
+          Start Your Journey
+        </a>
+
       <% } else { %>
-        <a href="#" id="heroBookingBtn" class="hero-btn">Start Your Journey</a>
+
+        <a
+          href="#"
+          id="heroBookingBtn"
+          class="hero-btn"
+        >
+          Start Your Journey
+        </a>
+
       <% } %>
+
     </div>
+
   </section>
+
+
+  <!-- ======================================
+       ABOUT
+  ======================================= -->
 
   <section id="about">
+
     <div class="about-image-stack">
-      <img src="/images/resort1.jpg" alt="Resort View">
+
+      <img
+        src="/images/resort1.jpg"
+        alt="Beautiful view of Puffer Isle Resort"
+      >
+
     </div>
+
+
     <div class="about-content">
-      <h2>About Our Isle</h2>
+
+      <span class="section-label">
+        Discover Puffer Isle
+      </span>
+
+
+      <h2>
+        About Our Isle
+      </h2>
+
+
       <p>
-        Puffer Isle Resort offers a transcendent escape into nature, blending traditional Filipino hospitality with modern coastal comfort. From our climate-controlled suites to the rustic charm of our seaside <strong>Bahay Kubo</strong>, every corner is designed for serenity.
+
+        Puffer Isle Resort offers a transcendent
+        escape into nature, blending traditional
+        Filipino hospitality with modern coastal
+        comfort.
+
+        From our climate-controlled suites to the
+        rustic charm of our seaside
+        <strong>Bahay Kubo</strong>,
+        every corner is designed for serenity.
+
       </p>
+
+
       <p>
-        Whether you're lounging by our crystal-clear pools, pitching a tent under the starlit canopy, or enjoying a private dinner by the shore, your time here is defined by peace. <strong>Our mission is to provide more than just a stay; we provide a space where memories are woven into the very fabric of the island's breeze.</strong>
+
+        Whether you're lounging by our
+        crystal-clear pools, pitching a tent under
+        the starlit canopy, or enjoying a private
+        dinner by the shore, your time here is
+        defined by peace.
+
+        <strong>
+          Our mission is to provide more than just
+          a stay; we provide a space where memories
+          are woven into the very fabric of the
+          island's breeze.
+        </strong>
+
       </p>
+
     </div>
+
   </section>
+
+
+  <!-- ======================================
+       CONTACT
+  ======================================= -->
 
   <section id="contact">
-    <h2>Connect With Us</h2>
 
-    <div class="contact-container">
-      <div class="map">
-        <iframe 
-          src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.794746437253!2d121.3917462153302!3d15.259247498997667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339743e2cdc9555f%3A0x7564b23bbd7617b9!2sPuffer%20Isle%20Resort!5e0!3m2!1sen!2sph!4v1700000000000!5m2!1sen!2sph" 
-          width="100%" height="100%" style="border:0;" allowfullscreen="" loading="lazy">
-        </iframe >
-      </div>
 
-      <div class="contact-info">
-        <h3>Get in Touch</h3>
-        <p><strong>📞</strong> 0900-000-0000</p>
-        <p><strong>✉️</strong> info@pufferisleresort.com</p>
-        <p><strong>📍</strong> Puffer Isle, Coastal Road, Philippines</p>
-        <a href="#" class="contact-btn">Message Us on Facebook</a>
-      </div>
+    <div class="section-heading">
+
+      <span class="section-label">
+        We're Here For You
+      </span>
+
+
+      <h2>
+        Contact Us
+      </h2>
+
+
+      <p>
+
+        Planning your escape or have a question
+        about your stay?
+
+        Our team is ready to help make your
+        Puffer Isle experience exceptional.
+
+      </p>
+
     </div>
+
+
+    <div class="contact-wrapper">
+
+
+      <!-- ====================================
+           MAP
+      ===================================== -->
+
+      <div class="map-card">
+
+        <div class="map-label">
+          📍 Find Us at Puffer Isle
+        </div>
+
+
+        <div class="map">
+
+          <iframe
+
+            src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.794746437253!2d121.3917462153302!3d15.259247498997667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339743e2cdc9555f%3A0x7564b23bbd7617b9!2sPuffer%20Isle%20Resort!5e0!3m2!1sen!2sph!4v1700000000000!5m2!1sen!2sph"
+
+            title="Puffer Isle Resort Location"
+
+            allowfullscreen
+
+            loading="lazy"
+
+            referrerpolicy="no-referrer-when-downgrade"
+
+          ></iframe>
+
+        </div>
+
+      </div>
+
+
+      <!-- ====================================
+           CONTACT CARD
+      ===================================== -->
+
+      <div class="contact-card">
+
+        <div class="contact-card-content">
+
+
+          <div class="contact-eyebrow">
+            Get In Touch
+          </div>
+
+
+          <h3>
+            We'd Love To Hear From You
+          </h3>
+
+
+          <p class="contact-intro">
+
+            Whether you're planning a relaxing
+            getaway, asking about accommodations,
+            or simply want to learn more about
+            Puffer Isle, feel free to reach out.
+
+          </p>
+
+
+          <div class="contact-details">
+
+
+            <!-- PHONE -->
+
+            <div class="contact-item">
+
+              <div class="contact-icon">
+                ☎
+              </div>
+
+
+              <div class="contact-item-text">
+
+                <span class="contact-item-label">
+                  Phone
+                </span>
+
+
+                <a href="tel:09000000000">
+                  0900-000-0000
+                </a>
+
+              </div>
+
+            </div>
+
+
+            <!-- EMAIL -->
+
+            <div class="contact-item">
+
+              <div class="contact-icon">
+                ✉
+              </div>
+
+
+              <div class="contact-item-text">
+
+                <span class="contact-item-label">
+                  Email
+                </span>
+
+
+                <a
+                  href="mailto:info@pufferisleresort.com"
+                >
+                  info@pufferisleresort.com
+                </a>
+
+              </div>
+
+            </div>
+
+
+            <!-- LOCATION -->
+
+            <div class="contact-item">
+
+              <div class="contact-icon">
+                📍
+              </div>
+
+
+              <div class="contact-item-text">
+
+                <span class="contact-item-label">
+                  Location
+                </span>
+
+
+                <span class="value">
+                  Puffer Isle, Coastal Road,
+                  Philippines
+                </span>
+
+              </div>
+
+            </div>
+
+
+          </div>
+
+
+          <!-- ==================================
+               BUSINESS HOURS
+          =================================== -->
+
+          <div class="business-hours">
+
+            <div class="business-hours-title">
+              Guest Services
+            </div>
+
+
+            <p>
+              For reservations and inquiries,
+              please contact our team during
+              regular service hours.
+            </p>
+
+          </div>
+
+
+          <!-- ==================================
+               FACEBOOK
+          =================================== -->
+
+          <a
+            href="#"
+            class="contact-btn"
+            id="facebookBtn"
+          >
+
+            <span>
+              f
+            </span>
+
+            Message Us on Facebook
+
+          </a>
+
+
+        </div>
+
+      </div>
+
+
+    </div>
+
   </section>
 
+
+  <!-- ======================================
+       FOOTER
+  ======================================= -->
+
   <footer>
-    <p>© 2026 Puffer Isle Resort. Designed for Ultimate Serenity.</p>
+
+    <p>
+
+      © 2026
+      <strong>
+        Puffer Isle Resort
+      </strong>.
+
+      Designed for Ultimate Serenity.
+
+    </p>
+
   </footer>
 
-  <script>
-    document.addEventListener("DOMContentLoaded", () => {
-      const heroBookingBtn = document.getElementById("heroBookingBtn");
-      const modal = document.getElementById("authModal");
 
-      heroBookingBtn?.addEventListener("click", (e) => {
-        e.preventDefault();
-        if(modal) modal.style.display = "flex";
-      });
-    });
+  <!-- ======================================
+       JAVASCRIPT
+  ======================================= -->
+
+  <script>
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      () => {
+
+
+        /* ================================
+           HERO BOOKING BUTTON
+        ================================= */
+
+        const heroBookingBtn =
+          document.getElementById(
+            "heroBookingBtn"
+          );
+
+
+        const modal =
+          document.getElementById(
+            "authModal"
+          );
+
+
+        heroBookingBtn?.addEventListener(
+          "click",
+          (event) => {
+
+            event.preventDefault();
+
+
+            if (modal) {
+
+              modal.style.display =
+                "flex";
+
+            }
+
+          }
+        );
+
+
+        /* ================================
+           FACEBOOK BUTTON
+        ================================= */
+
+        const facebookBtn =
+          document.getElementById(
+            "facebookBtn"
+          );
+
+
+        facebookBtn?.addEventListener(
+          "click",
+          (event) => {
+
+            /*
+             * Replace this with the real
+             * Puffer Isle Resort Facebook
+             * page once you have the URL.
+             */
+
+            if (
+              facebookBtn.getAttribute("href") === "#"
+            ) {
+
+              event.preventDefault();
+
+              alert(
+                "Our Facebook page link will be available soon."
+              );
+
+            }
+
+          }
+        );
+
+
+      }
+    );
+
   </script>
 
+
 </body>
+
 </html>
+```

@@ -1,266 +1,1769 @@
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+<!-- ============================================================
+     Puffer Isle Resort | Isle RMS
+     Admin Navigation
+     ============================================================ -->
+
+<link
+  rel="stylesheet"
+  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  crossorigin="anonymous"
+  referrerpolicy="no-referrer"
+/>
 
 <header class="admin-header">
-  <div class="nav-wrapper">
-    <div class="logo-area">
-      <a href="/admin/dashboard" class="logo-link">
-        <div class="logo-bg">
-          <img src="/images/islelogo.png" alt="Puffer Isle Logo" class="admin-logo">
-        </div>
-        <div class="brand-text">
-          <span class="brand-title">Admin</span>
-          <span class="brand-subtitle">Panel</span>
-        </div>
-      </a>
-    </div>
 
-    <nav class="main-nav">
-      <ul class="nav-list">
-        <li>
-          <a href="/admin/dashboard" class="nav-link <%= title.includes('Dashboard') ? 'active' : '' %>">
-            <i class="fa-solid fa-chart-line"></i> Dashboard
+  <div class="admin-nav-wrapper">
+
+    <!-- ========================================================
+         BRAND
+         ======================================================== -->
+
+    <a href="/admin/dashboard" class="admin-brand">
+
+      <div class="admin-logo-wrapper">
+        <img
+          src="/images/islelogo.png"
+          alt="Puffer Isle Resort"
+          class="admin-logo"
+        />
+      </div>
+
+      <div class="admin-brand-text">
+        <span class="admin-brand-title">
+          Isle RMS
+        </span>
+
+        <span class="admin-brand-subtitle">
+          Administration
+        </span>
+      </div>
+
+    </a>
+
+
+    <!-- ========================================================
+         MOBILE MENU BUTTON
+         ======================================================== -->
+
+    <button
+      type="button"
+      class="admin-mobile-toggle"
+      id="adminMobileToggle"
+      aria-label="Open admin navigation"
+      aria-expanded="false"
+      aria-controls="adminNavigation"
+    >
+      <i class="fa-solid fa-bars"></i>
+    </button>
+
+
+    <!-- ========================================================
+         MAIN NAVIGATION
+         ======================================================== -->
+
+    <nav
+      class="admin-navigation"
+      id="adminNavigation"
+      aria-label="Admin navigation"
+    >
+
+      <ul class="admin-nav-list">
+
+        <!-- DASHBOARD -->
+
+        <li class="admin-nav-item">
+
+          <a
+            href="/admin/dashboard"
+            class="admin-nav-link <%= currentPath === '/admin/dashboard' ? 'active' : '' %>"
+          >
+
+            <i class="fa-solid fa-chart-line"></i>
+
+            <span>Dashboard</span>
+
           </a>
+
         </li>
-        <li>
-          <a href="/admin/analytics" class="nav-link <%= title.includes('Analytics') ? 'active' : '' %>">
-            <i class="fa-solid fa-chart-pie"></i> Analytics
+
+
+        <!-- CHECK-IN / FRONT DESK -->
+
+        <li class="admin-nav-item">
+
+          <a
+            href="/admin/checkin-manager"
+            class="admin-nav-link <%= currentPath === '/admin/checkin-manager' ? 'active' : '' %>"
+          >
+
+            <i class="fa-solid fa-hotel"></i>
+
+            <span>Front Desk</span>
+
           </a>
+
         </li>
-        <li>
-          <a href="/admin/history" class="nav-link <%= title.includes('History') ? 'active' : '' %>">
-            <i class="fa-solid fa-clock-rotate-left"></i> History
+
+
+        <!-- BOOKING HISTORY -->
+
+        <li class="admin-nav-item">
+
+          <a
+            href="/admin/history"
+            class="admin-nav-link <%= currentPath === '/admin/history' ? 'active' : '' %>"
+          >
+
+            <i class="fa-solid fa-clock-rotate-left"></i>
+
+            <span>Booking History</span>
+
           </a>
+
         </li>
-        
-        <li class="nav-item dropdown">
-          <button class="nav-link dropbtn">
-            <i class="fa-solid fa-sliders"></i> Manage <i class="fa-solid fa-chevron-down s-icon"></i>
+
+
+        <!-- ====================================================
+             MANAGEMENT DROPDOWN
+             ==================================================== -->
+
+        <li class="admin-nav-item admin-dropdown">
+
+          <button
+            type="button"
+            class="admin-nav-link admin-dropdown-toggle"
+            id="manageDropdownToggle"
+            aria-expanded="false"
+            aria-haspopup="true"
+          >
+
+            <i class="fa-solid fa-sliders"></i>
+
+            <span>Manage</span>
+
+            <i class="fa-solid fa-chevron-down admin-chevron"></i>
+
           </button>
-          <div class="dropdown-menu">
-            <a href="/admin/users" class="dropdown-item <%= title.includes('Users') ? 'active' : '' %>">
-              <i class="fa-solid fa-users-gear"></i> User Management
+
+
+          <div
+            class="admin-dropdown-menu"
+            id="manageDropdownMenu"
+          >
+
+            <!-- Users -->
+
+            <a
+              href="/admin/users"
+              class="admin-dropdown-link"
+            >
+
+              <span class="admin-dropdown-icon">
+                <i class="fa-solid fa-users"></i>
+              </span>
+
+              <span>
+                <strong>User Management</strong>
+                <small>Manage resort accounts</small>
+              </span>
+
             </a>
-            <a href="/admin/rooms" class="dropdown-item">
-              <i class="fa-solid fa-bed"></i> Room Inventory
+
+
+            <!-- Rooms -->
+
+            <a
+              href="/admin/rooms"
+              class="admin-dropdown-link"
+            >
+
+              <span class="admin-dropdown-icon">
+                <i class="fa-solid fa-bed"></i>
+              </span>
+
+              <span>
+                <strong>Room Inventory</strong>
+                <small>Manage accommodations</small>
+              </span>
+
             </a>
+
           </div>
+
         </li>
+
       </ul>
+
     </nav>
 
-    <div class="user-area">
+
+    <!-- ========================================================
+         ADMIN ACCOUNT
+         ======================================================== -->
+
+    <div class="admin-account">
+
       <% if (admin) { %>
-        <div class="profile-dropdown">
-          <button class="profile-trigger">
-            <div class="avatar">
+
+        <div class="admin-profile-dropdown">
+
+          <button
+            type="button"
+            class="admin-profile-trigger"
+            id="adminProfileToggle"
+            aria-expanded="false"
+            aria-haspopup="true"
+          >
+
+            <div class="admin-avatar">
               <i class="fa-solid fa-user-shield"></i>
             </div>
-            <span class="username">pufferisleadmin</span>
-            <i class="fa-solid fa-angle-down"></i>
-          </button>
-          <div class="profile-menu">
-            <div class="menu-header">
-              <p>Signed in as</p>
-              <strong>Administrator</strong>
+
+
+            <div class="admin-profile-info">
+
+              <span class="admin-profile-name">
+                <%= admin.username || 'Administrator' %>
+              </span>
+
+              <span class="admin-profile-role">
+                Administrator
+              </span>
+
             </div>
-            <hr>
-            <a href="/admin/settings" class="menu-item"><i class="fa-solid fa-cog"></i> Settings</a>
-            <a href="/admin/logout" class="menu-item logout"><i class="fa-solid fa-right-from-bracket"></i> Sign Out</a>
+
+
+            <i class="fa-solid fa-chevron-down admin-profile-chevron"></i>
+
+          </button>
+
+
+          <!-- PROFILE MENU -->
+
+          <div
+            class="admin-profile-menu"
+            id="adminProfileMenu"
+          >
+
+            <div class="admin-profile-menu-header">
+
+              <div class="admin-avatar large">
+                <i class="fa-solid fa-user-shield"></i>
+              </div>
+
+              <div>
+
+                <span class="signed-in-label">
+                  Signed in as
+                </span>
+
+                <strong>
+                  <%= admin.username || 'Administrator' %>
+                </strong>
+
+              </div>
+
+            </div>
+
+
+            <div class="admin-menu-divider"></div>
+
+
+            <!-- Dashboard -->
+
+            <a
+              href="/admin/dashboard"
+              class="admin-menu-link"
+            >
+
+              <i class="fa-solid fa-gauge-high"></i>
+
+              <span>Admin Dashboard</span>
+
+            </a>
+
+
+            <!-- Front Desk -->
+
+            <a
+              href="/admin/checkin-manager"
+              class="admin-menu-link"
+            >
+
+              <i class="fa-solid fa-concierge-bell"></i>
+
+              <span>Front Desk</span>
+
+            </a>
+
+
+            <div class="admin-menu-divider"></div>
+
+
+            <!-- Logout -->
+
+            <a
+              href="/admin/logout"
+              class="admin-menu-link admin-logout-link"
+            >
+
+              <i class="fa-solid fa-right-from-bracket"></i>
+
+              <span>Sign Out</span>
+
+            </a>
+
           </div>
+
         </div>
+
       <% } %>
+
     </div>
+
   </div>
+
 </header>
 
+
+<!-- ============================================================
+     ADMIN NAVIGATION STYLES
+     ============================================================ -->
+
 <style>
+
   :root {
-    --admin-teal: #008080;
-    --admin-teal-dark: #006666;
-    --admin-accent: #FFD700; /* Matching your brand yellow */
-    --glass-bg: rgba(255, 255, 255, 0.1);
-    --transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+
+    --admin-primary: #008080;
+    --admin-primary-dark: #006666;
+    --admin-primary-deep: #004f4f;
+
+    --admin-accent: #ffd700;
+    --admin-accent-dark: #e6c200;
+
+    --admin-white: #ffffff;
+    --admin-text: #1f2937;
+    --admin-muted: #6b7280;
+
+    --admin-border: #e5e7eb;
+    --admin-background: #f8fafc;
+
+    --admin-danger: #dc2626;
+
+    --admin-shadow:
+      0 12px 35px rgba(0, 0, 0, 0.14);
+
+    --admin-transition:
+      0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
   }
+
+
+  /* ==========================================================
+     RESET
+     ========================================================== */
+
+  .admin-header,
+  .admin-header * {
+    box-sizing: border-box;
+  }
+
+
+  /* ==========================================================
+     HEADER
+     ========================================================== */
 
   .admin-header {
-    background: var(--admin-teal);
-    background: linear-gradient(135deg, var(--admin-teal) 0%, var(--admin-teal-dark) 100%);
-    color: white;
-    padding: 0 40px;
-    height: 80px;
-    display: flex;
-    align-items: center;
+
     position: sticky;
+
     top: 0;
-    z-index: 1000;
-    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
-  }
 
-  .nav-wrapper {
+    z-index: 5000;
+
     width: 100%;
+
+    min-height: 78px;
+
+    background:
+      linear-gradient(
+        135deg,
+        var(--admin-primary),
+        var(--admin-primary-dark)
+      );
+
+    color: var(--admin-white);
+
+    box-shadow:
+      0 4px 20px rgba(0, 0, 0, 0.14);
+
+  }
+
+
+  .admin-nav-wrapper {
+
+    width: 100%;
+
     max-width: 1600px;
+
+    min-height: 78px;
+
     margin: 0 auto;
+
+    padding: 0 32px;
+
     display: flex;
-    justify-content: space-between;
+
     align-items: center;
+
+    gap: 28px;
+
   }
 
-  /* Logo Styling */
-  .logo-area .logo-link {
+
+  /* ==========================================================
+     BRAND
+     ========================================================== */
+
+  .admin-brand {
+
     display: flex;
+
     align-items: center;
-    text-decoration: none;
-    color: white;
-    gap: 15px;
-  }
 
-  .logo-bg {
-    background: white;
-    padding: 5px;
-    border-radius: 12px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    box-shadow: 0 4px 10px rgba(0,0,0,0.1);
-  }
-
-  .admin-logo { width: 40px; height: 40px; }
-
-  .brand-text { display: flex; flex-direction: column; line-height: 1; }
-  .brand-title { font-weight: 700; font-size: 1.4rem; letter-spacing: 0.5px; }
-  .brand-subtitle { font-size: 0.8rem; text-transform: uppercase; color: var(--admin-accent); font-weight: 600; }
-
-  /* Navigation Links */
-  .main-nav .nav-list {
-    display: flex;
-    list-style: none;
-    gap: 10px;
-    align-items: center;
-  }
-
-  .nav-link {
-    color: rgba(255, 255, 255, 0.85);
-    text-decoration: none;
-    padding: 10px 18px;
-    border-radius: 10px;
-    font-weight: 500;
-    font-size: 0.95rem;
-    transition: var(--transition);
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    background: transparent;
-    border: none;
-    cursor: pointer;
-  }
-
-  .nav-link i { font-size: 1.1rem; }
-  .s-icon { font-size: 0.7rem !important; margin-left: 3px; }
-
-  .nav-link:hover {
-    background: var(--glass-bg);
-    color: white;
-    transform: translateY(-2px);
-  }
-
-  .nav-link.active {
-    background: white;
-    color: var(--admin-teal);
-    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-  }
-
-  /* Dropdown Logic */
-  .dropdown, .profile-dropdown { position: relative; }
-
-  .dropdown-menu, .profile-menu {
-    position: absolute;
-    top: calc(100% + 15px);
-    right: 0;
-    background: white;
-    min-width: 220px;
-    border-radius: 15px;
-    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
-    padding: 10px;
-    opacity: 0;
-    visibility: hidden;
-    transform: translateY(10px);
-    transition: var(--transition);
-  }
-
-  .dropdown:hover .dropdown-menu,
-  .profile-dropdown:hover .profile-menu {
-    opacity: 1;
-    visibility: visible;
-    transform: translateY(0);
-  }
-
-  .dropdown-item, .menu-item {
-    color: #444;
-    text-decoration: none;
-    padding: 12px 15px;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    border-radius: 8px;
-    font-size: 0.9rem;
-    transition: var(--transition);
-  }
-
-  .dropdown-item:hover, .menu-item:hover {
-    background: #f4f7f7;
-    color: var(--admin-teal);
-    padding-left: 20px;
-  }
-
-  .dropdown-item.active {
-    background: rgba(0, 128, 128, 0.1);
-    color: var(--admin-teal);
-    font-weight: 600;
-  }
-
-  /* Profile Area */
-  .profile-trigger {
-    background: var(--glass-bg);
-    border: 1px solid rgba(255,255,255,0.2);
-    padding: 6px 15px 6px 6px;
-    border-radius: 50px;
-    display: flex;
-    align-items: center;
     gap: 12px;
-    cursor: pointer;
-    color: white;
-    transition: var(--transition);
+
+    flex-shrink: 0;
+
+    text-decoration: none;
+
+    color: var(--admin-white);
+
   }
 
-  .profile-trigger:hover { background: rgba(255,255,255,0.2); }
 
-  .avatar {
-    width: 35px;
-    height: 35px;
-    background: var(--admin-accent);
-    color: var(--admin-teal-dark);
-    border-radius: 50%;
+  .admin-logo-wrapper {
+
+    width: 46px;
+
+    height: 46px;
+
+    padding: 4px;
+
     display: flex;
+
     align-items: center;
+
     justify-content: center;
-    font-size: 1.1rem;
+
+    background: var(--admin-white);
+
+    border-radius: 12px;
+
+    box-shadow:
+      0 5px 14px rgba(0, 0, 0, 0.15);
+
   }
 
-  .username { font-weight: 600; font-size: 0.9rem; }
 
-  .menu-header { padding: 10px 15px; }
-  .menu-header p { font-size: 0.75rem; color: #888; margin: 0; }
-  .menu-header strong { font-size: 0.95rem; color: #222; }
-  
-  hr { border: 0; border-top: 1px solid #eee; margin: 8px 0; }
+  .admin-logo {
 
-  .logout { color: #e74c3c !important; }
-  .logout:hover { background: #fdf2f2 !important; }
+    width: 38px;
 
-  /* Responsive Mobile */
-  @media (max-width: 1024px) {
-    .brand-text { display: none; }
-    .nav-link span { display: none; } /* Show icons only */
-    .admin-header { padding: 0 20px; }
+    height: 38px;
+
+    display: block;
+
+    object-fit: contain;
+
   }
+
+
+  .admin-brand-text {
+
+    display: flex;
+
+    flex-direction: column;
+
+    justify-content: center;
+
+    line-height: 1.1;
+
+  }
+
+
+  .admin-brand-title {
+
+    font-size: 1.25rem;
+
+    font-weight: 700;
+
+    letter-spacing: 0.3px;
+
+  }
+
+
+  .admin-brand-subtitle {
+
+    margin-top: 4px;
+
+    color: var(--admin-accent);
+
+    font-size: 0.66rem;
+
+    font-weight: 700;
+
+    text-transform: uppercase;
+
+    letter-spacing: 1.5px;
+
+  }
+
+
+  /* ==========================================================
+     MAIN NAVIGATION
+     ========================================================== */
+
+  .admin-navigation {
+
+    flex: 1;
+
+    display: flex;
+
+    align-items: center;
+
+  }
+
+
+  .admin-nav-list {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 5px;
+
+    margin: 0;
+
+    padding: 0;
+
+    list-style: none;
+
+  }
+
+
+  .admin-nav-item {
+
+    position: relative;
+
+  }
+
+
+  .admin-nav-link {
+
+    min-height: 44px;
+
+    display: inline-flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 9px;
+
+    padding: 10px 14px;
+
+    border: 0;
+
+    border-radius: 10px;
+
+    background: transparent;
+
+    color: rgba(255, 255, 255, 0.88);
+
+    font-family: inherit;
+
+    font-size: 0.88rem;
+
+    font-weight: 600;
+
+    text-decoration: none;
+
+    white-space: nowrap;
+
+    cursor: pointer;
+
+    transition:
+      background var(--admin-transition),
+      color var(--admin-transition),
+      transform var(--admin-transition);
+
+  }
+
+
+  .admin-nav-link i {
+
+    font-size: 0.98rem;
+
+  }
+
+
+  .admin-nav-link:hover {
+
+    background:
+      rgba(255, 255, 255, 0.12);
+
+    color: var(--admin-white);
+
+    transform: translateY(-1px);
+
+  }
+
+
+  .admin-nav-link.active {
+
+    background: var(--admin-white);
+
+    color: var(--admin-primary);
+
+    box-shadow:
+      0 5px 15px rgba(0, 0, 0, 0.12);
+
+  }
+
+
+  .admin-nav-link.active:hover {
+
+    background: var(--admin-white);
+
+    color: var(--admin-primary);
+
+  }
+
+
+  /* ==========================================================
+     DROPDOWN
+     ========================================================== */
+
+  .admin-dropdown-toggle {
+
+    appearance: none;
+
+  }
+
+
+  .admin-chevron {
+
+    margin-left: 2px;
+
+    font-size: 0.68rem !important;
+
+    transition:
+      transform var(--admin-transition);
+
+  }
+
+
+  .admin-dropdown.open .admin-chevron {
+
+    transform: rotate(180deg);
+
+  }
+
+
+  .admin-dropdown-menu {
+
+    position: absolute;
+
+    top: calc(100% + 10px);
+
+    left: 0;
+
+    width: 270px;
+
+    padding: 8px;
+
+    background: var(--admin-white);
+
+    border: 1px solid var(--admin-border);
+
+    border-radius: 14px;
+
+    box-shadow: var(--admin-shadow);
+
+    opacity: 0;
+
+    visibility: hidden;
+
+    transform:
+      translateY(-6px);
+
+    pointer-events: none;
+
+    transition:
+      opacity var(--admin-transition),
+      transform var(--admin-transition),
+      visibility var(--admin-transition);
+
+  }
+
+
+  .admin-dropdown.open .admin-dropdown-menu {
+
+    opacity: 1;
+
+    visibility: visible;
+
+    transform: translateY(0);
+
+    pointer-events: auto;
+
+  }
+
+
+  .admin-dropdown-link {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    width: 100%;
+
+    padding: 12px;
+
+    border-radius: 10px;
+
+    color: var(--admin-text);
+
+    text-decoration: none;
+
+    transition:
+      background var(--admin-transition),
+      transform var(--admin-transition);
+
+  }
+
+
+  .admin-dropdown-link:hover {
+
+    background: #f1f7f7;
+
+    transform: translateX(3px);
+
+  }
+
+
+  .admin-dropdown-icon {
+
+    width: 38px;
+
+    height: 38px;
+
+    flex-shrink: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 10px;
+
+    background:
+      rgba(0, 128, 128, 0.10);
+
+    color: var(--admin-primary);
+
+  }
+
+
+  .admin-dropdown-link > span:last-child {
+
+    display: flex;
+
+    flex-direction: column;
+
+    gap: 2px;
+
+  }
+
+
+  .admin-dropdown-link strong {
+
+    font-size: 0.84rem;
+
+    font-weight: 700;
+
+  }
+
+
+  .admin-dropdown-link small {
+
+    color: var(--admin-muted);
+
+    font-size: 0.70rem;
+
+  }
+
+
+  /* ==========================================================
+     ACCOUNT
+     ========================================================== */
+
+  .admin-account {
+
+    position: relative;
+
+    flex-shrink: 0;
+
+    margin-left: auto;
+
+  }
+
+
+  .admin-profile-dropdown {
+
+    position: relative;
+
+  }
+
+
+  .admin-profile-trigger {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 10px;
+
+    min-height: 52px;
+
+    padding: 5px 12px 5px 6px;
+
+    border: 1px solid rgba(255, 255, 255, 0.20);
+
+    border-radius: 50px;
+
+    background:
+      rgba(255, 255, 255, 0.08);
+
+    color: var(--admin-white);
+
+    font-family: inherit;
+
+    cursor: pointer;
+
+    transition:
+      background var(--admin-transition),
+      border-color var(--admin-transition);
+
+  }
+
+
+  .admin-profile-trigger:hover,
+  .admin-profile-dropdown.open .admin-profile-trigger {
+
+    background:
+      rgba(255, 255, 255, 0.16);
+
+    border-color:
+      rgba(255, 255, 255, 0.32);
+
+  }
+
+
+  .admin-avatar {
+
+    width: 38px;
+
+    height: 38px;
+
+    flex-shrink: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background: var(--admin-accent);
+
+    color: var(--admin-primary-deep);
+
+    font-size: 0.95rem;
+
+  }
+
+
+  .admin-avatar.large {
+
+    width: 42px;
+
+    height: 42px;
+
+  }
+
+
+  .admin-profile-info {
+
+    display: flex;
+
+    flex-direction: column;
+
+    align-items: flex-start;
+
+    min-width: 0;
+
+  }
+
+
+  .admin-profile-name {
+
+    max-width: 145px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+    font-size: 0.82rem;
+
+    font-weight: 700;
+
+  }
+
+
+  .admin-profile-role {
+
+    margin-top: 2px;
+
+    color:
+      rgba(255, 255, 255, 0.62);
+
+    font-size: 0.66rem;
+
+    font-weight: 500;
+
+  }
+
+
+  .admin-profile-chevron {
+
+    margin-left: 4px;
+
+    font-size: 0.68rem;
+
+    transition:
+      transform var(--admin-transition);
+
+  }
+
+
+  .admin-profile-dropdown.open
+  .admin-profile-chevron {
+
+    transform: rotate(180deg);
+
+  }
+
+
+  /* ==========================================================
+     PROFILE MENU
+     ========================================================== */
+
+  .admin-profile-menu {
+
+    position: absolute;
+
+    top: calc(100% + 12px);
+
+    right: 0;
+
+    width: 260px;
+
+    padding: 8px;
+
+    background: var(--admin-white);
+
+    border: 1px solid var(--admin-border);
+
+    border-radius: 15px;
+
+    box-shadow: var(--admin-shadow);
+
+    opacity: 0;
+
+    visibility: hidden;
+
+    transform:
+      translateY(-6px);
+
+    pointer-events: none;
+
+    transition:
+      opacity var(--admin-transition),
+      transform var(--admin-transition),
+      visibility var(--admin-transition);
+
+  }
+
+
+  .admin-profile-dropdown.open
+  .admin-profile-menu {
+
+    opacity: 1;
+
+    visibility: visible;
+
+    transform: translateY(0);
+
+    pointer-events: auto;
+
+  }
+
+
+  .admin-profile-menu-header {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+    padding: 10px;
+
+  }
+
+
+  .signed-in-label {
+
+    display: block;
+
+    margin-bottom: 3px;
+
+    color: var(--admin-muted);
+
+    font-size: 0.67rem;
+
+  }
+
+
+  .admin-profile-menu-header strong {
+
+    display: block;
+
+    max-width: 160px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+
+    color: var(--admin-text);
+
+    font-size: 0.84rem;
+
+  }
+
+
+  .admin-menu-divider {
+
+    height: 1px;
+
+    margin: 6px 0;
+
+    background: var(--admin-border);
+
+  }
+
+
+  .admin-menu-link {
+
+    display: flex;
+
+    align-items: center;
+
+    gap: 11px;
+
+    width: 100%;
+
+    padding: 11px 12px;
+
+    border-radius: 9px;
+
+    color: var(--admin-text);
+
+    font-size: 0.83rem;
+
+    font-weight: 600;
+
+    text-decoration: none;
+
+    transition:
+      background var(--admin-transition),
+      color var(--admin-transition);
+
+  }
+
+
+  .admin-menu-link i {
+
+    width: 18px;
+
+    color: var(--admin-muted);
+
+    text-align: center;
+
+  }
+
+
+  .admin-menu-link:hover {
+
+    background: #f1f7f7;
+
+    color: var(--admin-primary);
+
+  }
+
+
+  .admin-menu-link:hover i {
+
+    color: var(--admin-primary);
+
+  }
+
+
+  .admin-menu-link.admin-logout-link {
+
+    color: var(--admin-danger);
+
+  }
+
+
+  .admin-menu-link.admin-logout-link i {
+
+    color: var(--admin-danger);
+
+  }
+
+
+  .admin-menu-link.admin-logout-link:hover {
+
+    background: #fef2f2;
+
+    color: var(--admin-danger);
+
+  }
+
+
+  /* ==========================================================
+     MOBILE TOGGLE
+     ========================================================== */
+
+  .admin-mobile-toggle {
+
+    display: none;
+
+    width: 44px;
+
+    height: 44px;
+
+    margin-left: auto;
+
+    border: 1px solid rgba(255, 255, 255, 0.18);
+
+    border-radius: 10px;
+
+    background:
+      rgba(255, 255, 255, 0.08);
+
+    color: var(--admin-white);
+
+    font-size: 1.05rem;
+
+    cursor: pointer;
+
+  }
+
+
+  .admin-mobile-toggle:hover {
+
+    background:
+      rgba(255, 255, 255, 0.16);
+
+  }
+
+
+  /* ==========================================================
+     RESPONSIVE
+     ========================================================== */
+
+  @media (max-width: 1180px) {
+
+    .admin-nav-wrapper {
+
+      padding: 0 20px;
+
+      gap: 15px;
+
+    }
+
+
+    .admin-brand-text {
+
+      display: none;
+
+    }
+
+
+    .admin-nav-link {
+
+      padding: 10px 11px;
+
+    }
+
+
+    .admin-nav-link span {
+
+      display: none;
+
+    }
+
+
+    .admin-dropdown-toggle span {
+
+      display: inline;
+
+    }
+
+
+    .admin-profile-info {
+
+      display: none;
+
+    }
+
+  }
+
+
+  @media (max-width: 850px) {
+
+    .admin-header {
+
+      min-height: 70px;
+
+    }
+
+
+    .admin-nav-wrapper {
+
+      min-height: 70px;
+
+      position: relative;
+
+    }
+
+
+    .admin-mobile-toggle {
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      order: 2;
+
+    }
+
+
+    .admin-account {
+
+      order: 3;
+
+      margin-left: 0;
+
+    }
+
+
+    .admin-navigation {
+
+      position: absolute;
+
+      top: 100%;
+
+      left: 0;
+
+      right: 0;
+
+      display: none;
+
+      padding: 12px 16px 18px;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--admin-primary),
+          var(--admin-primary-dark)
+        );
+
+      box-shadow:
+        0 12px 25px rgba(0, 0, 0, 0.18);
+
+    }
+
+
+    .admin-navigation.mobile-open {
+
+      display: block;
+
+    }
+
+
+    .admin-nav-list {
+
+      width: 100%;
+
+      flex-direction: column;
+
+      align-items: stretch;
+
+      gap: 5px;
+
+    }
+
+
+    .admin-nav-item {
+
+      width: 100%;
+
+    }
+
+
+    .admin-nav-link {
+
+      width: 100%;
+
+      justify-content: flex-start;
+
+      padding: 12px 14px;
+
+    }
+
+
+    .admin-nav-link span {
+
+      display: inline;
+
+    }
+
+
+    .admin-dropdown-menu {
+
+      position: static;
+
+      width: 100%;
+
+      margin-top: 5px;
+
+      display: none;
+
+      opacity: 1;
+
+      visibility: visible;
+
+      transform: none;
+
+      pointer-events: auto;
+
+      box-shadow: none;
+
+    }
+
+
+    .admin-dropdown.open .admin-dropdown-menu {
+
+      display: block;
+
+    }
+
+  }
+
+
+  @media (max-width: 480px) {
+
+    .admin-nav-wrapper {
+
+      padding: 0 12px;
+
+    }
+
+
+    .admin-logo-wrapper {
+
+      width: 42px;
+
+      height: 42px;
+
+    }
+
+
+    .admin-logo {
+
+      width: 34px;
+
+      height: 34px;
+
+    }
+
+
+    .admin-profile-trigger {
+
+      padding-right: 8px;
+
+    }
+
+
+    .admin-profile-chevron {
+
+      display: none;
+
+    }
+
+
+    .admin-profile-menu {
+
+      right: -5px;
+
+      width: min(260px, calc(100vw - 24px));
+
+    }
+
+  }
+
+
 </style>
+
+
+<!-- ============================================================
+     ADMIN NAVIGATION JAVASCRIPT
+     ============================================================ -->
+
+<script>
+
+(function () {
+
+  "use strict";
+
+
+  /* ==========================================================
+     ELEMENTS
+     ========================================================== */
+
+  const mobileToggle =
+    document.getElementById("adminMobileToggle");
+
+  const navigation =
+    document.getElementById("adminNavigation");
+
+  const manageToggle =
+    document.getElementById("manageDropdownToggle");
+
+  const manageDropdown =
+    manageToggle
+      ? manageToggle.closest(".admin-dropdown")
+      : null;
+
+  const profileToggle =
+    document.getElementById("adminProfileToggle");
+
+  const profileDropdown =
+    profileToggle
+      ? profileToggle.closest(".admin-profile-dropdown")
+      : null;
+
+
+  /* ==========================================================
+     MOBILE MENU
+     ========================================================== */
+
+  if (mobileToggle && navigation) {
+
+    mobileToggle.addEventListener("click", function (event) {
+
+      event.stopPropagation();
+
+      const isOpen =
+        navigation.classList.toggle("mobile-open");
+
+      mobileToggle.setAttribute(
+        "aria-expanded",
+        String(isOpen)
+      );
+
+      mobileToggle.innerHTML = isOpen
+        ? '<i class="fa-solid fa-xmark"></i>'
+        : '<i class="fa-solid fa-bars"></i>';
+
+    });
+
+  }
+
+
+  /* ==========================================================
+     MANAGE DROPDOWN
+     ========================================================== */
+
+  if (manageToggle && manageDropdown) {
+
+    manageToggle.addEventListener("click", function (event) {
+
+      event.stopPropagation();
+
+      const willOpen =
+        !manageDropdown.classList.contains("open");
+
+
+      closeProfileDropdown();
+
+
+      manageDropdown.classList.toggle(
+        "open",
+        willOpen
+      );
+
+
+      manageToggle.setAttribute(
+        "aria-expanded",
+        String(willOpen)
+      );
+
+    });
+
+  }
+
+
+  /* ==========================================================
+     PROFILE DROPDOWN
+     ========================================================== */
+
+  if (profileToggle && profileDropdown) {
+
+    profileToggle.addEventListener("click", function (event) {
+
+      event.stopPropagation();
+
+      const willOpen =
+        !profileDropdown.classList.contains("open");
+
+
+      closeManageDropdown();
+
+
+      profileDropdown.classList.toggle(
+        "open",
+        willOpen
+      );
+
+
+      profileToggle.setAttribute(
+        "aria-expanded",
+        String(willOpen)
+      );
+
+    });
+
+  }
+
+
+  /* ==========================================================
+     CLOSE MANAGE DROPDOWN
+     ========================================================== */
+
+  function closeManageDropdown() {
+
+    if (!manageDropdown) {
+      return;
+    }
+
+
+    manageDropdown.classList.remove("open");
+
+
+    if (manageToggle) {
+
+      manageToggle.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+
+    }
+
+  }
+
+
+  /* ==========================================================
+     CLOSE PROFILE DROPDOWN
+     ========================================================== */
+
+  function closeProfileDropdown() {
+
+    if (!profileDropdown) {
+      return;
+    }
+
+
+    profileDropdown.classList.remove("open");
+
+
+    if (profileToggle) {
+
+      profileToggle.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+
+    }
+
+  }
+
+
+  /* ==========================================================
+     OUTSIDE CLICK
+     ========================================================== */
+
+  document.addEventListener("click", function (event) {
+
+    if (
+      manageDropdown &&
+      !manageDropdown.contains(event.target)
+    ) {
+
+      closeManageDropdown();
+
+    }
+
+
+    if (
+      profileDropdown &&
+      !profileDropdown.contains(event.target)
+    ) {
+
+      closeProfileDropdown();
+
+    }
+
+
+    if (
+      navigation &&
+      mobileToggle &&
+      !navigation.contains(event.target) &&
+      !mobileToggle.contains(event.target)
+    ) {
+
+      navigation.classList.remove(
+        "mobile-open"
+      );
+
+
+      mobileToggle.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+
+
+      mobileToggle.innerHTML =
+        '<i class="fa-solid fa-bars"></i>';
+
+    }
+
+  });
+
+
+  /* ==========================================================
+     ESCAPE KEY
+     ========================================================== */
+
+  document.addEventListener("keydown", function (event) {
+
+    if (event.key !== "Escape") {
+      return;
+    }
+
+
+    closeManageDropdown();
+
+    closeProfileDropdown();
+
+
+    if (navigation) {
+
+      navigation.classList.remove(
+        "mobile-open"
+      );
+
+    }
+
+
+    if (mobileToggle) {
+
+      mobileToggle.setAttribute(
+        "aria-expanded",
+        "false"
+      );
+
+
+      mobileToggle.innerHTML =
+        '<i class="fa-solid fa-bars"></i>';
+
+    }
+
+  });
+
+
+  /* ==========================================================
+     CLOSE MOBILE NAV AFTER NAVIGATION
+     ========================================================== */
+
+  if (navigation) {
+
+    navigation
+      .querySelectorAll("a")
+      .forEach(function (link) {
+
+        link.addEventListener("click", function () {
+
+          navigation.classList.remove(
+            "mobile-open"
+          );
+
+
+          if (mobileToggle) {
+
+            mobileToggle.setAttribute(
+              "aria-expanded",
+              "false"
+            );
+
+
+            mobileToggle.innerHTML =
+              '<i class="fa-solid fa-bars"></i>';
+
+          }
+
+        });
+
+      });
+
+  }
+
+
+})();
+
+</script>

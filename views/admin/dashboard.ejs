@@ -2,290 +2,1886 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="Puffer Isle Resort administrative dashboard"
+  >
+
   <title>Command Center | Puffer Isle Resort</title>
-  <link rel="icon" type="image/png" href="/images/islelogo.png">
-  
-  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/islelogo.png"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
 
   <style>
     :root {
-      --brand-teal: #008080;
-      --brand-teal-dark: #004d4d;
-      --brand-yellow: #FFD700;
-      --bg-dark: #0a0c0e;
-      --card-bg: rgba(255, 255, 255, 0.03);
-      --card-border: rgba(255, 255, 255, 0.08);
-      --text-main: #ffffff;
-      --text-muted: #a0a0a0;
+      --teal: #008080;
+      --teal-dark: #005c5c;
+      --teal-light: #0da5a5;
+      --gold: #ffd700;
+      --gold-dark: #d4b400;
+      --background: #080b0d;
+      --background-soft: #0d1114;
+      --surface: rgba(255, 255, 255, 0.035);
+      --surface-hover: rgba(255, 255, 255, 0.06);
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.14);
+      --text: #ffffff;
+      --muted: #9ba3a8;
       --success: #2ecc71;
       --danger: #e74c3c;
       --warning: #f1c40f;
+      --info: #3498db;
+      --shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
+      --radius-lg: 28px;
+      --radius-md: 18px;
+      --radius-sm: 12px;
     }
 
-    ::-webkit-scrollbar { width: 8px; }
-    ::-webkit-scrollbar-track { background: var(--bg-dark); }
-    ::-webkit-scrollbar-thumb { background: var(--brand-teal); border-radius: 10px; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html {
+      scroll-behavior: smooth;
+    }
 
     body {
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--bg-dark);
-      background-image: 
-        radial-gradient(circle at 10% 20%, rgba(0, 128, 128, 0.05) 0%, transparent 20%),
-        radial-gradient(circle at 90% 80%, rgba(255, 215, 0, 0.03) 0%, transparent 20%);
-      color: var(--text-main);
       min-height: 100vh;
+      font-family: "Poppins", sans-serif;
+      color: var(--text);
+      background:
+        radial-gradient(
+          circle at 10% 10%,
+          rgba(0, 128, 128, 0.10),
+          transparent 25%
+        ),
+        radial-gradient(
+          circle at 90% 80%,
+          rgba(255, 215, 0, 0.045),
+          transparent 25%
+        ),
+        var(--background);
       overflow-x: hidden;
     }
 
-    .dashboard-container { max-width: 1600px; margin: 40px auto; padding: 0 40px; }
-
-    .dash-header { display: flex; justify-content: space-between; align-items: flex-end; margin-bottom: 40px; }
-    .welcome-text h1 { font-family: 'Playfair Display', serif; font-size: 2.5rem; letter-spacing: -1px; }
-    .welcome-text h1 span { color: var(--brand-yellow); }
-    .welcome-text p { color: var(--text-muted); font-size: 0.95rem; }
-    .live-clock { background: var(--card-bg); border: 1px solid var(--card-border); padding: 10px 25px; border-radius: 15px; text-align: right; }
-    .live-clock span { display: block; color: var(--brand-yellow); font-weight: 700; font-size: 1.2rem; }
-
-    .stats-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 25px; margin-bottom: 40px; }
-    .stat-card { background: var(--card-bg); border: 1px solid var(--card-border); padding: 30px; border-radius: 24px; position: relative; overflow: hidden; transition: 0.3s; backdrop-filter: blur(10px); }
-    .stat-card:hover { border-color: var(--brand-teal); transform: translateY(-5px); }
-    .stat-card i { position: absolute; right: -10px; bottom: -10px; font-size: 5rem; color: rgba(255, 255, 255, 0.03); }
-    .stat-card .label { color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; letter-spacing: 1px; }
-    .stat-card .value { font-size: 2.2rem; font-weight: 700; margin: 5px 0; display: block; }
-    .stat-card .trend { font-size: 0.8rem; font-weight: 600; display: flex; align-items: center; gap: 5px; }
-
-    .content-box { background: var(--card-bg); border: 1px solid var(--card-border); border-radius: 30px; padding: 35px; backdrop-filter: blur(10px); margin-bottom: 25px; }
-    .box-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
-    .luxury-table { width: 100%; border-collapse: separate; border-spacing: 0 12px; }
-    .luxury-table th { text-align: left; padding: 0 15px; color: var(--text-muted); font-size: 0.8rem; text-transform: uppercase; }
-    .luxury-table tr td { background: rgba(255,255,255,0.02); padding: 20px 15px; transition: 0.3s; border-top: 1px solid var(--card-border); border-bottom: 1px solid var(--card-border); }
-    .luxury-table tr td:first-child { border-radius: 15px 0 0 15px; border-left: 1px solid var(--card-border); }
-    .luxury-table tr td:last-child { border-radius: 0 15px 15px 0; border-right: 1px solid var(--card-border); }
-    .luxury-table tr:hover td { background: rgba(0, 128, 128, 0.1); color: var(--brand-yellow); border-color: var(--brand-teal); }
-
-    .status-pill { padding: 6px 14px; border-radius: 10px; font-size: 0.7rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px; border: 1px solid transparent; }
-    .status-pending { background: rgba(241, 196, 15, 0.1); color: var(--warning); border-color: rgba(241, 196, 15, 0.2); }
-    .status-accepted { background: rgba(46, 204, 113, 0.1); color: var(--success); border-color: rgba(46, 204, 113, 0.2); }
-    .status-declined { background: rgba(231, 76, 60, 0.1); color: var(--danger); border-color: rgba(231, 76, 60, 0.2); }
-
-    .command-group { display: flex; gap: 10px; justify-content: flex-end; }
-    .btn-command { 
-      background: rgba(255,255,255,0.05); border: 1px solid var(--card-border); color: white; 
-      width: 35px; height: 35px; border-radius: 10px; cursor: pointer; transition: 0.3s; 
-      display: flex; align-items: center; justify-content: center; font-size: 0.8rem;
+    button,
+    a {
+      font-family: inherit;
     }
-    .btn-confirm:hover { background: var(--success); color: white; border-color: var(--success); box-shadow: 0 0 15px rgba(46, 204, 113, 0.3); }
-    .btn-cancel:hover { background: var(--danger); color: white; border-color: var(--danger); box-shadow: 0 0 15px rgba(231, 76, 60, 0.3); }
 
-    .main-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 25px; }
-    .action-btn { width: 100%; background: var(--brand-teal); color: white; border: none; padding: 15px; border-radius: 15px; font-weight: 600; cursor: pointer; transition: 0.3s; margin-top: 10px; }
-    .action-btn:hover { background: var(--brand-yellow); color: var(--bg-dark); transform: translateY(-3px); }
+    button {
+      border: 0;
+    }
+
+    ::-webkit-scrollbar {
+      width: 8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background: var(--background);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background: var(--teal);
+      border-radius: 999px;
+    }
+
+    .dashboard-container {
+      width: min(1600px, calc(100% - 48px));
+      margin: 0 auto;
+      padding: 42px 0 80px;
+    }
+
+    .dashboard-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 30px;
+      margin-bottom: 35px;
+    }
+
+    .eyebrow {
+      color: var(--teal-light);
+      font-size: 0.72rem;
+      font-weight: 700;
+      letter-spacing: 2px;
+      text-transform: uppercase;
+      margin-bottom: 7px;
+    }
+
+    .dashboard-title {
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 4vw, 3.1rem);
+      line-height: 1.1;
+      letter-spacing: -1px;
+    }
+
+    .dashboard-title span {
+      color: var(--gold);
+    }
+
+    .dashboard-subtitle {
+      margin-top: 9px;
+      color: var(--muted);
+      font-size: 0.9rem;
+    }
+
+    .admin-status {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      padding: 12px 17px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      backdrop-filter: blur(15px);
+    }
+
+    .status-indicator {
+      width: 10px;
+      height: 10px;
+      border-radius: 50%;
+      background: var(--success);
+      box-shadow:
+        0 0 0 5px rgba(46, 204, 113, 0.10),
+        0 0 18px rgba(46, 204, 113, 0.65);
+    }
+
+    .admin-status small {
+      display: block;
+      color: var(--muted);
+      font-size: 0.68rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .admin-status strong {
+      display: block;
+      margin-top: 2px;
+      font-size: 0.85rem;
+    }
+
+    .stats-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 18px;
+      margin-bottom: 25px;
+    }
+
+    .stat-card {
+      position: relative;
+      min-height: 150px;
+      padding: 25px;
+      overflow: hidden;
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.045),
+          rgba(255, 255, 255, 0.018)
+        );
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.20);
+      transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        background 0.25s ease;
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+      border-color: rgba(0, 128, 128, 0.55);
+      background: var(--surface-hover);
+    }
+
+    .stat-icon {
+      width: 45px;
+      height: 45px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 13px;
+      background: rgba(0, 128, 128, 0.12);
+      color: var(--teal-light);
+      margin-bottom: 18px;
+    }
+
+    .stat-card.gold .stat-icon {
+      background: rgba(255, 215, 0, 0.10);
+      color: var(--gold);
+    }
+
+    .stat-card.green .stat-icon {
+      background: rgba(46, 204, 113, 0.10);
+      color: var(--success);
+    }
+
+    .stat-card.blue .stat-icon {
+      background: rgba(52, 152, 219, 0.10);
+      color: var(--info);
+    }
+
+    .stat-label {
+      display: block;
+      color: var(--muted);
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .stat-value {
+      display: block;
+      margin-top: 3px;
+      font-size: 1.85rem;
+      font-weight: 700;
+    }
+
+    .stat-description {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
+
+    .stat-background-icon {
+      position: absolute;
+      right: -15px;
+      bottom: -22px;
+      font-size: 5.5rem;
+      color: rgba(255, 255, 255, 0.025);
+      pointer-events: none;
+    }
+
+    .dashboard-grid {
+      display: grid;
+      grid-template-columns: minmax(0, 2fr) minmax(300px, 0.85fr);
+      gap: 22px;
+      align-items: start;
+    }
+
+    .panel {
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      padding: 27px;
+      box-shadow: var(--shadow);
+      backdrop-filter: blur(15px);
+    }
+
+    .panel-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 15px;
+      margin-bottom: 23px;
+    }
+
+    .panel-title {
+      font-family: "Playfair Display", serif;
+      font-size: 1.45rem;
+    }
+
+    .panel-description {
+      color: var(--muted);
+      font-size: 0.76rem;
+      margin-top: 3px;
+    }
+
+    .panel-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      color: var(--gold);
+      text-decoration: none;
+      font-size: 0.78rem;
+      font-weight: 600;
+      white-space: nowrap;
+      transition: color 0.2s ease;
+    }
+
+    .panel-link:hover {
+      color: white;
+    }
+
+    .table-wrapper {
+      width: 100%;
+      overflow-x: auto;
+    }
+
+    .booking-table {
+      width: 100%;
+      min-width: 760px;
+      border-collapse: separate;
+      border-spacing: 0 9px;
+    }
+
+    .booking-table th {
+      padding: 0 13px 8px;
+      color: var(--muted);
+      font-size: 0.66rem;
+      font-weight: 600;
+      letter-spacing: 1px;
+      text-align: left;
+      text-transform: uppercase;
+    }
+
+    .booking-table td {
+      padding: 15px 13px;
+      background: rgba(255, 255, 255, 0.025);
+      border-top: 1px solid var(--border);
+      border-bottom: 1px solid var(--border);
+      font-size: 0.78rem;
+      vertical-align: middle;
+    }
+
+    .booking-table td:first-child {
+      border-left: 1px solid var(--border);
+      border-radius: 13px 0 0 13px;
+    }
+
+    .booking-table td:last-child {
+      border-right: 1px solid var(--border);
+      border-radius: 0 13px 13px 0;
+    }
+
+    .booking-table tbody tr {
+      transition: transform 0.2s ease;
+    }
+
+    .booking-table tbody tr:hover {
+      transform: translateX(3px);
+    }
+
+    .guest-cell {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .guest-avatar {
+      width: 36px;
+      height: 36px;
+      flex: 0 0 36px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 10px;
+      background: linear-gradient(
+        135deg,
+        var(--teal),
+        var(--teal-dark)
+      );
+      color: white;
+      font-size: 0.78rem;
+      font-weight: 700;
+    }
+
+    .guest-name {
+      max-width: 170px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      font-weight: 600;
+    }
+
+    .guest-email {
+      max-width: 170px;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+      color: var(--muted);
+      font-size: 0.66rem;
+    }
+
+    .room-name {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-weight: 500;
+    }
+
+    .room-name i {
+      color: var(--gold);
+    }
+
+    .date-range {
+      white-space: nowrap;
+      color: #dce0e2;
+    }
+
+    .date-range .arrow {
+      margin: 0 4px;
+      color: var(--teal-light);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 10px;
+      border-radius: 999px;
+      border: 1px solid transparent;
+      font-size: 0.62rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.6px;
+    }
+
+    .status-dot {
+      width: 6px;
+      height: 6px;
+      border-radius: 50%;
+    }
+
+    .status-pending {
+      color: var(--warning);
+      background: rgba(241, 196, 15, 0.08);
+      border-color: rgba(241, 196, 15, 0.16);
+    }
+
+    .status-pending .status-dot {
+      background: var(--warning);
+    }
+
+    .status-accepted {
+      color: var(--success);
+      background: rgba(46, 204, 113, 0.08);
+      border-color: rgba(46, 204, 113, 0.16);
+    }
+
+    .status-accepted .status-dot {
+      background: var(--success);
+    }
+
+    .status-declined {
+      color: var(--danger);
+      background: rgba(231, 76, 60, 0.08);
+      border-color: rgba(231, 76, 60, 0.16);
+    }
+
+    .status-declined .status-dot {
+      background: var(--danger);
+    }
+
+    .status-cancelled {
+      color: #bdc3c7;
+      background: rgba(189, 195, 199, 0.07);
+      border-color: rgba(189, 195, 199, 0.14);
+    }
+
+    .status-cancelled .status-dot {
+      background: #bdc3c7;
+    }
+
+    .booking-actions {
+      display: flex;
+      align-items: center;
+      justify-content: flex-end;
+      gap: 6px;
+    }
+
+    .action-button {
+      width: 34px;
+      height: 34px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9px;
+      color: white;
+      background: rgba(255, 255, 255, 0.045);
+      border: 1px solid var(--border);
+      cursor: pointer;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .action-button:hover:not(:disabled) {
+      transform: translateY(-2px);
+    }
+
+    .action-button.accept:hover:not(:disabled) {
+      background: var(--success);
+      border-color: var(--success);
+    }
+
+    .action-button.decline:hover:not(:disabled) {
+      background: var(--danger);
+      border-color: var(--danger);
+    }
+
+    .action-button:disabled {
+      opacity: 0.25;
+      cursor: not-allowed;
+    }
+
+    .no-action {
+      color: var(--muted);
+      font-size: 0.68rem;
+    }
+
+    .empty-state {
+      padding: 55px 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .empty-state-icon {
+      width: 55px;
+      height: 55px;
+      margin: 0 auto 15px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 15px;
+      background: rgba(0, 128, 128, 0.08);
+      color: var(--teal-light);
+      font-size: 1.2rem;
+    }
+
+    .empty-state strong {
+      display: block;
+      margin-bottom: 4px;
+      color: white;
+      font-size: 0.9rem;
+    }
+
+    .empty-state p {
+      font-size: 0.72rem;
+    }
+
+    .quick-actions {
+      display: grid;
+      gap: 11px;
+    }
+
+    .quick-action {
+      display: flex;
+      align-items: center;
+      gap: 13px;
+      width: 100%;
+      padding: 14px;
+      color: white;
+      text-decoration: none;
+      background: rgba(255, 255, 255, 0.025);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      cursor: pointer;
+      transition: all 0.22s ease;
+    }
+
+    .quick-action:hover {
+      transform: translateX(4px);
+      border-color: rgba(0, 128, 128, 0.55);
+      background: rgba(0, 128, 128, 0.08);
+    }
+
+    .quick-action-icon {
+      width: 40px;
+      height: 40px;
+      flex: 0 0 40px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 11px;
+      color: var(--teal-light);
+      background: rgba(0, 128, 128, 0.10);
+    }
+
+    .quick-action.gold .quick-action-icon {
+      color: var(--gold);
+      background: rgba(255, 215, 0, 0.08);
+    }
+
+    .quick-action-content {
+      flex: 1;
+    }
+
+    .quick-action-title {
+      display: block;
+      font-size: 0.78rem;
+      font-weight: 600;
+    }
+
+    .quick-action-description {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.64rem;
+    }
+
+    .quick-action-arrow {
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+
+    .system-card {
+      margin-top: 20px;
+      padding: 18px;
+      border-radius: 16px;
+      background:
+        linear-gradient(
+          135deg,
+          rgba(0, 128, 128, 0.09),
+          rgba(0, 128, 128, 0.025)
+        );
+      border: 1px solid rgba(0, 128, 128, 0.18);
+    }
+
+    .system-card-header {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 12px;
+      color: var(--teal-light);
+      font-size: 0.72rem;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
+
+    .system-list {
+      list-style: none;
+    }
+
+    .system-list li {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      margin-top: 8px;
+      color: var(--muted);
+      font-size: 0.67rem;
+    }
+
+    .system-list i {
+      color: var(--success);
+      font-size: 0.58rem;
+    }
+
+    .toast-container {
+      position: fixed;
+      right: 24px;
+      bottom: 24px;
+      z-index: 9999;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .toast {
+      min-width: 300px;
+      max-width: 420px;
+      padding: 15px 17px;
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      background: #111719;
+      border: 1px solid var(--border-strong);
+      border-radius: 14px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
+      animation: toastIn 0.25s ease;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(15px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
+    }
+
+    .toast-icon {
+      width: 30px;
+      height: 30px;
+      flex: 0 0 30px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      border-radius: 9px;
+    }
+
+    .toast.success .toast-icon {
+      color: var(--success);
+      background: rgba(46, 204, 113, 0.10);
+    }
+
+    .toast.error .toast-icon {
+      color: var(--danger);
+      background: rgba(231, 76, 60, 0.10);
+    }
+
+    .toast.warning .toast-icon {
+      color: var(--warning);
+      background: rgba(241, 196, 15, 0.10);
+    }
+
+    .toast-content strong {
+      display: block;
+      font-size: 0.76rem;
+      margin-bottom: 2px;
+    }
+
+    .toast-content p {
+      color: var(--muted);
+      font-size: 0.66rem;
+      line-height: 1.5;
+    }
+
+    .action-button.loading {
+      pointer-events: none;
+      opacity: 0.6;
+    }
+
+    .action-button.loading i {
+      animation: spin 0.8s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    @media (max-width: 1200px) {
+      .stats-grid {
+        grid-template-columns: repeat(2, 1fr);
+      }
+
+      .dashboard-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 760px) {
+      .dashboard-container {
+        width: min(calc(100% - 28px), 1600px);
+        padding-top: 25px;
+      }
+
+      .dashboard-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .admin-status {
+        width: 100%;
+      }
+
+      .stats-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .panel {
+        padding: 19px;
+        border-radius: 20px;
+      }
+
+      .panel-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
+      .toast-container {
+        left: 14px;
+        right: 14px;
+        bottom: 14px;
+      }
+
+      .toast {
+        min-width: 0;
+        width: 100%;
+      }
+    }
   </style>
 </head>
+
 <body>
 
-<%- include('../partials/navadmin') %>
+  <!-- ADMIN NAVIGATION -->
+  <%- include('../partials/navadmin') %>
 
-<div class="dashboard-container">
-  
-  <header class="dash-header">
-    <div class="welcome-text">
-      <p>System Overview</p>
-      <h1>Isle <span>Admin</span></h1>
-    </div>
-    <div class="live-clock">
-      <p>Dingalan Aurora, PH</p>
-      <span id="currentTime">00:00:00</span>
-    </div>
-  </header>
+  <!-- MAIN DASHBOARD -->
+  <main class="dashboard-container">
 
-  <div class="content-box">
-    <div class="box-header">
-      <h3 style="font-family: 'Playfair Display', serif; font-size: 1.6rem;">Recent Reservations</h3>
-      <a href="/admin/history" style="color: var(--brand-yellow); text-decoration: none; font-size: 0.85rem; font-weight: 600;">View History <i class="fas fa-arrow-right"></i></a>
-    </div>
-    <table class="luxury-table">
-      <thead>
-        <tr>
-          <th>Guest</th>
-          <th>Dwelling</th>
-          <th>Check In/Out</th>
-          <th>Qty</th>
-          <th>Status</th>
-          <th style="text-align: right;">Command</th>
-        </tr>
-      </thead>
-      <tbody>
-        <% if (recentBookings && recentBookings.length > 0) { %>
-          <% recentBookings.forEach(booking => { %>
-            <tr id="row-<%= booking._id %>">
-              <td>
-                <div style="display: flex; align-items: center; gap: 12px;">
-                  <div style="width: 32px; height: 32px; background: var(--brand-teal); border-radius: 8px; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.75rem;">
-                    <%= booking.userId && booking.userId.fullname ? booking.userId.fullname.charAt(0) : 'G' %>
-                  </div>
-                  <strong><%= booking.userId ? booking.userId.fullname : 'Guest User' %></strong>
-                </div>
-              </td>
-              <td style="font-size: 0.85rem;">
-                <i class="fas fa-umbrella-beach" style="color: var(--brand-yellow); opacity: 0.5; margin-right: 5px;"></i> 
-                <%= booking.roomDisplayName || booking.room %>
-              </td>
-              <td style="font-size: 0.85rem;"><%= new Date(booking.checkin).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) %> — <%= new Date(booking.checkout).toLocaleDateString('en-US', {month: 'short', day: 'numeric'}) %></td>
-              <td><%= booking.guests %></td>
-              <td>
-                <span class="status-pill status-<%= booking.status ? booking.status.toLowerCase() : 'pending' %>" id="pill-<%= booking._id %>">
-                  <%= booking.status || 'Pending' %>
+    <!-- HEADER -->
+    <header class="dashboard-header">
+      <div>
+        <div class="eyebrow">
+          Resort Management System
+        </div>
+
+        <h1 class="dashboard-title">
+          Isle <span>Command</span>
+        </h1>
+
+        <p class="dashboard-subtitle">
+          Monitor reservations, guests and front-desk operations.
+        </p>
+      </div>
+
+      <div class="admin-status">
+        <span class="status-indicator"></span>
+
+        <div>
+          <small>System Status</small>
+          <strong>Operational</strong>
+        </div>
+      </div>
+    </header>
+
+    <!-- STATISTICS -->
+    <section class="stats-grid">
+
+      <!-- TOTAL BOOKINGS -->
+      <article class="stat-card gold">
+        <div class="stat-icon">
+          <i class="fas fa-calendar-check"></i>
+        </div>
+
+        <span class="stat-label">
+          Total Bookings
+        </span>
+
+        <span class="stat-value">
+          <%= Number(totalBookings || 0).toLocaleString() %>
+        </span>
+
+        <p class="stat-description">
+          All reservations recorded
+        </p>
+
+        <i class="fas fa-calendar-alt stat-background-icon"></i>
+      </article>
+
+      <!-- USERS -->
+      <article class="stat-card">
+        <div class="stat-icon">
+          <i class="fas fa-users"></i>
+        </div>
+
+        <span class="stat-label">
+          Registered Guests
+        </span>
+
+        <span class="stat-value">
+          <%= Number(totalUsers || 0).toLocaleString() %>
+        </span>
+
+        <p class="stat-description">
+          Guest accounts in the system
+        </p>
+
+        <i class="fas fa-users stat-background-icon"></i>
+      </article>
+
+      <!-- IN HOUSE -->
+      <article
+        class="stat-card green"
+        style="cursor: pointer"
+        onclick="window.location.href='/admin/checkin-manager'"
+      >
+        <div class="stat-icon">
+          <i class="fas fa-bed"></i>
+        </div>
+
+        <span class="stat-label">
+          Currently In-House
+        </span>
+
+        <span class="stat-value">
+          <%= Number(inHouseCount || 0).toLocaleString() %>
+        </span>
+
+        <p class="stat-description">
+          Guests currently checked in
+        </p>
+
+        <i class="fas fa-bed stat-background-icon"></i>
+      </article>
+
+      <!-- FRONT DESK -->
+      <article
+        class="stat-card blue"
+        style="cursor: pointer"
+        onclick="window.location.href='/admin/checkin-manager'"
+      >
+        <div class="stat-icon">
+          <i class="fas fa-concierge-bell"></i>
+        </div>
+
+        <span class="stat-label">
+          Front Desk
+        </span>
+
+        <span class="stat-value">
+          <i
+            class="fas fa-arrow-right"
+            style="font-size: 1.4rem"
+          ></i>
+        </span>
+
+        <p class="stat-description">
+          Open check-in management
+        </p>
+
+        <i class="fas fa-concierge-bell stat-background-icon"></i>
+      </article>
+
+    </section>
+
+    <!-- MAIN CONTENT -->
+    <section class="dashboard-grid">
+
+      <!-- RECENT BOOKINGS -->
+      <div class="panel">
+
+        <div class="panel-header">
+          <div>
+            <h2 class="panel-title">
+              Recent Reservations
+            </h2>
+
+            <p class="panel-description">
+              Latest booking activity requiring your attention.
+            </p>
+          </div>
+
+          <a
+            href="/admin/history"
+            class="panel-link"
+          >
+            View Archive
+            <i class="fas fa-arrow-right"></i>
+          </a>
+        </div>
+
+        <div class="table-wrapper">
+
+          <table class="booking-table">
+
+            <thead>
+              <tr>
+                <th>Guest</th>
+                <th>Accommodation</th>
+                <th>Stay</th>
+                <th>Guests</th>
+                <th>Status</th>
+                <th style="text-align: right">
+                  Actions
+                </th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              <% if (
+                Array.isArray(recentBookings) &&
+                recentBookings.length > 0
+              ) { %>
+
+                <% recentBookings.forEach(booking => {
+
+                  const guestName =
+                    booking.userId &&
+                    booking.userId.fullname
+                      ? booking.userId.fullname
+                      : "Guest User";
+
+                  const guestEmail =
+                    booking.userId &&
+                    booking.userId.email
+                      ? booking.userId.email
+                      : "";
+
+                  const initials =
+                    guestName
+                      .trim()
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map(part =>
+                        part.charAt(0).toUpperCase()
+                      )
+                      .join("") || "G";
+
+                  const roomNames = {
+                    "Aircon Room": "Aircon Suite",
+                    "Fan Room": "Cozy Fan Room",
+                    "Seaside Cottage": "Seaside Cottage"
+                  };
+
+                  const roomName =
+                    roomNames[booking.room] ||
+                    booking.room ||
+                    "Accommodation";
+
+                  const bookingStatus =
+                    String(
+                      booking.status || "pending"
+                    ).toLowerCase();
+
+                  const checkinDate =
+                    booking.checkin
+                      ? new Date(booking.checkin)
+                      : null;
+
+                  const checkoutDate =
+                    booking.checkout
+                      ? new Date(booking.checkout)
+                      : null;
+
+                  const validCheckin =
+                    checkinDate &&
+                    !Number.isNaN(
+                      checkinDate.getTime()
+                    );
+
+                  const validCheckout =
+                    checkoutDate &&
+                    !Number.isNaN(
+                      checkoutDate.getTime()
+                    );
+
+                %>
+
+                  <tr
+                    id="booking-row-<%= booking._id %>"
+                    data-status="<%= bookingStatus %>"
+                  >
+
+                    <!-- GUEST -->
+                    <td>
+                      <div class="guest-cell">
+
+                        <div class="guest-avatar">
+                          <%= initials %>
+                        </div>
+
+                        <div>
+
+                          <div class="guest-name">
+                            <%= guestName %>
+                          </div>
+
+                          <% if (guestEmail) { %>
+
+                            <div class="guest-email">
+                              <%= guestEmail %>
+                            </div>
+
+                          <% } %>
+
+                        </div>
+
+                      </div>
+                    </td>
+
+                    <!-- ROOM -->
+                    <td>
+
+                      <div class="room-name">
+
+                        <i class="fas fa-umbrella-beach"></i>
+
+                        <span>
+
+                          <%= roomName %>
+
+                          <% if (
+                            booking.cottageAddon &&
+                            booking.room !== "Seaside Cottage"
+                          ) { %>
+
+                            <span
+                              style="
+                                color: var(--muted);
+                                font-size: 0.64rem;
+                              "
+                            >
+                              + Cottage
+                            </span>
+
+                          <% } %>
+
+                        </span>
+
+                      </div>
+
+                    </td>
+
+                    <!-- DATES -->
+                    <td>
+
+                      <% if (
+                        validCheckin &&
+                        validCheckout
+                      ) { %>
+
+                        <div class="date-range">
+
+                          <%= checkinDate.toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric"
+                            }
+                          ) %>
+
+                          <span class="arrow">
+                            →
+                          </span>
+
+                          <%= checkoutDate.toLocaleDateString(
+                            "en-US",
+                            {
+                              month: "short",
+                              day: "numeric",
+                              year: "numeric"
+                            }
+                          ) %>
+
+                        </div>
+
+                      <% } else { %>
+
+                        <span style="color: var(--danger)">
+                          Invalid dates
+                        </span>
+
+                      <% } %>
+
+                    </td>
+
+                    <!-- GUEST COUNT -->
+                    <td>
+                      <strong>
+                        <%= Number(
+                          booking.guests || 0
+                        ) %>
+                      </strong>
+                    </td>
+
+                    <!-- STATUS -->
+                    <td>
+
+                      <span
+                        id="status-<%= booking._id %>"
+                        class="status status-<%= bookingStatus %>"
+                      >
+
+                        <span class="status-dot"></span>
+
+                        <span class="status-text">
+                          <%= bookingStatus.charAt(0).toUpperCase() +
+                              bookingStatus.slice(1) %>
+                        </span>
+
+                      </span>
+
+                    </td>
+
+                    <!-- ACTIONS -->
+                    <td>
+
+                      <div class="booking-actions">
+
+                        <% if (
+                          bookingStatus === "pending"
+                        ) { %>
+
+                          <button
+                            type="button"
+                            class="action-button accept"
+                            title="Accept booking"
+                            aria-label="Accept booking"
+                            data-booking-id="<%= booking._id %>"
+                            data-status="accepted"
+                            onclick="handleStatusUpdate(this)"
+                          >
+                            <i class="fas fa-check"></i>
+                          </button>
+
+                          <button
+                            type="button"
+                            class="action-button decline"
+                            title="Decline booking"
+                            aria-label="Decline booking"
+                            data-booking-id="<%= booking._id %>"
+                            data-status="declined"
+                            onclick="handleStatusUpdate(this)"
+                          >
+                            <i class="fas fa-xmark"></i>
+                          </button>
+
+                        <% } else if (
+                          bookingStatus === "accepted"
+                        ) { %>
+
+                          <a
+                            href="/admin/checkin-manager"
+                            class="action-button"
+                            title="Open front desk"
+                            aria-label="Open front desk"
+                          >
+                            <i class="fas fa-concierge-bell"></i>
+                          </a>
+
+                        <% } else { %>
+
+                          <span class="no-action">
+                            No action
+                          </span>
+
+                        <% } %>
+
+                      </div>
+
+                    </td>
+
+                  </tr>
+
+                <% }) %>
+
+              <% } else { %>
+
+                <tr>
+
+                  <td
+                    colspan="6"
+                    style="
+                      border: 0;
+                      background: transparent;
+                    "
+                  >
+
+                    <div class="empty-state">
+
+                      <div class="empty-state-icon">
+                        <i class="fas fa-calendar-xmark"></i>
+                      </div>
+
+                      <strong>
+                        No reservations yet
+                      </strong>
+
+                      <p>
+                        New booking activity will appear here.
+                      </p>
+
+                    </div>
+
+                  </td>
+
+                </tr>
+
+              <% } %>
+
+            </tbody>
+
+          </table>
+
+        </div>
+
+      </div>
+
+      <!-- RIGHT SIDEBAR -->
+      <aside>
+
+        <div class="panel">
+
+          <div class="panel-header">
+
+            <div>
+
+              <h2 class="panel-title">
+                Quick Actions
+              </h2>
+
+              <p class="panel-description">
+                Common administrative operations.
+              </p>
+
+            </div>
+
+          </div>
+
+          <div class="quick-actions">
+
+            <!-- FRONT DESK -->
+            <a
+              href="/admin/checkin-manager"
+              class="quick-action gold"
+            >
+
+              <div class="quick-action-icon">
+                <i class="fas fa-concierge-bell"></i>
+              </div>
+
+              <div class="quick-action-content">
+
+                <span class="quick-action-title">
+                  Front Desk
                 </span>
-              </td>
-              <td>
-                <div class="command-group">
-                  <button class="btn-command btn-confirm" title="Accept Booking" onclick="handleStatusUpdate('<%= booking._id %>', 'accepted')">
-                    <i class="fas fa-check"></i>
-                  </button>
-                  <button class="btn-command btn-cancel" title="Decline Booking" onclick="handleStatusUpdate('<%= booking._id %>', 'declined')">
-                    <i class="fas fa-times"></i>
-                  </button>
-                </div>
-              </td>
-            </tr>
-          <% }) %>
-        <% } else { %>
-          <tr>
-            <td colspan="6" style="text-align: center; color: var(--text-muted); padding: 40px;">No pending actions found.</td>
-          </tr>
-        <% } %>
-      </tbody>
-    </table>
-  </div>
 
-  <section class="stats-grid">
-    <div class="stat-card">
-      <i class="fas fa-calendar-alt"></i>
-      <span class="label">Total Bookings</span>
-      <span class="value"><%= totalBookings %></span>
-      <span class="trend" style="color: var(--success)"><i class="fas fa-arrow-up"></i> Live</span>
-    </div>
+                <span class="quick-action-description">
+                  Manage arrivals and in-house guests.
+                </span>
 
-    <div class="stat-card" onclick="window.location.href='/admin/checkin-manager'" style="cursor: pointer;">
-      <i class="fas fa-bed"></i>
-      <span class="label">Live Occupancy</span>
-      <span class="value"><%= inHouseCount %> Guests</span>
-      <span class="trend" style="color: var(--brand-teal)">Manage Arrivals <i class="fas fa-chevron-right"></i></span>
-    </div>
+              </div>
 
-    <div class="stat-card">
-      <i class="fas fa-user-check"></i>
-      <span class="label">Active Admins</span>
-      <span class="value">1</span>
-      <span class="trend" style="color: var(--success)">Encrypted</span>
-    </div>
-    <div class="stat-card">
-      <i class="fas fa-star"></i>
-      <span class="label">Guest Rating</span>
-      <span class="value">4.9/5</span>
-      <span class="trend" style="color: var(--success)">Excellent</span>
-    </div>
-  </section>
+              <i class="fas fa-chevron-right quick-action-arrow"></i>
 
-  <div class="main-grid">
-    <div class="content-box">
-      <div class="box-header">
-        <h3 style="font-family: 'Playfair Display', serif;">Engagement Analytics</h3>
-      </div>
-      <canvas id="revenueChart"></canvas>
-    </div>
+            </a>
 
-    <div class="content-box">
-      <div class="box-header">
-        <h3 style="font-family: 'Playfair Display', serif;">Quick Actions</h3>
-      </div>
-      
-      <button class="action-btn" onclick="window.location.href='/admin/checkin-manager'" style="background: var(--brand-yellow); color: var(--bg-dark); margin-bottom: 15px;">
-        <i class="fas fa-concierge-bell"></i> <strong>Open Front Desk</strong>
-      </button>
+            <!-- HISTORY -->
+            <a
+              href="/admin/history"
+              class="quick-action"
+            >
 
-      <button class="action-btn"><i class="fas fa-plus"></i> Manual Booking</button>
-      <button class="action-btn" style="background: transparent; border: 1px solid var(--card-border);"><i class="fas fa-file-invoice"></i> Export Analytics</button>
-      <button class="action-btn" style="background: rgba(231, 76, 60, 0.1); color: #e74c3c; margin-top: 20px;" onclick="window.location.href='/admin/logout'"><i class="fas fa-power-off"></i> System Logout</button>
-    </div>
-  </div>
-</div>
+              <div class="quick-action-icon">
+                <i class="fas fa-clock-rotate-left"></i>
+              </div>
 
-<script>
-  function updateTime() {
-    const now = new Date();
-    document.getElementById('currentTime').innerText = now.toLocaleTimeString();
-  }
-  setInterval(updateTime, 1000);
-  updateTime();
+              <div class="quick-action-content">
 
-  async function handleStatusUpdate(bookingId, newStatus) {
-    const confirmAction = confirm(`Set this booking to ${newStatus.toUpperCase()}?`);
-    if (!confirmAction) return;
+                <span class="quick-action-title">
+                  Booking History
+                </span>
 
-    try {
-      const response = await fetch('/admin/booking/update-status', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ bookingId, status: newStatus })
+                <span class="quick-action-description">
+                  Review all reservation records.
+                </span>
+
+              </div>
+
+              <i class="fas fa-chevron-right quick-action-arrow"></i>
+
+            </a>
+
+            <!-- MANUAL BOOKING -->
+            <button
+              type="button"
+              class="quick-action"
+              onclick="showToast(
+                'Manual Booking',
+                'Manual booking workflow will be connected to the admin booking module.',
+                'warning'
+              )"
+            >
+
+              <div class="quick-action-icon">
+                <i class="fas fa-plus"></i>
+              </div>
+
+              <div class="quick-action-content">
+
+                <span class="quick-action-title">
+                  Manual Booking
+                </span>
+
+                <span class="quick-action-description">
+                  Create a reservation for a walk-in guest.
+                </span>
+
+              </div>
+
+              <i class="fas fa-chevron-right quick-action-arrow"></i>
+
+            </button>
+
+            <!-- EXPORT -->
+            <button
+              type="button"
+              class="quick-action"
+              onclick="showToast(
+                'Analytics Export',
+                'Export functionality will be connected to the reporting module.',
+                'warning'
+              )"
+            >
+
+              <div class="quick-action-icon">
+                <i class="fas fa-file-export"></i>
+              </div>
+
+              <div class="quick-action-content">
+
+                <span class="quick-action-title">
+                  Export Reports
+                </span>
+
+                <span class="quick-action-description">
+                  Generate operational reports.
+                </span>
+
+              </div>
+
+              <i class="fas fa-chevron-right quick-action-arrow"></i>
+
+            </button>
+
+          </div>
+
+          <!-- SYSTEM STATUS -->
+          <div class="system-card">
+
+            <div class="system-card-header">
+              <i class="fas fa-shield-halved"></i>
+              System Integrity
+            </div>
+
+            <ul class="system-list">
+
+              <li>
+                <i class="fas fa-circle-check"></i>
+                Server authentication active
+              </li>
+
+              <li>
+                <i class="fas fa-circle-check"></i>
+                Server-side booking validation active
+              </li>
+
+              <li>
+                <i class="fas fa-circle-check"></i>
+                Double-booking protection active
+              </li>
+
+              <li>
+                <i class="fas fa-circle-check"></i>
+                Database session storage active
+              </li>
+
+            </ul>
+
+          </div>
+
+        </div>
+
+      </aside>
+
+    </section>
+
+  </main>
+
+  <!-- TOAST CONTAINER -->
+  <div
+    id="toastContainer"
+    class="toast-container"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+
+  <script>
+    "use strict";
+
+    function showToast(
+      title,
+      message,
+      type = "success"
+    ) {
+      const container =
+        document.getElementById("toastContainer");
+
+      if (!container) {
+        return;
+      }
+
+      const toast =
+        document.createElement("div");
+
+      toast.className = `toast ${type}`;
+
+      let icon = "fa-circle-check";
+
+      if (type === "error") {
+        icon = "fa-circle-exclamation";
+      }
+
+      if (type === "warning") {
+        icon = "fa-triangle-exclamation";
+      }
+
+      toast.innerHTML = `
+        <div class="toast-icon">
+          <i class="fas ${icon}"></i>
+        </div>
+
+        <div class="toast-content">
+          <strong>${escapeHtml(title)}</strong>
+          <p>${escapeHtml(message)}</p>
+        </div>
+      `;
+
+      container.appendChild(toast);
+
+      setTimeout(() => {
+
+        toast.style.opacity = "0";
+        toast.style.transform = "translateY(10px)";
+        toast.style.transition = "all .25s ease";
+
+        setTimeout(() => {
+          toast.remove();
+        }, 250);
+
+      }, 4500);
+    }
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
+
+    async function handleStatusUpdate(button) {
+
+      if (!button) {
+        return;
+      }
+
+      const bookingId =
+        button.dataset.bookingId;
+
+      const newStatus =
+        button.dataset.status;
+
+      if (!bookingId || !newStatus) {
+
+        showToast(
+          "Invalid Request",
+          "Booking information is missing.",
+          "error"
+        );
+
+        return;
+      }
+
+      const actionName =
+        newStatus === "accepted"
+          ? "accept"
+          : "decline";
+
+      const confirmation =
+        window.confirm(
+          `Are you sure you want to ${actionName} this booking?`
+        );
+
+      if (!confirmation) {
+        return;
+      }
+
+      const row =
+        document.getElementById(
+          `booking-row-${bookingId}`
+        );
+
+      const actionButtons =
+        row
+          ? row.querySelectorAll(".action-button")
+          : [];
+
+      actionButtons.forEach(actionButton => {
+        actionButton.disabled = true;
       });
 
-      const data = await response.json();
+      button.classList.add("loading");
 
-      if (data.success) {
-        const pill = document.getElementById(`pill-${bookingId}`);
-        pill.innerText = newStatus.charAt(0).toUpperCase() + newStatus.slice(1);
-        pill.className = `status-pill status-${newStatus.toLowerCase()}`;
-        
-        const row = document.getElementById(`row-${bookingId}`);
-        row.style.background = 'rgba(46, 204, 113, 0.05)';
-        setTimeout(() => row.style.background = 'transparent', 2000);
-      } else {
-        alert("Server Error: " + data.message);
+      const originalIcon =
+        button.querySelector("i");
+
+      if (originalIcon) {
+        originalIcon.className =
+          "fas fa-spinner";
       }
-    } catch (err) {
-      console.error(err);
-      alert("Network Error: Could not update status.");
-    }
-  }
 
-  const ctx = document.getElementById('revenueChart').getContext('2d');
-  const gradient = ctx.createLinearGradient(0, 0, 0, 400);
-  gradient.addColorStop(0, 'rgba(0, 128, 128, 0.3)');
-  gradient.addColorStop(1, 'rgba(0, 128, 128, 0)');
+      try {
 
-  new Chart(ctx, {
-    type: 'line',
-    data: {
-      labels: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'],
-      datasets: [{
-        label: 'Bookings',
-        data: [45, 59, 52, 81, 96, 120, 142],
-        borderColor: '#FFD700',
-        backgroundColor: gradient,
-        fill: true,
-        tension: 0.4,
-        borderWidth: 3,
-        pointRadius: 4,
-        pointBackgroundColor: '#FFD700'
-      }]
-    },
-    options: {
-      responsive: true,
-      plugins: { legend: { display: false } },
-      scales: {
-        y: { display: false },
-        x: { grid: { display: false }, ticks: { color: '#a0a0a0' } }
+        const response =
+          await fetch(
+            "/admin/booking/update-status",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                "Accept":
+                  "application/json"
+              },
+
+              body: JSON.stringify({
+                bookingId,
+                status: newStatus
+              })
+            }
+          );
+
+        let data = null;
+
+        try {
+          data = await response.json();
+        } catch {
+          data = null;
+        }
+
+        if (
+          !response.ok ||
+          !data ||
+          !data.success
+        ) {
+
+          const message =
+            data?.message ||
+            "The booking status could not be updated.";
+
+          if (
+            data?.code ===
+            "ROOM_ALREADY_BOOKED"
+          ) {
+
+            showToast(
+              "Room Already Booked",
+              "This reservation overlaps another active booking and cannot be accepted.",
+              "error"
+            );
+
+          } else {
+
+            showToast(
+              "Update Failed",
+              message,
+              "error"
+            );
+
+          }
+
+          actionButtons.forEach(
+            actionButton => {
+              actionButton.disabled = false;
+            }
+          );
+
+          button.classList.remove("loading");
+
+          if (originalIcon) {
+            originalIcon.className =
+              newStatus === "accepted"
+                ? "fas fa-check"
+                : "fas fa-xmark";
+          }
+
+          return;
+        }
+
+        updateBookingRow(
+          bookingId,
+          newStatus
+        );
+
+        showToast(
+          "Booking Updated",
+          data.message ||
+            `Booking has been ${newStatus}.`,
+          "success"
+        );
+
+      } catch (error) {
+
+        console.error(
+          "Admin booking update error:",
+          error
+        );
+
+        showToast(
+          "Connection Error",
+          "Unable to contact the server. Please try again.",
+          "error"
+        );
+
+        actionButtons.forEach(
+          actionButton => {
+            actionButton.disabled = false;
+          }
+        );
+
+        button.classList.remove("loading");
+
+        if (originalIcon) {
+          originalIcon.className =
+            newStatus === "accepted"
+              ? "fas fa-check"
+              : "fas fa-xmark";
+        }
       }
     }
-  });
-</script>
+
+    function updateBookingRow(
+      bookingId,
+      newStatus
+    ) {
+
+      const row =
+        document.getElementById(
+          `booking-row-${bookingId}`
+        );
+
+      const statusElement =
+        document.getElementById(
+          `status-${bookingId}`
+        );
+
+      if (!row || !statusElement) {
+        return;
+      }
+
+      row.dataset.status =
+        newStatus;
+
+      statusElement.className =
+        `status status-${newStatus}`;
+
+      const statusText =
+        statusElement.querySelector(
+          ".status-text"
+        );
+
+      if (statusText) {
+
+        statusText.textContent =
+          newStatus.charAt(0).toUpperCase() +
+          newStatus.slice(1);
+
+      }
+
+      const actions =
+        row.querySelector(
+          ".booking-actions"
+        );
+
+      if (actions) {
+
+        if (newStatus === "accepted") {
+
+          actions.innerHTML = `
+            <a
+              href="/admin/checkin-manager"
+              class="action-button"
+              title="Open front desk"
+              aria-label="Open front desk"
+            >
+              <i class="fas fa-concierge-bell"></i>
+            </a>
+          `;
+
+        } else {
+
+          actions.innerHTML = `
+            <span class="no-action">
+              No action
+            </span>
+          `;
+
+        }
+      }
+
+      row.style.transition =
+        "background .25s ease";
+
+      row.style.background =
+        newStatus === "accepted"
+          ? "rgba(46,204,113,0.08)"
+          : "rgba(231,76,60,0.06)";
+
+      setTimeout(() => {
+        row.style.background = "";
+      }, 2200);
+    }
+
+    function updateClock() {
+
+      const now = new Date();
+
+      const clock =
+        document.getElementById(
+          "currentTime"
+        );
+
+      if (!clock) {
+        return;
+      }
+
+      clock.textContent =
+        now.toLocaleTimeString(
+          "en-PH",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true
+          }
+        );
+    }
+
+    setInterval(
+      updateClock,
+      1000
+    );
+
+    updateClock();
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      () => {
+
+        document
+          .querySelectorAll(".quick-action")
+          .forEach(element => {
+
+            if (
+              element.tagName === "BUTTON"
+            ) {
+
+              element.setAttribute(
+                "type",
+                "button"
+              );
+
+            }
+
+          });
+
+      }
+    );
+  </script>
 
 </body>
 </html>

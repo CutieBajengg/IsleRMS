@@ -1,25 +1,52 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title><%= title || "Guest Profile | Puffer Isle Resort" %></title>
-  
-  <link rel="icon" type="image/png" href="/images/islelogo.png">
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <title>
+    <%= title || "Guest Profile | Puffer Isle Resort" %>
+  </title>
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/islelogo.png"
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
 
   <style>
+
     :root {
-      --brand-color: #FFD700; 
+      --brand-color: #FFD700;
       --brand-hover: #e6c200;
       --accent-teal: #008080;
       --dark: #1a1a1a;
       --light-bg: #f4f7f6;
       --white: #ffffff;
-      --shadow: 0 20px 60px rgba(0,0,0,0.08);
+
+      --success: #2b8a3e;
+      --warning: #f08c00;
+      --danger: #c92a2a;
+
+      --shadow:
+        0 20px 60px rgba(0,0,0,0.08);
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
     body {
       font-family: 'Poppins', sans-serif;
@@ -35,12 +62,23 @@
       border-radius: 30px;
       box-shadow: var(--shadow);
       overflow: hidden;
-      animation: slideUp 0.8s cubic-bezier(0.23, 1, 0.32, 1);
+
+      animation:
+        slideUp
+        0.8s
+        cubic-bezier(0.23, 1, 0.32, 1);
     }
 
     @keyframes slideUp {
-      from { opacity: 0; transform: translateY(40px); }
-      to { opacity: 1; transform: translateY(0); }
+      from {
+        opacity: 0;
+        transform: translateY(40px);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0);
+      }
     }
 
     .profile-header {
@@ -58,7 +96,8 @@
       border: 4px solid var(--brand-color);
       margin-bottom: 20px;
       object-fit: cover;
-      box-shadow: 0 10px 20px rgba(0,0,0,0.3);
+      box-shadow:
+        0 10px 20px rgba(0,0,0,0.3);
     }
 
     .profile-header h2 {
@@ -92,83 +131,750 @@
       border-top: 1px solid #333;
     }
 
-    .stat-item { text-align: center; }
-    .stat-item span { display: block; color: var(--brand-color); font-weight: 700; font-size: 1.4rem; }
-    .stat-item small { color: #888; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 1px; }
-
-    .section { padding: 40px 50px; border-bottom: 1px solid #f0f0f0; }
-    .section h3 { font-size: 1.4rem; color: var(--dark); margin-bottom: 25px; display: flex; align-items: center; gap: 12px; }
-    .section h3::before { content: ''; width: 5px; height: 25px; background: var(--brand-color); border-radius: 10px; }
-
-    .refresh-status {
-      height: 20px; font-size: 0.75rem; color: var(--accent-teal); 
-      margin-bottom: 10px; font-weight: 600; text-transform: uppercase;
+    .stat-item {
+      text-align: center;
     }
 
-    .table-wrapper { overflow-x: auto; border-radius: 20px; border: 1px solid #eee; background: #fff; }
-    table { width: 100%; border-collapse: collapse; }
-    th { background: #fafafa; color: #999; font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 1.2px; padding: 15px 20px; text-align: left; }
-    td { padding: 20px; border-top: 1px solid #f1f1f1; font-size: 0.95rem; }
+    .stat-item span {
+      display: block;
+      color: var(--brand-color);
+      font-weight: 700;
+      font-size: 1.4rem;
+    }
 
-    .status { padding: 6px 14px; border-radius: 50px; font-weight: 700; font-size: 0.7rem; text-transform: uppercase; letter-spacing: 0.5px; }
-    .status.pending { background: #fff9db; color: #f08c00; }
-    .status.accepted { background: #ebfbee; color: #2b8a3e; }
-    .status.declined { background: #fff5f5; color: #c92a2a; }
+    .stat-item small {
+      color: #888;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+    }
 
-    .notification { background: #fff; border: 1px solid #eee; padding: 20px; margin-bottom: 15px; border-radius: 20px; display: flex; align-items: center; gap: 15px; transition: 0.3s; }
-    .notification:hover { border-color: var(--brand-color); transform: translateX(8px); }
+    .section {
+      padding: 40px 50px;
+      border-bottom: 1px solid #f0f0f0;
+    }
 
-    .settings-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; max-width: 600px; }
-    input { width: 100%; padding: 14px 18px; border-radius: 15px; border: 2px solid #eee; background: #fcfcfc; transition: 0.3s; font-family: inherit; }
-    input:focus { border-color: var(--brand-color); outline: none; background: white; }
+    .section h3 {
+      font-size: 1.4rem;
+      color: var(--dark);
+      margin-bottom: 25px;
 
-    .btn-update { grid-column: span 2; background: var(--dark); color: var(--brand-color); border: none; padding: 16px; border-radius: 15px; font-weight: 700; cursor: pointer; transition: 0.3s; font-family: inherit; }
-    .btn-update:hover { background: var(--brand-color); color: var(--dark); transform: translateY(-2px); }
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
 
-    .logout-btn { display: inline-block; margin: 40px 50px; color: #ff4d4d; font-weight: 700; text-decoration: none; padding: 12px 30px; border: 2px solid #ff4d4d; border-radius: 50px; transition: 0.3s; }
-    .logout-btn:hover { background: #ff4d4d; color: white; }
+    .section h3::before {
+      content: '';
+      width: 5px;
+      height: 25px;
+      background: var(--brand-color);
+      border-radius: 10px;
+    }
 
-    @media(max-width:768px){ .settings-grid { grid-template-columns: 1fr; } .btn-update { grid-column: span 1; } }
+    .refresh-status {
+      height: 20px;
+      font-size: 0.75rem;
+      color: var(--accent-teal);
+      margin-bottom: 10px;
+      font-weight: 600;
+      text-transform: uppercase;
+    }
+
+    /* ----------------------------------------
+       APPOINTMENT TABLE
+    ---------------------------------------- */
+
+    .table-wrapper {
+      overflow-x: auto;
+      border-radius: 20px;
+      border: 1px solid #eee;
+      background: #fff;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+
+    th {
+      background: #fafafa;
+      color: #999;
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.7rem;
+      letter-spacing: 1.2px;
+      padding: 15px 20px;
+      text-align: left;
+    }
+
+    td {
+      padding: 20px;
+      border-top: 1px solid #f1f1f1;
+      font-size: 0.95rem;
+    }
+
+    .status {
+      padding: 6px 14px;
+      border-radius: 50px;
+      font-weight: 700;
+      font-size: 0.7rem;
+      text-transform: uppercase;
+      letter-spacing: 0.5px;
+    }
+
+    .status.pending {
+      background: #fff9db;
+      color: var(--warning);
+    }
+
+    .status.accepted {
+      background: #ebfbee;
+      color: var(--success);
+    }
+
+    .status.declined {
+      background: #fff5f5;
+      color: var(--danger);
+    }
+
+    /* ----------------------------------------
+       NOTIFICATIONS
+    ---------------------------------------- */
+
+    .notification {
+      background: #fff;
+      border: 1px solid #eee;
+
+      padding: 20px;
+      margin-bottom: 15px;
+
+      border-radius: 20px;
+
+      display: flex;
+      align-items: flex-start;
+      gap: 15px;
+
+      transition: 0.3s;
+
+      position: relative;
+    }
+
+    .notification:hover {
+      transform: translateX(8px);
+      box-shadow:
+        0 10px 30px rgba(0,0,0,0.06);
+    }
+
+    .notification-icon {
+      min-width: 48px;
+      width: 48px;
+      height: 48px;
+
+      border-radius: 50%;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      font-size: 1.3rem;
+
+      background: #f5f5f5;
+    }
+
+    .notification-content {
+      flex: 1;
+    }
+
+    .notification-title {
+      margin: 0 0 4px;
+      font-weight: 700;
+      font-size: 0.95rem;
+    }
+
+    .notification-message {
+      margin: 0;
+      font-weight: 400;
+      color: #555;
+      font-size: 0.88rem;
+    }
+
+    .notification-meta {
+      margin-top: 8px;
+      font-size: 0.7rem;
+      color: #999;
+    }
+
+    .notification.pending {
+      border-left: 5px solid var(--warning);
+    }
+
+    .notification.accepted {
+      border-left: 5px solid var(--success);
+    }
+
+    .notification.declined {
+      border-left: 5px solid var(--danger);
+    }
+
+    .notification-badge {
+      display: inline-block;
+
+      margin-top: 8px;
+
+      padding: 4px 10px;
+
+      border-radius: 30px;
+
+      font-size: 0.65rem;
+
+      font-weight: 700;
+
+      text-transform: uppercase;
+    }
+
+    .notification-badge.pending {
+      background: #fff9db;
+      color: var(--warning);
+    }
+
+    .notification-badge.accepted {
+      background: #ebfbee;
+      color: var(--success);
+    }
+
+    .notification-badge.declined {
+      background: #fff5f5;
+      color: var(--danger);
+    }
+
+    /* ----------------------------------------
+       ACCOUNT
+    ---------------------------------------- */
+
+    .settings-grid {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+      max-width: 600px;
+    }
+
+    input {
+      width: 100%;
+      padding: 14px 18px;
+      border-radius: 15px;
+      border: 2px solid #eee;
+      background: #fcfcfc;
+      transition: 0.3s;
+      font-family: inherit;
+    }
+
+    input:focus {
+      border-color: var(--brand-color);
+      outline: none;
+      background: white;
+    }
+
+    .btn-update {
+      grid-column: span 2;
+      background: var(--dark);
+      color: var(--brand-color);
+      border: none;
+      padding: 16px;
+      border-radius: 15px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: 0.3s;
+      font-family: inherit;
+    }
+
+    .btn-update:hover {
+      background: var(--brand-color);
+      color: var(--dark);
+      transform: translateY(-2px);
+    }
+
+    .logout-btn {
+      display: inline-block;
+      margin: 40px 50px;
+      color: #ff4d4d;
+      font-weight: 700;
+      text-decoration: none;
+      padding: 12px 30px;
+      border: 2px solid #ff4d4d;
+      border-radius: 50px;
+      transition: 0.3s;
+    }
+
+    .logout-btn:hover {
+      background: #ff4d4d;
+      color: white;
+    }
+
+    @media(max-width:768px) {
+
+      .section {
+        padding: 30px 20px;
+      }
+
+      .user-stats {
+        gap: 20px;
+      }
+
+      .settings-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .btn-update {
+        grid-column: span 1;
+      }
+
+      .profile-header {
+        padding: 40px 20px;
+      }
+
+      .profile-header h2 {
+        font-size: 1.7rem;
+      }
+    }
+
   </style>
 </head>
+
 <body>
 
-<%- include('partials/navbar') %>
+  <%- include('partials/navbar') %>
 
-<div class="profile-container">
+  <div class="profile-container">
 
-  <div class="profile-header">
-    <img src="/images/profile-icon.png" alt="Profile Picture">
-    <p>Logged in as @<%= user.username || user.email.split('@')[0] %></p>
-    <h2><%= user.fullname || "Island Guest" %></h2>
-    <div class="member-since">
-      Resort Member Since <%= user.createdAt ? new Date(user.createdAt).toLocaleDateString('en-US', {month: 'long', year: 'numeric'}) : '2026' %>
+    <!-- -------------------------------------
+         PROFILE HEADER
+    -------------------------------------- -->
+
+    <div class="profile-header">
+
+      <img
+        src="/images/profile-icon.png"
+        alt="Profile Picture"
+      >
+
+      <p>
+        Logged in as @<%= user.username || user.email.split('@')[0] %>
+      </p>
+
+      <h2>
+        <%= user.fullname || "Island Guest" %>
+      </h2>
+
+      <div class="member-since">
+        Resort Member Since
+        <%= user.createdAt
+          ? new Date(user.createdAt).toLocaleDateString(
+              'en-US',
+              {
+                month: 'long',
+                year: 'numeric'
+              }
+            )
+          : '2026'
+        %>
+      </div>
+
     </div>
+
+    <!-- -------------------------------------
+         STATS
+    -------------------------------------- -->
+
+    <div class="user-stats">
+
+      <div class="stat-item">
+        <span id="stat-bookings">
+          <%= appointments ? appointments.length : 0 %>
+        </span>
+
+        <small>Total Bookings</small>
+      </div>
+
+      <div class="stat-item">
+        <span id="stat-notifs">
+          <%= notifications ? notifications.length : 0 %>
+        </span>
+
+        <small>Notifications</small>
+      </div>
+
+      <div class="stat-item">
+        <span>VIP</span>
+        <small>Member Level</small>
+      </div>
+
+    </div>
+
+    <!-- -------------------------------------
+         APPOINTMENTS
+    -------------------------------------- -->
+
+    <div class="section">
+
+      <h3>My Bookings</h3>
+
+      <div
+        class="refresh-status"
+        id="refreshStatus"
+      ></div>
+
+      <div
+        class="table-wrapper"
+        id="appointmentsContainer"
+      >
+
+        <% if (appointments && appointments.length > 0) { %>
+
+          <table>
+
+            <thead>
+              <tr>
+                <th>Room Type</th>
+                <th>Check-In</th>
+                <th>Check-Out</th>
+                <th>Guests</th>
+                <th>Status</th>
+              </tr>
+            </thead>
+
+            <tbody>
+
+              <% appointments.forEach(a => { %>
+
+                <tr>
+
+                  <td>
+                    <strong>
+                      <%= a.roomDisplayName || a.room %>
+                    </strong>
+                  </td>
+
+                  <td>
+                    <%= a.checkin
+                      ? new Date(a.checkin).toLocaleDateString()
+                      : "—"
+                    %>
+                  </td>
+
+                  <td>
+                    <%= a.checkout
+                      ? new Date(a.checkout).toLocaleDateString()
+                      : "—"
+                    %>
+                  </td>
+
+                  <td>
+                    <%= a.guests || 1 %>
+                  </td>
+
+                  <td>
+                    <span
+                      class="status <%= a.status || 'pending' %>"
+                    >
+                      <%= a.status || "pending" %>
+                    </span>
+                  </td>
+
+                </tr>
+
+              <% }) %>
+
+            </tbody>
+
+          </table>
+
+        <% } else { %>
+
+          <div
+            style="
+              padding:40px;
+              text-align:center;
+              color:#888;
+            "
+          >
+            <p>
+              You haven't booked a getaway yet.
+            </p>
+          </div>
+
+        <% } %>
+
+      </div>
+
+    </div>
+
+    <!-- -------------------------------------
+         NOTIFICATIONS
+    -------------------------------------- -->
+
+    <div class="section">
+
+      <h3>
+        Notifications
+      </h3>
+
+      <div id="notificationsContainer">
+
+        <% if (
+          notifications &&
+          notifications.length > 0
+        ) { %>
+
+          <% notifications.forEach(note => { %>
+
+            <div
+              class="notification <%= note.type || '' %>"
+            >
+
+              <div class="notification-icon">
+                <%= note.icon || "🏝️" %>
+              </div>
+
+              <div class="notification-content">
+
+                <p class="notification-title">
+                  <%= note.title || "Island Update" %>
+                </p>
+
+                <p class="notification-message">
+                  <%= note.message %>
+                </p>
+
+                <span
+                  class="notification-badge <%= note.type || '' %>"
+                >
+                  <%= note.type || "update" %>
+                </span>
+
+                <div class="notification-meta">
+                  Booking Update
+                  <% if (note.createdAt) { %>
+                    •
+                    <%= new Date(
+                      note.createdAt
+                    ).toLocaleString() %>
+                  <% } %>
+                </div>
+
+              </div>
+
+            </div>
+
+          <% }) %>
+
+        <% } else { %>
+
+          <p
+            style="
+              color:#888;
+              padding-left:5px;
+            "
+          >
+            No new alerts at the moment.
+          </p>
+
+        <% } %>
+
+      </div>
+
+    </div>
+
+    <!-- -------------------------------------
+         ACCOUNT SECURITY
+    -------------------------------------- -->
+
+    <div class="section">
+
+      <h3>
+        Account Security
+      </h3>
+
+      <form
+        method="POST"
+        action="/profile/update-password"
+        class="settings-grid"
+      >
+
+        <input
+          type="password"
+          name="currentPassword"
+          placeholder="Current Password"
+          required
+        >
+
+        <input
+          type="password"
+          name="newPassword"
+          placeholder="New Password"
+          required
+          minlength="6"
+        >
+
+        <button
+          type="submit"
+          class="btn-update"
+        >
+          Update Password
+        </button>
+
+      </form>
+
+    </div>
+
+    <a
+      href="/logout"
+      class="logout-btn"
+    >
+      Sign Out of Puffer Isle
+    </a>
+
   </div>
 
-  <div class="user-stats">
-    <div class="stat-item">
-      <span id="stat-bookings"><%= appointments ? appointments.length : 0 %></span>
-      <small>Total Bookings</small>
-    </div>
-    <div class="stat-item">
-      <span id="stat-notifs"><%= notifications ? notifications.length : 0 %></span>
-      <small>Notifications</small>
-    </div>
-    <div class="stat-item">
-      <span>VIP</span>
-      <small>Member Level</small>
-    </div>
-  </div>
+  <script>
 
-  <div class="section">
-    <h3>My Appointments</h3>
-    <div class="refresh-status" id="refreshStatus"></div>
-    
-    <div class="table-wrapper" id="appointmentsContainer">
-      <% if (appointments && appointments.length > 0) { %>
+    const userId =
+      "<%= user._id %>";
+
+    // ----------------------------------------
+    // ROOM LABELS
+    // ----------------------------------------
+
+    const ROOM_LABELS = {
+      "Aircon": "Aircon Room",
+      "Aircon Room": "Aircon Room",
+
+      "Fan": "Fan Room",
+      "Fan Room": "Fan Room",
+
+      "Cottage": "Seaside Cottage",
+      "Seaside Cottage": "Seaside Cottage"
+    };
+
+    // ----------------------------------------
+    // FETCH LIVE UPDATES
+    // ----------------------------------------
+
+    async function fetchUpdates() {
+
+      try {
+
+        const refreshStatus =
+          document.getElementById(
+            "refreshStatus"
+          );
+
+        refreshStatus.textContent =
+          "⚡ Syncing...";
+
+        const res =
+          await fetch(
+            `/userUpdates/${userId}`,
+            {
+              method: "GET",
+              cache: "no-store"
+            }
+          );
+
+        if (!res.ok) {
+          throw new Error(
+            `HTTP ${res.status}`
+          );
+        }
+
+        const data =
+          await res.json();
+
+        setTimeout(() => {
+          refreshStatus.textContent = "";
+        }, 1000);
+
+        if (data.success) {
+
+          updateAppointments(
+            data.appointments
+          );
+
+          updateNotifications(
+            data.notifications
+          );
+
+          document.getElementById(
+            "stat-bookings"
+          ).innerText =
+            data.appointments.length;
+
+          document.getElementById(
+            "stat-notifs"
+          ).innerText =
+            data.notifications.length;
+        }
+
+      } catch (error) {
+
+        console.error(
+          "Polling error:",
+          error
+        );
+
+        const refreshStatus =
+          document.getElementById(
+            "refreshStatus"
+          );
+
+        refreshStatus.textContent =
+          "⚠️ Sync failed";
+
+      }
+
+    }
+
+    // ----------------------------------------
+    // UPDATE APPOINTMENTS
+    // ----------------------------------------
+
+    function updateAppointments(
+      appointments
+    ) {
+
+      const container =
+        document.getElementById(
+          "appointmentsContainer"
+        );
+
+      if (
+        !appointments ||
+        appointments.length === 0
+      ) {
+
+        container.innerHTML = `
+          <div
+            style="
+              padding:40px;
+              text-align:center;
+              color:#888;
+            "
+          >
+            <p>
+              You haven't booked a getaway yet.
+            </p>
+          </div>
+        `;
+
+        return;
+      }
+
+      container.innerHTML = `
+
         <table>
+
           <thead>
+
             <tr>
               <th>Room Type</th>
               <th>Check-In</th>
@@ -176,144 +882,211 @@
               <th>Guests</th>
               <th>Status</th>
             </tr>
+
           </thead>
+
           <tbody>
-            <% appointments.forEach(a => { %>
+
+            ${appointments.map(a => `
+
               <tr>
-                <td><strong><%= a.roomDisplayName || a.room %></strong></td>
-                <td><%= a.checkin ? new Date(a.checkin).toLocaleDateString() : "—" %></td>
-                <td><%= a.checkout ? new Date(a.checkout).toLocaleDateString() : "—" %></td>
-                <td><%= a.guests || 1 %></td>
-                <td><span class="status <%= a.status || 'pending' %>"><%= a.status || "pending" %></span></td>
+
+                <td>
+                  <strong>
+                    ${
+                      a.roomDisplayName ||
+                      ROOM_LABELS[a.room] ||
+                      a.room ||
+                      "Unknown Room"
+                    }
+                  </strong>
+                </td>
+
+                <td>
+                  ${
+                    a.checkin
+                      ? new Date(
+                          a.checkin
+                        ).toLocaleDateString()
+                      : "—"
+                  }
+                </td>
+
+                <td>
+                  ${
+                    a.checkout
+                      ? new Date(
+                          a.checkout
+                        ).toLocaleDateString()
+                      : "—"
+                  }
+                </td>
+
+                <td>
+                  ${a.guests || 1}
+                </td>
+
+                <td>
+
+                  <span
+                    class="status ${
+                      a.status || "pending"
+                    }"
+                  >
+                    ${
+                      a.status ||
+                      "pending"
+                    }
+                  </span>
+
+                </td>
+
               </tr>
-            <% }) %>
+
+            `).join("")}
+
           </tbody>
+
         </table>
-      <% } else { %>
-        <div style="padding: 40px; text-align: center; color: #888;">
-          <p>You haven't booked a getaway yet.</p>
-        </div>
-      <% } %>
-    </div>
-  </div>
 
-  <div class="section">
-    <h3>Notifications</h3>
-    <div id="notificationsContainer">
-      <% if (notifications && notifications.length > 0) { %>
-        <% notifications.forEach(note => { %>
-          <div class="notification">
-            <div class="notif-icon">🏝️</div>
-            <div>
-              <p style="margin:0; font-weight: 500;"><%= note.message %></p>
-              <small style="opacity: 0.5;">Island Update</small>
-            </div>
-          </div>
-        <% }) %>
-      <% } else { %>
-        <p style="color: #888; padding-left: 5px;">No new alerts at the moment.</p>
-      <% } %>
-    </div>
-  </div>
+      `;
 
-  <div class="section">
-    <h3>Account Security</h3>
-    <form method="POST" action="/profile/update-password" class="settings-grid">
-      <input type="password" name="currentPassword" placeholder="Current Password" required>
-      <input type="password" name="newPassword" placeholder="New Password" required minlength="6">
-      <button type="submit" class="btn-update">Update Password</button>
-    </form>
-  </div>
+    }
 
-  <a href="/logout" class="logout-btn">Sign Out of Puffer Isle</a>
+    // ----------------------------------------
+    // UPDATE NOTIFICATIONS
+    // ----------------------------------------
 
-</div>
+    function updateNotifications(
+      notes
+    ) {
 
-<script>
-  const userId = "<%= user._id %>";
+      const container =
+        document.getElementById(
+          "notificationsContainer"
+        );
 
-  // Helper for room names if the backend sends raw enum values
-  const ROOM_LABELS = {
-    "Aircon": "Aircon Room",
-    "Fan Room": "Fan Room",
-    "Cottage": "Seaside Cottage"
-  };
+      if (
+        !notes ||
+        notes.length === 0
+      ) {
 
-  async function fetchUpdates() {
-    try {
-      const refreshStatus = document.getElementById('refreshStatus');
-      refreshStatus.textContent = "⚡ Syncing...";
+        container.innerHTML = `
+          <p
+            style="
+              color:#888;
+              padding-left:5px;
+            "
+          >
+            No new alerts at the moment.
+          </p>
+        `;
 
-      const res = await fetch(`/userUpdates/${userId}`);
-      const data = await res.json();
-      
-      setTimeout(() => { refreshStatus.textContent = ""; }, 1000);
-
-      if (data.success) {
-        updateAppointments(data.appointments);
-        updateNotifications(data.notifications);
-        document.getElementById('stat-bookings').innerText = data.appointments.length;
-        document.getElementById('stat-notifs').innerText = data.notifications.length;
+        return;
       }
-    } catch (error) {
-      console.error("Polling error:", error);
+
+      container.innerHTML =
+        notes.map(n => {
+
+          const type =
+            n.type || "pending";
+
+          const icon =
+            n.icon || "🏝️";
+
+          const title =
+            n.title || "Island Update";
+
+          const message =
+            n.message ||
+            "You have a new resort update.";
+
+          const createdAt =
+            n.createdAt
+              ? new Date(
+                  n.createdAt
+                ).toLocaleString()
+              : "";
+
+          return `
+
+            <div
+              class="notification ${type}"
+            >
+
+              <div class="notification-icon">
+                ${icon}
+              </div>
+
+              <div class="notification-content">
+
+                <p class="notification-title">
+                  ${escapeHtml(title)}
+                </p>
+
+                <p class="notification-message">
+                  ${escapeHtml(message)}
+                </p>
+
+                <span
+                  class="notification-badge ${type}"
+                >
+                  ${escapeHtml(type)}
+                </span>
+
+                <div class="notification-meta">
+                  Booking Update
+                  ${
+                    createdAt
+                      ? ` • ${escapeHtml(createdAt)}`
+                      : ""
+                  }
+                </div>
+
+              </div>
+
+            </div>
+
+          `;
+
+        }).join("");
+
     }
-  }
 
-  function updateAppointments(appointments) {
-    const container = document.getElementById('appointmentsContainer');
+    // ----------------------------------------
+    // SECURITY HELPER
+    // Prevent notification text from being
+    // interpreted as HTML.
+    // ----------------------------------------
 
-    if (!appointments || appointments.length === 0) {
-      container.innerHTML = `<div style="padding: 40px; text-align: center; color: #888;"><p>You haven't booked a getaway yet.</p></div>`;
-      return;
+    function escapeHtml(value) {
+
+      return String(value)
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+
     }
 
-    container.innerHTML = `
-      <table>
-        <thead>
-          <tr>
-            <th>Room Type</th>
-            <th>Check-In</th>
-            <th>Check-Out</th>
-            <th>Guests</th>
-            <th>Status</th>
-          </tr>
-        </thead>
-        <tbody>
-          ${appointments.map(a => `
-            <tr>
-              <td><strong>${a.roomDisplayName || ROOM_LABELS[a.room] || a.room}</strong></td>
-              <td>${new Date(a.checkin).toLocaleDateString()}</td>
-              <td>${new Date(a.checkout).toLocaleDateString()}</td>
-              <td>${a.guests || 1}</td>
-              <td><span class="status ${a.status || 'pending'}">${a.status || 'pending'}</span></td>
-            </tr>
-          `).join('')}
-        </tbody>
-      </table>
-    `;
-  }
+    // ----------------------------------------
+    // INITIAL SYNC
+    // ----------------------------------------
 
-  function updateNotifications(notes) {
-    const container = document.getElementById('notificationsContainer');
-    if (!notes || notes.length === 0) {
-      container.innerHTML = `<p style="color: #888; padding-left: 5px;">No new alerts at the moment.</p>`;
-      return;
-    }
-    container.innerHTML = notes.map(n => `
-      <div class="notification">
-        <div class="notif-icon">🏝️</div>
-        <div>
-          <p style="margin:0; font-weight: 500;">${n.message}</p>
-          <small style="opacity: 0.5;">Island Update</small>
-        </div>
-      </div>
-    `).join('');
-  }
+    fetchUpdates();
 
-  // Real-time sync every 5 seconds
-  setInterval(fetchUpdates, 5000);
-</script>
+    // ----------------------------------------
+    // REAL-TIME SYNC EVERY 5 SECONDS
+    // ----------------------------------------
+
+    setInterval(
+      fetchUpdates,
+      5000
+    );
+
+  </script>
 
 </body>
 </html>
+
