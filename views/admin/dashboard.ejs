@@ -10,7 +10,7 @@
 
   <meta
     name="description"
-    content="Puffer Isle Resort administrative dashboard"
+    content="Puffer Isle Resort administrative command center"
   >
 
   <title>Command Center | Puffer Isle Resort</title>
@@ -35,25 +35,39 @@
     :root {
       --teal: #008080;
       --teal-dark: #005c5c;
-      --teal-light: #0da5a5;
+      --teal-deep: #003f3f;
+      --teal-light: #12a9a9;
+
       --gold: #ffd700;
       --gold-dark: #d4b400;
-      --background: #080b0d;
-      --background-soft: #0d1114;
+
+      --background: #070a0c;
+      --background-soft: #0c1113;
+
       --surface: rgba(255, 255, 255, 0.035);
-      --surface-hover: rgba(255, 255, 255, 0.06);
+      --surface-strong: rgba(255, 255, 255, 0.055);
+      --surface-hover: rgba(255, 255, 255, 0.075);
+
       --border: rgba(255, 255, 255, 0.08);
       --border-strong: rgba(255, 255, 255, 0.14);
+
       --text: #ffffff;
-      --muted: #9ba3a8;
+      --text-soft: #dce2e4;
+      --muted: #929ca1;
+
       --success: #2ecc71;
       --danger: #e74c3c;
       --warning: #f1c40f;
       --info: #3498db;
-      --shadow: 0 25px 70px rgba(0, 0, 0, 0.35);
-      --radius-lg: 28px;
-      --radius-md: 18px;
-      --radius-sm: 12px;
+
+      --shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.18);
+      --shadow-md: 0 18px 50px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.35);
+
+      --radius-xl: 28px;
+      --radius-lg: 21px;
+      --radius-md: 16px;
+      --radius-sm: 11px;
     }
 
     * {
@@ -68,30 +82,78 @@
 
     body {
       min-height: 100vh;
+      overflow-x: hidden;
+
       font-family: "Poppins", sans-serif;
       color: var(--text);
+
       background:
         radial-gradient(
-          circle at 10% 10%,
-          rgba(0, 128, 128, 0.10),
-          transparent 25%
+          circle at 8% 8%,
+          rgba(0, 128, 128, 0.13),
+          transparent 27%
         ),
         radial-gradient(
-          circle at 90% 80%,
+          circle at 92% 85%,
           rgba(255, 215, 0, 0.045),
           transparent 25%
         ),
-        var(--background);
-      overflow-x: hidden;
+        linear-gradient(
+          145deg,
+          #070a0c 0%,
+          #0a0e10 55%,
+          #080b0d 100%
+        );
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+
+      pointer-events: none;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.012) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          rgba(255, 255, 255, 0.012) 1px,
+          transparent 1px
+        );
+
+      background-size: 48px 48px;
+
+      mask-image: linear-gradient(
+        to bottom,
+        black,
+        transparent 75%
+      );
+
+      opacity: 0.25;
     }
 
     button,
+    input,
+    select,
+    textarea,
     a {
-      font-family: inherit;
+      font: inherit;
     }
 
     button {
       border: 0;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    ::selection {
+      color: #071011;
+      background: var(--gold);
     }
 
     ::-webkit-scrollbar {
@@ -107,34 +169,67 @@
       border-radius: 999px;
     }
 
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--teal-light);
+    }
+
+    /* =========================================================
+       PAGE
+    ========================================================= */
+
     .dashboard-container {
+      position: relative;
+      z-index: 1;
+
       width: min(1600px, calc(100% - 48px));
       margin: 0 auto;
-      padding: 42px 0 80px;
+
+      padding: 40px 0 78px;
     }
 
     .dashboard-header {
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
-      gap: 30px;
-      margin-bottom: 35px;
+
+      gap: 28px;
+      margin-bottom: 24px;
+    }
+
+    .header-copy {
+      min-width: 0;
     }
 
     .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+
       color: var(--teal-light);
-      font-size: 0.72rem;
+
+      font-size: 0.68rem;
       font-weight: 700;
-      letter-spacing: 2px;
+      letter-spacing: 2.2px;
+      line-height: 1;
       text-transform: uppercase;
-      margin-bottom: 7px;
+
+      margin-bottom: 11px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 24px;
+      height: 1px;
+      background: var(--teal-light);
+      opacity: 0.8;
     }
 
     .dashboard-title {
       font-family: "Playfair Display", serif;
-      font-size: clamp(2rem, 4vw, 3.1rem);
-      line-height: 1.1;
-      letter-spacing: -1px;
+
+      font-size: clamp(2.3rem, 4vw, 3.55rem);
+      line-height: 1.04;
+      letter-spacing: -1.5px;
     }
 
     .dashboard-title span {
@@ -142,215 +237,571 @@
     }
 
     .dashboard-subtitle {
-      margin-top: 9px;
+      max-width: 720px;
+
+      margin-top: 10px;
+
       color: var(--muted);
-      font-size: 0.9rem;
+
+      font-size: 0.88rem;
+      line-height: 1.72;
+    }
+
+    .header-actions {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+      flex-shrink: 0;
+    }
+
+    .refresh-button {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+
+      min-height: 68px;
+      padding: 0 18px;
+
+      color: var(--text-soft);
+      text-decoration: none;
+
+      background: var(--surface);
+      border: 1px solid var(--border);
+
+      border-radius: var(--radius-md);
+
+      cursor: pointer;
+
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
+    }
+
+    .refresh-button:hover {
+      transform: translateY(-2px);
+
+      color: white;
+
+      background: var(--surface-hover);
+      border-color: rgba(0, 128, 128, 0.5);
+    }
+
+    .refresh-button:disabled {
+      cursor: wait;
+      opacity: 0.7;
     }
 
     .admin-status {
       display: flex;
       align-items: center;
       gap: 13px;
-      padding: 12px 17px;
-      background: var(--surface);
+
+      min-width: 255px;
+      min-height: 68px;
+
+      padding: 12px 16px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.055),
+          rgba(255, 255, 255, 0.02)
+        );
+
       border: 1px solid var(--border);
-      border-radius: 15px;
-      backdrop-filter: blur(15px);
+      border-radius: var(--radius-md);
+
+      box-shadow: var(--shadow-sm);
+
+      backdrop-filter: blur(18px);
     }
 
     .status-indicator {
+      position: relative;
+
       width: 10px;
       height: 10px;
+
+      flex: 0 0 10px;
+
       border-radius: 50%;
+
       background: var(--success);
+
       box-shadow:
-        0 0 0 5px rgba(46, 204, 113, 0.10),
-        0 0 18px rgba(46, 204, 113, 0.65);
+        0 0 0 5px rgba(46, 204, 113, 0.09),
+        0 0 20px rgba(46, 204, 113, 0.55);
+    }
+
+    .status-indicator::after {
+      content: "";
+
+      position: absolute;
+      inset: -5px;
+
+      border: 1px solid rgba(46, 204, 113, 0.28);
+      border-radius: 50%;
+
+      animation: pulseStatus 2.2s ease-out infinite;
+    }
+
+    @keyframes pulseStatus {
+      0% {
+        opacity: 0.8;
+        transform: scale(0.8);
+      }
+
+      70%,
+      100% {
+        opacity: 0;
+        transform: scale(1.45);
+      }
+    }
+
+    .admin-status-content {
+      min-width: 0;
     }
 
     .admin-status small {
       display: block;
+
       color: var(--muted);
-      font-size: 0.68rem;
+
+      font-size: 0.61rem;
+      font-weight: 600;
+
+      letter-spacing: 1.1px;
       text-transform: uppercase;
-      letter-spacing: 1px;
     }
 
     .admin-status strong {
       display: block;
-      margin-top: 2px;
-      font-size: 0.85rem;
+
+      margin-top: 3px;
+
+      font-size: 0.82rem;
+      font-weight: 600;
     }
+
+    .local-time {
+      margin-top: 2px;
+
+      color: var(--teal-light);
+
+      font-size: 0.64rem;
+      font-weight: 500;
+
+      white-space: nowrap;
+    }
+
+    .admin-greeting {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+
+      margin-top: 8px;
+
+      color: var(--text-soft);
+
+      font-size: 0.72rem;
+    }
+
+    .admin-greeting i {
+      color: var(--gold);
+    }
+
+    /* =========================================================
+       STATISTICS
+    ========================================================= */
 
     .stats-grid {
       display: grid;
       grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 18px;
-      margin-bottom: 25px;
+      gap: 16px;
+
+      margin-bottom: 22px;
     }
 
-    .stat-card {
+    .stat-card,
+    .stat-card-link {
       position: relative;
-      min-height: 150px;
-      padding: 25px;
+
+      min-height: 160px;
+      padding: 22px;
+
       overflow: hidden;
+
+      color: inherit;
+      text-decoration: none;
+
       background:
         linear-gradient(
           145deg,
-          rgba(255, 255, 255, 0.045),
+          rgba(255, 255, 255, 0.055),
           rgba(255, 255, 255, 0.018)
         );
+
       border: 1px solid var(--border);
-      border-radius: var(--radius-md);
-      box-shadow: 0 15px 45px rgba(0, 0, 0, 0.20);
+      border-radius: var(--radius-lg);
+
+      box-shadow: var(--shadow-sm);
+
       transition:
         transform 0.25s ease,
         border-color 0.25s ease,
-        background 0.25s ease;
+        background 0.25s ease,
+        box-shadow 0.25s ease;
     }
 
-    .stat-card:hover {
+    .stat-card-link {
+      display: block;
+      cursor: pointer;
+    }
+
+    .stat-card:hover,
+    .stat-card-link:hover {
       transform: translateY(-4px);
-      border-color: rgba(0, 128, 128, 0.55);
-      background: var(--surface-hover);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.075),
+          rgba(255, 255, 255, 0.025)
+        );
+
+      border-color: rgba(0, 128, 128, 0.52);
+      box-shadow: var(--shadow-md);
+    }
+
+    .stat-card.gold:hover,
+    .stat-card-link.gold:hover {
+      border-color: rgba(255, 215, 0, 0.35);
+    }
+
+    .stat-card.green:hover,
+    .stat-card-link.green:hover {
+      border-color: rgba(46, 204, 113, 0.38);
+    }
+
+    .stat-card.blue:hover,
+    .stat-card-link.blue:hover {
+      border-color: rgba(52, 152, 219, 0.38);
+    }
+
+    .stat-card::before,
+    .stat-card-link::before {
+      content: "";
+
+      position: absolute;
+      left: 22px;
+      right: 22px;
+      top: 0;
+
+      height: 1px;
+
+      background: linear-gradient(
+        90deg,
+        transparent,
+        rgba(255, 255, 255, 0.13),
+        transparent
+      );
     }
 
     .stat-icon {
-      width: 45px;
-      height: 45px;
+      width: 44px;
+      height: 44px;
+
       display: flex;
       align-items: center;
       justify-content: center;
-      border-radius: 13px;
-      background: rgba(0, 128, 128, 0.12);
+
+      margin-bottom: 16px;
+
+      border-radius: 12px;
+
       color: var(--teal-light);
-      margin-bottom: 18px;
+      background: rgba(0, 128, 128, 0.11);
+
+      font-size: 0.9rem;
     }
 
-    .stat-card.gold .stat-icon {
-      background: rgba(255, 215, 0, 0.10);
+    .stat-card.gold .stat-icon,
+    .stat-card-link.gold .stat-icon {
       color: var(--gold);
+      background: rgba(255, 215, 0, 0.09);
     }
 
-    .stat-card.green .stat-icon {
-      background: rgba(46, 204, 113, 0.10);
+    .stat-card.green .stat-icon,
+    .stat-card-link.green .stat-icon {
       color: var(--success);
+      background: rgba(46, 204, 113, 0.09);
     }
 
-    .stat-card.blue .stat-icon {
-      background: rgba(52, 152, 219, 0.10);
+    .stat-card.blue .stat-icon,
+    .stat-card-link.blue .stat-icon {
       color: var(--info);
+      background: rgba(52, 152, 219, 0.09);
     }
 
     .stat-label {
       display: block;
+
       color: var(--muted);
-      font-size: 0.72rem;
+
+      font-size: 0.64rem;
+      font-weight: 600;
+
+      letter-spacing: 1.1px;
       text-transform: uppercase;
-      letter-spacing: 1px;
     }
 
     .stat-value {
       display: block;
+
       margin-top: 3px;
-      font-size: 1.85rem;
+
+      font-size: 1.8rem;
+      line-height: 1.2;
       font-weight: 700;
+
+      letter-spacing: -0.5px;
     }
 
     .stat-description {
-      margin-top: 4px;
+      margin-top: 5px;
+
       color: var(--muted);
-      font-size: 0.72rem;
+
+      font-size: 0.66rem;
+      line-height: 1.48;
     }
 
     .stat-background-icon {
       position: absolute;
-      right: -15px;
-      bottom: -22px;
-      font-size: 5.5rem;
+
+      right: -12px;
+      bottom: -25px;
+
       color: rgba(255, 255, 255, 0.025);
+
+      font-size: 6rem;
+
       pointer-events: none;
     }
 
+    .stat-card-arrow {
+      position: absolute;
+
+      top: 24px;
+      right: 24px;
+
+      color: var(--muted);
+
+      font-size: 0.67rem;
+
+      opacity: 0;
+      transform: translateX(-5px);
+
+      transition:
+        opacity 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .stat-card-link:hover .stat-card-arrow {
+      opacity: 1;
+      transform: translateX(0);
+    }
+
+    .stat-action-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+
+      margin-top: 8px;
+
+      color: var(--text-soft);
+      font-size: 0.68rem;
+      font-weight: 600;
+    }
+
+    .stat-action-label i {
+      color: var(--gold);
+    }
+
+    /* =========================================================
+       MAIN LAYOUT
+    ========================================================= */
+
     .dashboard-grid {
       display: grid;
-      grid-template-columns: minmax(0, 2fr) minmax(300px, 0.85fr);
-      gap: 22px;
+
+      grid-template-columns:
+        minmax(0, 1.95fr)
+        minmax(320px, 0.78fr);
+
+      gap: 20px;
+
       align-items: start;
     }
 
     .panel {
-      background: rgba(255, 255, 255, 0.025);
+      min-width: 0;
+
+      padding: 25px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.04),
+          rgba(255, 255, 255, 0.018)
+        );
+
       border: 1px solid var(--border);
-      border-radius: var(--radius-lg);
-      padding: 27px;
-      box-shadow: var(--shadow);
-      backdrop-filter: blur(15px);
+      border-radius: var(--radius-xl);
+
+      box-shadow: var(--shadow-lg);
+
+      backdrop-filter: blur(18px);
+    }
+
+    .panel + .panel {
+      margin-top: 18px;
     }
 
     .panel-header {
       display: flex;
-      align-items: center;
+      align-items: flex-start;
       justify-content: space-between;
-      gap: 15px;
-      margin-bottom: 23px;
+
+      gap: 18px;
+      margin-bottom: 20px;
+    }
+
+    .panel-heading {
+      min-width: 0;
     }
 
     .panel-title {
       font-family: "Playfair Display", serif;
-      font-size: 1.45rem;
+
+      font-size: 1.38rem;
+      line-height: 1.2;
     }
 
     .panel-description {
+      margin-top: 5px;
+
       color: var(--muted);
-      font-size: 0.76rem;
-      margin-top: 3px;
+
+      font-size: 0.71rem;
+      line-height: 1.55;
     }
 
     .panel-link {
       display: inline-flex;
       align-items: center;
       gap: 7px;
+
+      padding: 7px 0;
+
       color: var(--gold);
-      text-decoration: none;
-      font-size: 0.78rem;
+
+      font-size: 0.71rem;
       font-weight: 600;
+
+      text-decoration: none;
       white-space: nowrap;
-      transition: color 0.2s ease;
+
+      transition:
+        color 0.2s ease,
+        gap 0.2s ease;
     }
 
     .panel-link:hover {
       color: white;
+      gap: 10px;
     }
+
+    .table-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      margin-bottom: 4px;
+
+      color: var(--muted);
+
+      font-size: 0.62rem;
+    }
+
+    .live-label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .live-label::before {
+      content: "";
+
+      width: 6px;
+      height: 6px;
+
+      border-radius: 50%;
+
+      background: var(--success);
+      box-shadow: 0 0 8px rgba(46, 204, 113, 0.5);
+    }
+
+    /* =========================================================
+       TABLE
+    ========================================================= */
 
     .table-wrapper {
       width: 100%;
       overflow-x: auto;
+
+      scrollbar-width: thin;
     }
 
     .booking-table {
       width: 100%;
-      min-width: 760px;
+      min-width: 980px;
+
       border-collapse: separate;
-      border-spacing: 0 9px;
+      border-spacing: 0 8px;
     }
 
     .booking-table th {
-      padding: 0 13px 8px;
+      padding: 0 11px 7px;
+
       color: var(--muted);
-      font-size: 0.66rem;
+
+      font-size: 0.59rem;
       font-weight: 600;
+
       letter-spacing: 1px;
       text-align: left;
       text-transform: uppercase;
+
+      white-space: nowrap;
+    }
+
+    .booking-table th:last-child {
+      text-align: right;
     }
 
     .booking-table td {
-      padding: 15px 13px;
-      background: rgba(255, 255, 255, 0.025);
+      padding: 13px 11px;
+
+      background: rgba(255, 255, 255, 0.023);
+
       border-top: 1px solid var(--border);
       border-bottom: 1px solid var(--border);
-      font-size: 0.78rem;
+
+      font-size: 0.71rem;
       vertical-align: middle;
     }
 
@@ -365,7 +816,9 @@
     }
 
     .booking-table tbody tr {
-      transition: transform 0.2s ease;
+      transition:
+        transform 0.2s ease,
+        background 0.25s ease;
     }
 
     .booking-table tbody tr:hover {
@@ -376,115 +829,222 @@
       display: flex;
       align-items: center;
       gap: 10px;
+
+      min-width: 195px;
     }
 
     .guest-avatar {
       width: 36px;
       height: 36px;
+
       flex: 0 0 36px;
+
       display: flex;
       align-items: center;
       justify-content: center;
+
       border-radius: 10px;
-      background: linear-gradient(
-        135deg,
-        var(--teal),
-        var(--teal-dark)
-      );
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--teal),
+          var(--teal-dark)
+        );
+
       color: white;
-      font-size: 0.78rem;
+
+      font-size: 0.72rem;
       font-weight: 700;
+
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.13),
+        0 5px 15px rgba(0, 128, 128, 0.16);
+    }
+
+    .guest-details {
+      min-width: 0;
     }
 
     .guest-name {
-      max-width: 170px;
+      max-width: 185px;
+
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
+      font-size: 0.74rem;
       font-weight: 600;
     }
 
     .guest-email {
-      max-width: 170px;
+      max-width: 185px;
+
+      margin-top: 2px;
+
       overflow: hidden;
       text-overflow: ellipsis;
       white-space: nowrap;
+
       color: var(--muted);
-      font-size: 0.66rem;
+
+      font-size: 0.6rem;
     }
 
     .room-name {
       display: flex;
       align-items: center;
       gap: 7px;
+
+      min-width: 145px;
+
       font-weight: 500;
     }
 
     .room-name i {
       color: var(--gold);
+      font-size: 0.72rem;
+    }
+
+    .room-title {
+      display: block;
+      white-space: nowrap;
+    }
+
+    .room-addon {
+      display: block;
+
+      margin-top: 2px;
+
+      color: var(--muted);
+
+      font-size: 0.59rem;
     }
 
     .date-range {
+      display: flex;
+      align-items: center;
+
+      gap: 5px;
+
+      min-width: 190px;
+
+      color: var(--text-soft);
+
       white-space: nowrap;
-      color: #dce0e2;
+
+      font-size: 0.66rem;
     }
 
     .date-range .arrow {
-      margin: 0 4px;
       color: var(--teal-light);
+    }
+
+    .invalid-date {
+      color: var(--danger);
+      font-size: 0.64rem;
+    }
+
+    .guest-count {
+      white-space: nowrap;
+    }
+
+    .guest-count-number {
+      font-weight: 700;
+    }
+
+    .guest-count-label {
+      color: var(--muted);
+      font-size: 0.59rem;
+    }
+
+    .booking-price {
+      color: var(--gold);
+      font-weight: 700;
+      white-space: nowrap;
     }
 
     .status {
       display: inline-flex;
       align-items: center;
+
       gap: 6px;
-      padding: 6px 10px;
+
+      padding: 6px 9px;
+
       border-radius: 999px;
+
       border: 1px solid transparent;
-      font-size: 0.62rem;
+
+      font-size: 0.57rem;
       font-weight: 700;
+
+      letter-spacing: 0.5px;
       text-transform: uppercase;
-      letter-spacing: 0.6px;
+
+      white-space: nowrap;
     }
 
     .status-dot {
       width: 6px;
       height: 6px;
+
+      flex: 0 0 6px;
+
       border-radius: 50%;
     }
 
     .status-pending {
       color: var(--warning);
+
       background: rgba(241, 196, 15, 0.08);
       border-color: rgba(241, 196, 15, 0.16);
     }
 
     .status-pending .status-dot {
       background: var(--warning);
+      box-shadow: 0 0 7px rgba(241, 196, 15, 0.4);
     }
 
     .status-accepted {
       color: var(--success);
+
       background: rgba(46, 204, 113, 0.08);
       border-color: rgba(46, 204, 113, 0.16);
     }
 
     .status-accepted .status-dot {
       background: var(--success);
+      box-shadow: 0 0 7px rgba(46, 204, 113, 0.4);
     }
 
-    .status-declined {
+    .status-confirmed {
+      color: var(--success);
+
+      background: rgba(46, 204, 113, 0.08);
+      border-color: rgba(46, 204, 113, 0.16);
+    }
+
+    .status-confirmed .status-dot {
+      background: var(--success);
+    }
+
+    .status-declined,
+    .status-rejected {
       color: var(--danger);
+
       background: rgba(231, 76, 60, 0.08);
       border-color: rgba(231, 76, 60, 0.16);
     }
 
-    .status-declined .status-dot {
+    .status-declined .status-dot,
+    .status-rejected .status-dot {
       background: var(--danger);
     }
 
     .status-cancelled {
-      color: #bdc3c7;
+      color: #b8c0c4;
+
       background: rgba(189, 195, 199, 0.07);
       border-color: rgba(189, 195, 199, 0.14);
     }
@@ -493,26 +1053,79 @@
       background: #bdc3c7;
     }
 
+    .status-checked-in {
+      color: var(--info);
+
+      background: rgba(52, 152, 219, 0.08);
+      border-color: rgba(52, 152, 219, 0.16);
+    }
+
+    .status-checked-in .status-dot {
+      background: var(--info);
+      box-shadow: 0 0 7px rgba(52, 152, 219, 0.4);
+    }
+
+    .status-checked-out,
+    .status-completed {
+      color: #aeb7bb;
+
+      background: rgba(174, 183, 187, 0.07);
+      border-color: rgba(174, 183, 187, 0.14);
+    }
+
+    .status-checked-out .status-dot,
+    .status-completed .status-dot {
+      background: #9da8ad;
+    }
+
+    .status-unknown {
+      color: var(--muted);
+
+      background: rgba(255, 255, 255, 0.04);
+      border-color: var(--border);
+    }
+
+    .status-unknown .status-dot {
+      background: var(--muted);
+    }
+
+    /* =========================================================
+       ACTIONS
+    ========================================================= */
+
     .booking-actions {
       display: flex;
       align-items: center;
       justify-content: flex-end;
+
       gap: 6px;
+
+      min-width: 92px;
     }
 
     .action-button {
       width: 34px;
       height: 34px;
+
       display: inline-flex;
       align-items: center;
       justify-content: center;
-      border-radius: 9px;
+
       color: white;
-      background: rgba(255, 255, 255, 0.045);
-      border: 1px solid var(--border);
-      cursor: pointer;
       text-decoration: none;
-      transition: all 0.2s ease;
+
+      background: rgba(255, 255, 255, 0.045);
+
+      border: 1px solid var(--border);
+      border-radius: 9px;
+
+      cursor: pointer;
+
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
     }
 
     .action-button:hover:not(:disabled) {
@@ -522,237 +1135,29 @@
     .action-button.accept:hover:not(:disabled) {
       background: var(--success);
       border-color: var(--success);
+      box-shadow: 0 6px 18px rgba(46, 204, 113, 0.18);
     }
 
     .action-button.decline:hover:not(:disabled) {
       background: var(--danger);
       border-color: var(--danger);
+      box-shadow: 0 6px 18px rgba(231, 76, 60, 0.18);
+    }
+
+    .action-button.frontdesk:hover:not(:disabled) {
+      background: var(--teal);
+      border-color: var(--teal);
+      box-shadow: 0 6px 18px rgba(0, 128, 128, 0.2);
     }
 
     .action-button:disabled {
-      opacity: 0.25;
+      opacity: 0.3;
       cursor: not-allowed;
-    }
-
-    .no-action {
-      color: var(--muted);
-      font-size: 0.68rem;
-    }
-
-    .empty-state {
-      padding: 55px 20px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .empty-state-icon {
-      width: 55px;
-      height: 55px;
-      margin: 0 auto 15px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 15px;
-      background: rgba(0, 128, 128, 0.08);
-      color: var(--teal-light);
-      font-size: 1.2rem;
-    }
-
-    .empty-state strong {
-      display: block;
-      margin-bottom: 4px;
-      color: white;
-      font-size: 0.9rem;
-    }
-
-    .empty-state p {
-      font-size: 0.72rem;
-    }
-
-    .quick-actions {
-      display: grid;
-      gap: 11px;
-    }
-
-    .quick-action {
-      display: flex;
-      align-items: center;
-      gap: 13px;
-      width: 100%;
-      padding: 14px;
-      color: white;
-      text-decoration: none;
-      background: rgba(255, 255, 255, 0.025);
-      border: 1px solid var(--border);
-      border-radius: 14px;
-      cursor: pointer;
-      transition: all 0.22s ease;
-    }
-
-    .quick-action:hover {
-      transform: translateX(4px);
-      border-color: rgba(0, 128, 128, 0.55);
-      background: rgba(0, 128, 128, 0.08);
-    }
-
-    .quick-action-icon {
-      width: 40px;
-      height: 40px;
-      flex: 0 0 40px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 11px;
-      color: var(--teal-light);
-      background: rgba(0, 128, 128, 0.10);
-    }
-
-    .quick-action.gold .quick-action-icon {
-      color: var(--gold);
-      background: rgba(255, 215, 0, 0.08);
-    }
-
-    .quick-action-content {
-      flex: 1;
-    }
-
-    .quick-action-title {
-      display: block;
-      font-size: 0.78rem;
-      font-weight: 600;
-    }
-
-    .quick-action-description {
-      display: block;
-      margin-top: 2px;
-      color: var(--muted);
-      font-size: 0.64rem;
-    }
-
-    .quick-action-arrow {
-      color: var(--muted);
-      font-size: 0.7rem;
-    }
-
-    .system-card {
-      margin-top: 20px;
-      padding: 18px;
-      border-radius: 16px;
-      background:
-        linear-gradient(
-          135deg,
-          rgba(0, 128, 128, 0.09),
-          rgba(0, 128, 128, 0.025)
-        );
-      border: 1px solid rgba(0, 128, 128, 0.18);
-    }
-
-    .system-card-header {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-bottom: 12px;
-      color: var(--teal-light);
-      font-size: 0.72rem;
-      font-weight: 700;
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
-
-    .system-list {
-      list-style: none;
-    }
-
-    .system-list li {
-      display: flex;
-      align-items: center;
-      gap: 8px;
-      margin-top: 8px;
-      color: var(--muted);
-      font-size: 0.67rem;
-    }
-
-    .system-list i {
-      color: var(--success);
-      font-size: 0.58rem;
-    }
-
-    .toast-container {
-      position: fixed;
-      right: 24px;
-      bottom: 24px;
-      z-index: 9999;
-      display: flex;
-      flex-direction: column;
-      gap: 10px;
-    }
-
-    .toast {
-      min-width: 300px;
-      max-width: 420px;
-      padding: 15px 17px;
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-      background: #111719;
-      border: 1px solid var(--border-strong);
-      border-radius: 14px;
-      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45);
-      animation: toastIn 0.25s ease;
-    }
-
-    @keyframes toastIn {
-      from {
-        opacity: 0;
-        transform: translateY(15px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    .toast-icon {
-      width: 30px;
-      height: 30px;
-      flex: 0 0 30px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-      border-radius: 9px;
-    }
-
-    .toast.success .toast-icon {
-      color: var(--success);
-      background: rgba(46, 204, 113, 0.10);
-    }
-
-    .toast.error .toast-icon {
-      color: var(--danger);
-      background: rgba(231, 76, 60, 0.10);
-    }
-
-    .toast.warning .toast-icon {
-      color: var(--warning);
-      background: rgba(241, 196, 15, 0.10);
-    }
-
-    .toast-content strong {
-      display: block;
-      font-size: 0.76rem;
-      margin-bottom: 2px;
-    }
-
-    .toast-content p {
-      color: var(--muted);
-      font-size: 0.66rem;
-      line-height: 1.5;
     }
 
     .action-button.loading {
       pointer-events: none;
-      opacity: 0.6;
+      opacity: 0.65;
     }
 
     .action-button.loading i {
@@ -765,9 +1170,403 @@
       }
     }
 
-    @media (max-width: 1200px) {
+    .no-action {
+      color: var(--muted);
+
+      font-size: 0.6rem;
+      white-space: nowrap;
+    }
+
+    /* =========================================================
+       EMPTY STATE
+    ========================================================= */
+
+    .empty-state {
+      padding: 58px 20px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .empty-state-icon {
+      width: 58px;
+      height: 58px;
+
+      margin: 0 auto 16px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 16px;
+
+      background: rgba(0, 128, 128, 0.08);
+      color: var(--teal-light);
+
+      font-size: 1.15rem;
+    }
+
+    .empty-state strong {
+      display: block;
+
+      margin-bottom: 5px;
+
+      color: white;
+
+      font-size: 0.88rem;
+    }
+
+    .empty-state p {
+      font-size: 0.68rem;
+    }
+
+    /* =========================================================
+       QUICK ACTIONS / OPERATIONAL PULSE
+    ========================================================= */
+
+    .quick-actions {
+      display: grid;
+      gap: 9px;
+    }
+
+    .quick-action {
+      width: 100%;
+
+      display: flex;
+      align-items: center;
+
+      gap: 12px;
+
+      padding: 12px 13px;
+
+      color: white;
+      text-decoration: none;
+
+      text-align: left;
+
+      background: rgba(255, 255, 255, 0.025);
+
+      border: 1px solid var(--border);
+      border-radius: 14px;
+
+      cursor: pointer;
+
+      transition:
+        transform 0.22s ease,
+        background 0.22s ease,
+        border-color 0.22s ease;
+    }
+
+    .quick-action:hover {
+      transform: translateX(4px);
+
+      background: rgba(0, 128, 128, 0.075);
+      border-color: rgba(0, 128, 128, 0.5);
+    }
+
+    .quick-action.gold:hover {
+      background: rgba(255, 215, 0, 0.055);
+      border-color: rgba(255, 215, 0, 0.25);
+    }
+
+    .quick-action-icon {
+      width: 40px;
+      height: 40px;
+
+      flex: 0 0 40px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 11px;
+
+      color: var(--teal-light);
+      background: rgba(0, 128, 128, 0.1);
+
+      font-size: 0.82rem;
+    }
+
+    .quick-action.gold .quick-action-icon {
+      color: var(--gold);
+      background: rgba(255, 215, 0, 0.08);
+    }
+
+    .quick-action.green .quick-action-icon {
+      color: var(--success);
+      background: rgba(46, 204, 113, 0.08);
+    }
+
+    .quick-action.blue .quick-action-icon {
+      color: var(--info);
+      background: rgba(52, 152, 219, 0.08);
+    }
+
+    .quick-action-content {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .quick-action-title {
+      display: block;
+
+      font-size: 0.75rem;
+      font-weight: 600;
+    }
+
+    .quick-action-description {
+      display: block;
+
+      margin-top: 2px;
+
+      color: var(--muted);
+
+      font-size: 0.6rem;
+      line-height: 1.45;
+    }
+
+    .quick-action-arrow {
+      color: var(--muted);
+      font-size: 0.62rem;
+
+      transition:
+        transform 0.2s ease,
+        color 0.2s ease;
+    }
+
+    .quick-action:hover .quick-action-arrow {
+      color: var(--text-soft);
+      transform: translateX(2px);
+    }
+
+    .quick-action.is-placeholder {
+      cursor: default;
+    }
+
+    .quick-action.is-placeholder:hover {
+      transform: none;
+
+      background: rgba(255, 255, 255, 0.035);
+      border-color: var(--border);
+    }
+
+    .quick-action.is-placeholder .quick-action-arrow {
+      opacity: 0.5;
+    }
+
+    .pulse-card {
+      margin-top: 18px;
+      padding: 18px;
+
+      border-radius: 17px;
+
+      background:
+        linear-gradient(
+          135deg,
+          rgba(0, 128, 128, 0.1),
+          rgba(0, 128, 128, 0.024)
+        );
+
+      border: 1px solid rgba(0, 128, 128, 0.18);
+    }
+
+    .pulse-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 10px;
+      margin-bottom: 12px;
+    }
+
+    .pulse-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+
+      color: var(--teal-light);
+
+      font-size: 0.67rem;
+      font-weight: 700;
+
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .pulse-badge {
+      padding: 4px 7px;
+
+      color: var(--teal-light);
+      background: rgba(0, 128, 128, 0.1);
+
+      border: 1px solid rgba(0, 128, 128, 0.18);
+      border-radius: 999px;
+
+      font-size: 0.52rem;
+      font-weight: 600;
+      letter-spacing: 0.6px;
+      text-transform: uppercase;
+    }
+
+    .pulse-list {
+      list-style: none;
+    }
+
+    .pulse-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 8px;
+
+      margin-top: 8px;
+
+      color: var(--muted);
+
+      font-size: 0.62rem;
+      line-height: 1.45;
+    }
+
+    .pulse-list li:first-child {
+      margin-top: 0;
+    }
+
+    .pulse-list i {
+      color: var(--success);
+      font-size: 0.56rem;
+      flex: 0 0 auto;
+      margin-top: 3px;
+    }
+
+    .data-note {
+      margin-top: 9px;
+
+      color: rgba(220, 226, 228, 0.48);
+
+      font-size: 0.57rem;
+      line-height: 1.45;
+    }
+
+    /* =========================================================
+       TOAST
+    ========================================================= */
+
+    .toast-container {
+      position: fixed;
+
+      right: 24px;
+      bottom: 24px;
+
+      z-index: 9999;
+
+      width: min(420px, calc(100vw - 28px));
+
+      display: flex;
+      flex-direction: column;
+
+      gap: 9px;
+
+      pointer-events: none;
+    }
+
+    .toast {
+      display: flex;
+      align-items: flex-start;
+
+      gap: 12px;
+
+      width: 100%;
+
+      padding: 14px 15px;
+
+      background: #111719;
+
+      border: 1px solid var(--border-strong);
+
+      border-radius: 15px;
+
+      box-shadow: 0 25px 70px rgba(0, 0, 0, 0.5);
+
+      pointer-events: auto;
+
+      animation: toastIn 0.25s ease;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .toast-icon {
+      width: 31px;
+      height: 31px;
+
+      flex: 0 0 31px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 9px;
+
+      font-size: 0.75rem;
+    }
+
+    .toast.success .toast-icon {
+      color: var(--success);
+      background: rgba(46, 204, 113, 0.1);
+    }
+
+    .toast.error .toast-icon {
+      color: var(--danger);
+      background: rgba(231, 76, 60, 0.1);
+    }
+
+    .toast.warning .toast-icon {
+      color: var(--warning);
+      background: rgba(241, 196, 15, 0.1);
+    }
+
+    .toast-content {
+      min-width: 0;
+    }
+
+    .toast-content strong {
+      display: block;
+
+      margin-bottom: 2px;
+
+      font-size: 0.74rem;
+      font-weight: 600;
+    }
+
+    .toast-content p {
+      color: var(--muted);
+
+      font-size: 0.64rem;
+      line-height: 1.5;
+    }
+
+    /* =========================================================
+       ACCESSIBILITY / RESPONSIVE
+    ========================================================= */
+
+    .refresh-button:focus-visible,
+    .quick-action:focus-visible,
+    .panel-link:focus-visible,
+    .action-button:focus-visible,
+    .stat-card-link:focus-visible {
+      outline: 2px solid var(--gold);
+      outline-offset: 3px;
+    }
+
+    @media (max-width: 1280px) {
       .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
+        grid-template-columns: repeat(2, minmax(0, 1fr));
       }
 
       .dashboard-grid {
@@ -775,44 +1574,104 @@
       }
     }
 
-    @media (max-width: 760px) {
+    @media (max-width: 850px) {
       .dashboard-container {
-        width: min(calc(100% - 28px), 1600px);
-        padding-top: 25px;
+        width: min(100% - 30px, 1600px);
+        padding-top: 28px;
       }
 
       .dashboard-header {
-        align-items: flex-start;
+        align-items: stretch;
         flex-direction: column;
       }
 
-      .admin-status {
+      .header-actions {
         width: 100%;
+      }
+
+      .refresh-button {
+        flex: 0 0 auto;
+      }
+
+      .admin-status {
+        flex: 1;
+        width: 100%;
+      }
+
+      .panel {
+        padding: 21px;
+        border-radius: 21px;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .dashboard-container {
+        width: min(100% - 22px, 1600px);
+        padding-bottom: 50px;
+      }
+
+      .dashboard-title {
+        font-size: 2.15rem;
+      }
+
+      .dashboard-subtitle {
+        font-size: 0.77rem;
       }
 
       .stats-grid {
         grid-template-columns: 1fr;
+        gap: 11px;
       }
 
-      .panel {
-        padding: 19px;
-        border-radius: 20px;
+      .stat-card,
+      .stat-card-link {
+        min-height: 145px;
+      }
+
+      .header-actions {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .refresh-button {
+        width: 100%;
       }
 
       .panel-header {
         align-items: flex-start;
         flex-direction: column;
+        gap: 8px;
+      }
+
+      .panel-link {
+        padding-top: 0;
+      }
+
+      .table-meta {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 5px;
       }
 
       .toast-container {
-        left: 14px;
-        right: 14px;
-        bottom: 14px;
+        right: 11px;
+        bottom: 11px;
+        left: 11px;
+        width: auto;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
       }
 
-      .toast {
-        min-width: 0;
-        width: 100%;
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
       }
     }
   </style>
@@ -820,15 +1679,71 @@
 
 <body>
 
-  <!-- ADMIN NAVIGATION -->
+  <!-- =======================================================
+       ADMIN NAVIGATION
+  ======================================================== -->
+
   <%- include('../partials/navadmin') %>
 
-  <!-- MAIN DASHBOARD -->
+  <%
+    const dashboardBookings =
+      Array.isArray(recentBookings)
+        ? recentBookings
+        : [];
+
+    const safeTotalBookings =
+      typeof totalBookings !== "undefined"
+        ? Number(totalBookings || 0)
+        : 0;
+
+    const safeTotalUsers =
+      typeof totalUsers !== "undefined"
+        ? Number(totalUsers || 0)
+        : 0;
+
+    const safeInHouseCount =
+      typeof inHouseCount !== "undefined"
+        ? Number(inHouseCount || 0)
+        : 0;
+
+    const safeAdmin =
+      typeof currentAdmin !== "undefined"
+        ? currentAdmin
+        : (
+            typeof admin !== "undefined"
+              ? admin
+              : null
+          );
+
+    const safeAdminName =
+      safeAdmin &&
+      (
+        safeAdmin.username ||
+        safeAdmin.name ||
+        safeAdmin.fullname
+      )
+        ? (
+            safeAdmin.username ||
+            safeAdmin.name ||
+            safeAdmin.fullname
+          )
+        : "Administrator";
+  %>
+
+  <!-- =======================================================
+       MAIN DASHBOARD
+  ======================================================== -->
+
   <main class="dashboard-container">
 
-    <!-- HEADER -->
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
     <header class="dashboard-header">
-      <div>
+
+      <div class="header-copy">
+
         <div class="eyebrow">
           Resort Management System
         </div>
@@ -838,27 +1753,96 @@
         </h1>
 
         <p class="dashboard-subtitle">
-          Monitor reservations, guests and front-desk operations.
+          Your central operational view for reservations,
+          guest activity and front-desk operations at
+          Puffer Isle Resort.
         </p>
-      </div>
 
-      <div class="admin-status">
-        <span class="status-indicator"></span>
-
-        <div>
-          <small>System Status</small>
-          <strong>Operational</strong>
+        <div class="admin-greeting">
+          <i class="fas fa-user-shield" aria-hidden="true"></i>
+          <span>
+            <strong><%= safeAdminName %></strong>
+            &nbsp;•&nbsp; Administrative session
+          </span>
         </div>
+
       </div>
+
+      <div class="header-actions">
+
+        <button
+          type="button"
+          class="refresh-button"
+          id="refreshDashboard"
+          title="Refresh dashboard"
+          aria-label="Refresh dashboard"
+        >
+          <i
+            class="fas fa-arrows-rotate"
+            aria-hidden="true"
+          ></i>
+
+          <span>Refresh</span>
+        </button>
+
+        <div
+          class="admin-status"
+          aria-label="System status"
+        >
+
+          <span
+            class="status-indicator"
+            aria-hidden="true"
+          ></span>
+
+          <div class="admin-status-content">
+
+            <small>
+              System Status
+            </small>
+
+            <strong>
+              Operational
+            </strong>
+
+            <div
+              class="local-time"
+              id="currentTime"
+              aria-live="polite"
+            >
+              Loading local time...
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
     </header>
 
-    <!-- STATISTICS -->
-    <section class="stats-grid">
+    <!-- =====================================================
+         STATISTICS
+    ====================================================== -->
+
+    <section
+      class="stats-grid"
+      aria-label="Dashboard statistics"
+    >
 
       <!-- TOTAL BOOKINGS -->
-      <article class="stat-card gold">
+
+      <a
+        href="/admin/history"
+        class="stat-card-link gold"
+        aria-label="Open reservation history"
+      >
+
         <div class="stat-icon">
-          <i class="fas fa-calendar-check"></i>
+          <i
+            class="fas fa-calendar-check"
+            aria-hidden="true"
+          ></i>
         </div>
 
         <span class="stat-label">
@@ -866,20 +1850,38 @@
         </span>
 
         <span class="stat-value">
-          <%= Number(totalBookings || 0).toLocaleString() %>
+          <%= safeTotalBookings.toLocaleString("en-PH") %>
         </span>
 
         <p class="stat-description">
-          All reservations recorded
+          All reservations recorded in the system.
         </p>
 
-        <i class="fas fa-calendar-alt stat-background-icon"></i>
-      </article>
+        <i
+          class="fas fa-calendar-alt stat-background-icon"
+          aria-hidden="true"
+        ></i>
 
-      <!-- USERS -->
-      <article class="stat-card">
+        <i
+          class="fas fa-arrow-up-right-from-square stat-card-arrow"
+          aria-hidden="true"
+        ></i>
+
+      </a>
+
+      <!-- REGISTERED GUESTS -->
+
+      <a
+        href="/admin/users"
+        class="stat-card-link"
+        aria-label="Open guest management"
+      >
+
         <div class="stat-icon">
-          <i class="fas fa-users"></i>
+          <i
+            class="fas fa-users"
+            aria-hidden="true"
+          ></i>
         </div>
 
         <span class="stat-label">
@@ -887,24 +1889,38 @@
         </span>
 
         <span class="stat-value">
-          <%= Number(totalUsers || 0).toLocaleString() %>
+          <%= safeTotalUsers.toLocaleString("en-PH") %>
         </span>
 
         <p class="stat-description">
-          Guest accounts in the system
+          Guest accounts registered with the resort.
         </p>
 
-        <i class="fas fa-users stat-background-icon"></i>
-      </article>
+        <i
+          class="fas fa-users stat-background-icon"
+          aria-hidden="true"
+        ></i>
 
-      <!-- IN HOUSE -->
-      <article
-        class="stat-card green"
-        style="cursor: pointer"
-        onclick="window.location.href='/admin/checkin-manager'"
+        <i
+          class="fas fa-arrow-up-right-from-square stat-card-arrow"
+          aria-hidden="true"
+        ></i>
+
+      </a>
+
+      <!-- CURRENTLY IN HOUSE -->
+
+      <a
+        href="/admin/checkin-manager"
+        class="stat-card-link green"
+        aria-label="Open front desk and view in-house guests"
       >
+
         <div class="stat-icon">
-          <i class="fas fa-bed"></i>
+          <i
+            class="fas fa-bed"
+            aria-hidden="true"
+          ></i>
         </div>
 
         <span class="stat-label">
@@ -912,24 +1928,38 @@
         </span>
 
         <span class="stat-value">
-          <%= Number(inHouseCount || 0).toLocaleString() %>
+          <%= safeInHouseCount.toLocaleString("en-PH") %>
         </span>
 
         <p class="stat-description">
-          Guests currently checked in
+          Guests currently checked in.
         </p>
 
-        <i class="fas fa-bed stat-background-icon"></i>
-      </article>
+        <i
+          class="fas fa-bed stat-background-icon"
+          aria-hidden="true"
+        ></i>
+
+        <i
+          class="fas fa-arrow-up-right-from-square stat-card-arrow"
+          aria-hidden="true"
+        ></i>
+
+      </a>
 
       <!-- FRONT DESK -->
-      <article
-        class="stat-card blue"
-        style="cursor: pointer"
-        onclick="window.location.href='/admin/checkin-manager'"
+
+      <a
+        href="/admin/checkin-manager"
+        class="stat-card-link blue"
+        aria-label="Open front desk management"
       >
+
         <div class="stat-icon">
-          <i class="fas fa-concierge-bell"></i>
+          <i
+            class="fas fa-concierge-bell"
+            aria-hidden="true"
+          ></i>
         </div>
 
         <span class="stat-label">
@@ -937,36 +1967,58 @@
         </span>
 
         <span class="stat-value">
-          <i
-            class="fas fa-arrow-right"
-            style="font-size: 1.4rem"
-          ></i>
+          <span class="stat-action-label">
+            Open operations
+            <i
+              class="fas fa-arrow-right"
+              aria-hidden="true"
+            ></i>
+          </span>
         </span>
 
         <p class="stat-description">
-          Open check-in management
+          Manage arrivals, in-house guests and departures.
         </p>
 
-        <i class="fas fa-concierge-bell stat-background-icon"></i>
-      </article>
+        <i
+          class="fas fa-concierge-bell stat-background-icon"
+          aria-hidden="true"
+        ></i>
+
+        <i
+          class="fas fa-arrow-up-right-from-square stat-card-arrow"
+          aria-hidden="true"
+        ></i>
+
+      </a>
 
     </section>
 
-    <!-- MAIN CONTENT -->
+    <!-- =====================================================
+         MAIN CONTENT
+    ====================================================== -->
+
     <section class="dashboard-grid">
 
-      <!-- RECENT BOOKINGS -->
+      <!-- ===================================================
+           RECENT RESERVATIONS
+      ==================================================== -->
+
       <div class="panel">
 
         <div class="panel-header">
-          <div>
+
+          <div class="panel-heading">
+
             <h2 class="panel-title">
               Recent Reservations
             </h2>
 
             <p class="panel-description">
-              Latest booking activity requiring your attention.
+              Latest booking activity requiring
+              administrative attention.
             </p>
+
           </div>
 
           <a
@@ -974,8 +2026,27 @@
             class="panel-link"
           >
             View Archive
-            <i class="fas fa-arrow-right"></i>
+
+            <i
+              class="fas fa-arrow-right"
+              aria-hidden="true"
+            ></i>
           </a>
+
+        </div>
+
+        <div class="table-meta">
+
+          <span>
+            Showing the latest
+            <%= dashboardBookings.length %>
+            reservation<%= dashboardBookings.length === 1 ? "" : "s" %>
+          </span>
+
+          <span class="live-label">
+            Live dashboard data
+          </span>
+
         </div>
 
         <div class="table-wrapper">
@@ -983,26 +2054,26 @@
           <table class="booking-table">
 
             <thead>
+
               <tr>
+
                 <th>Guest</th>
                 <th>Accommodation</th>
                 <th>Stay</th>
                 <th>Guests</th>
+                <th>Amount</th>
                 <th>Status</th>
-                <th style="text-align: right">
-                  Actions
-                </th>
+                <th>Actions</th>
+
               </tr>
+
             </thead>
 
             <tbody>
 
-              <% if (
-                Array.isArray(recentBookings) &&
-                recentBookings.length > 0
-              ) { %>
+              <% if (dashboardBookings.length > 0) { %>
 
-                <% recentBookings.forEach(booking => {
+                <% dashboardBookings.forEach(booking => {
 
                   const guestName =
                     booking.userId &&
@@ -1032,15 +2103,81 @@
                     "Seaside Cottage": "Seaside Cottage"
                   };
 
+                  const roomObject =
+                    booking.room &&
+                    typeof booking.room === "object"
+                      ? booking.room
+                      : null;
+
+                  const dynamicRoomName =
+                    roomObject &&
+                    (
+                      roomObject.name ||
+                      roomObject.title ||
+                      roomObject.roomName
+                    )
+                      ? (
+                          roomObject.name ||
+                          roomObject.title ||
+                          roomObject.roomName
+                        )
+                      : null;
+
+                  const rawRoomName =
+                    booking.roomName ||
+                    booking.roomType ||
+                    dynamicRoomName ||
+                    (
+                      typeof booking.room === "string"
+                        ? booking.room
+                        : "Accommodation"
+                    );
+
                   const roomName =
-                    roomNames[booking.room] ||
-                    booking.room ||
+                    roomNames[rawRoomName] ||
+                    rawRoomName ||
                     "Accommodation";
 
-                  const bookingStatus =
+                  const rawStatus =
                     String(
                       booking.status || "pending"
-                    ).toLowerCase();
+                    )
+                      .toLowerCase()
+                      .trim();
+
+                  const allowedStatuses = [
+                    "pending",
+                    "accepted",
+                    "confirmed",
+                    "declined",
+                    "rejected",
+                    "cancelled",
+                    "checked-in",
+                    "checked-out",
+                    "completed"
+                  ];
+
+                  const bookingStatus =
+                    allowedStatuses.includes(rawStatus)
+                      ? rawStatus
+                      : "unknown";
+
+                  const statusLabels = {
+                    pending: "Pending",
+                    accepted: "Accepted",
+                    confirmed: "Confirmed",
+                    declined: "Declined",
+                    rejected: "Rejected",
+                    cancelled: "Cancelled",
+                    "checked-in": "Checked In",
+                    "checked-out": "Checked Out",
+                    completed: "Completed",
+                    unknown: "Unknown"
+                  };
+
+                  const statusLabel =
+                    statusLabels[bookingStatus] ||
+                    "Unknown";
 
                   const checkinDate =
                     booking.checkin
@@ -1064,22 +2201,60 @@
                       checkoutDate.getTime()
                     );
 
+                  const bookingId =
+                    booking._id
+                      ? String(booking._id)
+                      : "";
+
+                  const guestCount =
+                    Math.max(
+                      0,
+                      Number(booking.guests || 0)
+                    );
+
+                  const parsedTotalPrice =
+                    Number(booking.totalPrice);
+
+                  const hasTotalPrice =
+                    booking.totalPrice !== undefined &&
+                    booking.totalPrice !== null &&
+                    booking.totalPrice !== "" &&
+                    Number.isFinite(parsedTotalPrice);
+
+                  const totalPrice =
+                    hasTotalPrice
+                      ? parsedTotalPrice
+                      : null;
+
+                  const hasCottageAddon =
+                    booking.cottageAddon === true ||
+                    booking.cottageAddon === "true";
+
+                  const isCottage =
+                    rawRoomName === "Seaside Cottage" ||
+                    roomName === "Seaside Cottage";
+
                 %>
 
                   <tr
-                    id="booking-row-<%= booking._id %>"
+                    id="booking-row-<%= bookingId %>"
                     data-status="<%= bookingStatus %>"
                   >
 
                     <!-- GUEST -->
+
                     <td>
+
                       <div class="guest-cell">
 
-                        <div class="guest-avatar">
+                        <div
+                          class="guest-avatar"
+                          aria-hidden="true"
+                        >
                           <%= initials %>
                         </div>
 
-                        <div>
+                        <div class="guest-details">
 
                           <div class="guest-name">
                             <%= guestName %>
@@ -1096,31 +2271,33 @@
                         </div>
 
                       </div>
+
                     </td>
 
-                    <!-- ROOM -->
+                    <!-- ACCOMMODATION -->
+
                     <td>
 
                       <div class="room-name">
 
-                        <i class="fas fa-umbrella-beach"></i>
+                        <i
+                          class="fas fa-umbrella-beach"
+                          aria-hidden="true"
+                        ></i>
 
                         <span>
 
-                          <%= roomName %>
+                          <span class="room-title">
+                            <%= roomName %>
+                          </span>
 
                           <% if (
-                            booking.cottageAddon &&
-                            booking.room !== "Seaside Cottage"
+                            hasCottageAddon &&
+                            !isCottage
                           ) { %>
 
-                            <span
-                              style="
-                                color: var(--muted);
-                                font-size: 0.64rem;
-                              "
-                            >
-                              + Cottage
+                            <span class="room-addon">
+                              + Cottage add-on
                             </span>
 
                           <% } %>
@@ -1131,7 +2308,8 @@
 
                     </td>
 
-                    <!-- DATES -->
+                    <!-- STAY -->
+
                     <td>
 
                       <% if (
@@ -1141,33 +2319,40 @@
 
                         <div class="date-range">
 
-                          <%= checkinDate.toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric"
-                            }
-                          ) %>
+                          <span>
+                            <%= checkinDate.toLocaleDateString(
+                              "en-PH",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric"
+                              }
+                            ) %>
+                          </span>
 
-                          <span class="arrow">
+                          <span
+                            class="arrow"
+                            aria-hidden="true"
+                          >
                             →
                           </span>
 
-                          <%= checkoutDate.toLocaleDateString(
-                            "en-US",
-                            {
-                              month: "short",
-                              day: "numeric",
-                              year: "numeric"
-                            }
-                          ) %>
+                          <span>
+                            <%= checkoutDate.toLocaleDateString(
+                              "en-PH",
+                              {
+                                month: "short",
+                                day: "numeric",
+                                year: "numeric"
+                              }
+                            ) %>
+                          </span>
 
                         </div>
 
                       <% } else { %>
 
-                        <span style="color: var(--danger)">
+                        <span class="invalid-date">
                           Invalid dates
                         </span>
 
@@ -1176,27 +2361,68 @@
                     </td>
 
                     <!-- GUEST COUNT -->
+
                     <td>
-                      <strong>
-                        <%= Number(
-                          booking.guests || 0
-                        ) %>
-                      </strong>
+
+                      <div class="guest-count">
+
+                        <span class="guest-count-number">
+                          <%= guestCount %>
+                        </span>
+
+                        <span class="guest-count-label">
+                          <%= guestCount === 1
+                            ? "guest"
+                            : "guests"
+                          %>
+                        </span>
+
+                      </div>
+
+                    </td>
+
+                    <!-- AMOUNT -->
+
+                    <td>
+
+                      <% if (totalPrice !== null) { %>
+
+                        <span class="booking-price">
+                          ₱<%= totalPrice.toLocaleString(
+                            "en-PH",
+                            {
+                              minimumFractionDigits: 0,
+                              maximumFractionDigits: 2
+                            }
+                          ) %>
+                        </span>
+
+                      <% } else { %>
+
+                        <span class="booking-price">
+                          —
+                        </span>
+
+                      <% } %>
+
                     </td>
 
                     <!-- STATUS -->
+
                     <td>
 
                       <span
-                        id="status-<%= booking._id %>"
+                        id="status-<%= bookingId %>"
                         class="status status-<%= bookingStatus %>"
                       >
 
-                        <span class="status-dot"></span>
+                        <span
+                          class="status-dot"
+                          aria-hidden="true"
+                        ></span>
 
                         <span class="status-text">
-                          <%= bookingStatus.charAt(0).toUpperCase() +
-                              bookingStatus.slice(1) %>
+                          <%= statusLabel %>
                         </span>
 
                       </span>
@@ -1204,49 +2430,59 @@
                     </td>
 
                     <!-- ACTIONS -->
+
                     <td>
 
                       <div class="booking-actions">
 
                         <% if (
-                          bookingStatus === "pending"
+                          bookingStatus === "pending" &&
+                          bookingId
                         ) { %>
 
                           <button
                             type="button"
-                            class="action-button accept"
+                            class="action-button accept js-status-update"
                             title="Accept booking"
                             aria-label="Accept booking"
-                            data-booking-id="<%= booking._id %>"
+                            data-booking-id="<%= bookingId %>"
                             data-status="accepted"
-                            onclick="handleStatusUpdate(this)"
                           >
-                            <i class="fas fa-check"></i>
+                            <i
+                              class="fas fa-check"
+                              aria-hidden="true"
+                            ></i>
                           </button>
 
                           <button
                             type="button"
-                            class="action-button decline"
+                            class="action-button decline js-status-update"
                             title="Decline booking"
                             aria-label="Decline booking"
-                            data-booking-id="<%= booking._id %>"
+                            data-booking-id="<%= bookingId %>"
                             data-status="declined"
-                            onclick="handleStatusUpdate(this)"
                           >
-                            <i class="fas fa-xmark"></i>
+                            <i
+                              class="fas fa-xmark"
+                              aria-hidden="true"
+                            ></i>
                           </button>
 
                         <% } else if (
-                          bookingStatus === "accepted"
+                          bookingStatus === "accepted" ||
+                          bookingStatus === "confirmed"
                         ) { %>
 
                           <a
                             href="/admin/checkin-manager"
-                            class="action-button"
+                            class="action-button frontdesk"
                             title="Open front desk"
                             aria-label="Open front desk"
                           >
-                            <i class="fas fa-concierge-bell"></i>
+                            <i
+                              class="fas fa-concierge-bell"
+                              aria-hidden="true"
+                            ></i>
                           </a>
 
                         <% } else { %>
@@ -1270,7 +2506,7 @@
                 <tr>
 
                   <td
-                    colspan="6"
+                    colspan="7"
                     style="
                       border: 0;
                       background: transparent;
@@ -1280,7 +2516,10 @@
                     <div class="empty-state">
 
                       <div class="empty-state-icon">
-                        <i class="fas fa-calendar-xmark"></i>
+                        <i
+                          class="fas fa-calendar-xmark"
+                          aria-hidden="true"
+                        ></i>
                       </div>
 
                       <strong>
@@ -1307,14 +2546,19 @@
 
       </div>
 
-      <!-- RIGHT SIDEBAR -->
+      <!-- ===================================================
+           RIGHT SIDEBAR
+      ==================================================== -->
+
       <aside>
+
+        <!-- QUICK ACTIONS -->
 
         <div class="panel">
 
           <div class="panel-header">
 
-            <div>
+            <div class="panel-heading">
 
               <h2 class="panel-title">
                 Quick Actions
@@ -1331,13 +2575,17 @@
           <div class="quick-actions">
 
             <!-- FRONT DESK -->
+
             <a
               href="/admin/checkin-manager"
               class="quick-action gold"
             >
 
               <div class="quick-action-icon">
-                <i class="fas fa-concierge-bell"></i>
+                <i
+                  class="fas fa-concierge-bell"
+                  aria-hidden="true"
+                ></i>
               </div>
 
               <div class="quick-action-content">
@@ -1347,54 +2595,165 @@
                 </span>
 
                 <span class="quick-action-description">
-                  Manage arrivals and in-house guests.
+                  Manage arrivals, in-house guests and departures.
                 </span>
 
               </div>
 
-              <i class="fas fa-chevron-right quick-action-arrow"></i>
+              <i
+                class="fas fa-chevron-right quick-action-arrow"
+                aria-hidden="true"
+              ></i>
 
             </a>
 
-            <!-- HISTORY -->
+            <!-- RESERVATIONS -->
+
             <a
               href="/admin/history"
               class="quick-action"
             >
 
               <div class="quick-action-icon">
-                <i class="fas fa-clock-rotate-left"></i>
+                <i
+                  class="fas fa-calendar-days"
+                  aria-hidden="true"
+                ></i>
               </div>
 
               <div class="quick-action-content">
 
                 <span class="quick-action-title">
-                  Booking History
+                  Reservations
                 </span>
 
                 <span class="quick-action-description">
-                  Review all reservation records.
+                  Review and manage the complete reservation archive.
                 </span>
 
               </div>
 
-              <i class="fas fa-chevron-right quick-action-arrow"></i>
+              <i
+                class="fas fa-chevron-right quick-action-arrow"
+                aria-hidden="true"
+              ></i>
 
             </a>
 
-            <!-- MANUAL BOOKING -->
-            <button
-              type="button"
-              class="quick-action"
-              onclick="showToast(
-                'Manual Booking',
-                'Manual booking workflow will be connected to the admin booking module.',
-                'warning'
-              )"
+            <!-- ROOMS -->
+
+            <a
+              href="/admin/rooms"
+              class="quick-action green"
             >
 
               <div class="quick-action-icon">
-                <i class="fas fa-plus"></i>
+                <i
+                  class="fas fa-bed"
+                  aria-hidden="true"
+                ></i>
+              </div>
+
+              <div class="quick-action-content">
+
+                <span class="quick-action-title">
+                  Room Inventory
+                </span>
+
+                <span class="quick-action-description">
+                  Manage resort rooms, rates and availability.
+                </span>
+
+              </div>
+
+              <i
+                class="fas fa-chevron-right quick-action-arrow"
+                aria-hidden="true"
+              ></i>
+
+            </a>
+
+            <!-- ADD-ONS -->
+
+            <a
+              href="/admin/add-ons"
+              class="quick-action blue"
+            >
+
+              <div class="quick-action-icon">
+                <i
+                  class="fas fa-tags"
+                  aria-hidden="true"
+                ></i>
+              </div>
+
+              <div class="quick-action-content">
+
+                <span class="quick-action-title">
+                  Add-ons
+                </span>
+
+                <span class="quick-action-description">
+                  Manage optional resort services and pricing.
+                </span>
+
+              </div>
+
+              <i
+                class="fas fa-chevron-right quick-action-arrow"
+                aria-hidden="true"
+              ></i>
+
+            </a>
+
+            <!-- ANALYTICS -->
+
+            <a
+              href="/admin/analytics"
+              class="quick-action"
+            >
+
+              <div class="quick-action-icon">
+                <i
+                  class="fas fa-chart-line"
+                  aria-hidden="true"
+                ></i>
+              </div>
+
+              <div class="quick-action-content">
+
+                <span class="quick-action-title">
+                  Analytics
+                </span>
+
+                <span class="quick-action-description">
+                  Review performance and operational metrics.
+                </span>
+
+              </div>
+
+              <i
+                class="fas fa-chevron-right quick-action-arrow"
+                aria-hidden="true"
+              ></i>
+
+            </a>
+
+            <!-- PLACEHOLDER -->
+
+            <button
+              type="button"
+              class="quick-action is-placeholder"
+              data-toast-title="Manual Booking"
+              data-toast-message="The manual booking workflow is reserved for the next operations module."
+              data-toast-type="warning"
+            >
+
+              <div class="quick-action-icon">
+                <i
+                  class="fas fa-plus"
+                  aria-hidden="true"
+                ></i>
               </div>
 
               <div class="quick-action-content">
@@ -1409,23 +2768,28 @@
 
               </div>
 
-              <i class="fas fa-chevron-right quick-action-arrow"></i>
+              <i
+                class="fas fa-chevron-right quick-action-arrow"
+                aria-hidden="true"
+              ></i>
 
             </button>
 
-            <!-- EXPORT -->
+            <!-- PLACEHOLDER -->
+
             <button
               type="button"
-              class="quick-action"
-              onclick="showToast(
-                'Analytics Export',
-                'Export functionality will be connected to the reporting module.',
-                'warning'
-              )"
+              class="quick-action is-placeholder"
+              data-toast-title="Reports"
+              data-toast-message="Reporting and export tools will be connected during the analytics module."
+              data-toast-type="warning"
             >
 
               <div class="quick-action-icon">
-                <i class="fas fa-file-export"></i>
+                <i
+                  class="fas fa-file-export"
+                  aria-hidden="true"
+                ></i>
               </div>
 
               <div class="quick-action-content">
@@ -1440,43 +2804,100 @@
 
               </div>
 
-              <i class="fas fa-chevron-right quick-action-arrow"></i>
+              <i
+                class="fas fa-chevron-right quick-action-arrow"
+                aria-hidden="true"
+              ></i>
 
             </button>
 
           </div>
 
-          <!-- SYSTEM STATUS -->
-          <div class="system-card">
+        </div>
 
-            <div class="system-card-header">
-              <i class="fas fa-shield-halved"></i>
-              System Integrity
+        <!-- OPERATIONAL PULSE -->
+
+        <div class="panel">
+
+          <div class="panel-header">
+
+            <div class="panel-heading">
+
+              <h2 class="panel-title">
+                Operational Pulse
+              </h2>
+
+              <p class="panel-description">
+                Core system functions currently available.
+              </p>
+
             </div>
 
-            <ul class="system-list">
+          </div>
+
+          <div class="pulse-card">
+
+            <div class="pulse-header">
+
+              <div class="pulse-title">
+                <i
+                  class="fas fa-shield-halved"
+                  aria-hidden="true"
+                ></i>
+
+                System Integrity
+              </div>
+
+              <span class="pulse-badge">
+                Active
+              </span>
+
+            </div>
+
+            <ul class="pulse-list">
 
               <li>
-                <i class="fas fa-circle-check"></i>
-                Server authentication active
+                <i
+                  class="fas fa-circle-check"
+                  aria-hidden="true"
+                ></i>
+
+                Administrator authentication is enabled.
               </li>
 
               <li>
-                <i class="fas fa-circle-check"></i>
-                Server-side booking validation active
+                <i
+                  class="fas fa-circle-check"
+                  aria-hidden="true"
+                ></i>
+
+                Booking actions are processed server-side.
               </li>
 
               <li>
-                <i class="fas fa-circle-check"></i>
-                Double-booking protection active
+                <i
+                  class="fas fa-circle-check"
+                  aria-hidden="true"
+                ></i>
+
+                Room conflict checks are supported.
               </li>
 
               <li>
-                <i class="fas fa-circle-check"></i>
-                Database session storage active
+                <i
+                  class="fas fa-circle-check"
+                  aria-hidden="true"
+                ></i>
+
+                Resort data is backed by MongoDB.
               </li>
 
             </ul>
+
+            <p class="data-note">
+              Dashboard metrics shown here are rendered from
+              the current administrative session and resort database.
+            </p>
 
           </div>
 
@@ -1488,7 +2909,10 @@
 
   </main>
 
-  <!-- TOAST CONTAINER -->
+  <!-- =======================================================
+       TOAST CONTAINER
+  ======================================================== -->
+
   <div
     id="toastContainer"
     class="toast-container"
@@ -1496,8 +2920,21 @@
     aria-atomic="true"
   ></div>
 
+  <!-- =======================================================
+       DASHBOARD JAVASCRIPT
+  ======================================================== -->
+
   <script>
     "use strict";
+
+    function escapeHtml(value) {
+      return String(value ?? "")
+        .replace(/&/g, "&amp;")
+        .replace(/</g, "&lt;")
+        .replace(/>/g, "&gt;")
+        .replace(/"/g, "&quot;")
+        .replace(/'/g, "&#039;");
+    }
 
     function showToast(
       title,
@@ -1514,21 +2951,25 @@
       const toast =
         document.createElement("div");
 
-      toast.className = `toast ${type}`;
+      toast.className =
+        `toast ${type}`;
 
-      let icon = "fa-circle-check";
+      let icon =
+        "fa-circle-check";
 
       if (type === "error") {
-        icon = "fa-circle-exclamation";
+        icon =
+          "fa-circle-exclamation";
       }
 
       if (type === "warning") {
-        icon = "fa-triangle-exclamation";
+        icon =
+          "fa-triangle-exclamation";
       }
 
       toast.innerHTML = `
         <div class="toast-icon">
-          <i class="fas ${icon}"></i>
+          <i class="fas ${icon}" aria-hidden="true"></i>
         </div>
 
         <div class="toast-content">
@@ -1539,26 +2980,35 @@
 
       container.appendChild(toast);
 
-      setTimeout(() => {
-
+      window.setTimeout(() => {
         toast.style.opacity = "0";
-        toast.style.transform = "translateY(10px)";
-        toast.style.transition = "all .25s ease";
+        toast.style.transform =
+          "translateY(10px) scale(.98)";
+        toast.style.transition =
+          "opacity .25s ease, transform .25s ease";
 
-        setTimeout(() => {
+        window.setTimeout(() => {
           toast.remove();
         }, 250);
 
       }, 4500);
     }
 
-    function escapeHtml(value) {
-      return String(value ?? "")
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
+    function getStatusLabel(status) {
+      const labels = {
+        pending: "Pending",
+        accepted: "Accepted",
+        confirmed: "Confirmed",
+        declined: "Declined",
+        rejected: "Rejected",
+        cancelled: "Cancelled",
+        "checked-in": "Checked In",
+        "checked-out": "Checked Out",
+        completed: "Completed",
+        unknown: "Unknown"
+      };
+
+      return labels[status] || "Unknown";
     }
 
     async function handleStatusUpdate(button) {
@@ -1573,11 +3023,18 @@
       const newStatus =
         button.dataset.status;
 
-      if (!bookingId || !newStatus) {
+      const allowedStatuses = [
+        "accepted",
+        "declined"
+      ];
 
+      if (
+        !bookingId ||
+        !allowedStatuses.includes(newStatus)
+      ) {
         showToast(
           "Invalid Request",
-          "Booking information is missing.",
+          "Booking information is missing or invalid.",
           "error"
         );
 
@@ -1603,14 +3060,26 @@
           `booking-row-${bookingId}`
         );
 
-      const actionButtons =
-        row
-          ? row.querySelectorAll(".action-button")
-          : [];
+      if (!row) {
+        showToast(
+          "Booking Not Found",
+          "The reservation could not be found on this page.",
+          "error"
+        );
 
-      actionButtons.forEach(actionButton => {
-        actionButton.disabled = true;
-      });
+        return;
+      }
+
+      const actionButtons =
+        row.querySelectorAll(
+          ".action-button"
+        );
+
+      actionButtons.forEach(
+        actionButton => {
+          actionButton.disabled = true;
+        }
+      );
 
       button.classList.add("loading");
 
@@ -1638,6 +3107,8 @@
                   "application/json"
               },
 
+              credentials: "same-origin",
+
               body: JSON.stringify({
                 bookingId,
                 status: newStatus
@@ -1645,12 +3116,51 @@
             }
           );
 
+        if (
+          response.status === 401 ||
+          response.status === 403
+        ) {
+
+          showToast(
+            "Session Required",
+            "Your administrator session may have expired. Please log in again.",
+            "error"
+          );
+
+          actionButtons.forEach(
+            actionButton => {
+              actionButton.disabled = false;
+            }
+          );
+
+          button.classList.remove(
+            "loading"
+          );
+
+          if (originalIcon) {
+            originalIcon.className =
+              newStatus === "accepted"
+                ? "fas fa-check"
+                : "fas fa-xmark";
+          }
+
+          return;
+        }
+
+        const contentType =
+          response.headers.get(
+            "content-type"
+          ) || "";
+
         let data = null;
 
-        try {
-          data = await response.json();
-        } catch {
-          data = null;
+        if (
+          contentType.includes(
+            "application/json"
+          )
+        ) {
+          data =
+            await response.json();
         }
 
         if (
@@ -1690,7 +3200,9 @@
             }
           );
 
-          button.classList.remove("loading");
+          button.classList.remove(
+            "loading"
+          );
 
           if (originalIcon) {
             originalIcon.className =
@@ -1723,7 +3235,7 @@
 
         showToast(
           "Connection Error",
-          "Unable to contact the server. Please try again.",
+          "Unable to contact the local server. Please try again.",
           "error"
         );
 
@@ -1733,7 +3245,9 @@
           }
         );
 
-        button.classList.remove("loading");
+        button.classList.remove(
+          "loading"
+        );
 
         if (originalIcon) {
           originalIcon.className =
@@ -1741,6 +3255,7 @@
               ? "fas fa-check"
               : "fas fa-xmark";
         }
+
       }
     }
 
@@ -1759,7 +3274,10 @@
           `status-${bookingId}`
         );
 
-      if (!row || !statusElement) {
+      if (
+        !row ||
+        !statusElement
+      ) {
         return;
       }
 
@@ -1775,11 +3293,10 @@
         );
 
       if (statusText) {
-
         statusText.textContent =
-          newStatus.charAt(0).toUpperCase() +
-          newStatus.slice(1);
-
+          getStatusLabel(
+            newStatus
+          );
       }
 
       const actions =
@@ -1789,16 +3306,21 @@
 
       if (actions) {
 
-        if (newStatus === "accepted") {
+        if (
+          newStatus === "accepted"
+        ) {
 
           actions.innerHTML = `
             <a
               href="/admin/checkin-manager"
-              class="action-button"
+              class="action-button frontdesk"
               title="Open front desk"
               aria-label="Open front desk"
             >
-              <i class="fas fa-concierge-bell"></i>
+              <i
+                class="fas fa-concierge-bell"
+                aria-hidden="true"
+              ></i>
             </a>
           `;
 
@@ -1818,18 +3340,16 @@
 
       row.style.background =
         newStatus === "accepted"
-          ? "rgba(46,204,113,0.08)"
-          : "rgba(231,76,60,0.06)";
+          ? "rgba(46, 204, 113, 0.08)"
+          : "rgba(231, 76, 60, 0.06)";
 
-      setTimeout(() => {
-        row.style.background = "";
+      window.setTimeout(() => {
+        row.style.background =
+          "";
       }, 2200);
     }
 
     function updateClock() {
-
-      const now = new Date();
-
       const clock =
         document.getElementById(
           "currentTime"
@@ -1839,10 +3359,16 @@
         return;
       }
 
+      const now =
+        new Date();
+
       clock.textContent =
-        now.toLocaleTimeString(
+        now.toLocaleString(
           "en-PH",
           {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
             hour: "2-digit",
             minute: "2-digit",
             second: "2-digit",
@@ -1851,35 +3377,98 @@
         );
     }
 
-    setInterval(
-      updateClock,
-      1000
-    );
-
-    updateClock();
-
     document.addEventListener(
       "DOMContentLoaded",
       () => {
 
         document
-          .querySelectorAll(".quick-action")
-          .forEach(element => {
+          .querySelectorAll(
+            ".js-status-update"
+          )
+          .forEach(button => {
 
-            if (
-              element.tagName === "BUTTON"
-            ) {
-
-              element.setAttribute(
-                "type",
-                "button"
-              );
-
-            }
+            button.addEventListener(
+              "click",
+              () => {
+                handleStatusUpdate(
+                  button
+                );
+              }
+            );
 
           });
 
+        document
+          .querySelectorAll(
+            ".quick-action.is-placeholder"
+          )
+          .forEach(button => {
+
+            button.addEventListener(
+              "click",
+              () => {
+
+                showToast(
+                  button.dataset.toastTitle ||
+                    "Coming Soon",
+
+                  button.dataset.toastMessage ||
+                    "This module is not connected yet.",
+
+                  button.dataset.toastType ||
+                    "warning"
+                );
+
+              }
+            );
+
+          });
+
+        const refreshButton =
+          document.getElementById(
+            "refreshDashboard"
+          );
+
+        if (refreshButton) {
+
+          refreshButton.addEventListener(
+            "click",
+            () => {
+
+              const icon =
+                refreshButton.querySelector(
+                  "i"
+                );
+
+              if (icon) {
+                icon.classList.add(
+                  "fa-spin"
+                );
+              }
+
+              refreshButton.disabled =
+                true;
+
+              window.setTimeout(
+                () => {
+                  window.location.reload();
+                },
+                250
+              );
+
+            }
+          );
+
+        }
+
       }
+    );
+
+    updateClock();
+
+    window.setInterval(
+      updateClock,
+      1000
     );
   </script>
 

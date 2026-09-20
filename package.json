@@ -3,9 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "build": "nest build"
-  },
+  "dev": "nodemon server.js",
+  "start": "node server.js",
+  "seed:catalog": "node scripts/seedCatalog.js",
+  "test": "echo \"Error: no test specified\" && exit 1",
+  "build": "nest build"
+},
   "keywords": [],
   "author": "",
   "license": "ISC",

@@ -1,1151 +1,831 @@
+"use strict";
+
 const mongoose = require("mongoose");
 
-// ============================================================
-// Puffer Isle Resort | Isle RMS
-// Appointment / Booking Model
-// ============================================================
-//
-// This model is the single source of truth for:
-//
-// - Booking dates
-// - Guest limits
-// - Room types
-// - Room pricing
-// - Cottage add-on pricing
-// - Booking status
-// - Total price calculation
-// - Check-in information
-// - Booking timestamps
-// - Database indexes
-//
-// IMPORTANT:
-// Never trust totalPrice sent by the browser.
-// Pricing is recalculated on the server.
-// ============================================================
-
-
-// ============================================================
-// CONSTANTS
-// ============================================================
-
-const ROOM_TYPES = [
-  "Aircon Room",
-  "Fan Room",
-  "Seaside Cottage",
-];
-
-
-// ------------------------------------------------------------
-// Room rates per night
-// ------------------------------------------------------------
-
-const ROOM_RATES = Object.freeze({
-  "Aircon Room": 3500,
-  "Fan Room": 2500,
-  "Seaside Cottage": 1200,
-});
-
-
-// ------------------------------------------------------------
-// Maximum guests per room
-// ------------------------------------------------------------
-
-const ROOM_GUEST_LIMITS = Object.freeze({
-  "Aircon Room": 8,
-  "Fan Room": 6,
-  "Seaside Cottage": 6,
-});
-
-
-// ------------------------------------------------------------
-// Cottage add-on
-// ------------------------------------------------------------
-
-const COTTAGE_ADDON_PRICE = 1200;
-
-
-// ------------------------------------------------------------
-// Booking statuses
-// ------------------------------------------------------------
-//
-// pending:
-//     Booking request submitted.
-//     Currently reserves the room.
-//
-// accepted:
-//     Admin confirmed the booking.
-//     Reserves the room.
-//
-// declined:
-//     Booking rejected.
-//     Does NOT reserve the room.
-//
-// cancelled:
-//     Booking cancelled.
-//     Does NOT reserve the room.
-//
-// ------------------------------------------------------------
+/*
+|--------------------------------------------------------------------------
+| Appointment Model
+|--------------------------------------------------------------------------
+| Puffer Isle Resort / IsleRMS
+|
+| Important design rule:
+|
+| Appointment stores a SNAPSHOT of the prices used when the booking
+| was created.
+|
+| Room.js and AddOn.js contain the CURRENT catalog prices.
+|
+| Therefore:
+|
+|   Current catalog price changes
+|          ↓
+|   Future bookings use the new price
+|
+|   Existing appointment
+|          ↓
+|   Keeps its original stored price
+|
+| This protects historical booking records.
+|--------------------------------------------------------------------------
+*/
 
 const BOOKING_STATUSES = [
   "pending",
   "accepted",
+  "confirmed",
   "declined",
+  "rejected",
   "cancelled",
+  "checked-in",
+  "checked-out",
+  "completed",
 ];
 
-
-// ------------------------------------------------------------
-// Statuses that occupy/reserve a room
-// ------------------------------------------------------------
-
-const RESERVING_STATUSES = [
+const BLOCKING_STATUSES = [
   "pending",
   "accepted",
+  "confirmed",
+  "checked-in",
 ];
 
+const CANCELLABLE_STATUSES = [
+  "pending",
+  "accepted",
+  "confirmed",
+];
 
-// ------------------------------------------------------------
-// Date constants
-// ------------------------------------------------------------
+/*
+|--------------------------------------------------------------------------
+| Embedded Add-on Snapshot
+|--------------------------------------------------------------------------
+| We intentionally store the add-on name and price at booking time.
+| This prevents future admin price changes from altering old bookings.
+|--------------------------------------------------------------------------
+*/
 
-const MILLISECONDS_PER_DAY =
-  1000 * 60 * 60 * 24;
+const addOnSnapshotSchema = new mongoose.Schema(
+  {
+    addOnId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "AddOn",
+      default: null,
+    },
 
+    name: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 100,
+    },
 
-// ============================================================
-// SCHEMA
-// ============================================================
+    price: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+
+    pricingType: {
+      type: String,
+      enum: ["perNight", "once"],
+      default: "once",
+    },
+
+    quantity: {
+      type: Number,
+      default: 1,
+      min: 1,
+      validate: {
+        validator: Number.isInteger,
+        message: "Add-on quantity must be a whole number.",
+      },
+    },
+
+    subtotal: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
+  },
+  {
+    _id: false,
+  }
+);
+
+/*
+|--------------------------------------------------------------------------
+| Appointment Schema
+|--------------------------------------------------------------------------
+*/
 
 const appointmentSchema = new mongoose.Schema(
   {
-    // --------------------------------------------------------
-    // USER
-    // --------------------------------------------------------
-
+    /*
+     * Owner of the booking.
+     */
     userId: {
       type: mongoose.Schema.Types.ObjectId,
-
       ref: "User",
-
-      required: [true, "User is required"],
-
+      required: true,
       index: true,
     },
 
+    /*
+     * Current catalog Room ID.
+     *
+     * This lets us connect the appointment to the catalog item,
+     * while roomName/roomPrice below preserve historical information.
+     */
+    roomId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "Room",
+      default: null,
+      index: true,
+    },
 
-    // --------------------------------------------------------
-    // ROOM
-    // --------------------------------------------------------
-
+    /*
+     * Historical room name snapshot.
+     *
+     * Keep this even if an admin later renames or deactivates the room.
+     */
     room: {
       type: String,
-
-      required: [true, "Room is required"],
-
-      enum: {
-        values: ROOM_TYPES,
-
-        message:
-          "Please select a valid accommodation.",
-      },
-
+      required: true,
+      trim: true,
+      maxlength: 100,
       index: true,
     },
 
-
-    // --------------------------------------------------------
-    // COTTAGE ADD-ON
-    // --------------------------------------------------------
-
-    cottageAddon: {
-      type: Boolean,
-
-      default: false,
+    /*
+     * Optional compatibility field.
+     *
+     * Older parts of the project may refer to roomType,
+     * accommodation, or roomName. We keep these fields available
+     * during the migration so existing records/views don't break.
+     */
+    roomType: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 100,
     },
 
-
-    // --------------------------------------------------------
-    // NUMBER OF NIGHTS
-    // --------------------------------------------------------
-    //
-    // Stored for:
-    // - invoices
-    // - admin dashboard
-    // - reporting
-    // - easier UI rendering
-    //
-    // It is recalculated by the model.
-    // --------------------------------------------------------
-
-    nights: {
-      type: Number,
-
-      min: [1, "A booking must be at least one night."],
-
-      default: 1,
+    accommodation: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 100,
     },
 
+    roomName: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 100,
+    },
 
-    // --------------------------------------------------------
-    // TOTAL PRICE
-    // --------------------------------------------------------
-    //
-    // This is calculated server-side.
-    //
-    // Do NOT trust a value submitted by the browser.
-    // --------------------------------------------------------
-
-    totalPrice: {
+    /*
+     * Historical room price at the time of booking.
+     */
+    roomPrice: {
       type: Number,
-
-      min: [
-        0,
-        "Total price cannot be negative.",
-      ],
-
       default: 0,
+      min: 0,
     },
 
+    /*
+     * Number of nights.
+     *
+     * This is stored because it is part of the historical
+     * pricing record.
+     */
+    numberOfNights: {
+      type: Number,
+      default: 0,
+      min: 0,
+      validate: {
+        validator: Number.isInteger,
+        message: "Number of nights must be a whole number.",
+      },
+    },
 
-    // --------------------------------------------------------
-    // CHECK-IN
-    // --------------------------------------------------------
+    /*
+     * Historical room subtotal.
+     */
+    roomSubtotal: {
+      type: Number,
+      default: 0,
+      min: 0,
+    },
 
+    /*
+     * Guest information.
+     */
+    guests: {
+      type: Number,
+      required: true,
+      min: 1,
+      validate: {
+        validator: Number.isInteger,
+        message: "Guest count must be a whole number.",
+      },
+    },
+
+    /*
+     * Contact number supplied for this booking.
+     */
+    contact: {
+      type: String,
+      required: true,
+      trim: true,
+      maxlength: 100,
+    },
+
+    /*
+     * Stay dates.
+     */
     checkin: {
       type: Date,
-
-      required: [
-        true,
-        "Check-in date is required.",
-      ],
-
+      required: true,
       index: true,
     },
-
-
-    // --------------------------------------------------------
-    // CHECK-OUT
-    // --------------------------------------------------------
 
     checkout: {
       type: Date,
-
-      required: [
-        true,
-        "Check-out date is required.",
-      ],
-
+      required: true,
       index: true,
     },
 
+    /*
+     * Add-on snapshots.
+     *
+     * New booking code should populate this array from AddOn.js.
+     */
+    addOns: {
+      type: [addOnSnapshotSchema],
+      default: [],
+    },
 
-    // --------------------------------------------------------
-    // GUESTS
-    // --------------------------------------------------------
+    /*
+     * Legacy cottage compatibility.
+     *
+     * Old bookings may contain these fields.
+     *
+     * They remain historical data only; new booking logic should
+     * use addOns instead.
+     */
+    cottageAddon: {
+      type: Boolean,
+      default: false,
+    },
 
-    guests: {
+    cottagePrice: {
       type: Number,
-
-      required: [
-        true,
-        "Number of guests is required.",
-      ],
-
-      min: [
-        1,
-        "At least one guest is required.",
-      ],
-
-      validate: {
-        validator: Number.isInteger,
-
-        message:
-          "Number of guests must be a whole number.",
-      },
-
-      default: 1,
+      default: 0,
+      min: 0,
     },
 
-
-    // --------------------------------------------------------
-    // CONTACT
-    // --------------------------------------------------------
-
-    contact: {
-      type: String,
-
-      required: [
-        true,
-        "Contact information is required.",
-      ],
-
-      trim: true,
-
-      minlength: [
-        3,
-        "Contact information is too short.",
-      ],
-
-      maxlength: [
-        100,
-        "Contact information is too long.",
-      ],
+    cottageSubtotal: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
-
-    // --------------------------------------------------------
-    // SPECIAL REQUESTS
-    // --------------------------------------------------------
-
-    specialRequests: {
-      type: String,
-
-      trim: true,
-
-      maxlength: [
-        1000,
-        "Special requests cannot exceed 1000 characters.",
-      ],
-
-      default: "",
+    /*
+     * Optional pricing breakdown.
+     */
+    addOnSubtotal: {
+      type: Number,
+      default: 0,
+      min: 0,
     },
 
+    /*
+     * Final server-calculated booking total.
+     *
+     * NEVER trust a client-provided totalPrice.
+     */
+    totalPrice: {
+      type: Number,
+      required: true,
+      min: 0,
+    },
 
-    // --------------------------------------------------------
-    // BOOKING STATUS
-    // --------------------------------------------------------
-
+    /*
+     * Booking state.
+     */
     status: {
       type: String,
-
       enum: {
         values: BOOKING_STATUSES,
-
-        message:
-          "Invalid booking status.",
+        message: "Invalid appointment status.",
       },
-
       default: "pending",
-
       index: true,
     },
 
-
-    // --------------------------------------------------------
-    // CHECK-IN STATUS
-    // --------------------------------------------------------
-
-    checkedIn: {
-      type: Boolean,
-
-      default: false,
-
-      index: true,
-    },
-
-
-    // --------------------------------------------------------
-    // ACTUAL CHECK-IN TIME
-    // --------------------------------------------------------
-
-    checkInTime: {
+    /*
+     * User/admin cancellation information.
+     */
+    cancelledAt: {
       type: Date,
-
       default: null,
     },
+
+    cancelledBy: {
+      type: String,
+      enum: ["user", "admin", null],
+      default: null,
+    },
+
+    /*
+     * Check-in/check-out tracking.
+     */
+    checkedInAt: {
+      type: Date,
+      default: null,
+    },
+
+    checkedOutAt: {
+      type: Date,
+      default: null,
+    },
+
+    /*
+     * Optional notes from the guest.
+     */
+    specialRequests: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 3000,
+    },
+
+    /*
+     * Optional admin notes.
+     */
+    adminNotes: {
+      type: String,
+      default: "",
+      trim: true,
+      maxlength: 3000,
+    },
   },
-
   {
-    // --------------------------------------------------------
-    // AUTOMATIC TIMESTAMPS
-    // --------------------------------------------------------
-    //
-    // Creates:
-    //
-    // createdAt
-    // updatedAt
-    //
-    // This fixes the notification code in server.js which
-    // already expects updatedAt to exist.
-    // --------------------------------------------------------
-
     timestamps: true,
-
-
-    // --------------------------------------------------------
-    // VIRTUALS
-    // --------------------------------------------------------
-
-    toJSON: {
-      virtuals: true,
-    },
-
-    toObject: {
-      virtuals: true,
-    },
-
-    
+    versionKey: false,
   }
 );
 
+/*
+|--------------------------------------------------------------------------
+| Indexes
+|--------------------------------------------------------------------------
+|
+| These support the most common booking searches and availability
+| checks.
+|--------------------------------------------------------------------------
+*/
 
-// ============================================================
-// VIRTUAL: ROOM DISPLAY NAME
-// ============================================================
+appointmentSchema.index({
+  room: 1,
+  checkin: 1,
+  checkout: 1,
+  status: 1,
+});
 
-appointmentSchema.virtual("roomDisplayName").get(
-  function () {
-    const names = {
-      "Aircon Room": "Aircon Suite",
+appointmentSchema.index({
+  roomId: 1,
+  checkin: 1,
+  checkout: 1,
+  status: 1,
+});
 
-      "Fan Room": "Cozy Fan Room",
+appointmentSchema.index({
+  userId: 1,
+  createdAt: -1,
+});
 
-      "Seaside Cottage": "Seaside Cottage",
-    };
+appointmentSchema.index({
+  status: 1,
+  checkin: 1,
+});
 
-    let displayName =
-      names[this.room] || this.room;
+/*
+|--------------------------------------------------------------------------
+| Validation
+|--------------------------------------------------------------------------
+| Prevent invalid date ranges.
+|
+| IMPORTANT:
+| Mongoose 9 no longer uses the old pre-hook `next()` callback pattern.
+| We therefore use a synchronous validation hook and throw on invalid
+| date ranges.
+|--------------------------------------------------------------------------
+*/
 
+appointmentSchema.pre("validate", function () {
+  /*
+   * Normalize room compatibility fields.
+   */
+  if (this.room) {
+    this.room = String(this.room).trim();
+  }
 
-    if (
-      this.cottageAddon &&
-      this.room !== "Seaside Cottage"
-    ) {
-      displayName += " + Cottage";
+  if (!this.roomType && this.room) {
+    this.roomType = this.room;
+  }
+
+  if (!this.accommodation && this.room) {
+    this.accommodation = this.room;
+  }
+
+  if (!this.roomName && this.room) {
+    this.roomName = this.room;
+  }
+
+  /*
+   * Validate dates.
+   */
+  if (this.checkin && this.checkout) {
+    if (this.checkout <= this.checkin) {
+      throw new Error("Check-out must be after check-in.");
     }
-
-
-    return displayName;
   }
-);
+});
 
+/*
+|--------------------------------------------------------------------------
+| Pricing Snapshot Helpers
+|--------------------------------------------------------------------------
+*/
 
-// ============================================================
-// VIRTUAL: PRICE PER NIGHT
-// ============================================================
+/**
+ * Calculate the number of nights between two dates.
+ *
+ * This function performs no database lookup and does not use
+ * any hard-coded room or add-on prices.
+ */
+function calculateNumberOfNights(checkin, checkout) {
+  const start = new Date(checkin);
+  const end = new Date(checkout);
 
-appointmentSchema.virtual("pricePerNight").get(
-  function () {
-    const baseRate =
-      ROOM_RATES[this.room] || 0;
+  if (
+    Number.isNaN(start.getTime()) ||
+    Number.isNaN(end.getTime()) ||
+    end <= start
+  ) {
+    return 0;
+  }
 
+  const milliseconds =
+    end.getTime() - start.getTime();
 
-    if (
-      this.cottageAddon &&
-      this.room !== "Seaside Cottage"
-    ) {
-      return (
-        baseRate +
-        COTTAGE_ADDON_PRICE
+  return Math.ceil(
+    milliseconds / (1000 * 60 * 60 * 24)
+  );
+}
+
+/**
+ * Calculate pricing from already-resolved catalog snapshots.
+ *
+ * IMPORTANT:
+ * This method does not query Room.js/AddOn.js.
+ *
+ * The booking route/service is responsible for loading the
+ * CURRENT catalog prices from MongoDB first.
+ *
+ * The resulting values are then frozen into the appointment.
+ */
+appointmentSchema.statics.calculateSnapshotPrice = function ({
+  roomPrice,
+  numberOfNights,
+  addOns = [],
+}) {
+  const normalizedRoomPrice = Number(roomPrice);
+  const nights = Math.floor(Number(numberOfNights));
+
+  if (
+    !Number.isFinite(normalizedRoomPrice) ||
+    normalizedRoomPrice < 0
+  ) {
+    throw new Error("Invalid room price.");
+  }
+
+  if (!Number.isInteger(nights) || nights < 1) {
+    throw new Error("Invalid number of nights.");
+  }
+
+  const roomSubtotal =
+    normalizedRoomPrice * nights;
+
+  let addOnSubtotal = 0;
+
+  const snapshots = addOns.map((addOn) => {
+    const price = Number(addOn.price);
+
+    const quantity = Math.max(
+      1,
+      Math.floor(Number(addOn.quantity || 1))
+    );
+
+    if (!Number.isFinite(price) || price < 0) {
+      throw new Error(
+        `Invalid price for add-on "${addOn.name || "Unknown"}".`
       );
     }
 
+    const pricingType =
+      addOn.pricingType === "perNight"
+        ? "perNight"
+        : "once";
 
-    return baseRate;
-  }
-);
+    const subtotal =
+      pricingType === "perNight"
+        ? price * nights * quantity
+        : price * quantity;
 
+    addOnSubtotal += subtotal;
 
-// ============================================================
-// STATIC: GET ROOM RATES
-// ============================================================
+    return {
+      addOnId:
+        addOn.addOnId || addOn._id || null,
 
-appointmentSchema.statics.getRoomRates =
+      name: String(addOn.name || "").trim(),
+
+      price,
+
+      pricingType,
+
+      quantity,
+
+      subtotal,
+    };
+  });
+
+  return {
+    numberOfNights: nights,
+
+    roomPrice: normalizedRoomPrice,
+
+    roomSubtotal,
+
+    addOns: snapshots,
+
+    addOnSubtotal,
+
+    totalPrice:
+      roomSubtotal + addOnSubtotal,
+  };
+};
+
+/*
+|--------------------------------------------------------------------------
+| Instance Pricing Helpers
+|--------------------------------------------------------------------------
+*/
+
+/**
+ * Return a plain historical pricing snapshot from an appointment.
+ */
+appointmentSchema.methods.getPricingSnapshot =
   function () {
     return {
-      ...ROOM_RATES,
+      roomPrice: this.roomPrice,
+
+      roomSubtotal: this.roomSubtotal,
+
+      numberOfNights:
+        this.numberOfNights,
+
+      addOns: this.addOns.map(
+        (addOn) => ({
+          addOnId: addOn.addOnId,
+          name: addOn.name,
+          price: addOn.price,
+          pricingType:
+            addOn.pricingType,
+          quantity: addOn.quantity,
+          subtotal: addOn.subtotal,
+        })
+      ),
+
+      addOnSubtotal:
+        this.addOnSubtotal,
+
+      /*
+       * Legacy cottage data is preserved.
+       */
+      cottageAddon:
+        this.cottageAddon,
+
+      cottagePrice:
+        this.cottagePrice,
+
+      cottageSubtotal:
+        this.cottageSubtotal,
+
+      totalPrice:
+        this.totalPrice,
     };
   };
 
-
-// ============================================================
-// STATIC: GET ROOM GUEST LIMITS
-// ============================================================
-
-appointmentSchema.statics.getRoomGuestLimits =
+/**
+ * Convenience status checker.
+ */
+appointmentSchema.methods.isBlocking =
   function () {
-    return {
-      ...ROOM_GUEST_LIMITS,
-    };
+    return BLOCKING_STATUSES.includes(
+      String(this.status).toLowerCase()
+    );
   };
 
-
-// ============================================================
-// STATIC: GET ROOM CAPACITY
-// ============================================================
-
-appointmentSchema.statics.getRoomCapacity =
-  function (room) {
-    return ROOM_GUEST_LIMITS[room] || null;
+appointmentSchema.methods.isCancellable =
+  function () {
+    return CANCELLABLE_STATUSES.includes(
+      String(this.status).toLowerCase()
+    );
   };
 
+/*
+|--------------------------------------------------------------------------
+| Static Helpers
+|--------------------------------------------------------------------------
+*/
 
-// ============================================================
-// STATIC: GET ROOM RATE
-// ============================================================
-
-appointmentSchema.statics.getRoomRate =
-  function (room) {
-    return ROOM_RATES[room] || null;
+appointmentSchema.statics.getBlockingStatuses =
+  function () {
+    return [...BLOCKING_STATUSES];
   };
 
+appointmentSchema.statics.getCancellableStatuses =
+  function () {
+    return [...CANCELLABLE_STATUSES];
+  };
 
-// ============================================================
-// STATIC: VALIDATE DATES
-// ============================================================
-//
-// Centralized date validation.
-//
-// Returns:
-//
-// {
-//   valid: true,
-//   start,
-//   end,
-//   nights
-// }
-//
-// OR:
-//
-// {
-//   valid: false,
-//   message
-// }
-// ============================================================
+appointmentSchema.statics.getAllStatuses =
+  function () {
+    return [...BOOKING_STATUSES];
+  };
 
-appointmentSchema.statics.validateBookingDates =
-  function (checkin, checkout) {
-    const start =
-      checkin instanceof Date
-        ? new Date(checkin)
-        : new Date(checkin);
-
-
-    const end =
-      checkout instanceof Date
-        ? new Date(checkout)
-        : new Date(checkout);
-
-
-    // --------------------------------------------------------
-    // Invalid dates
-    // --------------------------------------------------------
+/**
+ * Find an appointment overlapping the supplied dates.
+ *
+ * Hotel-style overlap rule:
+ *
+ * existing.checkin < requested.checkout
+ * AND
+ * existing.checkout > requested.checkin
+ */
+appointmentSchema.statics.findConflictingBooking =
+  async function ({
+    roomId = null,
+    room = null,
+    checkin,
+    checkout,
+    excludeAppointmentId = null,
+  }) {
+    const start = new Date(checkin);
+    const end = new Date(checkout);
 
     if (
       Number.isNaN(start.getTime()) ||
-      Number.isNaN(end.getTime())
+      Number.isNaN(end.getTime()) ||
+      end <= start
     ) {
-      return {
-        valid: false,
-
-        message:
-          "Invalid booking dates.",
-      };
+      return null;
     }
 
+    const roomConditions = [];
 
-    // --------------------------------------------------------
-    // Check-out must be after check-in
-    // --------------------------------------------------------
-
-    if (end <= start) {
-      return {
-        valid: false,
-
-        message:
-          "Check-out must be after check-in.",
-      };
-    }
-
-
-    // --------------------------------------------------------
-    // Prevent bookings in the past
-    // --------------------------------------------------------
-
-    const now = new Date();
-
-    const todayStart =
-      new Date(
-        now.getFullYear(),
-        now.getMonth(),
-        now.getDate()
-      );
-
-
-    if (start < todayStart) {
-      return {
-        valid: false,
-
-        message:
-          "Check-in date cannot be in the past.",
-      };
-    }
-
-
-    // --------------------------------------------------------
-    // Calculate nights
-    // --------------------------------------------------------
-
-    const milliseconds =
-      end.getTime() -
-      start.getTime();
-
-
-    const nights =
-      Math.ceil(
-        milliseconds /
-          MILLISECONDS_PER_DAY
-      );
-
-
-    if (nights < 1) {
-      return {
-        valid: false,
-
-        message:
-          "A booking must be at least one night.",
-      };
-    }
-
-
-    return {
-      valid: true,
-
-      start,
-
-      end,
-
-      nights,
-    };
-  };
-
-
-// ============================================================
-// STATIC: VALIDATE GUEST COUNT
-// ============================================================
-
-appointmentSchema.statics.validateGuestCount =
-  function (room, guests) {
-    const guestCount =
-      Number(guests);
-
-
+    /*
+     * Prefer roomId for modern bookings.
+     */
     if (
-      !Number.isInteger(
-        guestCount
-      )
+      roomId &&
+      mongoose.Types.ObjectId.isValid(roomId)
     ) {
-      return {
-        valid: false,
-
-        message:
-          "Number of guests must be a whole number.",
-      };
+      roomConditions.push({
+        roomId,
+      });
     }
 
+    /*
+     * Keep room-name matching for legacy appointments.
+     */
+    if (room) {
+      const escapedRoom = String(room)
+        .trim()
+        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
-    if (guestCount < 1) {
-      return {
-        valid: false,
+      roomConditions.push({
+        $or: [
+          {
+            room: new RegExp(
+              `^${escapedRoom}$`,
+              "i"
+            ),
+          },
 
-        message:
-          "At least one guest is required.",
-      };
+          {
+            roomType: new RegExp(
+              `^${escapedRoom}$`,
+              "i"
+            ),
+          },
+
+          {
+            accommodation: new RegExp(
+              `^${escapedRoom}$`,
+              "i"
+            ),
+          },
+
+          {
+            roomName: new RegExp(
+              `^${escapedRoom}$`,
+              "i"
+            ),
+          },
+        ],
+      });
     }
 
-
-    const maximumGuests =
-      ROOM_GUEST_LIMITS[room];
-
-
-    if (!maximumGuests) {
-      return {
-        valid: false,
-
-        message:
-          "Invalid room type.",
-      };
+    if (roomConditions.length === 0) {
+      return null;
     }
 
-
-    if (
-      guestCount >
-      maximumGuests
-    ) {
-      return {
-        valid: false,
-
-        message:
-          `${room} allows a maximum of ${maximumGuests} guests.`,
-      };
-    }
-
-
-    return {
-      valid: true,
-
-      guests: guestCount,
-
-      maximumGuests,
-    };
-  };
-
-
-// ============================================================
-// STATIC: CALCULATE PRICE
-// ============================================================
-//
-// IMPORTANT:
-//
-// This is the method your current server.js expects:
-//
-// Appointment.calculatePrice(...)
-//
-// The browser's totalPrice is never used here.
-// ============================================================
-
-appointmentSchema.statics.calculatePrice =
-  function ({
-    room,
-    cottageAddon = false,
-    checkin,
-    checkout,
-  }) {
-    // --------------------------------------------------------
-    // Validate room
-    // --------------------------------------------------------
-
-    if (
-      !ROOM_TYPES.includes(room)
-    ) {
-      throw new Error(
-        "Invalid room type."
-      );
-    }
-
-
-    // --------------------------------------------------------
-    // Validate dates
-    // --------------------------------------------------------
-
-    const dateValidation =
-      this.validateBookingDates(
-        checkin,
-        checkout
-      );
-
-
-    if (
-      !dateValidation.valid
-    ) {
-      throw new Error(
-        dateValidation.message
-      );
-    }
-
-
-    const {
-      nights,
-    } = dateValidation;
-
-
-    // --------------------------------------------------------
-    // Base room rate
-    // --------------------------------------------------------
-
-    const baseRate =
-      ROOM_RATES[room];
-
-
-    // --------------------------------------------------------
-    // Cottage add-on
-    // --------------------------------------------------------
-    //
-    // Seaside Cottage already IS the cottage.
-    // Therefore the add-on is never charged.
-    // --------------------------------------------------------
-
-    const validCottageAddon =
-      room === "Seaside Cottage"
-        ? false
-        : Boolean(cottageAddon);
-
-
-    const addonRate =
-      validCottageAddon
-        ? COTTAGE_ADDON_PRICE
-        : 0;
-
-
-    // --------------------------------------------------------
-    // Final nightly rate
-    // --------------------------------------------------------
-
-    const pricePerNight =
-      baseRate +
-      addonRate;
-
-
-    // --------------------------------------------------------
-    // Final booking price
-    // --------------------------------------------------------
-
-    const totalPrice =
-      pricePerNight *
-      nights;
-
-
-    return {
-      room,
-
-      nights,
-
-      baseRate,
-
-      cottageAddon:
-        validCottageAddon,
-
-      addonRate,
-
-      pricePerNight,
-
-      totalPrice,
-    };
-  };
-
-
-// ============================================================
-// STATIC: FIND CONFLICTING BOOKING
-// ============================================================
-//
-// This is the reusable overlap query.
-//
-// A booking conflicts when:
-//
-// existing.checkin < requested.checkout
-//
-// AND
-//
-// existing.checkout > requested.checkin
-//
-// Pending and accepted bookings reserve the room.
-//
-// Declined and cancelled bookings do not.
-// ============================================================
-
-appointmentSchema.statics.findConflictingBooking =
-  function ({
-    room,
-    checkin,
-    checkout,
-    excludeId = null,
-  }) {
     const query = {
-      room,
-
       status: {
-        $in: RESERVING_STATUSES,
+        $in: BLOCKING_STATUSES,
       },
 
       checkin: {
-        $lt: checkout,
+        $lt: end,
       },
 
       checkout: {
-        $gt: checkin,
+        $gt: start,
       },
+
+      $or: roomConditions,
     };
 
-
     if (
-      excludeId &&
+      excludeAppointmentId &&
       mongoose.Types.ObjectId.isValid(
-        excludeId
+        excludeAppointmentId
       )
     ) {
       query._id = {
-        $ne: excludeId,
+        $ne: excludeAppointmentId,
       };
     }
-
 
     return this.findOne(query)
       .sort({
         checkin: 1,
-      });
+      })
+      .lean();
   };
 
+/*
+|--------------------------------------------------------------------------
+| Query Helpers
+|--------------------------------------------------------------------------
+*/
 
-// ============================================================
-// PRE-VALIDATE
-// ============================================================
-//
-// Runs before Mongoose validation.
-//
-// This provides model-level protection even if another route
-// attempts to create an Appointment without using server.js.
-// ============================================================
+appointmentSchema.query.blocking =
+  function () {
+    return this.where({
+      status: {
+        $in: BLOCKING_STATUSES,
+      },
+    });
+  };
 
-appointmentSchema.pre(
-  "validate",
-  function (next) {
-    try {
-      // ------------------------------------------------------
-      // Date validation
-      // ------------------------------------------------------
+appointmentSchema.query.active =
+  function () {
+    return this.where({
+      status: {
+        $nin: [
+          "declined",
+          "rejected",
+          "cancelled",
+          "completed",
+        ],
+      },
+    });
+  };
 
-      const dateValidation =
-        this.constructor.validateBookingDates(
-          this.checkin,
-          this.checkout
-        );
+/*
+|--------------------------------------------------------------------------
+| Export
+|--------------------------------------------------------------------------
+*/
 
-
-      if (
-        !dateValidation.valid
-      ) {
-        return next(
-          new Error(
-            dateValidation.message
-          )
-        );
-      }
-
-
-      // ------------------------------------------------------
-      // Guest validation
-      // ------------------------------------------------------
-
-      const guestValidation =
-        this.constructor.validateGuestCount(
-          this.room,
-          this.guests
-        );
-
-
-      if (
-        !guestValidation.valid
-      ) {
-        return next(
-          new Error(
-            guestValidation.message
-          )
-        );
-      }
-
-
-      // ------------------------------------------------------
-      // Cottage add-on normalization
-      // ------------------------------------------------------
-      //
-      // A Seaside Cottage cannot have a second cottage add-on.
-      // ------------------------------------------------------
-
-      if (
-        this.room ===
-        "Seaside Cottage"
-      ) {
-        this.cottageAddon =
-          false;
-      }
-
-
-      // ------------------------------------------------------
-      // Store calculated nights
-      // ------------------------------------------------------
-
-      this.nights =
-        dateValidation.nights;
-
-
-      next();
-
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-
-// ============================================================
-// PRE-SAVE
-// ============================================================
-//
-// Recalculate price every time the document is saved.
-//
-// This means:
-//
-// booking.totalPrice = fake browser value
-//
-// is overwritten by the real server calculation.
-// ============================================================
-
-appointmentSchema.pre(
-  "save",
-  function (next) {
-    try {
-      const pricing =
-        this.constructor.calculatePrice({
-          room: this.room,
-
-          cottageAddon:
-            this.cottageAddon,
-
-          checkin:
-            this.checkin,
-
-          checkout:
-            this.checkout,
-        });
-
-
-      this.nights =
-        pricing.nights;
-
-
-      this.cottageAddon =
-        pricing.cottageAddon;
-
-
-      this.totalPrice =
-        pricing.totalPrice;
-
-
-      next();
-
-    } catch (error) {
-      next(error);
-    }
-  }
-);
-
-
-// ============================================================
-// PRE-SAVE: CHECK-IN SAFETY
-// ============================================================
-//
-// Keep checkInTime consistent with checkedIn.
-// ============================================================
-
-appointmentSchema.pre(
-  "save",
-  function (next) {
-    if (!this.checkedIn) {
-      this.checkInTime = null;
-    }
-
-
-    if (
-      this.checkedIn &&
-      !this.checkInTime
-    ) {
-      this.checkInTime = new Date();
-    }
-
-
-    next();
-  }
-);
-
-
-// ============================================================
-// INDEXES
-// ============================================================
-//
-// These indexes improve:
-//
-// - User booking history
-// - Admin booking lists
-// - Room availability searches
-// - Status filtering
-// - Date overlap queries
-//
-// IMPORTANT:
-// MongoDB indexes improve performance but do NOT by themselves
-// guarantee that two date ranges cannot overlap.
-//
-// True race-condition protection will be handled in the
-// booking/service layer we build next.
-// ============================================================
-
-appointmentSchema.index({
-  userId: 1,
-
-  createdAt: -1,
-});
-
-
-appointmentSchema.index({
-  room: 1,
-
-  status: 1,
-
-  checkin: 1,
-
-  checkout: 1,
-});
-
-
-appointmentSchema.index({
-  status: 1,
-
-  checkin: 1,
-
-  checkout: 1,
-});
-
-
-appointmentSchema.index({
-  checkedIn: 1,
-
-  checkin: 1,
-});
-
-
-// ============================================================
-// MODEL
-// ============================================================
-
-const Appointment =
+module.exports =
+  mongoose.models.Appointment ||
   mongoose.model(
     "Appointment",
     appointmentSchema
   );
-
-
-// ============================================================
-// EXPORT CONSTANTS FOR SERVER-SIDE USE
-// ============================================================
-//
-// These are exposed without changing the Mongoose model API.
-//
-// Usage:
-//
-// const {
-//   ROOM_RATES,
-//   ROOM_GUEST_LIMITS,
-//   BOOKING_STATUSES,
-//   RESERVING_STATUSES
-// } = require("./models/Appointment");
-// ============================================================
-
-Appointment.ROOM_RATES =
-  ROOM_RATES;
-
-Appointment.ROOM_GUEST_LIMITS =
-  ROOM_GUEST_LIMITS;
-
-Appointment.ROOM_TYPES =
-  ROOM_TYPES;
-
-Appointment.BOOKING_STATUSES =
-  BOOKING_STATUSES;
-
-Appointment.RESERVING_STATUSES =
-  RESERVING_STATUSES;
-
-Appointment.COTTAGE_ADDON_PRICE =
-  COTTAGE_ADDON_PRICE;
-
-
-module.exports = Appointment;

@@ -1,323 +1,1022 @@
 <!-- ============================================================
-     Puffer Isle Resort | Isle RMS
-     Admin Navigation
-     ============================================================ -->
+     PUFFER ISLE RESORT | IsleRMS
+     ADMIN NAVIGATION PARTIAL
 
-<link
-  rel="stylesheet"
-  href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
-  crossorigin="anonymous"
-  referrerpolicy="no-referrer"
-/>
+     IMPORTANT:
+     This file is intentionally ONLY the navigation.
+     Do not place <html>, <head>, <body>, dashboard content,
+     statistics, booking tables, or page-specific JS here.
+============================================================ -->
 
-<header class="admin-header">
+<%
+  const adminUser =
+    typeof admin !== "undefined" && admin
+      ? admin
+      : (
+          typeof currentAdmin !== "undefined" && currentAdmin
+            ? currentAdmin
+            : null
+        );
 
-  <div class="admin-nav-wrapper">
+  const current =
+    typeof currentPath !== "undefined"
+      ? String(currentPath)
+      : "";
 
-    <!-- ========================================================
-         BRAND
-         ======================================================== -->
+  function isActive(path) {
+    if (!current) {
+      return false;
+    }
 
-    <a href="/admin/dashboard" class="admin-brand">
+    if (path === "/admin/dashboard") {
+      return current === path;
+    }
 
-      <div class="admin-logo-wrapper">
-        <img
-          src="/images/islelogo.png"
-          alt="Puffer Isle Resort"
-          class="admin-logo"
-        />
-      </div>
+    return current === path || current.startsWith(path + "/");
+  }
 
-      <div class="admin-brand-text">
-        <span class="admin-brand-title">
-          Isle RMS
-        </span>
+  const adminUsername =
+    adminUser?.username ||
+    "Administrator";
 
-        <span class="admin-brand-subtitle">
-          Administration
-        </span>
-      </div>
+  const adminRole =
+    adminUser?.role ||
+    "admin";
 
-    </a>
+  const adminInitial =
+    String(adminUsername)
+      .charAt(0)
+      .toUpperCase() || "A";
+%>
 
+<style>
+  /* ============================================================
+     ADMIN NAVIGATION
+  ============================================================ */
 
-    <!-- ========================================================
-         MOBILE MENU BUTTON
-         ======================================================== -->
+  :root {
+    --admin-nav-bg: #071012;
+    --admin-nav-surface: #0d1719;
+    --admin-nav-surface-hover: #122124;
+    --admin-nav-border: rgba(255,255,255,0.08);
+
+    --admin-nav-text: #ffffff;
+    --admin-nav-muted: #91a0a4;
+
+    --admin-nav-teal: #12b7b7;
+    --admin-nav-teal-dark: #006c6c;
+
+    --admin-nav-gold: #ffd700;
+
+    --admin-nav-success: #35d07f;
+
+    --admin-nav-shadow:
+      0 18px 50px rgba(0,0,0,0.28);
+
+    --admin-nav-width: 255px;
+    --admin-nav-header-height: 72px;
+  }
+
+  /* ============================================================
+     TOP BAR
+  ============================================================ */
+
+  .admin-topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+
+    height:
+      var(--admin-nav-header-height);
+
+    z-index: 5000;
+
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+
+    padding:
+      0 22px;
+
+    background:
+      rgba(7,16,18,0.94);
+
+    border-bottom:
+      1px solid var(--admin-nav-border);
+
+    backdrop-filter:
+      blur(18px);
+
+    -webkit-backdrop-filter:
+      blur(18px);
+
+    box-shadow:
+      0 8px 30px rgba(0,0,0,0.20);
+  }
+
+  /* ============================================================
+     BRAND
+  ============================================================ */
+
+  .admin-brand {
+    display: inline-flex;
+    align-items: center;
+    gap: 11px;
+
+    min-width: 0;
+
+    color: white;
+    text-decoration: none;
+  }
+
+  .admin-brand-logo {
+    width: 39px;
+    height: 39px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    flex: 0 0 39px;
+
+    border-radius: 11px;
+
+    background: rgba(255,255,255,0.95);
+
+    border:
+      1px solid rgba(255,255,255,0.18);
+
+    overflow: hidden;
+
+    box-shadow:
+      0 8px 24px rgba(0,0,0,0.24);
+  }
+
+  .admin-brand-logo img {
+    width: 32px;
+    height: 32px;
+    object-fit: contain;
+  }
+
+  .admin-brand-copy {
+    min-width: 0;
+  }
+
+  .admin-brand-name {
+    display: block;
+
+    font-family:
+      "Playfair Display",
+      Georgia,
+      serif;
+
+    font-size: 1rem;
+    line-height: 1;
+
+    white-space: nowrap;
+  }
+
+  .admin-brand-name span {
+    color: var(--admin-nav-gold);
+  }
+
+  .admin-brand-subtitle {
+    display: block;
+
+    margin-top: 4px;
+
+    color: var(--admin-nav-muted);
+
+    font-size: 0.53rem;
+    font-weight: 600;
+
+    letter-spacing: 1.5px;
+
+    text-transform: uppercase;
+
+    white-space: nowrap;
+  }
+
+  /* ============================================================
+     MOBILE MENU BUTTON
+  ============================================================ */
+
+  .admin-menu-toggle {
+    display: none;
+
+    width: 42px;
+    height: 42px;
+
+    align-items: center;
+    justify-content: center;
+
+    border:
+      1px solid var(--admin-nav-border);
+
+    border-radius: 11px;
+
+    background:
+      rgba(255,255,255,0.035);
+
+    color: white;
+
+    cursor: pointer;
+  }
+
+  .admin-menu-toggle:hover {
+    background:
+      rgba(255,255,255,0.08);
+  }
+
+  /* ============================================================
+     TOP RIGHT AREA
+  ============================================================ */
+
+  .admin-topbar-right {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .admin-view-site {
+    display: inline-flex;
+    align-items: center;
+    gap: 7px;
+
+    padding:
+      9px 13px;
+
+    border:
+      1px solid var(--admin-nav-border);
+
+    border-radius: 10px;
+
+    color:
+      var(--admin-nav-muted);
+
+    text-decoration: none;
+
+    font-size: 0.7rem;
+    font-weight: 600;
+
+    transition:
+      background .2s ease,
+      color .2s ease,
+      border-color .2s ease;
+  }
+
+  .admin-view-site:hover {
+    color: white;
+
+    background:
+      rgba(255,255,255,0.05);
+
+    border-color:
+      rgba(255,255,255,0.15);
+  }
+
+  .admin-account {
+    position: relative;
+  }
+
+  .admin-account-button {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    min-height: 44px;
+
+    padding:
+      5px 10px 5px 5px;
+
+    border:
+      1px solid var(--admin-nav-border);
+
+    border-radius: 999px;
+
+    background:
+      rgba(255,255,255,0.035);
+
+    color: white;
+
+    cursor: pointer;
+  }
+
+  .admin-account-button:hover {
+    background:
+      rgba(255,255,255,0.065);
+  }
+
+  .admin-avatar {
+    width: 33px;
+    height: 33px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    border-radius: 50%;
+
+    background:
+      linear-gradient(
+        135deg,
+        var(--admin-nav-teal),
+        var(--admin-nav-teal-dark)
+      );
+
+    color: white;
+
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+
+  .admin-account-copy {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+
+    min-width: 0;
+  }
+
+  .admin-account-name {
+    max-width: 130px;
+
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+
+    font-size: 0.68rem;
+    font-weight: 600;
+  }
+
+  .admin-account-role {
+    color:
+      var(--admin-nav-muted);
+
+    font-size: 0.53rem;
+
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
+  }
+
+  .admin-account-chevron {
+    color:
+      var(--admin-nav-muted);
+
+    font-size: 0.6rem;
+  }
+
+  /* ============================================================
+     ACCOUNT MENU
+  ============================================================ */
+
+  .admin-account-menu {
+    position: absolute;
+
+    top:
+      calc(100% + 9px);
+
+    right: 0;
+
+    width: 220px;
+
+    padding: 7px;
+
+    border:
+      1px solid var(--admin-nav-border);
+
+    border-radius: 14px;
+
+    background:
+      #101b1d;
+
+    box-shadow:
+      0 22px 60px rgba(0,0,0,0.38);
+
+    opacity: 0;
+    visibility: hidden;
+
+    transform:
+      translateY(-5px);
+
+    transition:
+      opacity .18s ease,
+      visibility .18s ease,
+      transform .18s ease;
+  }
+
+  .admin-account.open
+  .admin-account-menu {
+    opacity: 1;
+    visibility: visible;
+
+    transform:
+      translateY(0);
+  }
+
+  .admin-account-summary {
+    padding:
+      11px 12px 10px;
+  }
+
+  .admin-account-summary strong {
+    display: block;
+
+    color: white;
+
+    font-size: 0.72rem;
+  }
+
+  .admin-account-summary span {
+    display: block;
+
+    margin-top: 3px;
+
+    color:
+      var(--admin-nav-muted);
+
+    font-size: 0.6rem;
+  }
+
+  .admin-account-divider {
+    height: 1px;
+
+    margin:
+      3px 5px 7px;
+
+    background:
+      var(--admin-nav-border);
+  }
+
+  .admin-account-menu a {
+    display: flex;
+    align-items: center;
+    gap: 9px;
+
+    padding:
+      10px 11px;
+
+    border-radius: 9px;
+
+    color:
+      var(--admin-nav-muted);
+
+    text-decoration: none;
+
+    font-size: 0.68rem;
+    font-weight: 500;
+
+    transition:
+      background .18s ease,
+      color .18s ease;
+  }
+
+  .admin-account-menu a:hover {
+    color: white;
+
+    background:
+      rgba(255,255,255,0.06);
+  }
+
+  .admin-account-menu a.logout {
+    color:
+      #ff8178;
+  }
+
+  .admin-account-menu a.logout:hover {
+    background:
+      rgba(239,91,80,0.08);
+  }
+
+  /* ============================================================
+     SIDEBAR
+  ============================================================ */
+
+  .admin-sidebar {
+    position: fixed;
+
+    top:
+      var(--admin-nav-header-height);
+
+    left: 0;
+    bottom: 0;
+
+    width:
+      var(--admin-nav-width);
+
+    z-index: 4500;
+
+    padding:
+      20px 13px;
+
+    background:
+      linear-gradient(
+        180deg,
+        #081315 0%,
+        #071012 100%
+      );
+
+    border-right:
+      1px solid var(--admin-nav-border);
+
+    overflow-y: auto;
+
+    box-shadow:
+      12px 0 40px rgba(0,0,0,0.12);
+
+    transition:
+      transform .25s ease;
+  }
+
+  .admin-sidebar-label {
+    padding:
+      4px 11px 8px;
+
+    color:
+      #667478;
+
+    font-size: 0.55rem;
+    font-weight: 700;
+
+    letter-spacing: 1.7px;
+
+    text-transform: uppercase;
+  }
+
+  .admin-nav-list {
+    list-style: none;
+
+    display: grid;
+
+    gap: 4px;
+  }
+
+  .admin-nav-item a {
+    position: relative;
+
+    display: flex;
+    align-items: center;
+
+    gap: 11px;
+
+    min-height: 46px;
+
+    padding:
+      0 12px;
+
+    border:
+      1px solid transparent;
+
+    border-radius: 11px;
+
+    color:
+      var(--admin-nav-muted);
+
+    text-decoration: none;
+
+    font-size: 0.72rem;
+    font-weight: 500;
+
+    transition:
+      background .18s ease,
+      color .18s ease,
+      border-color .18s ease,
+      transform .18s ease;
+  }
+
+  .admin-nav-item a:hover {
+    color: white;
+
+    background:
+      rgba(255,255,255,0.035);
+
+    border-color:
+      rgba(255,255,255,0.045);
+
+    transform:
+      translateX(2px);
+  }
+
+  .admin-nav-item.active a {
+    color: white;
+
+    background:
+      linear-gradient(
+        90deg,
+        rgba(0,128,128,0.19),
+        rgba(0,128,128,0.055)
+      );
+
+    border-color:
+      rgba(18,183,183,0.22);
+
+    box-shadow:
+      inset 0 0 0 1px rgba(18,183,183,0.035);
+  }
+
+  .admin-nav-item.active a::before {
+    content: "";
+
+    position: absolute;
+
+    left: -1px;
+    top: 8px;
+    bottom: 8px;
+
+    width: 3px;
+
+    border-radius: 0 4px 4px 0;
+
+    background:
+      var(--admin-nav-teal);
+  }
+
+  .admin-nav-icon {
+    width: 20px;
+
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+
+    color:
+      currentColor;
+
+    font-size: 0.78rem;
+  }
+
+  .admin-nav-label {
+    flex: 1;
+  }
+
+  .admin-nav-badge {
+    padding:
+      3px 6px;
+
+    border-radius: 999px;
+
+    background:
+      rgba(255,215,0,0.08);
+
+    color:
+      var(--admin-nav-gold);
+
+    font-size: 0.46rem;
+    font-weight: 700;
+
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
+  }
+
+  .admin-sidebar-divider {
+    height: 1px;
+
+    margin:
+      17px 9px;
+
+    background:
+      var(--admin-nav-border);
+  }
+
+  .admin-sidebar-footer {
+    margin-top: auto;
+  }
+
+  .admin-security-card {
+    margin-top: 16px;
+
+    padding:
+      13px;
+
+    border:
+      1px solid rgba(18,183,183,0.12);
+
+    border-radius: 13px;
+
+    background:
+      rgba(0,128,128,0.045);
+  }
+
+  .admin-security-title {
+    display: flex;
+    align-items: center;
+    gap: 7px;
+
+    color:
+      var(--admin-nav-teal);
+
+    font-size: 0.58rem;
+    font-weight: 700;
+
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
+  }
+
+  .admin-security-title i {
+    font-size: 0.65rem;
+  }
+
+  .admin-security-text {
+    margin-top: 7px;
+
+    color:
+      #748287;
+
+    font-size: 0.55rem;
+    line-height: 1.5;
+  }
+
+  /* ============================================================
+     SIDEBAR OVERLAY
+  ============================================================ */
+
+  .admin-sidebar-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 4400;
+
+    background:
+      rgba(0,0,0,0.55);
+
+    opacity: 0;
+    visibility: hidden;
+
+    transition:
+      opacity .25s ease,
+      visibility .25s ease;
+  }
+
+  /* ============================================================
+     PAGE OFFSET
+
+     Since this partial creates fixed navigation, admin pages
+     receive a top + left offset automatically.
+  ============================================================ */
+
+  body {
+    padding-top:
+      var(--admin-nav-header-height);
+    padding-left:
+      var(--admin-nav-width);
+  }
+
+  /* ============================================================
+     RESPONSIVE
+  ============================================================ */
+
+  @media (max-width: 900px) {
+
+    .admin-menu-toggle {
+      display: inline-flex;
+    }
+
+    .admin-brand-subtitle,
+    .admin-view-site,
+    .admin-account-copy,
+    .admin-account-chevron {
+      display: none;
+    }
+
+    .admin-brand-name {
+      font-size: 0.95rem;
+    }
+
+    .admin-topbar {
+      padding:
+        0 14px;
+    }
+
+    .admin-sidebar {
+      transform:
+        translateX(-100%);
+    }
+
+    body {
+      padding-left: 0;
+    }
+
+    body.admin-sidebar-open
+    .admin-sidebar {
+      transform:
+        translateX(0);
+    }
+
+    body.admin-sidebar-open
+    .admin-sidebar-overlay {
+      opacity: 1;
+      visibility: visible;
+    }
+  }
+
+  @media (max-width: 520px) {
+
+    .admin-topbar {
+      height: 66px;
+    }
+
+    .admin-sidebar {
+      top: 66px;
+    }
+
+    body {
+      padding-top: 66px;
+    }
+
+    .admin-brand-logo {
+      width: 36px;
+      height: 36px;
+      flex-basis: 36px;
+    }
+
+    .admin-brand-logo img {
+      width: 29px;
+      height: 29px;
+    }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+
+    .admin-sidebar,
+    .admin-account-menu,
+    .admin-sidebar-overlay,
+    .admin-nav-item a {
+      transition: none !important;
+    }
+  }
+</style>
+
+<!-- ============================================================
+     TOP BAR
+============================================================ -->
+
+<header class="admin-topbar">
+
+  <div
+    style="
+      display:flex;
+      align-items:center;
+      gap:12px;
+    "
+  >
+
+    <!-- MOBILE TOGGLE -->
 
     <button
       type="button"
-      class="admin-mobile-toggle"
-      id="adminMobileToggle"
-      aria-label="Open admin navigation"
+      class="admin-menu-toggle"
+      id="adminMenuToggle"
+      aria-label="Open administrator navigation"
       aria-expanded="false"
-      aria-controls="adminNavigation"
     >
-      <i class="fa-solid fa-bars"></i>
+      <i
+        class="fas fa-bars"
+        aria-hidden="true"
+      ></i>
     </button>
 
+    <!-- BRAND -->
 
-    <!-- ========================================================
-         MAIN NAVIGATION
-         ======================================================== -->
-
-    <nav
-      class="admin-navigation"
-      id="adminNavigation"
-      aria-label="Admin navigation"
+    <a
+      href="/admin/dashboard"
+      class="admin-brand"
     >
 
-      <ul class="admin-nav-list">
+      <span class="admin-brand-logo">
 
-        <!-- DASHBOARD -->
+        <img
+          src="/images/islelogo.png"
+          alt="Puffer Isle Resort"
+        >
 
-        <li class="admin-nav-item">
+      </span>
 
-          <a
-            href="/admin/dashboard"
-            class="admin-nav-link <%= currentPath === '/admin/dashboard' ? 'active' : '' %>"
-          >
+      <span class="admin-brand-copy">
 
-            <i class="fa-solid fa-chart-line"></i>
+        <span class="admin-brand-name">
+          Puffer Isle
+          <span>IsleRMS</span>
+        </span>
 
-            <span>Dashboard</span>
+        <span class="admin-brand-subtitle">
+          Resort Management System
+        </span>
 
-          </a>
+      </span>
 
-        </li>
+    </a>
 
+  </div>
 
-        <!-- CHECK-IN / FRONT DESK -->
+  <!-- TOP RIGHT -->
 
-        <li class="admin-nav-item">
+  <div class="admin-topbar-right">
 
-          <a
-            href="/admin/checkin-manager"
-            class="admin-nav-link <%= currentPath === '/admin/checkin-manager' ? 'active' : '' %>"
-          >
+    <a
+      href="/"
+      class="admin-view-site"
+      title="Open public resort website"
+    >
+      <i
+        class="fas fa-arrow-up-right-from-square"
+        aria-hidden="true"
+      ></i>
 
-            <i class="fa-solid fa-hotel"></i>
+      View Site
+    </a>
 
-            <span>Front Desk</span>
+    <div
+      class="admin-account"
+      id="adminAccount"
+    >
 
-          </a>
+      <button
+        type="button"
+        class="admin-account-button"
+        id="adminAccountButton"
+        aria-expanded="false"
+        aria-haspopup="true"
+      >
 
-        </li>
+        <span class="admin-avatar">
+          <%= adminInitial %>
+        </span>
 
+        <span class="admin-account-copy">
 
-        <!-- BOOKING HISTORY -->
+          <span class="admin-account-name">
+            <%= adminUsername %>
+          </span>
 
-        <li class="admin-nav-item">
+          <span class="admin-account-role">
+            <%= adminRole %>
+          </span>
 
-          <a
-            href="/admin/history"
-            class="admin-nav-link <%= currentPath === '/admin/history' ? 'active' : '' %>"
-          >
+        </span>
 
-            <i class="fa-solid fa-clock-rotate-left"></i>
+        <i
+          class="fas fa-chevron-down admin-account-chevron"
+          aria-hidden="true"
+        ></i>
 
-            <span>Booking History</span>
+      </button>
 
-          </a>
+      <div
+        class="admin-account-menu"
+        id="adminAccountMenu"
+      >
 
-        </li>
+        <div class="admin-account-summary">
 
+          <strong>
+            <%= adminUsername %>
+          </strong>
 
-        <!-- ====================================================
-             MANAGEMENT DROPDOWN
-             ==================================================== -->
-
-        <li class="admin-nav-item admin-dropdown">
-
-          <button
-            type="button"
-            class="admin-nav-link admin-dropdown-toggle"
-            id="manageDropdownToggle"
-            aria-expanded="false"
-            aria-haspopup="true"
-          >
-
-            <i class="fa-solid fa-sliders"></i>
-
-            <span>Manage</span>
-
-            <i class="fa-solid fa-chevron-down admin-chevron"></i>
-
-          </button>
-
-
-          <div
-            class="admin-dropdown-menu"
-            id="manageDropdownMenu"
-          >
-
-            <!-- Users -->
-
-            <a
-              href="/admin/users"
-              class="admin-dropdown-link"
-            >
-
-              <span class="admin-dropdown-icon">
-                <i class="fa-solid fa-users"></i>
-              </span>
-
-              <span>
-                <strong>User Management</strong>
-                <small>Manage resort accounts</small>
-              </span>
-
-            </a>
-
-
-            <!-- Rooms -->
-
-            <a
-              href="/admin/rooms"
-              class="admin-dropdown-link"
-            >
-
-              <span class="admin-dropdown-icon">
-                <i class="fa-solid fa-bed"></i>
-              </span>
-
-              <span>
-                <strong>Room Inventory</strong>
-                <small>Manage accommodations</small>
-              </span>
-
-            </a>
-
-          </div>
-
-        </li>
-
-      </ul>
-
-    </nav>
-
-
-    <!-- ========================================================
-         ADMIN ACCOUNT
-         ======================================================== -->
-
-    <div class="admin-account">
-
-      <% if (admin) { %>
-
-        <div class="admin-profile-dropdown">
-
-          <button
-            type="button"
-            class="admin-profile-trigger"
-            id="adminProfileToggle"
-            aria-expanded="false"
-            aria-haspopup="true"
-          >
-
-            <div class="admin-avatar">
-              <i class="fa-solid fa-user-shield"></i>
-            </div>
-
-
-            <div class="admin-profile-info">
-
-              <span class="admin-profile-name">
-                <%= admin.username || 'Administrator' %>
-              </span>
-
-              <span class="admin-profile-role">
-                Administrator
-              </span>
-
-            </div>
-
-
-            <i class="fa-solid fa-chevron-down admin-profile-chevron"></i>
-
-          </button>
-
-
-          <!-- PROFILE MENU -->
-
-          <div
-            class="admin-profile-menu"
-            id="adminProfileMenu"
-          >
-
-            <div class="admin-profile-menu-header">
-
-              <div class="admin-avatar large">
-                <i class="fa-solid fa-user-shield"></i>
-              </div>
-
-              <div>
-
-                <span class="signed-in-label">
-                  Signed in as
-                </span>
-
-                <strong>
-                  <%= admin.username || 'Administrator' %>
-                </strong>
-
-              </div>
-
-            </div>
-
-
-            <div class="admin-menu-divider"></div>
-
-
-            <!-- Dashboard -->
-
-            <a
-              href="/admin/dashboard"
-              class="admin-menu-link"
-            >
-
-              <i class="fa-solid fa-gauge-high"></i>
-
-              <span>Admin Dashboard</span>
-
-            </a>
-
-
-            <!-- Front Desk -->
-
-            <a
-              href="/admin/checkin-manager"
-              class="admin-menu-link"
-            >
-
-              <i class="fa-solid fa-concierge-bell"></i>
-
-              <span>Front Desk</span>
-
-            </a>
-
-
-            <div class="admin-menu-divider"></div>
-
-
-            <!-- Logout -->
-
-            <a
-              href="/admin/logout"
-              class="admin-menu-link admin-logout-link"
-            >
-
-              <i class="fa-solid fa-right-from-bracket"></i>
-
-              <span>Sign Out</span>
-
-            </a>
-
-          </div>
+          <span>
+            Administrator account
+          </span>
 
         </div>
 
-      <% } %>
+        <div class="admin-account-divider"></div>
+
+        <a
+          href="/admin/dashboard"
+        >
+          <i
+            class="fas fa-gauge-high"
+            aria-hidden="true"
+          ></i>
+
+          Command Center
+        </a>
+
+        <a
+          href="/"
+          target="_self"
+        >
+          <i
+            class="fas fa-globe"
+            aria-hidden="true"
+          ></i>
+
+          Public Website
+        </a>
+
+        <a
+          href="/admin/logout"
+          class="logout"
+        >
+          <i
+            class="fas fa-right-from-bracket"
+            aria-hidden="true"
+          ></i>
+
+          Sign Out
+        </a>
+
+      </div>
 
     </div>
 
@@ -325,1445 +1024,431 @@
 
 </header>
 
+<!-- ============================================================
+     MOBILE OVERLAY
+============================================================ -->
+
+<div
+  class="admin-sidebar-overlay"
+  id="adminSidebarOverlay"
+></div>
 
 <!-- ============================================================
-     ADMIN NAVIGATION STYLES
-     ============================================================ -->
+     SIDEBAR
+============================================================ -->
 
-<style>
+<aside
+  class="admin-sidebar"
+  id="adminSidebar"
+  aria-label="Administrator navigation"
+>
 
-  :root {
+  <div class="admin-sidebar-label">
+    Operations
+  </div>
 
-    --admin-primary: #008080;
-    --admin-primary-dark: #006666;
-    --admin-primary-deep: #004f4f;
+  <nav>
+    <ul class="admin-nav-list">
 
-    --admin-accent: #ffd700;
-    --admin-accent-dark: #e6c200;
+      <!-- DASHBOARD -->
 
-    --admin-white: #ffffff;
-    --admin-text: #1f2937;
-    --admin-muted: #6b7280;
+      <li
+        class="admin-nav-item <%= isActive('/admin/dashboard') ? 'active' : '' %>"
+      >
 
-    --admin-border: #e5e7eb;
-    --admin-background: #f8fafc;
+        <a href="/admin/dashboard">
 
-    --admin-danger: #dc2626;
+          <span class="admin-nav-icon">
+            <i
+              class="fas fa-gauge-high"
+              aria-hidden="true"
+            ></i>
+          </span>
 
-    --admin-shadow:
-      0 12px 35px rgba(0, 0, 0, 0.14);
+          <span class="admin-nav-label">
+            Command Center
+          </span>
 
-    --admin-transition:
-      0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        </a>
 
-  }
+      </li>
 
+      <!-- HISTORY / RESERVATIONS -->
 
-  /* ==========================================================
-     RESET
-     ========================================================== */
+      <li
+        class="admin-nav-item <%= isActive('/admin/history') ? 'active' : '' %>"
+      >
 
-  .admin-header,
-  .admin-header * {
-    box-sizing: border-box;
-  }
+        <a href="/admin/history">
 
+          <span class="admin-nav-icon">
+            <i
+              class="fas fa-calendar-check"
+              aria-hidden="true"
+            ></i>
+          </span>
 
-  /* ==========================================================
-     HEADER
-     ========================================================== */
+          <span class="admin-nav-label">
+            Reservations
+          </span>
 
-  .admin-header {
+        </a>
 
-    position: sticky;
+      </li>
 
-    top: 0;
+      <!-- FRONT DESK -->
 
-    z-index: 5000;
+      <li
+        class="admin-nav-item <%= isActive('/admin/checkin') || isActive('/admin/checkin-manager') ? 'active' : '' %>"
+      >
 
-    width: 100%;
+        <a href="/admin/checkin-manager">
 
-    min-height: 78px;
+          <span class="admin-nav-icon">
+            <i
+              class="fas fa-concierge-bell"
+              aria-hidden="true"
+            ></i>
+          </span>
 
-    background:
-      linear-gradient(
-        135deg,
-        var(--admin-primary),
-        var(--admin-primary-dark)
-      );
+          <span class="admin-nav-label">
+            Front Desk
+          </span>
 
-    color: var(--admin-white);
+          <span class="admin-nav-badge">
+            Live
+          </span>
 
-    box-shadow:
-      0 4px 20px rgba(0, 0, 0, 0.14);
+        </a>
 
-  }
+      </li>
 
+    </ul>
+  </nav>
 
-  .admin-nav-wrapper {
+  <div class="admin-sidebar-divider"></div>
 
-    width: 100%;
+  <div class="admin-sidebar-label">
+    Resort Catalog
+  </div>
 
-    max-width: 1600px;
+  <nav>
+    <ul class="admin-nav-list">
 
-    min-height: 78px;
+      <!-- ROOMS -->
 
-    margin: 0 auto;
+      <li
+        class="admin-nav-item <%= isActive('/admin/rooms') ? 'active' : '' %>"
+      >
 
-    padding: 0 32px;
+        <a href="/admin/rooms">
 
-    display: flex;
+          <span class="admin-nav-icon">
+            <i
+              class="fas fa-bed"
+              aria-hidden="true"
+            ></i>
+          </span>
 
-    align-items: center;
+          <span class="admin-nav-label">
+            Rooms
+          </span>
 
-    gap: 28px;
+        </a>
 
-  }
+      </li>
 
+      <!-- ADD-ONS -->
 
-  /* ==========================================================
-     BRAND
-     ========================================================== */
+      <li
+        class="admin-nav-item <%= isActive('/admin/add-ons') ? 'active' : '' %>"
+      >
 
-  .admin-brand {
+        <a href="/admin/add-ons">
 
-    display: flex;
+          <span class="admin-nav-icon">
+            <i
+              class="fas fa-puzzle-piece"
+              aria-hidden="true"
+            ></i>
+          </span>
 
-    align-items: center;
+          <span class="admin-nav-label">
+            Add-ons
+          </span>
 
-    gap: 12px;
+        </a>
 
-    flex-shrink: 0;
+      </li>
 
-    text-decoration: none;
+      <!-- USERS -->
 
-    color: var(--admin-white);
+      <li
+        class="admin-nav-item <%= isActive('/admin/users') ? 'active' : '' %>"
+      >
 
-  }
+        <a href="/admin/users">
 
+          <span class="admin-nav-icon">
+            <i
+              class="fas fa-users"
+              aria-hidden="true"
+            ></i>
+          </span>
 
-  .admin-logo-wrapper {
+          <span class="admin-nav-label">
+            Guests
+          </span>
 
-    width: 46px;
+        </a>
 
-    height: 46px;
+      </li>
 
-    padding: 4px;
+    </ul>
+  </nav>
 
-    display: flex;
+  <div class="admin-sidebar-divider"></div>
 
-    align-items: center;
+  <div class="admin-sidebar-label">
+    Insights
+  </div>
 
-    justify-content: center;
+  <nav>
+    <ul class="admin-nav-list">
 
-    background: var(--admin-white);
+      <!-- ANALYTICS -->
 
-    border-radius: 12px;
+      <li
+        class="admin-nav-item <%= isActive('/admin/analytics') ? 'active' : '' %>"
+      >
 
-    box-shadow:
-      0 5px 14px rgba(0, 0, 0, 0.15);
+        <a href="/admin/analytics">
 
-  }
+          <span class="admin-nav-icon">
+            <i
+              class="fas fa-chart-line"
+              aria-hidden="true"
+            ></i>
+          </span>
 
+          <span class="admin-nav-label">
+            Analytics
+          </span>
 
-  .admin-logo {
+        </a>
 
-    width: 38px;
+      </li>
 
-    height: 38px;
+    </ul>
+  </nav>
 
-    display: block;
+  <div class="admin-security-card">
 
-    object-fit: contain;
+    <div class="admin-security-title">
 
-  }
+      <i
+        class="fas fa-shield-halved"
+        aria-hidden="true"
+      ></i>
 
+      Secure Console
 
-  .admin-brand-text {
+    </div>
 
-    display: flex;
+    <div class="admin-security-text">
+      Administrator access is protected by the IsleRMS
+      session system and server-side route protection.
+    </div>
 
-    flex-direction: column;
+  </div>
 
-    justify-content: center;
-
-    line-height: 1.1;
-
-  }
-
-
-  .admin-brand-title {
-
-    font-size: 1.25rem;
-
-    font-weight: 700;
-
-    letter-spacing: 0.3px;
-
-  }
-
-
-  .admin-brand-subtitle {
-
-    margin-top: 4px;
-
-    color: var(--admin-accent);
-
-    font-size: 0.66rem;
-
-    font-weight: 700;
-
-    text-transform: uppercase;
-
-    letter-spacing: 1.5px;
-
-  }
-
-
-  /* ==========================================================
-     MAIN NAVIGATION
-     ========================================================== */
-
-  .admin-navigation {
-
-    flex: 1;
-
-    display: flex;
-
-    align-items: center;
-
-  }
-
-
-  .admin-nav-list {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 5px;
-
-    margin: 0;
-
-    padding: 0;
-
-    list-style: none;
-
-  }
-
-
-  .admin-nav-item {
-
-    position: relative;
-
-  }
-
-
-  .admin-nav-link {
-
-    min-height: 44px;
-
-    display: inline-flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    gap: 9px;
-
-    padding: 10px 14px;
-
-    border: 0;
-
-    border-radius: 10px;
-
-    background: transparent;
-
-    color: rgba(255, 255, 255, 0.88);
-
-    font-family: inherit;
-
-    font-size: 0.88rem;
-
-    font-weight: 600;
-
-    text-decoration: none;
-
-    white-space: nowrap;
-
-    cursor: pointer;
-
-    transition:
-      background var(--admin-transition),
-      color var(--admin-transition),
-      transform var(--admin-transition);
-
-  }
-
-
-  .admin-nav-link i {
-
-    font-size: 0.98rem;
-
-  }
-
-
-  .admin-nav-link:hover {
-
-    background:
-      rgba(255, 255, 255, 0.12);
-
-    color: var(--admin-white);
-
-    transform: translateY(-1px);
-
-  }
-
-
-  .admin-nav-link.active {
-
-    background: var(--admin-white);
-
-    color: var(--admin-primary);
-
-    box-shadow:
-      0 5px 15px rgba(0, 0, 0, 0.12);
-
-  }
-
-
-  .admin-nav-link.active:hover {
-
-    background: var(--admin-white);
-
-    color: var(--admin-primary);
-
-  }
-
-
-  /* ==========================================================
-     DROPDOWN
-     ========================================================== */
-
-  .admin-dropdown-toggle {
-
-    appearance: none;
-
-  }
-
-
-  .admin-chevron {
-
-    margin-left: 2px;
-
-    font-size: 0.68rem !important;
-
-    transition:
-      transform var(--admin-transition);
-
-  }
-
-
-  .admin-dropdown.open .admin-chevron {
-
-    transform: rotate(180deg);
-
-  }
-
-
-  .admin-dropdown-menu {
-
-    position: absolute;
-
-    top: calc(100% + 10px);
-
-    left: 0;
-
-    width: 270px;
-
-    padding: 8px;
-
-    background: var(--admin-white);
-
-    border: 1px solid var(--admin-border);
-
-    border-radius: 14px;
-
-    box-shadow: var(--admin-shadow);
-
-    opacity: 0;
-
-    visibility: hidden;
-
-    transform:
-      translateY(-6px);
-
-    pointer-events: none;
-
-    transition:
-      opacity var(--admin-transition),
-      transform var(--admin-transition),
-      visibility var(--admin-transition);
-
-  }
-
-
-  .admin-dropdown.open .admin-dropdown-menu {
-
-    opacity: 1;
-
-    visibility: visible;
-
-    transform: translateY(0);
-
-    pointer-events: auto;
-
-  }
-
-
-  .admin-dropdown-link {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 12px;
-
-    width: 100%;
-
-    padding: 12px;
-
-    border-radius: 10px;
-
-    color: var(--admin-text);
-
-    text-decoration: none;
-
-    transition:
-      background var(--admin-transition),
-      transform var(--admin-transition);
-
-  }
-
-
-  .admin-dropdown-link:hover {
-
-    background: #f1f7f7;
-
-    transform: translateX(3px);
-
-  }
-
-
-  .admin-dropdown-icon {
-
-    width: 38px;
-
-    height: 38px;
-
-    flex-shrink: 0;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    border-radius: 10px;
-
-    background:
-      rgba(0, 128, 128, 0.10);
-
-    color: var(--admin-primary);
-
-  }
-
-
-  .admin-dropdown-link > span:last-child {
-
-    display: flex;
-
-    flex-direction: column;
-
-    gap: 2px;
-
-  }
-
-
-  .admin-dropdown-link strong {
-
-    font-size: 0.84rem;
-
-    font-weight: 700;
-
-  }
-
-
-  .admin-dropdown-link small {
-
-    color: var(--admin-muted);
-
-    font-size: 0.70rem;
-
-  }
-
-
-  /* ==========================================================
-     ACCOUNT
-     ========================================================== */
-
-  .admin-account {
-
-    position: relative;
-
-    flex-shrink: 0;
-
-    margin-left: auto;
-
-  }
-
-
-  .admin-profile-dropdown {
-
-    position: relative;
-
-  }
-
-
-  .admin-profile-trigger {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 10px;
-
-    min-height: 52px;
-
-    padding: 5px 12px 5px 6px;
-
-    border: 1px solid rgba(255, 255, 255, 0.20);
-
-    border-radius: 50px;
-
-    background:
-      rgba(255, 255, 255, 0.08);
-
-    color: var(--admin-white);
-
-    font-family: inherit;
-
-    cursor: pointer;
-
-    transition:
-      background var(--admin-transition),
-      border-color var(--admin-transition);
-
-  }
-
-
-  .admin-profile-trigger:hover,
-  .admin-profile-dropdown.open .admin-profile-trigger {
-
-    background:
-      rgba(255, 255, 255, 0.16);
-
-    border-color:
-      rgba(255, 255, 255, 0.32);
-
-  }
-
-
-  .admin-avatar {
-
-    width: 38px;
-
-    height: 38px;
-
-    flex-shrink: 0;
-
-    display: flex;
-
-    align-items: center;
-
-    justify-content: center;
-
-    border-radius: 50%;
-
-    background: var(--admin-accent);
-
-    color: var(--admin-primary-deep);
-
-    font-size: 0.95rem;
-
-  }
-
-
-  .admin-avatar.large {
-
-    width: 42px;
-
-    height: 42px;
-
-  }
-
-
-  .admin-profile-info {
-
-    display: flex;
-
-    flex-direction: column;
-
-    align-items: flex-start;
-
-    min-width: 0;
-
-  }
-
-
-  .admin-profile-name {
-
-    max-width: 145px;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-    white-space: nowrap;
-
-    font-size: 0.82rem;
-
-    font-weight: 700;
-
-  }
-
-
-  .admin-profile-role {
-
-    margin-top: 2px;
-
-    color:
-      rgba(255, 255, 255, 0.62);
-
-    font-size: 0.66rem;
-
-    font-weight: 500;
-
-  }
-
-
-  .admin-profile-chevron {
-
-    margin-left: 4px;
-
-    font-size: 0.68rem;
-
-    transition:
-      transform var(--admin-transition);
-
-  }
-
-
-  .admin-profile-dropdown.open
-  .admin-profile-chevron {
-
-    transform: rotate(180deg);
-
-  }
-
-
-  /* ==========================================================
-     PROFILE MENU
-     ========================================================== */
-
-  .admin-profile-menu {
-
-    position: absolute;
-
-    top: calc(100% + 12px);
-
-    right: 0;
-
-    width: 260px;
-
-    padding: 8px;
-
-    background: var(--admin-white);
-
-    border: 1px solid var(--admin-border);
-
-    border-radius: 15px;
-
-    box-shadow: var(--admin-shadow);
-
-    opacity: 0;
-
-    visibility: hidden;
-
-    transform:
-      translateY(-6px);
-
-    pointer-events: none;
-
-    transition:
-      opacity var(--admin-transition),
-      transform var(--admin-transition),
-      visibility var(--admin-transition);
-
-  }
-
-
-  .admin-profile-dropdown.open
-  .admin-profile-menu {
-
-    opacity: 1;
-
-    visibility: visible;
-
-    transform: translateY(0);
-
-    pointer-events: auto;
-
-  }
-
-
-  .admin-profile-menu-header {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 11px;
-
-    padding: 10px;
-
-  }
-
-
-  .signed-in-label {
-
-    display: block;
-
-    margin-bottom: 3px;
-
-    color: var(--admin-muted);
-
-    font-size: 0.67rem;
-
-  }
-
-
-  .admin-profile-menu-header strong {
-
-    display: block;
-
-    max-width: 160px;
-
-    overflow: hidden;
-
-    text-overflow: ellipsis;
-
-    white-space: nowrap;
-
-    color: var(--admin-text);
-
-    font-size: 0.84rem;
-
-  }
-
-
-  .admin-menu-divider {
-
-    height: 1px;
-
-    margin: 6px 0;
-
-    background: var(--admin-border);
-
-  }
-
-
-  .admin-menu-link {
-
-    display: flex;
-
-    align-items: center;
-
-    gap: 11px;
-
-    width: 100%;
-
-    padding: 11px 12px;
-
-    border-radius: 9px;
-
-    color: var(--admin-text);
-
-    font-size: 0.83rem;
-
-    font-weight: 600;
-
-    text-decoration: none;
-
-    transition:
-      background var(--admin-transition),
-      color var(--admin-transition);
-
-  }
-
-
-  .admin-menu-link i {
-
-    width: 18px;
-
-    color: var(--admin-muted);
-
-    text-align: center;
-
-  }
-
-
-  .admin-menu-link:hover {
-
-    background: #f1f7f7;
-
-    color: var(--admin-primary);
-
-  }
-
-
-  .admin-menu-link:hover i {
-
-    color: var(--admin-primary);
-
-  }
-
-
-  .admin-menu-link.admin-logout-link {
-
-    color: var(--admin-danger);
-
-  }
-
-
-  .admin-menu-link.admin-logout-link i {
-
-    color: var(--admin-danger);
-
-  }
-
-
-  .admin-menu-link.admin-logout-link:hover {
-
-    background: #fef2f2;
-
-    color: var(--admin-danger);
-
-  }
-
-
-  /* ==========================================================
-     MOBILE TOGGLE
-     ========================================================== */
-
-  .admin-mobile-toggle {
-
-    display: none;
-
-    width: 44px;
-
-    height: 44px;
-
-    margin-left: auto;
-
-    border: 1px solid rgba(255, 255, 255, 0.18);
-
-    border-radius: 10px;
-
-    background:
-      rgba(255, 255, 255, 0.08);
-
-    color: var(--admin-white);
-
-    font-size: 1.05rem;
-
-    cursor: pointer;
-
-  }
-
-
-  .admin-mobile-toggle:hover {
-
-    background:
-      rgba(255, 255, 255, 0.16);
-
-  }
-
-
-  /* ==========================================================
-     RESPONSIVE
-     ========================================================== */
-
-  @media (max-width: 1180px) {
-
-    .admin-nav-wrapper {
-
-      padding: 0 20px;
-
-      gap: 15px;
-
-    }
-
-
-    .admin-brand-text {
-
-      display: none;
-
-    }
-
-
-    .admin-nav-link {
-
-      padding: 10px 11px;
-
-    }
-
-
-    .admin-nav-link span {
-
-      display: none;
-
-    }
-
-
-    .admin-dropdown-toggle span {
-
-      display: inline;
-
-    }
-
-
-    .admin-profile-info {
-
-      display: none;
-
-    }
-
-  }
-
-
-  @media (max-width: 850px) {
-
-    .admin-header {
-
-      min-height: 70px;
-
-    }
-
-
-    .admin-nav-wrapper {
-
-      min-height: 70px;
-
-      position: relative;
-
-    }
-
-
-    .admin-mobile-toggle {
-
-      display: flex;
-
-      align-items: center;
-
-      justify-content: center;
-
-      order: 2;
-
-    }
-
-
-    .admin-account {
-
-      order: 3;
-
-      margin-left: 0;
-
-    }
-
-
-    .admin-navigation {
-
-      position: absolute;
-
-      top: 100%;
-
-      left: 0;
-
-      right: 0;
-
-      display: none;
-
-      padding: 12px 16px 18px;
-
-      background:
-        linear-gradient(
-          135deg,
-          var(--admin-primary),
-          var(--admin-primary-dark)
-        );
-
-      box-shadow:
-        0 12px 25px rgba(0, 0, 0, 0.18);
-
-    }
-
-
-    .admin-navigation.mobile-open {
-
-      display: block;
-
-    }
-
-
-    .admin-nav-list {
-
-      width: 100%;
-
-      flex-direction: column;
-
-      align-items: stretch;
-
-      gap: 5px;
-
-    }
-
-
-    .admin-nav-item {
-
-      width: 100%;
-
-    }
-
-
-    .admin-nav-link {
-
-      width: 100%;
-
-      justify-content: flex-start;
-
-      padding: 12px 14px;
-
-    }
-
-
-    .admin-nav-link span {
-
-      display: inline;
-
-    }
-
-
-    .admin-dropdown-menu {
-
-      position: static;
-
-      width: 100%;
-
-      margin-top: 5px;
-
-      display: none;
-
-      opacity: 1;
-
-      visibility: visible;
-
-      transform: none;
-
-      pointer-events: auto;
-
-      box-shadow: none;
-
-    }
-
-
-    .admin-dropdown.open .admin-dropdown-menu {
-
-      display: block;
-
-    }
-
-  }
-
-
-  @media (max-width: 480px) {
-
-    .admin-nav-wrapper {
-
-      padding: 0 12px;
-
-    }
-
-
-    .admin-logo-wrapper {
-
-      width: 42px;
-
-      height: 42px;
-
-    }
-
-
-    .admin-logo {
-
-      width: 34px;
-
-      height: 34px;
-
-    }
-
-
-    .admin-profile-trigger {
-
-      padding-right: 8px;
-
-    }
-
-
-    .admin-profile-chevron {
-
-      display: none;
-
-    }
-
-
-    .admin-profile-menu {
-
-      right: -5px;
-
-      width: min(260px, calc(100vw - 24px));
-
-    }
-
-  }
-
-
-</style>
-
-
-<!-- ============================================================
-     ADMIN NAVIGATION JAVASCRIPT
-     ============================================================ -->
+</aside>
 
 <script>
+  (() => {
+    "use strict";
 
-(function () {
+    const body =
+      document.body;
 
-  "use strict";
-
-
-  /* ==========================================================
-     ELEMENTS
-     ========================================================== */
-
-  const mobileToggle =
-    document.getElementById("adminMobileToggle");
-
-  const navigation =
-    document.getElementById("adminNavigation");
-
-  const manageToggle =
-    document.getElementById("manageDropdownToggle");
-
-  const manageDropdown =
-    manageToggle
-      ? manageToggle.closest(".admin-dropdown")
-      : null;
-
-  const profileToggle =
-    document.getElementById("adminProfileToggle");
-
-  const profileDropdown =
-    profileToggle
-      ? profileToggle.closest(".admin-profile-dropdown")
-      : null;
-
-
-  /* ==========================================================
-     MOBILE MENU
-     ========================================================== */
-
-  if (mobileToggle && navigation) {
-
-    mobileToggle.addEventListener("click", function (event) {
-
-      event.stopPropagation();
-
-      const isOpen =
-        navigation.classList.toggle("mobile-open");
-
-      mobileToggle.setAttribute(
-        "aria-expanded",
-        String(isOpen)
+    const menuToggle =
+      document.getElementById(
+        "adminMenuToggle"
       );
 
-      mobileToggle.innerHTML = isOpen
-        ? '<i class="fa-solid fa-xmark"></i>'
-        : '<i class="fa-solid fa-bars"></i>';
+    const sidebar =
+      document.getElementById(
+        "adminSidebar"
+      );
 
-    });
+    const overlay =
+      document.getElementById(
+        "adminSidebarOverlay"
+      );
 
-  }
+    const account =
+      document.getElementById(
+        "adminAccount"
+      );
 
+    const accountButton =
+      document.getElementById(
+        "adminAccountButton"
+      );
 
-  /* ==========================================================
-     MANAGE DROPDOWN
-     ========================================================== */
+    function setSidebar(open) {
 
-  if (manageToggle && manageDropdown) {
+      if (!body) {
+        return;
+      }
 
-    manageToggle.addEventListener("click", function (event) {
+      body.classList.toggle(
+        "admin-sidebar-open",
+        open
+      );
 
-      event.stopPropagation();
+      if (menuToggle) {
 
-      const willOpen =
-        !manageDropdown.classList.contains("open");
+        menuToggle.setAttribute(
+          "aria-expanded",
+          String(open)
+        );
 
+        const icon =
+          menuToggle.querySelector("i");
 
-      closeProfileDropdown();
+        if (icon) {
+          icon.className =
+            open
+              ? "fas fa-xmark"
+              : "fas fa-bars";
+        }
+      }
+    }
 
+    function setAccount(open) {
 
-      manageDropdown.classList.toggle(
+      if (!account) {
+        return;
+      }
+
+      account.classList.toggle(
         "open",
-        willOpen
+        open
       );
 
+      if (accountButton) {
 
-      manageToggle.setAttribute(
-        "aria-expanded",
-        String(willOpen)
-      );
-
-    });
-
-  }
-
-
-  /* ==========================================================
-     PROFILE DROPDOWN
-     ========================================================== */
-
-  if (profileToggle && profileDropdown) {
-
-    profileToggle.addEventListener("click", function (event) {
-
-      event.stopPropagation();
-
-      const willOpen =
-        !profileDropdown.classList.contains("open");
-
-
-      closeManageDropdown();
-
-
-      profileDropdown.classList.toggle(
-        "open",
-        willOpen
-      );
-
-
-      profileToggle.setAttribute(
-        "aria-expanded",
-        String(willOpen)
-      );
-
-    });
-
-  }
-
-
-  /* ==========================================================
-     CLOSE MANAGE DROPDOWN
-     ========================================================== */
-
-  function closeManageDropdown() {
-
-    if (!manageDropdown) {
-      return;
+        accountButton.setAttribute(
+          "aria-expanded",
+          String(open)
+        );
+      }
     }
 
-
-    manageDropdown.classList.remove("open");
-
-
-    if (manageToggle) {
-
-      manageToggle.setAttribute(
-        "aria-expanded",
-        "false"
-      );
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     CLOSE PROFILE DROPDOWN
-     ========================================================== */
-
-  function closeProfileDropdown() {
-
-    if (!profileDropdown) {
-      return;
-    }
-
-
-    profileDropdown.classList.remove("open");
-
-
-    if (profileToggle) {
-
-      profileToggle.setAttribute(
-        "aria-expanded",
-        "false"
-      );
-
-    }
-
-  }
-
-
-  /* ==========================================================
-     OUTSIDE CLICK
-     ========================================================== */
-
-  document.addEventListener("click", function (event) {
-
-    if (
-      manageDropdown &&
-      !manageDropdown.contains(event.target)
-    ) {
-
-      closeManageDropdown();
-
-    }
-
-
-    if (
-      profileDropdown &&
-      !profileDropdown.contains(event.target)
-    ) {
-
-      closeProfileDropdown();
-
-    }
-
-
-    if (
-      navigation &&
-      mobileToggle &&
-      !navigation.contains(event.target) &&
-      !mobileToggle.contains(event.target)
-    ) {
-
-      navigation.classList.remove(
-        "mobile-open"
-      );
-
-
-      mobileToggle.setAttribute(
-        "aria-expanded",
-        "false"
-      );
-
-
-      mobileToggle.innerHTML =
-        '<i class="fa-solid fa-bars"></i>';
-
-    }
-
-  });
-
-
-  /* ==========================================================
-     ESCAPE KEY
-     ========================================================== */
-
-  document.addEventListener("keydown", function (event) {
-
-    if (event.key !== "Escape") {
-      return;
-    }
-
-
-    closeManageDropdown();
-
-    closeProfileDropdown();
-
-
-    if (navigation) {
-
-      navigation.classList.remove(
-        "mobile-open"
-      );
-
-    }
-
-
-    if (mobileToggle) {
-
-      mobileToggle.setAttribute(
-        "aria-expanded",
-        "false"
-      );
-
-
-      mobileToggle.innerHTML =
-        '<i class="fa-solid fa-bars"></i>';
-
-    }
-
-  });
-
-
-  /* ==========================================================
-     CLOSE MOBILE NAV AFTER NAVIGATION
-     ========================================================== */
-
-  if (navigation) {
-
-    navigation
-      .querySelectorAll("a")
-      .forEach(function (link) {
-
-        link.addEventListener("click", function () {
-
-          navigation.classList.remove(
-            "mobile-open"
+    menuToggle?.addEventListener(
+      "click",
+      () => {
+        const isOpen =
+          body.classList.contains(
+            "admin-sidebar-open"
           );
 
+        setSidebar(!isOpen);
+      }
+    );
 
-          if (mobileToggle) {
+    overlay?.addEventListener(
+      "click",
+      () => {
+        setSidebar(false);
+      }
+    );
 
-            mobileToggle.setAttribute(
-              "aria-expanded",
-              "false"
-            );
+    accountButton?.addEventListener(
+      "click",
+      (event) => {
 
+        event.stopPropagation();
 
-            mobileToggle.innerHTML =
-              '<i class="fa-solid fa-bars"></i>';
+        const isOpen =
+          account?.classList.contains(
+            "open"
+          );
+
+        setAccount(!isOpen);
+      }
+    );
+
+    document.addEventListener(
+      "click",
+      (event) => {
+
+        if (
+          account &&
+          !account.contains(event.target)
+        ) {
+          setAccount(false);
+        }
+
+        if (
+          window.innerWidth <= 900 &&
+          sidebar &&
+          !sidebar.contains(event.target) &&
+          menuToggle &&
+          !menuToggle.contains(event.target)
+        ) {
+          setSidebar(false);
+        }
+      }
+    );
+
+    document.addEventListener(
+      "keydown",
+      (event) => {
+
+        if (
+          event.key === "Escape"
+        ) {
+          setAccount(false);
+          setSidebar(false);
+        }
+      }
+    );
+
+    sidebar?.querySelectorAll(
+      "a"
+    ).forEach(
+      (link) => {
+
+        link.addEventListener(
+          "click",
+          () => {
+
+            if (
+              window.innerWidth <= 900
+            ) {
+              setSidebar(false);
+            }
 
           }
+        );
 
-        });
+      }
+    );
 
-      });
+    window.addEventListener(
+      "resize",
+      () => {
 
-  }
+        if (
+          window.innerWidth > 900
+        ) {
+          setSidebar(false);
+        }
 
+      }
+    );
 
-})();
-
+  })();
 </script>

@@ -1,2313 +1,1844 @@
-  // ============================================================
-  // Puffer Isle Resort | Isle RMS
-  // Main Server
-  // ============================================================
+"use strict";
 
-  const express = require("express");
-  const path = require("path");
-  const mongoose = require("mongoose");
-  const session = require("express-session");
-  const dotenv = require("dotenv");
-  const MongoStore = require("connect-mongo");
+/**
+ * ============================================================
+ * PUFFER ISLE RESORT | IsleRMS
+ * server.js
+ *
+ * Main application/bootstrap server.
+ * ============================================================
+ */
 
-  dotenv.config();
+const path = require("path");
+const express = require("express");
+const mongoose = require("mongoose");
+const session = require("express-session");
+const dotenv = require("dotenv");
+const MongoStore = require("connect-mongo");
 
-  // ============================================================
-  // MODELS
-  // ============================================================
+const User = require("./models/User");
+const Admin = require("./models/Admin");
 
-  const Appointment = require("./models/Appointment");
-  const User = require("./models/User");
-  const Admin = require("./models/Admin");
+const userRoutes = require("./routes/userRoutes");
+const adminRoutes = require("./routes/adminRoutes");
 
-  // ============================================================
-  // APP CONFIGURATION
-  // ============================================================
+dotenv.config();
 
-  const app = express();
+/* ============================================================
+   APPLICATION
+   ============================================================ */
 
-  const PORT = Number(process.env.PORT) || 5000;
+const app = express();
 
-  const MONGODB_URI =
+/* ============================================================
+   ENVIRONMENT
+   ============================================================ */
+
+const NODE_ENV = String(
+  process.env.NODE_ENV || "development"
+)
+  .trim()
+  .toLowerCase();
+
+const IS_PRODUCTION =
+  NODE_ENV === "production";
+
+const PORT = Number(
+  process.env.PORT || 5000
+);
+
+const HOST =
+  process.env.HOST ||
+  (IS_PRODUCTION
+    ? "0.0.0.0"
+    : "127.0.0.1");
+
+/* ------------------------------------------------------------
+   MongoDB
+------------------------------------------------------------ */
+
+const DEFAULT_LOCAL_MONGO_URI =
+  "mongodb://localhost:27017/puffer_isle_resort";
+
+const RAW_MONGO_URI = String(
+  process.env.MONGO_URI ||
     process.env.MONGODB_URI ||
-    "mongodb://localhost:27017/puffer_isle_resort";
+    ""
+).trim();
 
-  const SESSION_SECRET = process.env.SESSION_SECRET;
+/*
+ * Treat placeholder values as missing configuration.
+ */
+const PLACEHOLDER_MONGO_VALUES = [
+  "your_existing_mongodb_connection",
+  "your_mongodb_connection_string",
+  "mongodb_connection_string",
+  "your_existing_mongodb_uri"
+];
 
-  if (!SESSION_SECRET) {
-    console.warn(
-      "⚠️ WARNING: SESSION_SECRET is not configured."
+const MONGO_URI =
+  PLACEHOLDER_MONGO_VALUES.includes(
+    RAW_MONGO_URI
+  )
+    ? ""
+    : RAW_MONGO_URI;
+
+const SESSION_SECRET =
+  String(
+    process.env.SESSION_SECRET || ""
+  ).trim();
+
+const SESSION_NAME =
+  String(
+    process.env.SESSION_NAME ||
+      "islerms.sid"
+  ).trim();
+
+const ADMIN_USERNAME =
+  String(
+    process.env.ADMIN_USERNAME || ""
+  ).trim();
+
+const ADMIN_PASSWORD =
+  String(
+    process.env.ADMIN_PASSWORD || ""
+  );
+
+/* ============================================================
+   CONSTANTS
+   ============================================================ */
+
+const EFFECTIVE_MONGO_URI =
+  MONGO_URI ||
+  DEFAULT_LOCAL_MONGO_URI;
+
+const SESSION_MAX_AGE =
+  1000 * 60 * 60 * 8;
+
+const JSON_LIMIT =
+  process.env.JSON_LIMIT ||
+  "1mb";
+
+const URLENCODED_LIMIT =
+  process.env.URLENCODED_LIMIT ||
+  "1mb";
+
+/* ============================================================
+   ENVIRONMENT VALIDATION
+   ============================================================ */
+
+function validateEnvironment() {
+  const errors = [];
+
+  if (
+    !Number.isInteger(PORT) ||
+    PORT < 1 ||
+    PORT > 65535
+  ) {
+    errors.push(
+      "PORT must be a valid TCP port."
     );
   }
 
-  // ============================================================
-  // EXPRESS CONFIGURATION
-  // ============================================================
-
-  app.set("view engine", "ejs");
-
-  app.set(
-    "views",
-    path.join(__dirname, "views")
-  );
-
-  // ============================================================
-  // STATIC FILES
-  // ============================================================
-
-  app.use(
-    express.static(
-      path.join(__dirname, "public")
+  if (!MONGO_URI) {
+    if (IS_PRODUCTION) {
+      errors.push(
+        "MONGO_URI is required in production."
+      );
+    }
+  } else if (
+    !MONGO_URI.startsWith(
+      "mongodb://"
+    ) &&
+    !MONGO_URI.startsWith(
+      "mongodb+srv://"
     )
-  );
-
-  // ============================================================
-  // BODY PARSING
-  // ============================================================
-
-  app.use(
-    express.urlencoded({
-      extended: true,
-      limit: "50kb",
-    })
-  );
-
-  app.use(
-    express.json({
-      limit: "50kb",
-    })
-  );
-
-  // ============================================================
-  // SESSION
-  // ============================================================
-
-  app.use(
-    session({
-      secret:
-        SESSION_SECRET ||
-        "CHANGE_THIS_SESSION_SECRET",
-
-      resave: false,
-
-      saveUninitialized: false,
-
-      store: MongoStore.create({
-        mongoUrl: MONGODB_URI,
-        collectionName: "sessions",
-        ttl: 60 * 60 * 24,
-      }),
-
-      cookie: {
-        maxAge: 1000 * 60 * 60 * 24,
-
-        httpOnly: true,
-
-        sameSite: "lax",
-
-        secure:
-          process.env.NODE_ENV === "production",
-      },
-    })
-  );
-
-  // ============================================================
-  // ID VALIDATION
-  // ============================================================
-
-  function isValidObjectId(id) {
-    return mongoose.Types.ObjectId.isValid(id);
+  ) {
+    errors.push(
+      "MONGO_URI must start with mongodb:// or mongodb+srv://."
+    );
   }
 
-  // ============================================================
-  // GLOBAL TEMPLATE VARIABLES
-  // ============================================================
+  if (!SESSION_SECRET) {
+    if (IS_PRODUCTION) {
+      errors.push(
+        "SESSION_SECRET is required in production."
+      );
+    }
+  } else if (
+    IS_PRODUCTION &&
+    SESSION_SECRET.length < 32
+  ) {
+    errors.push(
+      "SESSION_SECRET should contain at least 32 characters in production."
+    );
+  }
 
-  app.use(async (req, res, next) => {
-    try {
-      // These variables are available to every EJS template.
-      res.locals.user = null;
+  if (
+    IS_PRODUCTION &&
+    !ADMIN_USERNAME
+  ) {
+    console.warn(
+      "⚠️ ADMIN_USERNAME is not configured. Default admin creation will be skipped."
+    );
+  }
 
-      res.locals.admin =
-        req.session?.admin || null;
+  if (
+    IS_PRODUCTION &&
+    !ADMIN_PASSWORD
+  ) {
+    console.warn(
+      "⚠️ ADMIN_PASSWORD is not configured. Default admin creation will be skipped."
+    );
+  }
 
-      // FIX: navadmin.ejs uses currentPath to highlight
-      // the active admin navigation item.
-      res.locals.currentPath = req.path;
+  if (
+    RAW_MONGO_URI &&
+    !MONGO_URI
+  ) {
+    console.warn(
+      "⚠️ Placeholder MongoDB URI detected. Using local MongoDB instead."
+    );
+  }
 
-      res.locals.title =
-        "Puffer Isle Resort";
+  if (errors.length > 0) {
+    const message = [
+      "Environment validation failed:",
+      ...errors.map(
+        (error) =>
+          `- ${error}`
+      )
+    ].join("\n");
 
-      // --------------------------------------------------------
-      // Load authenticated user
-      // --------------------------------------------------------
+    throw new Error(
+      message
+    );
+  }
+}
 
-      if (
-        req.session?.userId &&
-        isValidObjectId(req.session.userId)
-      ) {
-        const user = await User.findById(
-          req.session.userId
-        ).lean();
+validateEnvironment();
 
-        if (user) {
-          res.locals.user = user;
+/* ============================================================
+   DATABASE FALLBACK
+   ============================================================ */
+
+if (!MONGO_URI) {
+  console.warn(
+    "ℹ️ MONGO_URI was not provided. Using local MongoDB:",
+    DEFAULT_LOCAL_MONGO_URI
+  );
+}
+
+/* ============================================================
+   SESSION SECRET
+   ============================================================ */
+
+const EFFECTIVE_SESSION_SECRET =
+  SESSION_SECRET ||
+  "dev-only-puffer-isle-session-secret-change-me";
+
+/* ============================================================
+   EXPRESS HARDENING
+   ============================================================ */
+
+app.disable(
+  "x-powered-by"
+);
+
+if (IS_PRODUCTION) {
+  app.set(
+    "trust proxy",
+    1
+  );
+}
+
+/* ============================================================
+   VIEW ENGINE
+   ============================================================ */
+
+app.set(
+  "view engine",
+  "ejs"
+);
+
+app.set(
+  "views",
+  path.join(
+    __dirname,
+    "views"
+  )
+);
+
+/* ============================================================
+   BODY PARSING
+   ============================================================ */
+
+app.use(
+  express.urlencoded({
+    extended: true,
+    limit:
+      URLENCODED_LIMIT
+  })
+);
+
+app.use(
+  express.json({
+    limit:
+      JSON_LIMIT
+  })
+);
+
+/* ============================================================
+   STATIC FILES
+   ============================================================ */
+
+app.use(
+  express.static(
+    path.join(
+      __dirname,
+      "public"
+    ),
+    {
+      index: false,
+      redirect: false,
+      maxAge:
+        IS_PRODUCTION
+          ? "7d"
+          : 0
+    }
+  )
+);
+
+/* ============================================================
+   REQUEST METADATA
+   ============================================================ */
+
+app.use(
+  (req, res, next) => {
+    res.locals.requestMethod =
+      req.method;
+
+    res.locals.requestPath =
+      req.path;
+
+    next();
+  }
+);
+
+/* ============================================================
+   SESSION
+   ============================================================ */
+
+app.use(
+  session({
+    name:
+      SESSION_NAME,
+
+    secret:
+      EFFECTIVE_SESSION_SECRET,
+
+    resave: false,
+
+    saveUninitialized:
+      false,
+
+    rolling:
+      true,
+
+    store:
+      MongoStore.create({
+        mongoUrl:
+          EFFECTIVE_MONGO_URI,
+
+        collectionName:
+          "sessions",
+
+        ttl:
+          Math.floor(
+            SESSION_MAX_AGE /
+              1000
+          ),
+
+        autoRemove:
+          "native",
+
+        touchAfter:
+          60 * 5,
+
+        stringify:
+          false
+      }),
+
+    cookie: {
+      httpOnly:
+        true,
+
+      secure:
+        IS_PRODUCTION,
+
+      sameSite:
+        "lax",
+
+      maxAge:
+        SESSION_MAX_AGE,
+
+      path:
+        "/"
+    }
+  })
+);
+
+/* ============================================================
+   SESSION HELPERS
+   ============================================================ */
+
+function createUserSessionData(
+  user
+) {
+  if (!user) {
+    return null;
+  }
+
+  const id =
+    user._id
+      ? String(
+          user._id
+        )
+      : String(
+          user.id || ""
+        );
+
+  const fullname =
+    String(
+      user.fullname ||
+        user.name ||
+        ""
+    ).trim();
+
+  const username =
+    String(
+      user.username ||
+        user.email ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const email =
+    String(
+      user.email || ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const phone =
+    String(
+      user.phone || ""
+    ).trim();
+
+  return {
+    id,
+    _id: id,
+    username,
+    email,
+    fullname,
+    phone,
+    name: fullname
+  };
+}
+
+function createAdminSessionData(
+  admin
+) {
+  if (!admin) {
+    return null;
+  }
+
+  const id =
+    admin._id
+      ? String(
+          admin._id
+        )
+      : String(
+          admin.id || ""
+        );
+
+  return {
+    id,
+    _id: id,
+
+    username:
+      String(
+        admin.username ||
+          ""
+      )
+        .trim()
+        .toLowerCase(),
+
+    role:
+      admin.role ||
+      "admin"
+  };
+}
+
+/* ============================================================
+   SESSION PROMISE HELPERS
+   ============================================================ */
+
+function regenerateSession(
+  req
+) {
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+      req.session.regenerate(
+        (error) => {
+          if (error) {
+            return reject(
+              error
+            );
+          }
+
+          resolve();
         }
+      );
+    }
+  );
+}
+
+function saveSession(
+  req
+) {
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+      req.session.save(
+        (error) => {
+          if (error) {
+            return reject(
+              error
+            );
+          }
+
+          resolve();
+        }
+      );
+    }
+  );
+}
+
+function destroySession(
+  req
+) {
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+      if (!req.session) {
+        return resolve();
       }
 
-      next();
+      req.session.destroy(
+        (error) => {
+          if (error) {
+            return reject(
+              error
+            );
+          }
 
-    } catch (error) {
-      console.error(
-        "Global Session User Error:",
-        error
+          resolve();
+        }
+      );
+    }
+  );
+}
+
+/* ============================================================
+   AUTH MIDDLEWARE
+   ============================================================ */
+
+function requireUser(
+  req,
+  res,
+  next
+) {
+  if (!req.session?.user) {
+    return res.redirect(
+      "/?auth=login&error=" +
+        encodeURIComponent(
+          "Please log in to continue."
+        )
+    );
+  }
+
+  next();
+}
+
+function requireAdmin(
+  req,
+  res,
+  next
+) {
+  if (!req.session?.admin) {
+    return res.redirect(
+      "/admin/login?error=" +
+        encodeURIComponent(
+          "Administrator login required."
+        )
+    );
+  }
+
+  next();
+}
+
+/* ============================================================
+   GLOBAL EJS LOCALS
+   ============================================================ */
+
+app.use(
+  (req, res, next) => {
+    const currentUser =
+      req.session?.user ||
+      null;
+
+    const currentAdmin =
+      req.session?.admin ||
+      null;
+
+    res.locals.currentUser =
+      currentUser;
+
+    res.locals.currentAdmin =
+      currentAdmin;
+
+    res.locals.user =
+      currentUser;
+
+    res.locals.admin =
+      currentAdmin;
+
+    res.locals.isAuthenticated =
+      Boolean(
+        currentUser
       );
 
-      // Keep all template globals defined even if the user
-      // lookup fails. This prevents secondary EJS errors.
-      res.locals.user = null;
-      res.locals.admin =
-        req.session?.admin || null;
-      res.locals.currentPath = req.path;
-      res.locals.title =
-        "Puffer Isle Resort";
+    res.locals.isAdmin =
+      Boolean(
+        currentAdmin
+      );
 
-      next();
+    res.locals.currentPath =
+      req.path;
+
+    res.locals.error =
+      req.query?.error ||
+      null;
+
+    res.locals.success =
+      req.query?.success ||
+      null;
+
+    res.locals.authMode =
+      req.query?.auth ||
+      null;
+
+    next();
+  }
+);
+
+/* ============================================================
+   HEALTH CHECK
+   ============================================================ */
+
+app.get(
+  "/health",
+  (req, res) => {
+    const mongoReady =
+      mongoose.connection
+        .readyState === 1;
+
+    return res
+      .status(
+        mongoReady
+          ? 200
+          : 503
+      )
+      .json({
+        success:
+          mongoReady,
+
+        status:
+          mongoReady
+            ? "ok"
+            : "degraded",
+
+        server:
+          "online",
+
+        database:
+          mongoReady
+            ? "connected"
+            : "disconnected",
+
+        environment:
+          NODE_ENV,
+
+        uptimeSeconds:
+          Math.floor(
+            process.uptime()
+          ),
+
+        timestamp:
+          new Date().toISOString()
+      });
+  }
+);
+
+/* ============================================================
+   READINESS CHECK
+   ============================================================ */
+
+app.get(
+  "/ready",
+  (req, res) => {
+    const mongoReady =
+      mongoose.connection
+        .readyState === 1;
+
+    if (!mongoReady) {
+      return res
+        .status(503)
+        .json({
+          success: false,
+          ready: false,
+          database:
+            "disconnected"
+        });
     }
-  });
 
-  // ============================================================
-  // AUTHENTICATION HELPERS
-  // ============================================================
+    return res.json({
+      success: true,
+      ready: true,
+      database:
+        "connected"
+    });
+  }
+);
 
-  async function requireUser(req, res, next) {
+/* ============================================================
+   USER LOGIN PAGE
+   ============================================================ */
+
+app.get(
+  "/login",
+  (req, res) => {
+    if (req.session?.user) {
+      return res.redirect(
+        "/profile"
+      );
+    }
+
+    const query =
+      new URLSearchParams();
+
+    query.set(
+      "auth",
+      "login"
+    );
+
+    if (req.query?.error) {
+      query.set(
+        "error",
+        String(
+          req.query.error
+        )
+      );
+    }
+
+    if (req.query?.success) {
+      query.set(
+        "success",
+        String(
+          req.query.success
+        )
+      );
+    }
+
+    return res.redirect(
+      `/?${query.toString()}`
+    );
+  }
+);
+
+/* ============================================================
+   USER LOGIN
+   ============================================================ */
+
+app.post(
+  "/login",
+  async (req, res) => {
     try {
-      const userId =
-        req.session?.userId;
+      const identifier =
+        String(
+          req.body?.username ||
+            req.body?.email ||
+            ""
+        )
+          .trim()
+          .toLowerCase();
+
+      const password =
+        String(
+          req.body?.password ||
+            ""
+        );
 
       if (
-        !userId ||
-        !isValidObjectId(userId)
+        !identifier ||
+        !password
       ) {
-        return res.redirect("/");
+        return res.redirect(
+          "/?auth=login&error=" +
+            encodeURIComponent(
+              "Username/email and password are required."
+            )
+        );
       }
 
       const user =
-        await User.findById(userId).lean();
+        await User.findOne({
+          $or: [
+            {
+              username:
+                identifier
+            },
+            {
+              email:
+                identifier
+            }
+          ]
+        }).select(
+          "+password"
+        );
 
       if (!user) {
-        return req.session.destroy(() => {
-          res.redirect("/");
-        });
+        return res.redirect(
+          "/?auth=login&error=" +
+            encodeURIComponent(
+              "Invalid username/email or password."
+            )
+        );
       }
 
-      req.currentUser = user;
+      let passwordValid =
+        false;
 
-      res.locals.user = user;
+      if (
+        typeof user.comparePassword ===
+        "function"
+      ) {
+        passwordValid =
+          await user.comparePassword(
+            password
+          );
+      } else {
+        passwordValid =
+          user.password ===
+          password;
+      }
 
-      next();
+      if (!passwordValid) {
+        return res.redirect(
+          "/?auth=login&error=" +
+            encodeURIComponent(
+              "Invalid username/email or password."
+            )
+        );
+      }
 
+      await regenerateSession(
+        req
+      );
+
+      req.session.user =
+        createUserSessionData(
+          user
+        );
+
+      req.session.admin =
+        null;
+
+      await saveSession(
+        req
+      );
+
+      return res.redirect(
+        "/profile"
+      );
     } catch (error) {
       console.error(
-        "Require User Middleware Error:",
+        "USER LOGIN ERROR:",
         error
       );
 
-      return res.status(500).render(
-        "error",
-        {
-          title:
-            "Authentication Error",
-
-          message:
-            "Unable to verify your account. Please log in again.",
-        }
+      return res.redirect(
+        "/?auth=login&error=" +
+          encodeURIComponent(
+            "Unable to process login. Please try again."
+          )
       );
     }
   }
+);
 
-  function requireAdmin(req, res, next) {
-    if (!req.session?.admin) {
-      return res.redirect("/adminlogin");
+/* ============================================================
+   USER SIGNUP PAGE
+   ============================================================ */
+
+app.get(
+  "/signup",
+  (req, res) => {
+    if (req.session?.user) {
+      return res.redirect(
+        "/profile"
+      );
+    }
+
+    const query =
+      new URLSearchParams();
+
+    query.set(
+      "auth",
+      "signup"
+    );
+
+    if (req.query?.error) {
+      query.set(
+        "error",
+        String(
+          req.query.error
+        )
+      );
+    }
+
+    if (req.query?.success) {
+      query.set(
+        "success",
+        String(
+          req.query.success
+        )
+      );
+    }
+
+    return res.redirect(
+      `/?${query.toString()}`
+    );
+  }
+);
+
+/* ============================================================
+   USER SIGNUP
+   ============================================================ */
+
+app.post(
+  "/signup",
+  async (req, res) => {
+    try {
+      const fullname =
+        String(
+          req.body?.fullname ||
+            req.body?.fullName ||
+            req.body?.name ||
+            ""
+        ).trim();
+
+      const email =
+        String(
+          req.body?.email ||
+            ""
+        )
+          .trim()
+          .toLowerCase();
+
+      const username =
+        String(
+          req.body?.username ||
+            email ||
+            ""
+        )
+          .trim()
+          .toLowerCase();
+
+      const password =
+        String(
+          req.body?.password ||
+            ""
+        );
+
+      const confirmPassword =
+        String(
+          req.body?.confirmPassword ||
+            ""
+        );
+
+      const phone =
+        String(
+          req.body?.phone ||
+            ""
+        ).trim();
+
+      if (
+        !fullname ||
+        !email ||
+        !password
+      ) {
+        return res.redirect(
+          "/?auth=signup&error=" +
+            encodeURIComponent(
+              "Full name, email and password are required."
+            )
+        );
+      }
+
+      if (
+        password.length < 6
+      ) {
+        return res.redirect(
+          "/?auth=signup&error=" +
+            encodeURIComponent(
+              "Password must be at least 6 characters."
+            )
+        );
+      }
+
+      if (
+        confirmPassword &&
+        password !==
+          confirmPassword
+      ) {
+        return res.redirect(
+          "/?auth=signup&error=" +
+            encodeURIComponent(
+              "Passwords do not match."
+            )
+        );
+      }
+
+      if (
+        phone &&
+        !/^\d{11}$/.test(
+          phone
+        )
+      ) {
+        return res.redirect(
+          "/?auth=signup&error=" +
+            encodeURIComponent(
+              "Contact number must contain exactly 11 digits."
+            )
+        );
+      }
+
+      const existingUser =
+        await User.findOne({
+          $or: [
+            {
+              email
+            },
+            {
+              username
+            }
+          ]
+        });
+
+      if (existingUser) {
+        return res.redirect(
+          "/?auth=signup&error=" +
+            encodeURIComponent(
+              "An account with that email or username already exists."
+            )
+        );
+      }
+
+      const user =
+        new User({
+          fullname,
+          username,
+          email,
+          phone:
+            phone || undefined
+        });
+
+      if (
+        typeof user.setPassword ===
+        "function"
+      ) {
+        await user.setPassword(
+          password
+        );
+      } else {
+        user.password =
+          password;
+      }
+
+      await user.save();
+
+      return res.redirect(
+        "/?auth=login&success=" +
+          encodeURIComponent(
+            "Account created successfully. Please sign in."
+          )
+      );
+    } catch (error) {
+      console.error(
+        "USER SIGNUP ERROR:",
+        error
+      );
+
+      if (
+        error?.code === 11000
+      ) {
+        return res.redirect(
+          "/?auth=signup&error=" +
+            encodeURIComponent(
+              "An account with that email or username already exists."
+            )
+        );
+      }
+
+      return res.redirect(
+        "/?auth=signup&error=" +
+          encodeURIComponent(
+            "Unable to create your account. Please try again."
+          )
+      );
+    }
+  }
+);
+
+/* ============================================================
+   USER LOGOUT
+   ============================================================ */
+
+app.get(
+  "/logout",
+  async (req, res) => {
+    try {
+      await destroySession(
+        req
+      );
+
+      res.clearCookie(
+        SESSION_NAME,
+        {
+          httpOnly: true,
+          sameSite: "lax",
+          secure:
+            IS_PRODUCTION,
+          path: "/"
+        }
+      );
+
+      return res.redirect(
+        "/?auth=login&success=" +
+          encodeURIComponent(
+            "You have been logged out."
+          )
+      );
+    } catch (error) {
+      console.error(
+        "USER LOGOUT ERROR:",
+        error
+      );
+
+      return res.redirect(
+        "/"
+      );
+    }
+  }
+);
+
+/* ============================================================
+   ADMIN LOGIN COMPATIBILITY
+   ============================================================ */
+
+app.get(
+  "/adminlogin",
+  (req, res) => {
+    const query =
+      new URLSearchParams();
+
+    if (req.query?.error) {
+      query.set(
+        "error",
+        String(
+          req.query.error
+        )
+      );
+    }
+
+    const suffix =
+      query.toString()
+        ? `?${query.toString()}`
+        : "";
+
+    return res.redirect(
+      `/admin/login${suffix}`
+    );
+  }
+);
+
+/* ============================================================
+   ADMIN LOGOUT COMPATIBILITY
+   ============================================================ */
+
+app.get(
+  "/admin-logout",
+  async (req, res) => {
+    try {
+      await destroySession(
+        req
+      );
+
+      res.clearCookie(
+        SESSION_NAME,
+        {
+          httpOnly: true,
+          sameSite: "lax",
+          secure:
+            IS_PRODUCTION,
+          path: "/"
+        }
+      );
+
+      return res.redirect(
+        "/admin/login"
+      );
+    } catch (error) {
+      console.error(
+        "ADMIN LOGOUT ERROR:",
+        error
+      );
+
+      return res.redirect(
+        "/admin/login"
+      );
+    }
+  }
+);
+
+/* ============================================================
+   LEGACY BOOKING URL
+   ============================================================ */
+
+app.use(
+  (req, res, next) => {
+    if (
+      req.method ===
+        "POST" &&
+      req.path ===
+        "/booking/submit"
+    ) {
+      req.url =
+        "/appointment/submit";
+
+      return next();
     }
 
     next();
   }
+);
 
-  // ============================================================
-  // DATE HELPERS
-  // ============================================================
+/* ============================================================
+   ROUTES
+   ============================================================ */
 
-  function parseBookingDate(value) {
-    if (!value) {
-      return null;
-    }
+app.use(
+  "/",
+  userRoutes
+);
 
-    const date = new Date(value);
+app.use(
+  "/admin",
+  adminRoutes
+);
 
-    if (Number.isNaN(date.getTime())) {
-      return null;
-    }
+/* ============================================================
+   PUBLIC PAGES
+   ============================================================ */
 
-    return date;
-  }
-
-  function validateBookingDates(
-    checkin,
-    checkout
-  ) {
-    const start =
-      parseBookingDate(checkin);
-
-    const end =
-      parseBookingDate(checkout);
-
-    if (!start || !end) {
-      return {
-        valid: false,
-        message: "Invalid booking dates.",
-      };
-    }
-
-    if (end <= start) {
-      return {
-        valid: false,
-        message:
-          "Check-out must be after check-in.",
-      };
-    }
-
-    return {
-      valid: true,
-      start,
-      end,
-    };
-  }
-
-  // ============================================================
-  // DOUBLE-BOOKING DETECTION
-  // ============================================================
-
-  async function findConflictingBooking({
-    room,
-    checkin,
-    checkout,
-    excludeId = null,
-  }) {
-    const query = {
-      room,
-
-      status: {
-        $in: [
-          "pending",
-          "accepted",
-        ],
-      },
-
-      checkin: {
-        $lt: checkout,
-      },
-
-      checkout: {
-        $gt: checkin,
-      },
-    };
-
-    if (
-      excludeId &&
-      isValidObjectId(excludeId)
-    ) {
-      query._id = {
-        $ne: excludeId,
-      };
-    }
-
-    return Appointment.findOne(query)
-      .sort({
-        checkin: 1,
-      })
-      .lean();
-  }
-
-  // ============================================================
-  // SERVER-SIDE PRICE CALCULATION
-  // ============================================================
-
-  function calculateBookingPrice({
-    room,
-    cottageAddon,
-    checkin,
-    checkout,
-  }) {
-    return Appointment.calculatePrice({
-      room,
-      cottageAddon,
-      checkin,
-      checkout,
-    });
-  }
-
-  // ============================================================
-  // NOTIFICATION GENERATOR
-  // ============================================================
-
-  function generateNotifications(
-    appointments
-  ) {
-    if (
-      !Array.isArray(appointments) ||
-      appointments.length === 0
-    ) {
-      return [];
-    }
-
-    const notifications = [];
-
-    for (const appointment of appointments) {
-      const roomName =
-        appointment.roomDisplayName ||
-        appointment.room ||
-        "your selected accommodation";
-
-      const checkin =
-        appointment.checkin
-          ? new Date(
-              appointment.checkin
-            ).toLocaleDateString(
-              "en-US",
-              {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              }
-            )
-          : "your selected date";
-
-      const checkout =
-        appointment.checkout
-          ? new Date(
-              appointment.checkout
-            ).toLocaleDateString(
-              "en-US",
-              {
-                year: "numeric",
-                month: "long",
-                day: "numeric",
-              }
-            )
-          : "your selected date";
-
-      if (
-        appointment.status ===
-        "pending"
-      ) {
-        notifications.push({
-          id:
-            `${appointment._id}-pending`,
-
-          type:
-            "pending",
-
-          icon:
-            "🕐",
-
-          title:
-            "Booking Request Received",
-
-          message:
-            `Your ${roomName} booking request ` +
-            `for ${checkin} to ${checkout} ` +
-            `is currently waiting for confirmation.`,
-
-          bookingId:
-            appointment._id,
-
-          createdAt:
-            appointment.createdAt ||
-            new Date(),
-        });
+app.get(
+  "/",
+  (req, res) => {
+    return res.render(
+      "index",
+      {
+        title:
+          "Puffer Isle Resort"
       }
-
-      if (
-        appointment.status ===
-        "accepted"
-      ) {
-        notifications.push({
-          id:
-            `${appointment._id}-accepted`,
-
-          type:
-            "accepted",
-
-          icon:
-            "✅",
-
-          title:
-            "Booking Confirmed!",
-
-          message:
-            `Great news! Your ${roomName} booking ` +
-            `for ${checkin} to ${checkout} ` +
-            `has been accepted. Your stay is confirmed.`,
-
-          bookingId:
-            appointment._id,
-
-          createdAt:
-            appointment.updatedAt ||
-            appointment.createdAt ||
-            new Date(),
-        });
-      }
-
-      if (
-        appointment.status ===
-        "declined"
-      ) {
-        notifications.push({
-          id:
-            `${appointment._id}-declined`,
-
-          type:
-            "declined",
-
-          icon:
-            "❌",
-
-          title:
-            "Booking Declined",
-
-          message:
-            `Unfortunately, your ${roomName} booking ` +
-            `for ${checkin} to ${checkout} ` +
-            `has been declined. Please contact ` +
-            `the resort if you need assistance.`,
-
-          bookingId:
-            appointment._id,
-
-          createdAt:
-            appointment.updatedAt ||
-            appointment.createdAt ||
-            new Date(),
-        });
-      }
-
-      if (
-        appointment.status ===
-        "cancelled"
-      ) {
-        notifications.push({
-          id:
-            `${appointment._id}-cancelled`,
-
-          type:
-            "cancelled",
-
-          icon:
-            "🚫",
-
-          title:
-            "Booking Cancelled",
-
-          message:
-            `Your ${roomName} booking for ` +
-            `${checkin} to ${checkout} ` +
-            `has been cancelled.`,
-
-          bookingId:
-            appointment._id,
-
-          createdAt:
-            appointment.updatedAt ||
-            appointment.createdAt ||
-            new Date(),
-        });
-      }
-    }
-
-    notifications.sort(
-      (a, b) =>
-        new Date(b.createdAt).getTime() -
-        new Date(a.createdAt).getTime()
     );
-
-    return notifications;
   }
+);
 
-  // ============================================================
-  // DATABASE
-  // ============================================================
-
-  async function connectDB() {
-    try {
-      await mongoose.connect(
-        MONGODB_URI
-      );
-
-      console.log(
-        "✅ Database: Puffer Isle Resort Linked"
-      );
-
-      await createDefaultAdmin();
-
-    } catch (error) {
-      console.error(
-        "❌ Database connection failed:",
-        error
-      );
-
-      process.exit(1);
-    }
+app.get(
+  "/gallery",
+  (req, res) => {
+    return res.render(
+      "gallery",
+      {
+        title:
+          "Gallery | Puffer Isle Resort"
+      }
+    );
   }
+);
 
-  // ============================================================
-  // DEFAULT ADMIN
-  // ============================================================
-async function createDefaultAdmin() {
-  try {
-    const adminUsername = process.env.ADMIN_USERNAME;
-    const adminPassword = process.env.ADMIN_PASSWORD;
-
-    if (!adminUsername || !adminPassword) {
-      console.warn(
-        "⚠️ ADMIN_USERNAME / ADMIN_PASSWORD not configured."
-      );
-      return;
-    }
-
-    const username = String(adminUsername)
-      .trim()
-      .toLowerCase();
-
-    const password = String(adminPassword);
-
-    let admin = await Admin.findOne({
-      username,
-    }).select("+password");
-
-    if (!admin) {
-      admin = new Admin({
-        username,
-        password,
-      });
-
-      await admin.save();
-
-      console.log(
-        `✅ Default admin created: ${username}`
-      );
-    } else {
-      // Keep the .env password synchronized with MongoDB.
-      admin.password = password;
-      await admin.save();
-
-      console.log(
-        `✅ Admin credentials synchronized: ${username}`
-      );
-    }
-  } catch (error) {
-    console.error("❌ Admin setup error:", error);
+app.get(
+  "/rules",
+  (req, res) => {
+    return res.render(
+      "rules",
+      {
+        title:
+          "Resort Rules | Puffer Isle Resort"
+      }
+    );
   }
-}
-
-  // ============================================================
-  // ADMIN LOGIN PAGE
-  // ============================================================
-
-  app.get(
-    "/adminlogin",
-    (req, res) => {
-      if (req.session?.admin) {
-        return res.redirect(
-          "/admin/dashboard"
-        );
-      }
-
-      res.render(
-        "admin/adminlogin",
-        {
-          title:
-            "Admin Portal",
-
-          error:
-            null,
-        }
-      );
-    }
-  );
-
-  // ============================================================
-  // ADMIN LOGIN
-  // ============================================================
-
-  app.post(
-    "/admin/login",
-    async (req, res) => {
-      try {
-        const {
-          email,
-          password,
-        } = req.body;
-
-        if (
-          !email ||
-          !password
-        ) {
-          return res.status(400).render(
-            "admin/adminlogin",
-            {
-              title:
-                "Admin Portal",
-
-              error:
-                "Username and password are required.",
-            }
-          );
-        }
-
-        const username =
-          String(email)
-            .trim()
-            .toLowerCase();
-
-        const admin =
-  await Admin.findOne({
-    username,
-  }).select("+password");
-
-        if (
-          !admin ||
-          !(await admin.comparePassword(
-            password
-          ))
-        ) {
-          return res.status(401).render(
-            "admin/adminlogin",
-            {
-              title:
-                "Admin Portal",
-
-              error:
-                "Access Denied. Invalid Credentials.",
-            }
-          );
-        }
-
-        req.session.regenerate(
-          (sessionError) => {
-            if (sessionError) {
-              console.error(
-                "Admin Session Error:",
-                sessionError
-              );
-
-              return res.status(500).render(
-                "admin/adminlogin",
-                {
-                  title:
-                    "Admin Portal",
-
-                  error:
-                    "Unable to create secure session.",
-                }
-              );
-            }
-
-            req.session.admin = {
-              id:
-                admin._id.toString(),
-
-              username:
-                admin.username,
-
-              role:
-                "admin",
-            };
-
-            req.session.save(
-              (saveError) => {
-                if (saveError) {
-                  console.error(
-                    "Admin Session Save Error:",
-                    saveError
-                  );
-
-                  return res.status(500).render(
-                    "admin/adminlogin",
-                    {
-                      title:
-                        "Admin Portal",
-
-                      error:
-                        "Unable to save secure session.",
-                    }
-                  );
-                }
-
-                return res.redirect(
-                  "/admin/dashboard"
-                );
-              }
-            );
-          }
-        );
-
-      } catch (error) {
-        console.error(
-          "Admin Login Error:",
-          error
-        );
-
-        return res.status(500).render(
-          "admin/adminlogin",
-          {
-            title:
-              "Admin Portal",
-
-            error:
-              "An unexpected login error occurred.",
-          }
-        );
-      }
-    }
-  );
-
-  // ============================================================
-  // ADMIN DASHBOARD
-  // ============================================================
-
-  app.get(
-    "/admin/dashboard",
-    requireAdmin,
-    async (req, res) => {
-      try {
-        const [
-          totalBookings,
-          totalUsers,
-          inHouseCount,
-          recentBookings,
-        ] = await Promise.all([
-          Appointment.countDocuments(),
-
-          User.countDocuments(),
-
-          Appointment.countDocuments({
-            checkedIn: true,
-          }),
-
-          Appointment.find()
-            .populate(
-              "userId",
-              "fullname email"
-            )
-            .sort({
-              createdAt: -1,
-            })
-            .limit(5)
-            .lean(),
-        ]);
-
-        res.render(
-          "admin/dashboard",
-          {
-            title:
-              "Isle Command",
-
-            totalBookings,
-
-            totalUsers,
-
-            inHouseCount,
-
-            recentBookings,
-          }
-        );
-
-      } catch (error) {
-        console.error(
-          "Dashboard Error:",
-          error
-        );
-
-        res.status(500).send(
-          "Error loading dashboard."
-        );
-      }
-    }
-  );
-
-  // ============================================================
-  // ADMIN HISTORY
-  // ============================================================
-
-  app.get(
-    "/admin/history",
-    requireAdmin,
-    async (req, res) => {
-      try {
-        const allBookings =
-          await Appointment.find()
-            .populate(
-              "userId",
-              "fullname email"
-            )
-            .sort({
-              createdAt: -1,
-            })
-            .lean();
-
-        res.render(
-          "admin/history",
-          {
-            title:
-              "Isle Archive",
-
-            allBookings,
-          }
-        );
-
-      } catch (error) {
-        console.error(
-          "History Page Error:",
-          error
-        );
-
-        res.status(500).send(
-          "Error loading archive data."
-        );
-      }
-    }
-  );
-
-  // ============================================================
-  // FRONT DESK CHECK-IN
-  // ============================================================
-
-  app.get(
-    "/admin/checkin-manager",
-    requireAdmin,
-    async (req, res) => {
-      try {
-        const [
-          arrivals,
-          inHouse,
-        ] = await Promise.all([
-          Appointment.find({
-            status:
-              "accepted",
-
-            checkedIn:
-              false,
-          })
-            .populate(
-              "userId"
-            )
-            .sort({
-              checkin: 1,
-            })
-            .lean(),
-
-          Appointment.find({
-            checkedIn:
-              true,
-          })
-            .populate(
-              "userId"
-            )
-            .sort({
-              checkInTime: -1,
-            })
-            .lean(),
-        ]);
-
-        res.render(
-          "admin/checkin",
-          {
-            arrivals,
-
-            inHouse,
-
-            title:
-              "Front Desk Operations",
-          }
-        );
-
-      } catch (error) {
-        console.error(
-          "Front Desk Error:",
-          error
-        );
-
-        res.status(500).send(
-          "Mainframe Error Loading Front Desk."
-        );
-      }
-    }
-  );
-
-  // ============================================================
-  // ADMIN CHECK-IN UPDATE
-  // ============================================================
-
-  app.post(
-    "/admin/update-checkin",
-    requireAdmin,
-    async (req, res) => {
-      try {
-        const {
-          bookingId,
-          checkedIn,
-        } = req.body;
-
-        if (
-          !isValidObjectId(
-            bookingId
-          )
-        ) {
-          return res.status(400).json({
-            success: false,
-
-            message:
-              "Invalid booking ID.",
-          });
-        }
-
-        const isCheckedIn =
-          checkedIn === true ||
-          checkedIn === "true" ||
-          checkedIn === "on";
-
-        const updatedBooking =
-          await Appointment.findByIdAndUpdate(
-            bookingId,
-            {
-              $set: {
-                checkedIn:
-                  isCheckedIn,
-
-                checkInTime:
-                  isCheckedIn
-                    ? new Date()
-                    : null,
-              },
-            },
-            {
-              new: true,
-
-              runValidators:
-                true,
-            }
-          );
-
-        if (!updatedBooking) {
-          return res.status(404).json({
-            success: false,
-
-            message:
-              "Booking not found.",
-          });
-        }
-
-        res.json({
-          success: true,
-
-          booking: {
-            id:
-              updatedBooking._id,
-
-            checkedIn:
-              updatedBooking.checkedIn,
-          },
-        });
-
-      } catch (error) {
-        console.error(
-          "Check-in Update Error:",
-          error
-        );
-
-        res.status(500).json({
-          success: false,
-
-          message:
-            "Failed to update check-in status.",
-        });
-      }
-    }
-  );
-
-  // ============================================================
-  // ADMIN BOOKING STATUS UPDATE
-  // ============================================================
-
-  app.post(
-    "/admin/booking/update-status",
-    requireAdmin,
-    async (req, res) => {
-      try {
-        const {
-          bookingId,
-          status,
-        } = req.body;
-
-        const allowedStatuses = [
-          "pending",
-          "accepted",
-          "declined",
-          "cancelled",
-        ];
-
-        if (
-          !isValidObjectId(
-            bookingId
-          )
-        ) {
-          return res.status(400).json({
-            success: false,
-
-            message:
-              "Invalid booking ID.",
-          });
-        }
-
-        if (
-          !allowedStatuses.includes(
-            status
-          )
-        ) {
-          return res.status(400).json({
-            success: false,
-
-            message:
-              "Invalid booking status.",
-          });
-        }
-
-        const booking =
-          await Appointment.findById(
-            bookingId
-          );
-
-        if (!booking) {
-          return res.status(404).json({
-            success: false,
-
-            message:
-              "Booking not found.",
-          });
-        }
-
-        // ------------------------------------------------------
-        // Validate status transitions
-        // ------------------------------------------------------
-
-        if (
-          booking.status ===
-          "cancelled"
-        ) {
-          return res.status(400).json({
-            success: false,
-
-            message:
-              "A cancelled booking cannot be changed.",
-          });
-        }
-
-        if (
-          booking.status ===
-          "declined" &&
-          status === "accepted"
-        ) {
-          return res.status(400).json({
-            success: false,
-
-            message:
-              "A declined booking cannot be accepted.",
-          });
-        }
-
-        // ------------------------------------------------------
-        // Double-booking protection on acceptance
-        // ------------------------------------------------------
-
-        if (
-          status ===
-          "accepted"
-        ) {
-          const conflict =
-            await findConflictingBooking({
-              room:
-                booking.room,
-
-              checkin:
-                booking.checkin,
-
-              checkout:
-                booking.checkout,
-
-              excludeId:
-                booking._id,
-            });
-
-          if (conflict) {
-            return res.status(409).json({
-              success: false,
-
-              code:
-                "ROOM_ALREADY_BOOKED",
-
-              message:
-                "This room is already booked for part or all of these dates. The booking cannot be accepted.",
-
-              conflictingBookingId:
-                conflict._id,
-            });
-          }
-        }
-
-        booking.status =
-          status;
-
-        await booking.save();
-
-        console.log(
-          `🔔 Booking ${bookingId} ` +
-          `status changed to ${status}`
-        );
-
-        res.json({
-          success: true,
-
-          message:
-            `Booking status updated to ${status}.`,
-
-          booking: {
-            id:
-              booking._id,
-
-            status:
-              booking.status,
-          },
-        });
-
-      } catch (error) {
-        console.error(
-          "Booking Status Update Error:",
-          error
-        );
-
-        res.status(500).json({
-          success: false,
-
-          message:
-            "Booking status update failed.",
-        });
-      }
-    }
-  );
-
-  // ============================================================
-  // ADMIN LOGOUT
-  // ============================================================
-
-  app.get(
-    "/admin/logout",
-    (req, res) => {
-      req.session.destroy(
-        (error) => {
-          if (error) {
-            console.error(
-              "Admin Logout Error:",
-              error
-            );
-
-            return res.status(500).send(
-              "Unable to log out."
-            );
-          }
-
-          res.clearCookie(
-            "connect.sid"
-          );
-
-          return res.redirect(
-            "/adminlogin"
-          );
-        }
-      );
-    }
-  );
-
-  // ============================================================
-  // USER SIGNUP
-  // ============================================================
-
-  app.post(
-    "/signup",
-    async (req, res) => {
-      try {
-        const {
-          fullname,
-          email,
-          password,
-          phone,
-        } = req.body;
-
-        if (
-          !fullname ||
-          !email ||
-          !password
-        ) {
-          return res.status(400).send(
-            "Full name, email and password are required."
-          );
-        }
-
-        const normalizedEmail =
-          String(email)
-            .trim()
-            .toLowerCase();
-
-        const existingUser =
-          await User.findOne({
-            email:
-              normalizedEmail,
-          });
-
-        if (existingUser) {
-          return res.status(400).send(
-            "Account already exists."
-          );
-        }
-
-        const newUser =
-          new User({
-            fullname:
-              String(fullname)
-                .trim(),
-
-            email:
-              normalizedEmail,
-
-            password,
-
-            phone:
-              phone
-                ? String(phone).trim()
-                : "",
-          });
-
-        await newUser.save();
-
-        // ------------------------------------------------------
-        // Create a fresh authenticated session
-        // ------------------------------------------------------
-
-        req.session.regenerate(
-          (sessionError) => {
-            if (sessionError) {
-              console.error(
-                "Signup Session Error:",
-                sessionError
-              );
-
-              return res.status(500).send(
-                "Account created, but login could not be established. Please log in."
-              );
-            }
-
-            req.session.userId =
-              newUser._id.toString();
-
-            req.session.save(
-              (saveError) => {
-                if (saveError) {
-                  console.error(
-                    "Signup Session Save Error:",
-                    saveError
-                  );
-
-                  return res.status(500).send(
-                    "Account created, but login could not be established. Please log in."
-                  );
-                }
-
-                return res.redirect(
-                  "/profile"
-                );
-              }
-            );
-          }
-        );
-
-      } catch (error) {
-        console.error(
-          "Signup Error:",
-          error
-        );
-
-        res.status(500).send(
-          "Signup error."
-        );
-      }
-    }
-  );
-
-  // ============================================================
-  // USER LOGIN
-  // ============================================================
-
-  app.post(
-    "/login",
-    async (req, res) => {
-      try {
-        const {
-          username,
-          password,
-        } = req.body;
-
-        if (
-          !username ||
-          !password
-        ) {
-          return res.status(400).send(
-            "Email and password are required."
-          );
-        }
-
-        const email =
-          String(username)
-            .trim()
-            .toLowerCase();
-
-        const user =
-          await User.findOne({
-            email,
-          });
-
-        if (
-          !user ||
-          !(await user.comparePassword(
-            password
-          ))
-        ) {
-          return res.status(401).send(
-            "Invalid credentials."
-          );
-        }
-
-        // ------------------------------------------------------
-        // Prevent session fixation
-        // ------------------------------------------------------
-
-        req.session.regenerate(
-          (sessionError) => {
-            if (sessionError) {
-              console.error(
-                "Session Regeneration Error:",
-                sessionError
-              );
-
-              return res.status(500).send(
-                "Login failed. Please try again."
-              );
-            }
-
-            req.session.userId =
-              user._id.toString();
-
-            req.session.save(
-              (saveError) => {
-                if (saveError) {
-                  console.error(
-                    "Session Save Error:",
-                    saveError
-                  );
-
-                  return res.status(500).send(
-                    "Login failed. Please try again."
-                  );
-                }
-
-                console.log(
-                  `✅ User logged in: ${user.email}`
-                );
-
-                return res.redirect(
-                  "/profile"
-                );
-              }
-            );
-          }
-        );
-
-      } catch (error) {
-        console.error(
-          "Login Error:",
-          error
-        );
-
-        res.status(500).send(
-          "Login error."
-        );
-      }
-    }
-  );
-
-  // ============================================================
-  // USER LOGOUT
-  // ============================================================
-
-  app.get(
-    "/logout",
-    (req, res) => {
-      req.session.destroy(
-        (error) => {
-          if (error) {
-            console.error(
-              "Logout Error:",
-              error
-            );
-
-            return res.status(500).send(
-              "Unable to log out."
-            );
-          }
-
-          res.clearCookie(
-            "connect.sid"
-          );
-
-          return res.redirect("/");
-        }
-      );
-    }
-  );
-
-  // ============================================================
-  // PROFILE
-  // ============================================================
-
-  app.get(
-    "/profile",
-    requireUser,
-    async (req, res) => {
-      try {
-        const user =
-          req.currentUser;
-
-        const appointments =
-          await Appointment.find({
-            userId:
-              user._id,
-          })
-            .sort({
-              createdAt: -1,
-            })
-            .lean();
-
-        const notifications =
-          generateNotifications(
-            appointments
-          );
-
-        return res.render(
-          "profile",
-          {
-            title:
-              "My Dashboard",
-
-            user,
-
-            appointments,
-
-            notifications,
-          }
-        );
-
-      } catch (error) {
-        console.error(
-          "Profile Load Error:",
-          error
-        );
-
-        return res.status(500).render(
-          "error",
-          {
-            title:
-              "Profile Error",
-
-            message:
-              "Unable to load your profile. Please try again.",
-          }
-        );
-      }
-    }
-  );
-
-  // ============================================================
-  // LIVE USER UPDATES
-  // ============================================================
-
-  app.get(
-    "/userUpdates/:id",
-    requireUser,
-    async (req, res) => {
-      try {
-        const requestedUserId =
-          req.params.id;
-
-        if (
-          !isValidObjectId(
-            requestedUserId
-          )
-        ) {
-          return res.status(400).json({
-            success: false,
-
-            message:
-              "Invalid user ID.",
-          });
-        }
-
-        const loggedInUserId =
-          req.session.userId.toString();
-
-        if (
-          loggedInUserId !==
-          requestedUserId.toString()
-        ) {
-          return res.status(403).json({
-            success: false,
-
-            message:
-              "Unauthorized.",
-          });
-        }
-
-        const appointments =
-          await Appointment.find({
-            userId:
-              requestedUserId,
-          })
-            .sort({
-              createdAt: -1,
-            })
-            .lean();
-
-        const notifications =
-          generateNotifications(
-            appointments
-          );
-
-        res.json({
-          success: true,
-
-          appointments,
-
-          notifications,
-        });
-
-      } catch (error) {
-        console.error(
-          "User Updates Error:",
-          error
-        );
-
-        res.status(500).json({
-          success: false,
-
-          message:
-            "Unable to fetch updates.",
-        });
-      }
-    }
-  );
-
-  // ============================================================
-  // BOOKING PAGE
-  // ============================================================
-
-  app.get(
-    "/booking",
-    requireUser,
-    (req, res) => {
-      res.render(
-        "appointments",
-        {
-          title:
-            "Book Your Stay",
-
-          error:
-            req.query.error ||
-            null,
-
+);
+
+/* ============================================================
+   404
+   ============================================================ */
+
+app.use(
+  (req, res) => {
+    const isApi =
+      req.path.startsWith(
+        "/admin/api/"
+      ) ||
+      req.path ===
+        "/health" ||
+      req.path ===
+        "/ready";
+
+    if (isApi) {
+      return res
+        .status(404)
+        .json({
           success:
-            req.query.success ||
-            null,
-        }
-      );
-    }
-  );
-
-  // ============================================================
-  // BOOKING SUBMISSION
-  // ============================================================
-
-  app.post(
-    "/booking/submit",
-    requireUser,
-    async (req, res) => {
-      try {
-        const {
-          room,
-          cottageAddon,
-          guests,
-          contact,
-          checkin,
-          checkout,
-          specialRequests,
-        } = req.body;
-
-        const userId =
-          req.session.userId;
-
-        // ------------------------------------------------------
-        // Required fields
-        // ------------------------------------------------------
-
-        if (
-          !room ||
-          !checkin ||
-          !checkout ||
-          !guests ||
-          !contact
-        ) {
-          return res.redirect(
-            "/booking?error=missing_fields"
-          );
-        }
-
-        // ------------------------------------------------------
-        // Room validation
-        // ------------------------------------------------------
-
-        const allowedRooms = [
-          "Aircon Room",
-          "Fan Room",
-          "Seaside Cottage",
-        ];
-
-        if (
-          !allowedRooms.includes(
-            room
-          )
-        ) {
-          return res.redirect(
-            "/booking?error=invalid_room"
-          );
-        }
-
-        // ------------------------------------------------------
-        // Guest validation
-        // ------------------------------------------------------
-
-        const guestCount =
-          Number(guests);
-
-        const guestLimits = {
-          "Aircon Room": 8,
-          "Fan Room": 6,
-          "Seaside Cottage": 6,
-        };
-
-        const maximumGuests =
-          guestLimits[room];
-
-        if (
-          !Number.isInteger(
-            guestCount
-          ) ||
-          guestCount < 1 ||
-          guestCount > maximumGuests
-        ) {
-          return res.redirect(
-            "/booking?error=invalid_guests"
-          );
-        }
-
-        // ------------------------------------------------------
-        // Date validation
-        // ------------------------------------------------------
-
-        const dateValidation =
-          validateBookingDates(
-            checkin,
-            checkout
-          );
-
-        if (
-          !dateValidation.valid
-        ) {
-          return res.redirect(
-            "/booking?error=invalid_dates"
-          );
-        }
-
-        const {
-          start,
-          end,
-        } = dateValidation;
-
-        // ------------------------------------------------------
-        // Prevent past bookings
-        // ------------------------------------------------------
-
-        const now =
-          new Date();
-
-        const todayStart =
-          new Date(
-            now.getFullYear(),
-            now.getMonth(),
-            now.getDate()
-          );
-
-        if (
-          start < todayStart
-        ) {
-          return res.redirect(
-            "/booking?error=past_date"
-          );
-        }
-
-        // ------------------------------------------------------
-        // Cottage add-on
-        // ------------------------------------------------------
-
-        const hasCottageAddon =
-          cottageAddon === "on" ||
-          cottageAddon === true ||
-          cottageAddon === "true";
-
-        const finalCottageAddon =
-          room === "Seaside Cottage"
-            ? false
-            : hasCottageAddon;
-
-        // ------------------------------------------------------
-        // Double-booking detection
-        // ------------------------------------------------------
-
-        const conflictingBooking =
-          await findConflictingBooking({
-            room,
-
-            checkin:
-              start,
-
-            checkout:
-              end,
-          });
-
-        if (
-          conflictingBooking
-        ) {
-          console.warn(
-            "⚠️ Double booking prevented:",
-            {
-              room,
-
-              requestedCheckin:
-                start,
-
-              requestedCheckout:
-                end,
-
-              conflictingBooking:
-                conflictingBooking._id,
-            }
-          );
-
-          return res.redirect(
-            "/booking?error=room_unavailable"
-          );
-        }
-
-        // ------------------------------------------------------
-        // Server-side price calculation
-        // ------------------------------------------------------
-
-        const pricing =
-          calculateBookingPrice({
-            room,
-
-            cottageAddon:
-              finalCottageAddon,
-
-            checkin:
-              start,
-
-            checkout:
-              end,
-          });
-
-        // ------------------------------------------------------
-        // Create booking
-        // ------------------------------------------------------
-
-        const newBooking =
-          new Appointment({
-            userId,
-
-            room,
-
-            cottageAddon:
-              finalCottageAddon,
-
-            guests:
-              guestCount,
-
-            contact:
-              String(contact).trim(),
-
-            checkin:
-              start,
-
-            checkout:
-              end,
-
-            specialRequests:
-              specialRequests
-                ? String(
-                    specialRequests
-                  ).trim()
-                : "",
-
-            totalPrice:
-              pricing.totalPrice,
-
-            status:
-              "pending",
-          });
-
-        await newBooking.save();
-
-        console.log(
-          "✅ New booking created:",
-          {
-            id:
-              newBooking._id.toString(),
-
-            room:
-              newBooking.room,
-
-            checkin:
-              newBooking.checkin,
-
-            checkout:
-              newBooking.checkout,
-
-            nights:
-              pricing.nights,
-
-            totalPrice:
-              pricing.totalPrice,
-          }
-        );
-
-        return res.redirect(
-          "/profile?success=booked"
-        );
-
-      } catch (error) {
-        console.error(
-          "❌ Booking Submission Error:",
-          error
-        );
-
-        if (
-          error.name ===
-          "ValidationError"
-        ) {
-          return res.redirect(
-            "/booking?error=invalid_booking"
-          );
-        }
-
-        return res.redirect(
-          "/booking?error=failed"
-        );
-      }
-    }
-  );
-
-  // ============================================================
-  // USER APPOINTMENT CANCELLATION
-  // ============================================================
-
-  app.post(
-    "/appointment/cancel/:appointmentId",
-    requireUser,
-    async (req, res) => {
-      try {
-        const {
-          appointmentId,
-        } = req.params;
-
-        if (
-          !isValidObjectId(
-            appointmentId
-          )
-        ) {
-          return res.status(400).json({
-            success: false,
-
-            message:
-              "Invalid appointment ID.",
-          });
-        }
-
-        const appointment =
-          await Appointment.findById(
-            appointmentId
-          );
-
-        if (!appointment) {
-          return res.status(404).json({
-            success: false,
-
-            message:
-              "Appointment not found.",
-          });
-        }
-
-        // ------------------------------------------------------
-        // Ownership check
-        // ------------------------------------------------------
-
-        if (
-          appointment.userId.toString() !==
-          req.session.userId.toString()
-        ) {
-          return res.status(403).json({
-            success: false,
-
-            message:
-              "Unauthorized action.",
-          });
-        }
-
-        // ------------------------------------------------------
-        // Status validation
-        // ------------------------------------------------------
-
-        if (
-          appointment.status ===
-          "declined"
-        ) {
-          return res.status(400).json({
-            success: false,
-
-            message:
-              "A declined booking cannot be cancelled.",
-          });
-        }
-
-        if (
-          appointment.status ===
-          "cancelled"
-        ) {
-          return res.status(400).json({
-            success: false,
-
-            message:
-              "This booking has already been cancelled.",
-          });
-        }
-
-        // ------------------------------------------------------
-        // Preserve booking history
-        // ------------------------------------------------------
-
-        appointment.status =
-          "cancelled";
-
-        await appointment.save();
-
-        console.log(
-          `🗑️ Booking ${appointmentId} cancelled by user.`
-        );
-
-        return res.json({
-          success: true,
+            false,
 
           message:
-            "Appointment cancelled successfully.",
-
-          appointment: {
-            id:
-              appointment._id,
-
-            status:
-              appointment.status,
-          },
+            "Resource not found."
         });
-
-      } catch (error) {
-        console.error(
-          "Appointment Cancellation Error:",
-          error
-        );
-
-        return res.status(500).json({
-          success: false,
-
-          message:
-            "Failed to cancel appointment.",
-        });
-      }
     }
-  );
 
-  // ============================================================
-  // PUBLIC PAGES
-  // ============================================================
-
-  app.get(
-    "/",
-    (req, res) => {
-      res.render(
-        "index",
-        {
-          title:
-            "Puffer Isle Resort",
-        }
-      );
-    }
-  );
-
-  app.get(
-    "/gallery",
-    (req, res) => {
-      res.render(
-        "gallery",
-        {
-          title:
-            "Explore Resort",
-        }
-      );
-    }
-  );
-
-  app.get(
-    "/rules",
-    (req, res) => {
-      res.render(
-        "rules",
-        {
-          title:
-            "Island Rules",
-        }
-      );
-    }
-  );
-
-  // ============================================================
-  // 404
-  // ============================================================
-
-  app.use(
-    (req, res) => {
-      // Prefer the custom EJS page when it exists.
-      // If views/404.ejs is missing, return a simple HTML
-      // fallback instead of throwing another view-lookup error.
-      res.status(404).render(
-        "404",
-        {
-          title:
-            "404 - Lost in Paradise",
-        },
-        (renderError, html) => {
-          if (renderError) {
-            console.error(
-              "404 View Error:",
-              renderError
-            );
-
-            return res.status(404).send(`
-              <!DOCTYPE html>
-              <html lang="en">
-              <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>404 - Lost in Paradise</title>
-                <style>
-                  body {
-                    margin: 0;
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-family: Arial, sans-serif;
-                    text-align: center;
-                    background: #003f3f;
-                    color: #fff;
-                  }
-                  main {
-                    padding: 40px;
-                  }
-                  h1 {
-                    margin: 0 0 12px;
-                    font-size: 72px;
-                  }
-                  p {
-                    margin: 0 0 24px;
-                    opacity: 0.8;
-                  }
-                  a {
-                    display: inline-block;
-                    padding: 12px 20px;
-                    border-radius: 10px;
-                    background: #ffd700;
-                    color: #111;
-                    text-decoration: none;
-                    font-weight: 700;
-                  }
-                </style>
-              </head>
-              <body>
-                <main>
-                  <h1>404</h1>
-                  <p>The page you're looking for could not be found.</p>
-                  <a href="/">Return to Puffer Isle</a>
-                </main>
-              </body>
-              </html>
-            `);
-          }
-
-          return res.send(html);
-        }
-      );
-    }
-  );
-
-  // ============================================================
-  // GLOBAL ERROR HANDLER
-  // ============================================================
-
-  app.use(
-    (error, req, res, next) => {
-      console.error(
-        "Unhandled Server Error:",
-        error
-      );
-
-      if (res.headersSent) {
-        return next(error);
-      }
-
-      // Prefer the custom error EJS page. If it is missing,
-      // provide a plain HTML fallback instead of throwing a
-      // second "Failed to lookup view" error.
-      res.status(500).render(
+    return res
+      .status(404)
+      .render(
         "error",
         {
           title:
-            "Server Error",
+            "Page Not Found | Puffer Isle Resort",
 
-          message:
-            "Something went wrong. Please try again later.",
-        },
-        (renderError, html) => {
-          if (renderError) {
-            console.error(
-              "Error View Error:",
-              renderError
-            );
+          statusCode:
+            404,
 
-            return res.status(500).send(`
-              <!DOCTYPE html>
-              <html lang="en">
-              <head>
-                <meta charset="UTF-8">
-                <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                <title>Server Error</title>
-                <style>
-                  body {
-                    margin: 0;
-                    min-height: 100vh;
-                    display: flex;
-                    align-items: center;
-                    justify-content: center;
-                    font-family: Arial, sans-serif;
-                    text-align: center;
-                    background: #003f3f;
-                    color: #fff;
-                  }
-                  main {
-                    padding: 40px;
-                  }
-                  h1 {
-                    margin: 0 0 12px;
-                  }
-                  p {
-                    margin: 0;
-                    opacity: 0.8;
-                  }
-                </style>
-              </head>
-              <body>
-                <main>
-                  <h1>Something went wrong</h1>
-                  <p>Please try again later.</p>
-                </main>
-              </body>
-              </html>
-            `);
-          }
-
-          return res.send(html);
+          error:
+            "The page you requested could not be found."
         }
       );
+  }
+);
+
+/* ============================================================
+   GLOBAL ERROR HANDLER
+   ============================================================ */
+
+app.use(
+  (
+    error,
+    req,
+    res,
+    next
+  ) => {
+    console.error(
+      "UNHANDLED APPLICATION ERROR:",
+      error
+    );
+
+    if (
+      res.headersSent
+    ) {
+      return next(
+        error
+      );
+    }
+
+    const isApi =
+      req.path.startsWith(
+        "/admin/api/"
+      ) ||
+      req.path ===
+        "/health" ||
+      req.path ===
+        "/ready";
+
+    if (isApi) {
+      return res
+        .status(500)
+        .json({
+          success:
+            false,
+
+          message:
+            "Internal server error."
+        });
+    }
+
+    return res
+      .status(500)
+      .render(
+        "error",
+        {
+          title:
+            "Server Error | Puffer Isle Resort",
+
+          statusCode:
+            500,
+
+          error:
+            IS_PRODUCTION
+              ? "Something went wrong while processing your request."
+              : error.message ||
+                "Something went wrong."
+        }
+      );
+  }
+);
+
+/* ============================================================
+   DATABASE
+   ============================================================ */
+
+async function connectDatabase() {
+  console.log(
+    "🔌 Connecting to MongoDB..."
+  );
+
+  await mongoose.connect(
+    EFFECTIVE_MONGO_URI,
+    {
+      serverSelectionTimeoutMS:
+        10000,
+
+      connectTimeoutMS:
+        10000,
+
+      socketTimeoutMS:
+        45000,
+
+      maxPoolSize:
+        IS_PRODUCTION
+          ? 20
+          : 10,
+
+      minPoolSize:
+        IS_PRODUCTION
+          ? 2
+          : 0,
+
+      autoIndex:
+        !IS_PRODUCTION
     }
   );
 
-  // ============================================================
-  // START SERVER
-  // ============================================================
+  console.log(
+    `✅ MongoDB connected: ${mongoose.connection.name}`
+  );
+}
 
-  async function startServer() {
-    await connectDB();
+/* ============================================================
+   DATABASE EVENTS
+   ============================================================ */
 
-    app.listen(
-      PORT,
-      () => {
-        console.log(
-          `🚀 Isle RMS Active: http://localhost:${PORT}`
+mongoose.connection.on(
+  "connected",
+  () => {
+    console.log(
+      "🟢 Mongoose connection established."
+    );
+  }
+);
+
+mongoose.connection.on(
+  "error",
+  (error) => {
+    console.error(
+      "🔴 MongoDB connection error:",
+      error
+    );
+  }
+);
+
+mongoose.connection.on(
+  "disconnected",
+  () => {
+    console.warn(
+      "🟡 MongoDB disconnected."
+    );
+  }
+);
+
+/* ============================================================
+   DEFAULT ADMIN
+   ============================================================ */
+
+async function ensureDefaultAdmin() {
+  if (
+    !ADMIN_USERNAME ||
+    !ADMIN_PASSWORD
+  ) {
+    console.warn(
+      "⚠️ ADMIN_USERNAME / ADMIN_PASSWORD not configured. Default admin creation skipped."
+    );
+
+    return;
+  }
+
+  const normalizedUsername =
+    ADMIN_USERNAME
+      .trim()
+      .toLowerCase();
+
+  try {
+    let admin =
+      await Admin.findOne({
+        username:
+          normalizedUsername
+      }).select(
+        "+password"
+      );
+
+    if (!admin) {
+      admin =
+        new Admin({
+          username:
+            normalizedUsername
+        });
+
+      if (
+        typeof admin.setPassword ===
+        "function"
+      ) {
+        await admin.setPassword(
+          ADMIN_PASSWORD
         );
+      } else {
+        admin.password =
+          ADMIN_PASSWORD;
+      }
 
-        console.log(
-          "🏝️ Puffer Isle Resort System Ready"
+      await admin.save();
+
+      console.log(
+        `✅ Default admin created: ${normalizedUsername}`
+      );
+
+      return;
+    }
+
+    console.log(
+      `ℹ️ Admin account already exists: ${normalizedUsername}`
+    );
+  } catch (error) {
+    console.error(
+      "❌ Unable to ensure default admin:",
+      error
+    );
+
+    if (IS_PRODUCTION) {
+      throw error;
+    }
+  }
+}
+
+/* ============================================================
+   START SERVER
+   ============================================================ */
+
+let httpServer =
+  null;
+
+async function startServer() {
+  try {
+    console.log("");
+
+    console.log(
+      "=============================================="
+    );
+
+    console.log(
+      "🏝️  PUFFER ISLE RESORT | IsleRMS"
+    );
+
+    console.log(
+      "=============================================="
+    );
+
+    console.log(
+      `🧭 Environment: ${NODE_ENV}`
+    );
+
+    console.log(
+      `📡 Host: ${HOST}`
+    );
+
+    console.log(
+      `🔌 Port: ${PORT}`
+    );
+
+    await connectDatabase();
+
+    await ensureDefaultAdmin();
+
+    httpServer =
+      app.listen(
+        PORT,
+        HOST,
+        () => {
+          console.log("");
+
+          console.log(
+            "✅ SERVER STARTED"
+          );
+
+          console.log(
+            "----------------------------------------------"
+          );
+
+          if (
+            HOST ===
+            "127.0.0.1"
+          ) {
+            console.log(
+              `🌐 Local: http://localhost:${PORT}`
+            );
+          } else {
+            console.log(
+              `🌐 Listening on ${HOST}:${PORT}`
+            );
+          }
+
+          console.log(
+            "🔐 Admin: /admin/login"
+          );
+
+          console.log(
+            "❤️  Health: /health"
+          );
+
+          console.log(
+            "✅ Ready: /ready"
+          );
+
+          console.log(
+            `🗄️ MongoDB: ${mongoose.connection.name}`
+          );
+
+          console.log(
+            "=============================================="
+          );
+
+          console.log("");
+        }
+      );
+  } catch (error) {
+    console.error("");
+
+    console.error(
+      "❌ SERVER STARTUP FAILED"
+    );
+
+    console.error(
+      "----------------------------------------------"
+    );
+
+    console.error(
+      error.message
+    );
+
+    console.error(
+      "----------------------------------------------"
+    );
+
+    if (
+      String(
+        error.message
+      ).includes(
+        "ECONNREFUSED"
+      )
+    ) {
+      console.error(
+        "💡 Make sure MongoDB is running."
+      );
+    }
+
+    if (
+      String(
+        error.message
+      )
+        .toLowerCase()
+        .includes(
+          "authentication failed"
+        )
+    ) {
+      console.error(
+        "💡 Check your MongoDB credentials."
+      );
+    }
+
+    process.exit(1);
+  }
+}
+
+/* ============================================================
+   GRACEFUL SHUTDOWN
+   ============================================================ */
+
+let shuttingDown =
+  false;
+
+async function gracefulShutdown(
+  signal
+) {
+  if (shuttingDown) {
+    return;
+  }
+
+  shuttingDown =
+    true;
+
+  console.log("");
+
+  console.log(
+    `🛑 ${signal} received. Starting graceful shutdown...`
+  );
+
+  if (httpServer) {
+    await new Promise(
+      (resolve) => {
+        httpServer.close(
+          () => {
+            console.log(
+              "🌐 HTTP server closed."
+            );
+
+            resolve();
+          }
         );
       }
     );
   }
 
-  startServer()
-    .catch((error) => {
-      console.error(
-        "❌ Failed to start server:",
-        error
-      );
+  try {
+    await mongoose.connection.close(
+      false
+    );
 
-      process.exit(1);
-    });
+    console.log(
+      "🗄️ MongoDB connection closed."
+    );
+  } catch (error) {
+    console.error(
+      "Error closing MongoDB:",
+      error
+    );
+  }
 
-  // ============================================================
-  // EXPORT APP
-  // ============================================================
+  console.log(
+    "✅ Shutdown complete."
+  );
 
-  module.exports = app;
+  process.exit(0);
+}
+
+/* ============================================================
+   PROCESS SIGNALS
+   ============================================================ */
+
+process.on(
+  "SIGINT",
+  () => {
+    gracefulShutdown(
+      "SIGINT"
+    );
+  }
+);
+
+process.on(
+  "SIGTERM",
+  () => {
+    gracefulShutdown(
+      "SIGTERM"
+    );
+  }
+);
+
+process.on(
+  "unhandledRejection",
+  (reason) => {
+    console.error(
+      "UNHANDLED PROMISE REJECTION:",
+      reason
+    );
+  }
+);
+
+process.on(
+  "uncaughtException",
+  (error) => {
+    console.error(
+      "UNCAUGHT EXCEPTION:",
+      error
+    );
+
+    gracefulShutdown(
+      "UNCAUGHT_EXCEPTION"
+    ).catch(
+      () =>
+        process.exit(1)
+    );
+  }
+);
+
+/* ============================================================
+   EXPORTS
+   ============================================================ */
+
+module.exports = {
+  app,
+  startServer,
+  requireUser,
+  requireAdmin,
+  createUserSessionData,
+  createAdminSessionData,
+  regenerateSession,
+  saveSession,
+  destroySession
+};
+
+/* ============================================================
+   START
+   ============================================================ */
+
+if (
+  require.main ===
+  module
+) {
+  startServer();
+}

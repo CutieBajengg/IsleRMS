@@ -1,95 +1,136 @@
-// ============================================================
-// Puffer Isle Resort | Isle RMS
-// routes/userRoutes.js
-//
-// User-facing routes for:
-// - Booking
-// - Profile
-// - Appointment history
-// - Notifications
-// - Live updates
-// - Appointment cancellation
-//
-// IMPORTANT:
-// This router uses the SAME session structure as server.js:
-//
-// req.session.user
-//
-// It does NOT use req.session.userId.
-// ============================================================
+"use strict";
+
+/*
+|--------------------------------------------------------------------------
+| Puffer Isle Resort | IsleRMS
+| routes/userRoutes.js
+|--------------------------------------------------------------------------
+| User-facing routes for:
+|
+| - Booking page
+| - Dynamic room catalog
+| - Dynamic add-on catalog
+| - Server-side booking pricing
+| - Appointment history
+| - Notifications
+| - Live user updates
+| - User booking cancellation
+|
+| IMPORTANT:
+| The customer/browser NEVER controls the final booking price.
+|
+| Current catalog prices come from:
+|   models/Room.js
+|   models/AddOn.js
+|
+| Historical booking prices are stored in:
+|   models/Appointment.js
+|--------------------------------------------------------------------------
+*/
 
 const express = require("express");
+const mongoose = require("mongoose");
 
 const router = express.Router();
-
-const mongoose = require("mongoose");
 
 const Appointment = require("../models/Appointment");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
+const Room = require("../models/Room");
+const AddOn = require("../models/AddOn");
 
+/*
+|--------------------------------------------------------------------------
+| Constants
+|--------------------------------------------------------------------------
+*/
 
-// ============================================================
-// CONSTANTS
-// ============================================================
-
-const ALLOWED_ROOMS = [
-  "Aircon Room",
-  "Fan Room",
-  "Seaside Cottage",
-];
-
-const GUEST_LIMITS = {
-  "Aircon Room": 8,
-  "Fan Room": 6,
-  "Seaside Cottage": 6,
-};
-
-const ACTIVE_BOOKING_STATUSES = [
+const BLOCKING_STATUSES = [
   "pending",
   "accepted",
+  "confirmed",
+  "checked-in",
 ];
 
 const CANCELLABLE_STATUSES = [
   "pending",
   "accepted",
+  "confirmed",
 ];
 
-
-// ============================================================
-// AUTHENTICATION MIDDLEWARE
-// ============================================================
+/*
+|--------------------------------------------------------------------------
+| Authentication
+|--------------------------------------------------------------------------
+*/
 
 function requireLogin(req, res, next) {
   if (!req.session?.user) {
-    return res.redirect("/");
+    return res.redirect(
+      "/?error=" +
+        encodeURIComponent(
+          "Please log in to continue."
+        )
+    );
   }
 
   next();
 }
 
-
-// ============================================================
-// OBJECT ID VALIDATION
-// ============================================================
+/*
+|--------------------------------------------------------------------------
+| Generic Helpers
+|--------------------------------------------------------------------------
+*/
 
 function isValidObjectId(id) {
   return mongoose.Types.ObjectId.isValid(id);
 }
 
-
-// ============================================================
-// SESSION USER ID
-// ============================================================
-
-function getSessionUserId(req) {
-  return req.session?.user?._id || null;
+function normalizeString(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
 }
 
+function parseNumber(value, fallback = 0) {
+  const number = Number(value);
 
-// ============================================================
-// DATE HELPERS
-// ============================================================
+  return Number.isFinite(number)
+    ? number
+    : fallback;
+}
+
+function getSessionUserId(req) {
+  /*
+   * Support both:
+   *
+   * req.session.user.id
+   * req.session.user._id
+   *
+   * This keeps the router compatible with the
+   * current server session structure.
+   */
+  return (
+    req.session?.user?.id ||
+    req.session?.user?._id ||
+    null
+  );
+}
+
+function wantsJson(req) {
+  return Boolean(
+    req.headers.accept?.includes(
+      "application/json"
+    )
+  );
+}
+
+/*
+|--------------------------------------------------------------------------
+| Date Helpers
+|--------------------------------------------------------------------------
+*/
 
 function parseBookingDate(value) {
   if (!value) {
@@ -105,8 +146,10 @@ function parseBookingDate(value) {
   return date;
 }
 
-
-function validateBookingDates(checkin, checkout) {
+function validateBookingDates(
+  checkin,
+  checkout
+) {
   const start = parseBookingDate(checkin);
   const end = parseBookingDate(checkout);
 
@@ -120,7 +163,8 @@ function validateBookingDates(checkin, checkout) {
   if (end <= start) {
     return {
       valid: false,
-      message: "Check-out must be after check-in.",
+      message:
+        "Check-out must be after check-in.",
     };
   }
 
@@ -130,11 +174,6 @@ function validateBookingDates(checkin, checkout) {
     end,
   };
 }
-
-
-// ============================================================
-// DATE / PAST-BOOKING VALIDATION
-// ============================================================
 
 function isDateInPast(date) {
   const now = new Date();
@@ -148,88 +187,282 @@ function isDateInPast(date) {
   return date < todayStart;
 }
 
+function getNumberOfNights(
+  checkin,
+  checkout
+) {
+  const start = new Date(checkin);
+  const end = new Date(checkout);
 
-// ============================================================
-// GUEST VALIDATION
-// ============================================================
+  const milliseconds =
+    end.getTime() - start.getTime();
 
-function validateGuests(room, guests) {
-  const guestCount = Number(guests);
-
-  if (!Number.isInteger(guestCount)) {
-    return {
-      valid: false,
-      message: "Guest count must be a whole number.",
-    };
-  }
-
-  if (guestCount < 1) {
-    return {
-      valid: false,
-      message: "At least one guest is required.",
-    };
-  }
-
-  const maximumGuests = GUEST_LIMITS[room];
-
-  if (!maximumGuests) {
-    return {
-      valid: false,
-      message: "Invalid room selected.",
-    };
-  }
-
-  if (guestCount > maximumGuests) {
-    return {
-      valid: false,
-      message:
-        `The ${room} allows a maximum of ${maximumGuests} guests.`,
-    };
-  }
-
-  return {
-    valid: true,
-    guestCount,
-  };
+  return Math.ceil(
+    milliseconds /
+      (1000 * 60 * 60 * 24)
+  );
 }
 
+/*
+|--------------------------------------------------------------------------
+| Room Catalog
+|--------------------------------------------------------------------------
+*/
 
-// ============================================================
-// COTTAGE ADD-ON NORMALIZATION
-// ============================================================
-
-function normalizeCottageAddon(room, value) {
-  const requestedAddon =
-    value === true ||
-    value === "true" ||
-    value === "on" ||
-    value === 1 ||
-    value === "1";
-
-  // Seaside Cottage already IS a cottage.
-  // Never charge the add-on for it.
-  if (room === "Seaside Cottage") {
-    return false;
-  }
-
-  return requestedAddon;
+async function getActiveRooms() {
+  return Room.find({
+    active: true,
+  })
+    .sort({
+      sortOrder: 1,
+      name: 1,
+    })
+    .lean();
 }
 
+async function findRoomBySelection(
+  selection
+) {
+  const requested = normalizeString(
+    selection
+  );
 
-// ============================================================
-// ROOM AVAILABILITY
-// ============================================================
-//
-// Booking overlap rule:
-//
-// existing.checkin < requested.checkout
-// AND
-// existing.checkout > requested.checkin
-//
-// Pending and accepted bookings reserve the room.
-//
-// Declined and cancelled bookings do not.
-// ============================================================
+  if (!requested) {
+    return null;
+  }
+
+  /*
+   * Try ObjectId first.
+   */
+  if (isValidObjectId(requested)) {
+    const roomById =
+      await Room.findOne({
+        _id: requested,
+        active: true,
+      }).lean();
+
+    if (roomById) {
+      return roomById;
+    }
+  }
+
+  /*
+   * Then try slug or name.
+   */
+  return Room.findOne({
+    active: true,
+    $or: [
+      {
+        slug: requested.toLowerCase(),
+      },
+      {
+        name: requested,
+      },
+    ],
+  }).lean();
+}
+
+/*
+|--------------------------------------------------------------------------
+| Add-on Catalog
+|--------------------------------------------------------------------------
+*/
+
+async function getActiveAddOns() {
+  return AddOn.find({
+    active: true,
+  })
+    .sort({
+      sortOrder: 1,
+      name: 1,
+    })
+    .lean();
+}
+
+async function findAddOnBySelection(
+  selection
+) {
+  const requested = normalizeString(
+    selection
+  );
+
+  if (!requested) {
+    return null;
+  }
+
+  /*
+   * Try ObjectId first.
+   */
+  if (isValidObjectId(requested)) {
+    const addOnById =
+      await AddOn.findOne({
+        _id: requested,
+        active: true,
+      }).lean();
+
+    if (addOnById) {
+      return addOnById;
+    }
+  }
+
+  /*
+   * Then try slug or name.
+   */
+  return AddOn.findOne({
+    active: true,
+    $or: [
+      {
+        slug: requested.toLowerCase(),
+      },
+      {
+        name: requested,
+      },
+    ],
+  }).lean();
+}
+
+/*
+|--------------------------------------------------------------------------
+| Add-on Input Normalization
+|--------------------------------------------------------------------------
+|
+| The frontend may eventually send:
+|
+| addOns[]
+| addOnIds[]
+| addonIds[]
+| addOn
+| addon
+|
+| We normalize all of them into a simple array.
+|--------------------------------------------------------------------------
+*/
+
+function normalizeAddOnSelections(
+  body
+) {
+  const values = [];
+
+  const candidates = [
+    body.addOns,
+    body.addOnIds,
+    body.addonIds,
+    body.addOn,
+    body.addon,
+  ];
+
+  for (const candidate of candidates) {
+    if (Array.isArray(candidate)) {
+      values.push(...candidate);
+      continue;
+    }
+
+    if (
+      candidate !== undefined &&
+      candidate !== null &&
+      String(candidate).trim() !== ""
+    ) {
+      /*
+       * Support comma-separated form values too.
+       */
+      const pieces = String(candidate)
+        .split(",");
+
+      values.push(...pieces);
+    }
+  }
+
+  return [
+    ...new Set(
+      values
+        .map((value) =>
+          normalizeString(value)
+        )
+        .filter(Boolean)
+    ),
+  ];
+}
+
+/*
+|--------------------------------------------------------------------------
+| Legacy Cottage Compatibility
+|--------------------------------------------------------------------------
+|
+| Older forms used:
+|
+| cottageAddon=true
+|
+| The new system uses AddOn.js.
+|
+| Therefore, when that legacy field is received,
+| we try to locate an active cottage/seaside add-on
+| in the database.
+|--------------------------------------------------------------------------
+*/
+
+async function resolveLegacyCottageAddon(
+  body
+) {
+  const requested =
+    body.cottageAddon === true ||
+    body.cottageAddon === "true" ||
+    body.cottageAddon === "on" ||
+    body.cottageAddon === 1 ||
+    body.cottageAddon === "1" ||
+    body.cottage === true ||
+    body.cottage === "true" ||
+    body.cottage === "on" ||
+    body.cottage === 1 ||
+    body.cottage === "1";
+
+  if (!requested) {
+    return null;
+  }
+
+  const addOn =
+    await AddOn.findOne({
+      active: true,
+      $or: [
+        {
+          slug: {
+            $in: [
+              "seaside-cottage",
+              "cottage",
+            ],
+          },
+        },
+        {
+          name: {
+            $regex:
+              /seaside\s+cottage|cottage/i,
+          },
+        },
+      ],
+    })
+      .sort({
+        sortOrder: 1,
+        name: 1,
+      })
+      .lean();
+
+  return addOn || null;
+}
+
+/*
+|--------------------------------------------------------------------------
+| Booking Availability
+|--------------------------------------------------------------------------
+|
+| Standard hotel overlap:
+|
+| existing.checkin < requested.checkout
+| AND
+| existing.checkout > requested.checkin
+|
+| Pending, accepted, confirmed and checked-in
+| bookings occupy inventory.
+|--------------------------------------------------------------------------
+*/
 
 async function findConflictingBooking({
   room,
@@ -237,11 +470,15 @@ async function findConflictingBooking({
   checkout,
   excludeId = null,
 }) {
+  if (!room?._id) {
+    return null;
+  }
+
   const query = {
-    room,
+    roomId: room._id,
 
     status: {
-      $in: ACTIVE_BOOKING_STATUSES,
+      $in: BLOCKING_STATUSES,
     },
 
     checkin: {
@@ -262,31 +499,52 @@ async function findConflictingBooking({
     };
   }
 
-  return Appointment.findOne(query)
-    .sort({
-      checkin: 1,
-    })
-    .lean();
+  /*
+   * For the first deployment stage, a room with
+   * quantity = 1 is treated as a single reservable unit.
+   *
+   * If quantity is greater than 1, we count overlapping
+   * appointments and only block once all units are occupied.
+   */
+  const quantity =
+    Math.max(
+      1,
+      Math.floor(
+        parseNumber(
+          room.quantity,
+          1
+        )
+      )
+    );
+
+  const appointments =
+    await Appointment.find(query)
+      .sort({
+        checkin: 1,
+      })
+      .lean();
+
+  if (appointments.length >= quantity) {
+    return appointments[0];
+  }
+
+  return null;
 }
 
-
-// ============================================================
-// NOTIFICATION HELPER
-// ============================================================
-//
-// The Notification model is used here if it exists.
-//
-// Booking status notifications are also generated from
-// Appointment status by server.js.
-//
-// This helper therefore only creates an explicit booking
-// notification where appropriate.
-// ============================================================
+/*
+|--------------------------------------------------------------------------
+| Notification Helper
+|--------------------------------------------------------------------------
+|
+| Notification.js accepts appointment/system/alert.
+|
+| We therefore use "appointment".
+|--------------------------------------------------------------------------
+*/
 
 async function createBookingNotification({
   userId,
   message,
-  type = "booking",
 }) {
   try {
     if (!userId || !message) {
@@ -296,24 +554,140 @@ async function createBookingNotification({
     return await Notification.create({
       userId,
       message,
-      type,
+      type: "appointment",
     });
   } catch (error) {
-    // Notification failure should not destroy a successful
-    // booking operation.
+    /*
+     * Notification failure must not destroy
+     * an otherwise successful booking operation.
+     */
     console.error(
-      "⚠️ Notification creation failed:",
-      error
+      "Notification creation failed:",
+      error.message
     );
 
     return null;
   }
 }
 
+/*
+|--------------------------------------------------------------------------
+| Server-Side Pricing
+|--------------------------------------------------------------------------
+|
+| IMPORTANT:
+|
+| The request's totalPrice is NEVER used.
+|
+| Current Room/AddOn prices come from MongoDB.
+|
+| The final snapshot is generated through
+| Appointment.calculateSnapshotPrice().
+|--------------------------------------------------------------------------
+*/
 
-// ============================================================
-// 1. BOOKING PAGE
-// ============================================================
+async function calculateBookingPrice({
+  room,
+  addOnSelections,
+  checkin,
+  checkout,
+}) {
+  if (!room) {
+    return {
+      valid: false,
+      error:
+        "The selected room is not available.",
+    };
+  }
+
+  const nights =
+    getNumberOfNights(
+      checkin,
+      checkout
+    );
+
+  if (nights < 1) {
+    return {
+      valid: false,
+      error:
+        "Your stay must be at least one night.",
+    };
+  }
+
+  /*
+   * Resolve requested add-ons from the
+   * CURRENT database catalog.
+   */
+  const resolvedAddOns = [];
+
+  for (const selection of addOnSelections) {
+    const addOn =
+      await findAddOnBySelection(
+        selection
+      );
+
+    if (!addOn) {
+      return {
+        valid: false,
+        error:
+          "One of the selected add-ons is no longer available.",
+      };
+    }
+
+    resolvedAddOns.push({
+      addOnId: addOn._id,
+      name: addOn.name,
+      price: addOn.price,
+      pricingType:
+        addOn.pricingType,
+      quantity: 1,
+    });
+  }
+
+  /*
+   * Build the historical pricing snapshot.
+   */
+  const pricing =
+    Appointment.calculateSnapshotPrice({
+      roomPrice:
+        Number(room.price),
+
+      numberOfNights:
+        nights,
+
+      addOns:
+        resolvedAddOns,
+    });
+
+  return {
+    valid: true,
+
+    room,
+
+    nights,
+
+    roomPrice:
+      pricing.roomPrice,
+
+    roomSubtotal:
+      pricing.roomSubtotal,
+
+    addOns:
+      pricing.addOns,
+
+    addOnSubtotal:
+      pricing.addOnSubtotal,
+
+    totalPrice:
+      pricing.totalPrice,
+  };
+}
+
+/*
+|--------------------------------------------------------------------------
+| BOOKING PAGE
+|--------------------------------------------------------------------------
+*/
 
 router.get(
   "/booking",
@@ -332,24 +706,32 @@ router.get(
         );
       }
 
-      const user =
-        await User.findById(userId)
-          .lean();
+      const [
+        user,
+        appointments,
+        rooms,
+        addOns,
+      ] = await Promise.all([
+        User.findById(userId).lean(),
+
+        Appointment.find({
+          userId,
+        })
+          .sort({
+            createdAt: -1,
+          })
+          .lean(),
+
+        getActiveRooms(),
+
+        getActiveAddOns(),
+      ]);
 
       if (!user) {
         return req.session.destroy(
           () => res.redirect("/")
         );
       }
-
-      const appointments =
-        await Appointment.find({
-          userId,
-        })
-          .sort({
-            createdAt: -1,
-          })
-          .lean();
 
       return res.render(
         "appointments",
@@ -361,6 +743,21 @@ router.get(
 
           appointments,
 
+          rooms,
+
+          addOns,
+
+          /*
+           * Compatibility data for older EJS templates.
+           */
+          cottage:
+            addOns.find(
+              (addOn) =>
+                /cottage/i.test(
+                  addOn.name
+                )
+            ) || null,
+
           error:
             req.query.error ||
             null,
@@ -370,10 +767,9 @@ router.get(
             null,
         }
       );
-
     } catch (error) {
       console.error(
-        "❌ Booking Page Error:",
+        "Booking Page Error:",
         error
       );
 
@@ -391,74 +787,84 @@ router.get(
   }
 );
 
-
-// ============================================================
-// 2. USER PROFILE
-// ============================================================
-//
-// Supports:
-// /profile/:id
-//
-// The main server.js also has:
-//
-// /profile
-//
-// We keep this route for compatibility with projects that
-// mount userRoutes separately.
-// ============================================================
-// ============================================================
-// PROFILE
-// ============================================================
+/*
+|--------------------------------------------------------------------------
+| USER PROFILE
+|--------------------------------------------------------------------------
+*/
 
 router.get(
   "/profile",
   requireLogin,
   async (req, res) => {
     try {
-      const userId = getSessionUserId(req);
+      const userId =
+        getSessionUserId(req);
 
-      if (!userId || !isValidObjectId(userId)) {
-        return req.session.destroy(() =>
-          res.redirect("/")
+      if (
+        !userId ||
+        !isValidObjectId(userId)
+      ) {
+        return req.session.destroy(
+          () => res.redirect("/")
         );
       }
 
-      const user = await User.findById(userId).lean();
-
-      if (!user) {
-        return req.session.destroy(() =>
-          res.redirect("/")
-        );
-      }
-
-      const [appointments, notifications] =
-        await Promise.all([
-          Appointment.find({ userId })
-            .sort({ createdAt: -1 })
-            .lean(),
-
-          Notification.find({ userId })
-            .sort({ createdAt: -1 })
-            .lean(),
-        ]);
-
-      return res.render("profile", {
-        title: `${user.fullname} | Isle RMS Profile`,
+      const [
         user,
         appointments,
         notifications,
-      });
+      ] = await Promise.all([
+        User.findById(userId).lean(),
 
+        Appointment.find({
+          userId,
+        })
+          .sort({
+            createdAt: -1,
+          })
+          .lean(),
+
+        Notification.find({
+          userId,
+        })
+          .sort({
+            createdAt: -1,
+          })
+          .lean(),
+      ]);
+
+      if (!user) {
+        return req.session.destroy(
+          () => res.redirect("/")
+        );
+      }
+
+      return res.render(
+        "profile",
+        {
+          title:
+            `${user.fullname || "User"} | Isle RMS Profile`,
+
+          user,
+
+          appointments,
+
+          notifications,
+        }
+      );
     } catch (error) {
       console.error(
-        "❌ Profile Error:",
+        "Profile Error:",
         error
       );
 
       return res.status(500).render(
         "error",
         {
-          title: "Profile Error",
+          title:
+            "Profile Error",
+
           message:
             "An error occurred while loading your profile.",
         }
@@ -497,8 +903,8 @@ router.get(
 
       if (
         !sessionUserId ||
-        sessionUserId.toString() !==
-          requestedUserId.toString()
+        String(sessionUserId) !==
+          String(requestedUserId)
       ) {
         return res.status(403).render(
           "error",
@@ -512,28 +918,15 @@ router.get(
         );
       }
 
-      const user =
-        await User.findById(
-          requestedUserId
-        ).lean();
-
-      if (!user) {
-        return res.status(404).render(
-          "error",
-          {
-            title:
-              "User Not Found",
-
-            message:
-              "The requested user account could not be found.",
-          }
-        );
-      }
-
       const [
+        user,
         appointments,
         notifications,
       ] = await Promise.all([
+        User.findById(
+          requestedUserId
+        ).lean(),
+
         Appointment.find({
           userId:
             requestedUserId,
@@ -553,11 +946,24 @@ router.get(
           .lean(),
       ]);
 
+      if (!user) {
+        return res.status(404).render(
+          "error",
+          {
+            title:
+              "User Not Found",
+
+            message:
+              "The requested user account could not be found.",
+          }
+        );
+      }
+
       return res.render(
         "profile",
         {
           title:
-            `${user.fullname} | Isle RMS Profile`,
+            `${user.fullname || "User"} | Isle RMS Profile`,
 
           user,
 
@@ -566,10 +972,9 @@ router.get(
           notifications,
         }
       );
-
     } catch (error) {
       console.error(
-        "❌ User Profile Error:",
+        "User Profile Error:",
         error
       );
 
@@ -587,56 +992,34 @@ router.get(
   }
 );
 
+/*
+|--------------------------------------------------------------------------
+| SUBMIT BOOKING
+|--------------------------------------------------------------------------
+|
+| Supported:
+|
+| POST /appointment/submit
+| POST /booking/submit
+|
+| The second route is retained for compatibility with
+| the current appointments.ejs until that view is updated.
+|--------------------------------------------------------------------------
+*/
 
-// ============================================================
-// 3. SUBMIT BOOKING
-// ============================================================
-//
-// IMPORTANT:
-//
-// The browser is NOT trusted.
-//
-// We validate:
-// 1. Authentication
-// 2. Required fields
-// 3. Room
-// 4. Guests
-// 5. Dates
-// 6. Past dates
-// 7. Cottage add-on
-// 8. Room availability
-// 9. Server-side price
-//
-// req.body.totalPrice is deliberately ignored.
-// ============================================================
+async function submitBooking(
+  req,
+  res
+) {
+  try {
+    const userId =
+      getSessionUserId(req);
 
-router.post(
-  "/appointment/submit",
-  requireLogin,
-  async (req, res) => {
-    try {
-      const {
-        room,
-        cottageAddon,
-        guests,
-        contact,
-        checkin,
-        checkout,
-        specialRequests,
-      } = req.body;
-
-      const userId =
-        getSessionUserId(req);
-
-
-      // --------------------------------------------------------
-      // SESSION VALIDATION
-      // --------------------------------------------------------
-
-      if (
-        !userId ||
-        !isValidObjectId(userId)
-      ) {
+    if (
+      !userId ||
+      !isValidObjectId(userId)
+    ) {
+      if (wantsJson(req)) {
         return res.status(401).json({
           success: false,
           message:
@@ -644,80 +1027,94 @@ router.post(
         });
       }
 
+      return res.redirect(
+        "/?error=" +
+          encodeURIComponent(
+            "Your session has expired. Please log in again."
+          )
+      );
+    }
 
-      // --------------------------------------------------------
-      // REQUIRED FIELDS
-      // --------------------------------------------------------
+    /*
+     * Accept several common field names
+     * for frontend compatibility.
+     */
+    const roomSelection =
+      normalizeString(
+        req.body.room ||
+          req.body.roomId ||
+          req.body.roomType ||
+          req.body.accommodation
+      );
 
-      if (
-        !room ||
-        !checkin ||
-        !checkout ||
-        guests === undefined ||
-        guests === null ||
-        !contact
-      ) {
+    const guests = Math.floor(
+      parseNumber(
+        req.body.guests,
+        0
+      )
+    );
+
+    const contact =
+      normalizeString(
+        req.body.contact ||
+          req.body.phone ||
+          req.body.contactNumber
+      );
+
+    const checkinValue =
+      req.body.checkin ||
+      req.body.checkIn ||
+      req.body.checkInDate;
+
+    const checkoutValue =
+      req.body.checkout ||
+      req.body.checkOut ||
+      req.body.checkOutDate;
+
+    const specialRequests =
+      normalizeString(
+        req.body.specialRequests
+      );
+
+    /*
+     * Required fields.
+     */
+    if (
+      !roomSelection ||
+      !contact ||
+      !checkinValue ||
+      !checkoutValue ||
+      guests < 1
+    ) {
+      if (wantsJson(req)) {
         return res.status(400).json({
           success: false,
+          code:
+            "MISSING_BOOKING_FIELDS",
           message:
             "Please complete all required booking fields.",
         });
       }
 
+      return res.redirect(
+        "/booking?error=" +
+          encodeURIComponent(
+            "Please complete all required booking fields."
+          )
+      );
+    }
 
-      // --------------------------------------------------------
-      // ROOM VALIDATION
-      // --------------------------------------------------------
+    /*
+     * Date validation.
+     */
+    const dateValidation =
+      validateBookingDates(
+        checkinValue,
+        checkoutValue
+      );
 
-      if (
-        !ALLOWED_ROOMS.includes(room)
-      ) {
-        return res.status(400).json({
-          success: false,
-          code:
-            "INVALID_ROOM",
-          message:
-            "The selected accommodation is not available.",
-        });
-      }
-
-
-      // --------------------------------------------------------
-      // GUEST VALIDATION
-      // --------------------------------------------------------
-
-      const guestValidation =
-        validateGuests(
-          room,
-          guests
-        );
-
-      if (
-        !guestValidation.valid
-      ) {
-        return res.status(400).json({
-          success: false,
-          code:
-            "INVALID_GUEST_COUNT",
-          message:
-            guestValidation.message,
-        });
-      }
-
-
-      // --------------------------------------------------------
-      // DATE VALIDATION
-      // --------------------------------------------------------
-
-      const dateValidation =
-        validateBookingDates(
-          checkin,
-          checkout
-        );
-
-      if (
-        !dateValidation.valid
-      ) {
+    if (!dateValidation.valid) {
+      if (wantsJson(req)) {
         return res.status(400).json({
           success: false,
           code:
@@ -727,19 +1124,24 @@ router.post(
         });
       }
 
-      const {
-        start,
-        end,
-      } = dateValidation;
+      return res.redirect(
+        "/booking?error=" +
+          encodeURIComponent(
+            dateValidation.message
+          )
+      );
+    }
 
+    const {
+      start,
+      end,
+    } = dateValidation;
 
-      // --------------------------------------------------------
-      // PAST DATE VALIDATION
-      // --------------------------------------------------------
-
-      if (
-        isDateInPast(start)
-      ) {
+    /*
+     * Past date protection.
+     */
+    if (isDateInPast(start)) {
+      if (wantsJson(req)) {
         return res.status(400).json({
           success: false,
           code:
@@ -749,18 +1151,19 @@ router.post(
         });
       }
 
+      return res.redirect(
+        "/booking?error=" +
+          encodeURIComponent(
+            "Check-in cannot be in the past."
+          )
+      );
+    }
 
-      // --------------------------------------------------------
-      // CONTACT VALIDATION
-      // --------------------------------------------------------
-
-      const normalizedContact =
-        String(contact)
-          .trim();
-
-      if (
-        normalizedContact.length < 3
-      ) {
+    /*
+     * Contact validation.
+     */
+    if (contact.length < 3) {
+      if (wantsJson(req)) {
         return res.status(400).json({
           success: false,
           code:
@@ -770,178 +1173,364 @@ router.post(
         });
       }
 
+      return res.redirect(
+        "/booking?error=" +
+          encodeURIComponent(
+            "Please provide a valid contact number."
+          )
+      );
+    }
 
-      // --------------------------------------------------------
-      // SPECIAL REQUESTS
-      // --------------------------------------------------------
+    /*
+     * Load the CURRENT active room from MongoDB.
+     */
+    const room =
+      await findRoomBySelection(
+        roomSelection
+      );
 
-      const normalizedSpecialRequests =
-        specialRequests
-          ? String(
-              specialRequests
-            ).trim()
-          : "";
-
-
-      // --------------------------------------------------------
-      // COTTAGE ADD-ON
-      // --------------------------------------------------------
-
-      const finalCottageAddon =
-        normalizeCottageAddon(
-          room,
-          cottageAddon
-        );
-
-
-      // --------------------------------------------------------
-      // DOUBLE-BOOKING CHECK
-      // --------------------------------------------------------
-
-      const conflict =
-        await findConflictingBooking({
-          room,
-
-          checkin:
-            start,
-
-          checkout:
-            end,
-        });
-
-
-      if (conflict) {
-        console.warn(
-          "⚠️ User booking rejected because room is unavailable:",
-          {
-            room,
-
-            requestedCheckin:
-              start,
-
-            requestedCheckout:
-              end,
-
-            conflictingBooking:
-              conflict._id,
-          }
-        );
-
-        return res.status(409).json({
+    if (!room) {
+      if (wantsJson(req)) {
+        return res.status(400).json({
           success: false,
-
           code:
-            "ROOM_ALREADY_BOOKED",
-
+            "INVALID_ROOM",
           message:
-            "This accommodation is already reserved for part or all of your selected dates.",
+            "The selected accommodation is not available.",
         });
       }
 
+      return res.redirect(
+        "/booking?error=" +
+          encodeURIComponent(
+            "The selected accommodation is not available."
+          )
+      );
+    }
 
-      // --------------------------------------------------------
-      // SERVER-SIDE PRICE CALCULATION
-      // --------------------------------------------------------
-      //
-      // Appointment.js should expose calculatePrice().
-      //
-      // We intentionally do NOT trust req.body.totalPrice.
-      // --------------------------------------------------------
+    /*
+     * Guest capacity comes from Room.js.
+     */
+    const maxGuests =
+      Math.floor(
+        parseNumber(
+          room.maxGuests,
+          0
+        )
+      );
 
-      let pricing;
+    if (
+      maxGuests < 1 ||
+      guests > maxGuests
+    ) {
+      const message =
+        maxGuests > 0
+          ? `The selected room allows a maximum of ${maxGuests} guests.`
+          : "The selected room has an invalid guest capacity.";
 
-      if (
-        typeof Appointment.calculatePrice ===
-        "function"
-      ) {
-        pricing =
-          Appointment.calculatePrice({
-            room,
-
-            cottageAddon:
-              finalCottageAddon,
-
-            checkin:
-              start,
-
-            checkout:
-              end,
-          });
-      } else {
-        return res.status(500).json({
+      if (wantsJson(req)) {
+        return res.status(400).json({
           success: false,
-
-          message:
-            "Booking pricing service is not configured correctly.",
+          code:
+            "INVALID_GUEST_COUNT",
+          message,
         });
       }
 
+      return res.redirect(
+        "/booking?error=" +
+          encodeURIComponent(message)
+      );
+    }
 
-      // --------------------------------------------------------
-      // CREATE APPOINTMENT
-      // --------------------------------------------------------
+    /*
+     * Add-on selections from the new catalog.
+     */
+    const addOnSelections =
+      normalizeAddOnSelections(
+        req.body
+      );
 
-      const newAppointment =
-        new Appointment({
-          userId,
+    /*
+     * Legacy cottage checkbox compatibility.
+     *
+     * If the old form sends cottageAddon=true,
+     * convert it into a real AddOn selection.
+     */
+    const legacyCottage =
+      await resolveLegacyCottageAddon(
+        req.body
+      );
 
-          room,
+    if (
+      legacyCottage &&
+      !addOnSelections.some(
+        (selection) =>
+          selection ===
+            String(
+              legacyCottage._id
+            ) ||
+          selection.toLowerCase() ===
+            String(
+              legacyCottage.slug
+            ).toLowerCase() ||
+          selection.toLowerCase() ===
+            String(
+              legacyCottage.name
+            ).toLowerCase()
+      )
+    ) {
+      addOnSelections.push(
+        String(legacyCottage._id)
+      );
+    }
 
-          cottageAddon:
-            finalCottageAddon,
+    /*
+     * Validate availability BEFORE creating
+     * the appointment.
+     */
+    const conflict =
+      await findConflictingBooking({
+        room,
 
-          guests:
-            guestValidation.guestCount,
+        checkin: start,
 
-          contact:
-            normalizedContact,
-
-          checkin:
-            start,
-
-          checkout:
-            end,
-
-          specialRequests:
-            normalizedSpecialRequests,
-
-          totalPrice:
-            pricing.totalPrice,
-
-          status:
-            "pending",
-        });
-
-
-      await newAppointment.save();
-
-
-      // --------------------------------------------------------
-      // NOTIFICATION
-      // --------------------------------------------------------
-
-      await createBookingNotification({
-        userId,
-
-        message:
-          `Your booking request for ${room} ` +
-          `from ${start.toLocaleDateString()} ` +
-          `to ${end.toLocaleDateString()} ` +
-          `has been submitted and is pending confirmation.`,
-
-        type:
-          "booking",
+        checkout: end,
       });
 
-
-      console.log(
-        "✅ Appointment created:",
+    if (conflict) {
+      console.warn(
+        "User booking rejected because room is unavailable:",
         {
-          id:
-            newAppointment._id.toString(),
+          roomId:
+            room._id?.toString(),
 
-          userId:
-            userId.toString(),
+          room:
+            room.name,
+
+          requestedCheckin:
+            start,
+
+          requestedCheckout:
+            end,
+
+          conflictingBooking:
+            conflict._id,
+        }
+      );
+
+      const message =
+        "This accommodation is already reserved for your selected dates.";
+
+      if (wantsJson(req)) {
+        return res.status(409).json({
+          success: false,
+          code:
+            "ROOM_ALREADY_BOOKED",
+          message,
+        });
+      }
+
+      return res.redirect(
+        "/booking?error=" +
+          encodeURIComponent(
+            message
+          )
+      );
+    }
+
+    /*
+     * SERVER-SIDE PRICING
+     *
+     * Never use req.body.totalPrice.
+     *
+     * Current prices come from Room.js/AddOn.js.
+     */
+    const pricing =
+      await calculateBookingPrice({
+        room,
+
+        addOnSelections,
+
+        checkin: start,
+
+        checkout: end,
+      });
+
+    if (!pricing.valid) {
+      if (wantsJson(req)) {
+        return res.status(400).json({
+          success: false,
+          code:
+            "PRICING_ERROR",
+          message:
+            pricing.error,
+        });
+      }
+
+      return res.redirect(
+        "/booking?error=" +
+          encodeURIComponent(
+            pricing.error
+          )
+      );
+    }
+
+    /*
+     * Build the appointment.
+     *
+     * All pricing values below are snapshots.
+     */
+    const appointmentData = {
+      userId,
+
+      roomId:
+        room._id,
+
+      room:
+        room.name,
+
+      roomType:
+        room.name,
+
+      accommodation:
+        room.name,
+
+      roomName:
+        room.name,
+
+      roomPrice:
+        pricing.roomPrice,
+
+      roomSubtotal:
+        pricing.roomSubtotal,
+
+      numberOfNights:
+        pricing.nights,
+
+      addOns:
+        pricing.addOns,
+
+      addOnSubtotal:
+        pricing.addOnSubtotal,
+
+      /*
+       * Legacy field retained for compatibility.
+       */
+      cottageAddon:
+        pricing.addOns.some(
+          (addOn) =>
+            /cottage/i.test(
+              addOn.name
+            )
+        ),
+
+      /*
+       * These remain zero unless a legacy
+       * cottage add-on was included.
+       *
+       * The new source of truth is addOns[].
+       */
+      cottagePrice:
+        pricing.addOns.find(
+          (addOn) =>
+            /cottage/i.test(
+              addOn.name
+            )
+        )?.price || 0,
+
+      cottageSubtotal:
+        pricing.addOns.find(
+          (addOn) =>
+            /cottage/i.test(
+              addOn.name
+            )
+        )?.subtotal || 0,
+
+      guests,
+
+      contact,
+
+      checkin:
+        start,
+
+      checkout:
+        end,
+
+      specialRequests,
+
+      totalPrice:
+        pricing.totalPrice,
+
+      status:
+        "pending",
+    };
+
+    const newAppointment =
+      new Appointment(
+        appointmentData
+      );
+
+    await newAppointment.save();
+
+    /*
+     * Notify the customer.
+     */
+    await createBookingNotification({
+      userId,
+
+      message:
+        `Your booking request for ${room.name} ` +
+        `from ${start.toLocaleDateString()} ` +
+        `to ${end.toLocaleDateString()} ` +
+        `has been submitted and is pending confirmation.`,
+    });
+
+    console.log(
+      "Appointment created:",
+      {
+        id:
+          newAppointment._id.toString(),
+
+        userId:
+          String(userId),
+
+        room:
+          newAppointment.room,
+
+        roomId:
+          newAppointment.roomId,
+
+        checkin:
+          newAppointment.checkin,
+
+        checkout:
+          newAppointment.checkout,
+
+        guests:
+          newAppointment.guests,
+
+        totalPrice:
+          newAppointment.totalPrice,
+
+        status:
+          newAppointment.status,
+      }
+    );
+
+    /*
+     * JSON response for AJAX clients.
+     */
+    if (wantsJson(req)) {
+      return res.status(201).json({
+        success: true,
+
+        message:
+          "Booking request submitted successfully.",
+
+        booking: {
+          id:
+            newAppointment._id,
 
           room:
             newAppointment.room,
@@ -960,118 +1549,130 @@ router.post(
 
           status:
             newAppointment.status,
-        }
-      );
 
+          numberOfNights:
+            newAppointment.numberOfNights,
 
-      // --------------------------------------------------------
-      // RESPONSE
-      // --------------------------------------------------------
-      //
-      // Supports AJAX/JSON clients.
-      // --------------------------------------------------------
+          addOns:
+            newAppointment.addOns,
+        },
+      });
+    }
 
-      if (
-        req.headers.accept?.includes(
-          "application/json"
+    return res.redirect(
+      "/profile?success=" +
+        encodeURIComponent(
+          "Booking submitted successfully."
         )
-      ) {
-        return res.status(201).json({
-          success: true,
+    );
+  } catch (error) {
+    console.error(
+      "Appointment Submission Error:",
+      error
+    );
 
-          message:
-            "Booking request submitted successfully.",
+    /*
+     * Mongoose validation.
+     */
+    if (
+      error?.name ===
+      "ValidationError"
+    ) {
+      const message =
+        Object.values(
+          error.errors || {}
+        )
+          .map(
+            (entry) =>
+              entry.message
+          )
+          .join(" ") ||
+        "Some booking information is invalid.";
 
-          booking: {
-            id:
-              newAppointment._id,
-
-            room:
-              newAppointment.room,
-
-            checkin:
-              newAppointment.checkin,
-
-            checkout:
-              newAppointment.checkout,
-
-            guests:
-              newAppointment.guests,
-
-            totalPrice:
-              newAppointment.totalPrice,
-
-            status:
-              newAppointment.status,
-          },
-        });
-      }
-
-
-      return res.redirect(
-        "/profile?success=booked"
-      );
-
-    } catch (error) {
-      console.error(
-        "❌ Appointment Submission Error:",
-        error
-      );
-
-
-      // --------------------------------------------------------
-      // MONGOOSE VALIDATION ERROR
-      // --------------------------------------------------------
-
-      if (
-        error.name ===
-        "ValidationError"
-      ) {
+      if (wantsJson(req)) {
         return res.status(400).json({
           success: false,
-
           code:
             "VALIDATION_ERROR",
-
-          message:
-            "Some booking information is invalid.",
+          message,
         });
       }
 
+      return res.redirect(
+        "/booking?error=" +
+          encodeURIComponent(
+            message
+          )
+      );
+    }
 
-      // --------------------------------------------------------
-      // DUPLICATE / CONFLICT ERROR
-      // --------------------------------------------------------
+    /*
+     * Duplicate/index conflict.
+     */
+    if (
+      error?.code === 11000
+    ) {
+      const message =
+        "This booking conflicts with an existing reservation.";
 
-      if (
-        error.code === 11000
-      ) {
+      if (wantsJson(req)) {
         return res.status(409).json({
           success: false,
-
           code:
             "BOOKING_CONFLICT",
-
-          message:
-            "This accommodation is no longer available for those dates. Please select different dates.",
+          message,
         });
       }
 
+      return res.redirect(
+        "/booking?error=" +
+          encodeURIComponent(
+            message
+          )
+      );
+    }
 
+    if (wantsJson(req)) {
       return res.status(500).json({
         success: false,
-
         message:
           "Failed to submit your booking. Please try again.",
       });
     }
+
+    return res.redirect(
+      "/booking?error=" +
+        encodeURIComponent(
+          "Failed to submit your booking. Please try again."
+        )
+    );
   }
+}
+
+/*
+ * Canonical booking endpoint.
+ */
+router.post(
+  "/appointment/submit",
+  requireLogin,
+  submitBooking
 );
 
+/*
+ * Compatibility endpoint for the current
+ * appointments.ejs.
+ */
+router.post(
+  "/booking/submit",
+  requireLogin,
+  submitBooking
+);
 
-// ============================================================
-// 4. LIVE USER UPDATES
-// ============================================================
+/*
+|--------------------------------------------------------------------------
+| User Updates / Notifications
+|--------------------------------------------------------------------------
+*/
 
 router.get(
   "/userUpdates/:userId",
@@ -1084,11 +1685,6 @@ router.get(
       const sessionUserId =
         getSessionUserId(req);
 
-
-      // --------------------------------------------------------
-      // VALIDATE ID
-      // --------------------------------------------------------
-
       if (
         !isValidObjectId(
           requestedUserId
@@ -1096,34 +1692,22 @@ router.get(
       ) {
         return res.status(400).json({
           success: false,
-
           message:
             "Invalid user ID.",
         });
       }
 
-
-      // --------------------------------------------------------
-      // OWNERSHIP CHECK
-      // --------------------------------------------------------
-
       if (
         !sessionUserId ||
-        sessionUserId.toString() !==
-          requestedUserId.toString()
+        String(sessionUserId) !==
+          String(requestedUserId)
       ) {
         return res.status(403).json({
           success: false,
-
           message:
             "Unauthorized access.",
         });
       }
-
-
-      // --------------------------------------------------------
-      // LOAD DATA IN PARALLEL
-      // --------------------------------------------------------
 
       const [
         appointments,
@@ -1148,6 +1732,67 @@ router.get(
           .lean(),
       ]);
 
+      return res.json({
+        success: true,
+
+        appointments,
+
+        notifications,
+      });
+    } catch (error) {
+      console.error(
+        "User Updates Error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+        message:
+          "Unable to fetch your latest updates.",
+      });
+    }
+  }
+);
+
+router.get(
+  "/userUpdates",
+  requireLogin,
+  async (req, res) => {
+    try {
+      const userId =
+        getSessionUserId(req);
+
+      if (
+        !userId ||
+        !isValidObjectId(userId)
+      ) {
+        return res.status(401).json({
+          success: false,
+          message:
+            "Your session has expired.",
+        });
+      }
+
+      const [
+        appointments,
+        notifications,
+      ] = await Promise.all([
+        Appointment.find({
+          userId,
+        })
+          .sort({
+            createdAt: -1,
+          })
+          .lean(),
+
+        Notification.find({
+          userId,
+        })
+          .sort({
+            createdAt: -1,
+          })
+          .lean(),
+      ]);
 
       return res.json({
         success: true,
@@ -1156,16 +1801,14 @@ router.get(
 
         notifications,
       });
-
     } catch (error) {
       console.error(
-        "❌ User Updates Error:",
+        "User Updates Error:",
         error
       );
 
       return res.status(500).json({
         success: false,
-
         message:
           "Unable to fetch your latest updates.",
       });
@@ -1173,39 +1816,29 @@ router.get(
   }
 );
 
-
-// ============================================================
-// 5. CANCEL APPOINTMENT
-// ============================================================
-//
-// IMPORTANT:
-//
-// We DO NOT delete the booking.
-//
-// The booking is changed to:
-//
-// cancelled
-//
-// This preserves the booking history and makes the booking
-// available again for future reservations.
-// ============================================================
+/*
+|--------------------------------------------------------------------------
+| User Booking Cancellation
+|--------------------------------------------------------------------------
+|
+| We DO NOT delete appointments.
+|
+| We mark them cancelled so the historical record remains intact.
+|--------------------------------------------------------------------------
+*/
 
 router.post(
   "/appointment/cancel/:appointmentId",
   requireLogin,
   async (req, res) => {
     try {
-      const {
-        appointmentId,
-      } = req.params;
+      const appointmentId =
+        normalizeString(
+          req.params.appointmentId
+        );
 
       const sessionUserId =
         getSessionUserId(req);
-
-
-      // --------------------------------------------------------
-      // VALIDATE APPOINTMENT ID
-      // --------------------------------------------------------
 
       if (
         !isValidObjectId(
@@ -1214,58 +1847,47 @@ router.post(
       ) {
         return res.status(400).json({
           success: false,
-
           message:
             "Invalid appointment ID.",
         });
       }
-
-
-      // --------------------------------------------------------
-      // LOAD APPOINTMENT
-      // --------------------------------------------------------
 
       const appointment =
         await Appointment.findById(
           appointmentId
         );
 
-
       if (!appointment) {
         return res.status(404).json({
           success: false,
-
           message:
             "Appointment not found.",
         });
       }
 
-
-      // --------------------------------------------------------
-      // OWNERSHIP CHECK
-      // --------------------------------------------------------
-
       if (
         !sessionUserId ||
-        appointment.userId.toString() !==
-          sessionUserId.toString()
+        String(
+          appointment.userId
+        ) !==
+          String(sessionUserId)
       ) {
         return res.status(403).json({
           success: false,
-
           message:
             "You are not authorized to cancel this booking.",
         });
       }
 
-
-      // --------------------------------------------------------
-      // STATUS VALIDATION
-      // --------------------------------------------------------
+      const status =
+        String(
+          appointment.status ||
+            "pending"
+        ).toLowerCase();
 
       if (
         !CANCELLABLE_STATUSES.includes(
-          appointment.status
+          status
         )
       ) {
         return res.status(400).json({
@@ -1279,21 +1901,16 @@ router.post(
         });
       }
 
-
-      // --------------------------------------------------------
-      // CANCEL BOOKING
-      // --------------------------------------------------------
-
       appointment.status =
         "cancelled";
 
+      appointment.cancelledAt =
+        new Date();
+
+      appointment.cancelledBy =
+        "user";
 
       await appointment.save();
-
-
-      // --------------------------------------------------------
-      // NOTIFICATION
-      // --------------------------------------------------------
 
       await createBookingNotification({
         userId:
@@ -1302,16 +1919,11 @@ router.post(
         message:
           `Your ${appointment.room} booking ` +
           `has been cancelled successfully.`,
-
-        type:
-          "booking",
       });
 
-
       console.log(
-        `🚫 Booking ${appointmentId} cancelled by user ${sessionUserId}.`
+        `Booking ${appointmentId} cancelled by user ${sessionUserId}.`
       );
-
 
       return res.json({
         success: true,
@@ -1327,16 +1939,14 @@ router.post(
             appointment.status,
         },
       });
-
     } catch (error) {
       console.error(
-        "❌ Appointment Cancellation Error:",
+        "Appointment Cancellation Error:",
         error
       );
 
       return res.status(500).json({
         success: false,
-
         message:
           "Failed to cancel the appointment.",
       });
@@ -1344,9 +1954,57 @@ router.post(
   }
 );
 
+/*
+|--------------------------------------------------------------------------
+| Customer Catalog API
+|--------------------------------------------------------------------------
+|
+| Useful for future AJAX booking interfaces.
+|
+| GET /api/user-catalog
+|--------------------------------------------------------------------------
+*/
 
-// ============================================================
-// EXPORT ROUTER
-// ============================================================
+router.get(
+  "/api/user-catalog",
+  requireLogin,
+  async (req, res) => {
+    try {
+      const [
+        rooms,
+        addOns,
+      ] = await Promise.all([
+        getActiveRooms(),
+        getActiveAddOns(),
+      ]);
+
+      return res.json({
+        success: true,
+
+        rooms,
+
+        addOns,
+      });
+    } catch (error) {
+      console.error(
+        "User catalog API error:",
+        error
+      );
+
+      return res.status(500).json({
+        success: false,
+
+        message:
+          "Unable to load the current accommodation catalog.",
+      });
+    }
+  }
+);
+
+/*
+|--------------------------------------------------------------------------
+| Export
+|--------------------------------------------------------------------------
+*/
 
 module.exports = router;

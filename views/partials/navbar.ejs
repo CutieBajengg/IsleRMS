@@ -3215,6 +3215,47 @@ document.addEventListener(
 
 
     /* =====================================================
+       OPEN AUTH MODAL FROM URL PARAMETER
+    ====================================================== */
+
+    const params =
+      new URLSearchParams(
+        window.location.search
+      );
+
+    const requestedAuth =
+      params.get("auth");
+
+    if (
+      requestedAuth === "login"
+    ) {
+      loginForm?.classList.remove(
+        "hidden"
+      );
+
+      signupForm?.classList.add(
+        "hidden"
+      );
+
+      openAuth();
+    }
+
+    if (
+      requestedAuth === "signup"
+    ) {
+      loginForm?.classList.add(
+        "hidden"
+      );
+
+      signupForm?.classList.remove(
+        "hidden"
+      );
+
+      openAuth();
+    }
+
+
+    /* =====================================================
        OPEN AUTH MODAL
     ====================================================== */
 

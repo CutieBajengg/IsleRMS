@@ -1,67 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
+  <meta charset="UTF-8">
   <meta
     name="viewport"
     content="width=device-width, initial-scale=1.0"
-  />
+  >
+
+  <title>
+    <%= title || "Book Your Stay | Puffer Isle Resort" %>
+  </title>
 
   <meta
     name="description"
     content="Book your stay at Puffer Isle Resort."
-  />
-
-  <title><%= title || "Book Your Stay | Puffer Isle Resort" %></title>
-
-  <link
-    rel="icon"
-    type="image/png"
-    href="/images/islelogo.png"
-  />
-
-  <link
-    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
-    rel="stylesheet"
-  />
+  >
 
   <style>
     :root {
-      --gold: #ffd700;
-      --gold-dark: #d9b800;
-      --teal: #008080;
-      --teal-dark: #006666;
+      --primary: #0f766e;
+      --primary-dark: #115e59;
+      --primary-soft: #ccfbf1;
 
-      --ink: #171717;
-      --muted: #707070;
-      --soft: #f5f7f8;
-      --white: #ffffff;
+      --background: #f6f8f7;
+      --surface: #ffffff;
+      --surface-soft: #f8faf9;
 
-      --success: #16803c;
-      --success-bg: #edf9f1;
+      --text: #17221f;
+      --muted: #66736f;
 
-      --danger: #c62828;
-      --danger-bg: #fff1f1;
+      --border: #dce5e1;
 
-      --warning: #9a6b00;
-      --warning-bg: #fff8df;
+      --success: #15803d;
+      --success-soft: #dcfce7;
 
-      --border: #e7e9eb;
+      --warning: #b45309;
+      --warning-soft: #fef3c7;
+
+      --danger: #b91c1c;
+      --danger-soft: #fee2e2;
 
       --shadow-sm:
-        0 8px 25px rgba(0, 0, 0, 0.06);
+        0 2px 10px rgba(15, 23, 42, 0.05);
 
-      --shadow-lg:
-        0 30px 80px rgba(0, 0, 0, 0.14);
+      --shadow-md:
+        0 12px 35px rgba(15, 23, 42, 0.08);
 
-      --radius-lg: 28px;
-      --radius-md: 18px;
-      --radius-sm: 12px;
+      --radius-sm: 10px;
+      --radius-md: 16px;
+      --radius-lg: 22px;
     }
 
     * {
-      margin: 0;
-      padding: 0;
       box-sizing: border-box;
     }
 
@@ -70,95 +60,44 @@
     }
 
     body {
-      min-height: 100vh;
-      font-family: "Poppins", sans-serif;
-      color: var(--ink);
+      margin: 0;
+      font-family:
+        Inter,
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
 
-      background:
-        radial-gradient(
-          circle at top left,
-          rgba(255, 215, 0, 0.12),
-          transparent 30%
-        ),
-        linear-gradient(
-          135deg,
-          #f7fafb 0%,
-          #edf2f3 50%,
-          #e7eeee 100%
-        );
+      background: var(--background);
+      color: var(--text);
+      line-height: 1.5;
     }
 
     button,
     input,
+    select,
     textarea {
       font: inherit;
     }
 
-    button,
-    label {
-      -webkit-tap-highlight-color: transparent;
+    img {
+      display: block;
+      max-width: 100%;
     }
 
-    a {
-      color: inherit;
-    }
+    .page-shell {
+      width: min(
+        1240px,
+        calc(100% - 32px)
+      );
 
-    /* =========================================================
-       PAGE
-    ========================================================= */
-
-    .booking-page {
-      width: 100%;
-      padding:
-        120px
-        20px
-        70px;
-    }
-
-    .booking-shell {
-      width: min(1180px, 100%);
       margin: 0 auto;
-
-      display: grid;
-      grid-template-columns:
-        minmax(0, 1.35fr)
-        minmax(320px, 0.65fr);
-
-      overflow: hidden;
-
-      background: var(--white);
-      border: 1px solid rgba(255, 255, 255, 0.7);
-      border-radius: var(--radius-lg);
-
-      box-shadow: var(--shadow-lg);
-
-      animation:
-        pageEnter 0.7s
-        cubic-bezier(0.22, 1, 0.36, 1);
+      padding: 42px 0 80px;
     }
 
-    @keyframes pageEnter {
-      from {
-        opacity: 0;
-        transform: translateY(28px);
-      }
-
-      to {
-        opacity: 1;
-        transform: translateY(0);
-      }
-    }
-
-    /* =========================================================
-       FORM PANEL
-    ========================================================= */
-
-    .booking-form {
-      padding: 48px;
-    }
-
-    .page-heading {
-      margin-bottom: 34px;
+    .page-header {
+      margin-bottom: 30px;
     }
 
     .eyebrow {
@@ -167,472 +106,129 @@
       gap: 8px;
 
       margin-bottom: 10px;
+      padding: 7px 12px;
 
-      color: var(--teal);
-      font-size: 0.75rem;
-      font-weight: 800;
-      letter-spacing: 1.8px;
-      text-transform: uppercase;
-    }
-
-    .eyebrow::before {
-      content: "";
-      width: 28px;
-      height: 2px;
-      background: var(--gold);
       border-radius: 999px;
-    }
+      background: var(--primary-soft);
 
-    .page-heading h1 {
-      font-size: clamp(2rem, 4vw, 3rem);
-      line-height: 1.1;
+      color: var(--primary-dark);
+      font-size: 0.78rem;
       font-weight: 800;
-      letter-spacing: -1px;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
     }
 
-    .page-heading p {
-      max-width: 600px;
-      margin-top: 12px;
+    .page-header h1 {
+      margin: 0 0 8px;
+      font-size: clamp(
+        2rem,
+        4vw,
+        3rem
+      );
 
+      line-height: 1.05;
+    }
+
+    .page-header p {
+      margin: 0;
+      max-width: 750px;
       color: var(--muted);
-      font-size: 0.95rem;
-      line-height: 1.7;
-    }
-
-    /* =========================================================
-       SERVER MESSAGE
-    ========================================================= */
-
-    .server-message {
-      display: flex;
-      align-items: flex-start;
-      gap: 12px;
-
-      padding: 15px 17px;
-      margin-bottom: 25px;
-
-      border-radius: var(--radius-sm);
-      font-size: 0.85rem;
-      line-height: 1.5;
-    }
-
-    .server-message.error {
-      color: var(--danger);
-      background: var(--danger-bg);
-      border: 1px solid #ffd3d3;
-    }
-
-    .server-message.success {
-      color: var(--success);
-      background: var(--success-bg);
-      border: 1px solid #ccebd7;
-    }
-
-    .server-message.warning {
-      color: var(--warning);
-      background: var(--warning-bg);
-      border: 1px solid #f1df9e;
-    }
-
-    .message-icon {
-      flex-shrink: 0;
       font-size: 1rem;
     }
 
-    /* =========================================================
-       LOGIN REQUIRED
-    ========================================================= */
+    .alert {
+      margin-bottom: 22px;
+      padding: 15px 17px;
 
-    .login-required {
-      padding: 45px 30px;
+      border: 1px solid transparent;
+      border-radius: var(--radius-sm);
 
-      text-align: center;
-
-      background:
-        linear-gradient(
-          135deg,
-          #fffdf1,
-          #ffffff
-        );
-
-      border:
-        1px solid
-        rgba(255, 215, 0, 0.35);
-
-      border-radius: var(--radius-md);
+      font-size: 0.95rem;
+      font-weight: 600;
     }
 
-    .login-icon {
-      width: 64px;
-      height: 64px;
+    .alert-error {
+      background: var(--danger-soft);
+      border-color: #fecaca;
+      color: var(--danger);
+    }
 
+    .alert-success {
+      background: var(--success-soft);
+      border-color: #bbf7d0;
+      color: var(--success);
+    }
+
+    .booking-layout {
       display: grid;
-      place-items: center;
+      grid-template-columns:
+        minmax(0, 1fr)
+        360px;
 
-      margin: 0 auto 18px;
-
-      border-radius: 50%;
-      background: rgba(255, 215, 0, 0.15);
-
-      font-size: 1.7rem;
+      gap: 24px;
+      align-items: start;
     }
 
-    .login-required h2 {
-      margin-bottom: 8px;
-      font-size: 1.4rem;
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-sm);
     }
 
-    .login-required p {
-      margin-bottom: 24px;
-      color: var(--muted);
-      font-size: 0.9rem;
+    .booking-card {
+      padding: 28px;
     }
 
-    .primary-link {
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
+    .section {
+      padding-bottom: 28px;
+      margin-bottom: 28px;
 
-      min-height: 48px;
-      padding: 0 24px;
-
-      color: var(--ink);
-      background: var(--gold);
-
-      border-radius: 999px;
-
-      text-decoration: none;
-      font-size: 0.85rem;
-      font-weight: 800;
-
-      transition:
-        transform 0.2s ease,
-        background 0.2s ease,
-        box-shadow 0.2s ease;
+      border-bottom: 1px solid var(--border);
     }
 
-    .primary-link:hover {
-      transform: translateY(-2px);
-      background: var(--gold-dark);
-
-      box-shadow:
-        0 8px 20px
-        rgba(217, 184, 0, 0.25);
-    }
-
-    /* =========================================================
-       FORM SECTIONS
-    ========================================================= */
-
-    .form-section {
-      margin-top: 34px;
+    .section:last-child {
+      padding-bottom: 0;
+      margin-bottom: 0;
+      border-bottom: 0;
     }
 
     .section-heading {
       display: flex;
-      align-items: center;
-      gap: 12px;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 16px;
 
-      margin-bottom: 17px;
-    }
-
-    .section-number {
-      width: 30px;
-      height: 30px;
-
-      display: grid;
-      place-items: center;
-
-      flex-shrink: 0;
-
-      color: var(--ink);
-      background: var(--gold);
-
-      border-radius: 50%;
-
-      font-size: 0.75rem;
-      font-weight: 800;
+      margin-bottom: 18px;
     }
 
     .section-heading h2 {
-      font-size: 0.9rem;
-      font-weight: 800;
-      letter-spacing: 0.3px;
+      margin: 0;
+      font-size: 1.12rem;
     }
 
-    .section-description {
-      margin-top: -8px;
-      margin-bottom: 17px;
-      padding-left: 42px;
-
+    .section-heading p {
+      margin: 4px 0 0;
       color: var(--muted);
-      font-size: 0.75rem;
+      font-size: 0.88rem;
     }
 
-    /* =========================================================
-       ROOM OPTIONS
-    ========================================================= */
+    .required {
+      color: var(--danger);
+    }
 
-    .room-grid {
+    .form-grid {
       display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 15px;
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 16px;
     }
 
-    .room-card {
-      position: relative;
-
-      overflow: hidden;
-
-      cursor: pointer;
-
-      background: #fff;
-
-      border:
-        2px solid
-        var(--border);
-
-      border-radius: var(--radius-md);
-
-      transition:
-        border-color 0.25s ease,
-        transform 0.25s ease,
-        box-shadow 0.25s ease,
-        background 0.25s ease;
-    }
-
-    .room-card:hover {
-      transform: translateY(-2px);
-      border-color: #d5d9db;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .room-card.selected {
-      border-color: var(--gold);
-      background: #fffdf2;
-
-      box-shadow:
-        0 10px 28px
-        rgba(255, 215, 0, 0.14);
-    }
-
-    .room-card input {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .room-image-wrap {
-      position: relative;
-      height: 145px;
-      overflow: hidden;
-    }
-
-    .room-image-wrap img {
-      width: 100%;
-      height: 100%;
-
-      display: block;
-
-      object-fit: cover;
-
-      transition:
-        transform 0.5s ease;
-    }
-
-    .room-card:hover img {
-      transform: scale(1.04);
-    }
-
-    .selected-badge {
-      position: absolute;
-      top: 12px;
-      right: 12px;
-
-      display: none;
-      align-items: center;
-      gap: 5px;
-
-      padding: 6px 10px;
-
-      color: var(--ink);
-      background: var(--gold);
-
-      border-radius: 999px;
-
-      font-size: 0.68rem;
-      font-weight: 800;
-    }
-
-    .room-card.selected .selected-badge {
-      display: inline-flex;
-    }
-
-    .room-content {
-      padding: 16px;
-    }
-
-    .room-name {
-      font-size: 0.9rem;
-      font-weight: 800;
-    }
-
-    .room-description {
-      min-height: 38px;
-      margin-top: 5px;
-
-      color: var(--muted);
-      font-size: 0.7rem;
-      line-height: 1.5;
-    }
-
-    .room-meta {
+    .field {
       display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      gap: 10px;
-
-      margin-top: 12px;
-      padding-top: 12px;
-
-      border-top: 1px solid var(--border);
-    }
-
-    .room-price {
-      color: var(--teal);
-      font-size: 0.85rem;
-      font-weight: 800;
-    }
-
-    .room-capacity {
-      color: var(--muted);
-      font-size: 0.68rem;
-      white-space: nowrap;
-    }
-
-    /* =========================================================
-       ADD-ON
-    ========================================================= */
-
-    .addon-card {
-      position: relative;
-
-      display: flex;
-      align-items: center;
-      gap: 15px;
-
-      padding: 12px;
-
-      cursor: pointer;
-
-      border:
-        2px solid
-        var(--border);
-
-      border-radius: var(--radius-md);
-
-      transition:
-        border-color 0.25s ease,
-        background 0.25s ease,
-        box-shadow 0.25s ease;
-    }
-
-    .addon-card:hover {
-      border-color: #d5d9db;
-      box-shadow: var(--shadow-sm);
-    }
-
-    .addon-card.selected {
-      border-color: var(--gold);
-      background: #fffdf2;
-    }
-
-    .addon-card input {
-      position: absolute;
-      opacity: 0;
-      pointer-events: none;
-    }
-
-    .addon-image {
-      width: 82px;
-      height: 82px;
-
-      flex-shrink: 0;
-
-      overflow: hidden;
-
-      border-radius: 13px;
-    }
-
-    .addon-image img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
-    .addon-content {
-      flex: 1;
-    }
-
-    .addon-title {
-      font-size: 0.85rem;
-      font-weight: 800;
-    }
-
-    .addon-description {
-      margin-top: 4px;
-
-      color: var(--muted);
-      font-size: 0.7rem;
-      line-height: 1.5;
-    }
-
-    .addon-price {
-      margin-top: 7px;
-
-      color: var(--teal);
-      font-size: 0.75rem;
-      font-weight: 800;
-    }
-
-    .checkbox-indicator {
-      width: 25px;
-      height: 25px;
-
-      display: grid;
-      place-items: center;
-
-      flex-shrink: 0;
-
-      border:
-        2px solid
-        #d9dddf;
-
-      border-radius: 7px;
-
-      color: transparent;
-
-      transition:
-        background 0.2s ease,
-        border-color 0.2s ease,
-        color 0.2s ease;
-    }
-
-    .addon-card.selected .checkbox-indicator {
-      color: var(--ink);
-      background: var(--gold);
-      border-color: var(--gold);
-    }
-
-    /* =========================================================
-       INPUTS
-    ========================================================= */
-
-    .details-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 17px;
+      flex-direction: column;
+      gap: 7px;
     }
 
     .field.full {
@@ -640,418 +236,511 @@
     }
 
     .field label {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      margin-bottom: 7px;
-
-      font-size: 0.75rem;
+      font-size: 0.88rem;
       font-weight: 700;
     }
 
-    .required {
-      color: var(--danger);
-    }
-
-    .field-hint {
-      color: var(--muted);
-      font-size: 0.65rem;
-      font-weight: 400;
-    }
-
-    .input-wrapper {
-      position: relative;
-    }
-
     .field input,
+    .field select,
     .field textarea {
       width: 100%;
+      padding: 12px 13px;
 
-      padding:
-        13px
-        14px;
+      border: 1px solid var(--border);
+      border-radius: 11px;
 
-      color: var(--ink);
-      background: #fafbfb;
-
-      border:
-        1.5px solid
-        var(--border);
-
-      border-radius: 12px;
+      background: #fff;
+      color: var(--text);
 
       outline: none;
 
       transition:
-        border-color 0.2s ease,
-        background 0.2s ease,
-        box-shadow 0.2s ease;
+        border-color 0.18s ease,
+        box-shadow 0.18s ease;
     }
 
     .field textarea {
-      min-height: 95px;
+      min-height: 115px;
       resize: vertical;
-      line-height: 1.6;
-    }
-
-    .field input:hover,
-    .field textarea:hover {
-      border-color: #d4d8da;
     }
 
     .field input:focus,
+    .field select:focus,
     .field textarea:focus {
-      background: #fff;
-
-      border-color: var(--teal);
+      border-color: var(--primary);
 
       box-shadow:
         0 0 0 4px
-        rgba(0, 128, 128, 0.08);
+          rgba(15, 118, 110, 0.1);
     }
 
-    .field input.invalid,
-    .field textarea.invalid {
-      border-color: var(--danger);
-      background: #fffafa;
-    }
-
-    .field-error {
-      display: none;
-
-      margin-top: 5px;
-
-      color: var(--danger);
-      font-size: 0.65rem;
-    }
-
-    .field-error.visible {
-      display: block;
-    }
-
-    /* =========================================================
-       SUMMARY
-    ========================================================= */
-
-    .summary-panel {
-      position: sticky;
-      top: 0;
-
-      min-height: 100%;
-
-      display: flex;
-      flex-direction: column;
-
-      padding: 42px 34px;
-
-      color: white;
-
-      background:
-        radial-gradient(
-          circle at top right,
-          rgba(255, 215, 0, 0.14),
-          transparent 30%
-        ),
-        linear-gradient(
-          145deg,
-          #171717,
-          #242424
-        );
-    }
-
-    .summary-top {
-      padding-bottom: 22px;
-
-      border-bottom:
-        1px solid
-        rgba(255, 255, 255, 0.1);
-    }
-
-    .summary-kicker {
-      color: var(--gold);
-
-      font-size: 0.7rem;
-      font-weight: 800;
-      letter-spacing: 1.7px;
-      text-transform: uppercase;
-    }
-
-    .summary-top h2 {
-      margin-top: 7px;
-
-      font-size: 1.55rem;
-      line-height: 1.2;
-    }
-
-    .summary-location {
-      margin-top: 8px;
-
-      color:
-        rgba(255, 255, 255, 0.55);
-
-      font-size: 0.72rem;
-    }
-
-    .summary-details {
-      padding-top: 25px;
-    }
-
-    .summary-item {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-
-      gap: 20px;
-
-      padding: 13px 0;
-
-      border-bottom:
-        1px solid
-        rgba(255, 255, 255, 0.07);
-    }
-
-    .summary-item:last-child {
-      border-bottom: 0;
-    }
-
-    .summary-label {
-      color:
-        rgba(255, 255, 255, 0.55);
-
-      font-size: 0.72rem;
-    }
-
-    .summary-value {
-      max-width: 180px;
-
-      color: white;
-
+    .field small {
+      color: var(--muted);
       font-size: 0.78rem;
-      font-weight: 600;
-
-      text-align: right;
     }
 
-    .summary-dates {
-      display: none;
+    .catalog-grid {
+      display: grid;
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 14px;
     }
 
-    .summary-dates.visible {
-      display: flex;
+    .room-option {
+      position: relative;
     }
 
-    .summary-placeholder {
-      margin: 15px 0;
-
-      padding: 17px;
-
-      color:
-        rgba(255, 255, 255, 0.55);
-
-      background:
-        rgba(255, 255, 255, 0.04);
-
-      border-radius: 13px;
-
-      font-size: 0.72rem;
-      line-height: 1.6;
+    .room-option input {
+      position: absolute;
+      opacity: 0;
+      pointer-events: none;
     }
 
-    .summary-bottom {
-      margin-top: auto;
-    }
+    .room-card {
+      height: 100%;
 
-    .price-box {
-      margin-top: 28px;
-      padding: 22px;
+      border: 1px solid var(--border);
+      border-radius: 16px;
 
-      background:
-        rgba(255, 215, 0, 0.08);
-
-      border:
-        1px dashed
-        rgba(255, 215, 0, 0.65);
-
-      border-radius: 18px;
-
-      text-align: center;
-    }
-
-    .price-label {
-      color: var(--gold);
-
-      font-size: 0.65rem;
-      font-weight: 800;
-      letter-spacing: 1.5px;
-      text-transform: uppercase;
-    }
-
-    .price-value {
-      display: block;
-
-      margin-top: 5px;
-
-      color: white;
-
-      font-size: clamp(2rem, 4vw, 2.6rem);
-      font-weight: 800;
-      line-height: 1.1;
-    }
-
-    .price-note {
-      margin-top: 8px;
-
-      color:
-        rgba(255, 255, 255, 0.5);
-
-      font-size: 0.63rem;
-      line-height: 1.5;
-    }
-
-    .submit-btn {
-      width: 100%;
-
-      min-height: 58px;
-
-      margin-top: 18px;
-
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 10px;
-
-      color: var(--ink);
-      background: var(--gold);
-
-      border: 0;
-      border-radius: 15px;
-
-      font-size: 0.88rem;
-      font-weight: 800;
+      overflow: hidden;
+      background: var(--surface-soft);
 
       cursor: pointer;
 
       transition:
-        transform 0.2s ease,
-        background 0.2s ease,
-        box-shadow 0.2s ease,
-        opacity 0.2s ease;
+        border-color 0.18s ease,
+        transform 0.18s ease,
+        box-shadow 0.18s ease;
     }
 
-    .submit-btn:hover:not(:disabled) {
+    .room-card:hover {
       transform: translateY(-2px);
-      background: #ffe347;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .room-option input:checked + .room-card {
+      border-color: var(--primary);
 
       box-shadow:
-        0 12px 25px
-        rgba(255, 215, 0, 0.18);
+        0 0 0 3px
+          rgba(15, 118, 110, 0.12);
     }
 
-    .submit-btn:active:not(:disabled) {
-      transform: translateY(0);
+    .catalog-image {
+      width: 100%;
+      height: 170px;
+      object-fit: cover;
+      background: #e9efec;
     }
 
-    .submit-btn:disabled {
-      cursor: not-allowed;
-      opacity: 0.5;
-    }
-
-    .submit-btn.loading {
-      pointer-events: none;
-    }
-
-    .spinner {
-      width: 18px;
-      height: 18px;
-
-      border:
-        2px solid
-        rgba(0, 0, 0, 0.25);
-
-      border-top-color: var(--ink);
-
-      border-radius: 50%;
-
-      animation: spin 0.7s linear infinite;
-    }
-
-    @keyframes spin {
-      to {
-        transform: rotate(360deg);
-      }
-    }
-
-    .security-note {
+    .catalog-placeholder {
       display: flex;
       align-items: center;
       justify-content: center;
-      gap: 7px;
 
+      width: 100%;
+      height: 170px;
+
+      background:
+        linear-gradient(
+          135deg,
+          #dceee9,
+          #edf4f1
+        );
+
+      color: var(--primary-dark);
+      font-size: 2rem;
+      font-weight: 800;
+    }
+
+    .room-content {
+      padding: 17px;
+    }
+
+    .room-topline {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      gap: 12px;
+    }
+
+    .room-name {
+      margin: 0;
+      font-size: 1rem;
+      font-weight: 800;
+    }
+
+    .room-price {
+      white-space: nowrap;
+      color: var(--primary-dark);
+      font-size: 0.98rem;
+      font-weight: 900;
+    }
+
+    .room-description {
+      margin: 7px 0 10px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .room-meta {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+    }
+
+    .meta-pill {
+      display: inline-flex;
+      align-items: center;
+
+      padding: 5px 8px;
+
+      border-radius: 999px;
+      background: #eef5f2;
+
+      color: #44534e;
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+
+    .addon-list {
+      display: grid;
+      gap: 10px;
+    }
+
+    .addon-option {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+
+      padding: 14px;
+
+      border: 1px solid var(--border);
+      border-radius: 14px;
+
+      background: var(--surface-soft);
+
+      cursor: pointer;
+    }
+
+    .addon-option:hover {
+      border-color: #b7cbc5;
+    }
+
+    .addon-option input {
+      margin-top: 3px;
+      accent-color: var(--primary);
+    }
+
+    .addon-info {
+      flex: 1;
+      min-width: 0;
+    }
+
+    .addon-title-row {
+      display: flex;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .addon-name {
+      font-weight: 800;
+    }
+
+    .addon-price {
+      white-space: nowrap;
+      color: var(--primary-dark);
+      font-weight: 900;
+    }
+
+    .addon-description {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .addon-note {
+      margin-top: 4px;
+      color: #73807c;
+      font-size: 0.73rem;
+    }
+
+    .empty-catalog {
+      padding: 22px;
+      border: 1px dashed var(--border);
+      border-radius: 14px;
+
+      background: var(--surface-soft);
+      color: var(--muted);
+
+      text-align: center;
+      font-size: 0.9rem;
+    }
+
+    .summary-card {
+      position: sticky;
+      top: 20px;
+
+      padding: 24px;
+    }
+
+    .summary-card h2 {
+      margin: 0;
+      font-size: 1.12rem;
+    }
+
+    .summary-subtitle {
+      margin: 5px 0 20px;
+      color: var(--muted);
+      font-size: 0.83rem;
+    }
+
+    .summary-room {
+      padding: 14px;
+
+      border-radius: 14px;
+      background: var(--surface-soft);
+
+      margin-bottom: 16px;
+    }
+
+    .summary-room-name {
+      font-weight: 800;
+    }
+
+    .summary-room-meta {
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .price-lines {
+      display: grid;
+      gap: 10px;
+    }
+
+    .price-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+
+      color: #485550;
+      font-size: 0.88rem;
+    }
+
+    .price-line strong {
+      color: var(--text);
+    }
+
+    .price-divider {
+      height: 1px;
+      margin: 6px 0;
+
+      background: var(--border);
+    }
+
+    .total-line {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+
+      margin-top: 6px;
+
+      font-size: 1.13rem;
+      font-weight: 900;
+    }
+
+    .total-line strong {
+      color: var(--primary-dark);
+    }
+
+    .submit-button {
+      width: 100%;
+      margin-top: 20px;
+      padding: 14px 17px;
+
+      border: 0;
+      border-radius: 12px;
+
+      background: var(--primary);
+      color: #fff;
+
+      font-weight: 800;
+      cursor: pointer;
+
+      transition:
+        background 0.18s ease,
+        transform 0.18s ease;
+    }
+
+    .submit-button:hover {
+      background: var(--primary-dark);
+    }
+
+    .submit-button:active {
+      transform: translateY(1px);
+    }
+
+    .submit-button:disabled {
+      opacity: 0.6;
+      cursor: not-allowed;
+    }
+
+    .security-note {
       margin-top: 13px;
-
-      color:
-        rgba(255, 255, 255, 0.42);
-
-      font-size: 0.62rem;
+      color: var(--muted);
+      font-size: 0.74rem;
+      line-height: 1.5;
       text-align: center;
     }
 
-    /* =========================================================
-       CAPACITY NOTE
-    ========================================================= */
-
-    .capacity-note {
+    .validation-message {
       display: none;
 
-      margin-top: 7px;
+      margin-top: 10px;
+      padding: 11px 12px;
+
+      border-radius: 10px;
+
+      background: var(--danger-soft);
+      color: var(--danger);
+
+      font-size: 0.82rem;
+      font-weight: 700;
+    }
+
+    .booking-history {
+      margin-top: 32px;
+      padding: 24px;
+    }
+
+    .booking-history h2 {
+      margin: 0 0 4px;
+      font-size: 1.12rem;
+    }
+
+    .booking-history > p {
+      margin: 0 0 18px;
+      color: var(--muted);
+      font-size: 0.84rem;
+    }
+
+    .history-list {
+      display: grid;
+      gap: 12px;
+    }
+
+    .history-item {
+      display: grid;
+      grid-template-columns:
+        minmax(0, 1fr)
+        auto;
+
+      gap: 16px;
+
+      padding: 15px;
+
+      border: 1px solid var(--border);
+      border-radius: 14px;
+
+      background: var(--surface-soft);
+    }
+
+    .history-name {
+      margin: 0;
+      font-weight: 800;
+    }
+
+    .history-meta {
+      margin-top: 5px;
+      color: var(--muted);
+      font-size: 0.8rem;
+    }
+
+    .history-price {
+      white-space: nowrap;
+      font-weight: 900;
+      color: var(--primary-dark);
+    }
+
+    .status {
+      display: inline-flex;
+      align-items: center;
+
+      margin-top: 8px;
+      padding: 4px 8px;
+
+      border-radius: 999px;
+
+      font-size: 0.7rem;
+      font-weight: 800;
+      text-transform: capitalize;
+    }
+
+    .status-pending {
+      background: var(--warning-soft);
+      color: var(--warning);
+    }
+
+    .status-accepted,
+    .status-confirmed {
+      background: var(--success-soft);
+      color: var(--success);
+    }
+
+    .status-cancelled,
+    .status-declined,
+    .status-rejected {
+      background: var(--danger-soft);
+      color: var(--danger);
+    }
+
+    .status-checked-in,
+    .status-checked-out,
+    .status-completed {
+      background: var(--primary-soft);
+      color: var(--primary-dark);
+    }
+
+    .empty-history {
+      padding: 24px;
+
+      border: 1px dashed var(--border);
+      border-radius: 14px;
 
       color: var(--muted);
-
-      font-size: 0.64rem;
+      text-align: center;
+      font-size: 0.88rem;
     }
 
-    .capacity-note.visible {
-      display: block;
-    }
-
-    /* =========================================================
-       RESPONSIVE
-    ========================================================= */
-
-    @media (max-width: 1000px) {
-      .booking-shell {
+    @media (max-width: 980px) {
+      .booking-layout {
         grid-template-columns: 1fr;
       }
 
-      .summary-panel {
+      .summary-card {
         position: static;
-        min-height: auto;
-      }
-
-      .summary-bottom {
-        margin-top: 25px;
       }
     }
 
-    @media (max-width: 650px) {
-      .booking-page {
-        padding:
-          100px
-          12px
-          35px;
+    @media (max-width: 700px) {
+      .page-shell {
+        width: min(
+          100% - 20px,
+          1240px
+        );
+
+        padding-top: 28px;
       }
 
-      .booking-form {
-        padding: 30px 20px;
+      .booking-card,
+      .summary-card,
+      .booking-history {
+        padding: 18px;
       }
 
-      .summary-panel {
-        padding: 30px 20px;
-      }
-
-      .room-grid,
-      .details-grid {
+      .form-grid {
         grid-template-columns: 1fr;
       }
 
@@ -1059,56 +748,16 @@
         grid-column: auto;
       }
 
-      .room-image-wrap {
-        height: 160px;
+      .catalog-grid {
+        grid-template-columns: 1fr;
       }
 
-      .page-heading h1 {
-        font-size: 2rem;
+      .history-item {
+        grid-template-columns: 1fr;
       }
 
-      .addon-card {
-        align-items: flex-start;
-      }
-
-      .addon-image {
-        width: 70px;
-        height: 70px;
-      }
-    }
-
-    @media (max-width: 420px) {
-      .room-grid {
-        gap: 10px;
-      }
-
-      .room-content {
-        padding: 12px;
-      }
-
-      .room-description {
-        min-height: auto;
-      }
-
-      .room-meta {
-        align-items: flex-start;
-        flex-direction: column;
-        gap: 5px;
-      }
-    }
-
-    /* =========================================================
-       REDUCED MOTION
-    ========================================================= */
-
-    @media (prefers-reduced-motion: reduce) {
-      *,
-      *::before,
-      *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        scroll-behavior: auto !important;
-        transition-duration: 0.01ms !important;
+      .history-price {
+        white-space: normal;
       }
     }
   </style>
@@ -1116,792 +765,684 @@
 
 <body>
 
-  <%- include('partials/navbar') %>
+  <%- include("partials/navbar") %>
 
-  <main class="booking-page">
+  <main class="page-shell">
 
-    <div class="booking-shell">
+    <header class="page-header">
+      <div class="eyebrow">
+        Puffer Isle Resort
+      </div>
 
-      <!-- =====================================================
-           LEFT: BOOKING FORM
-      ====================================================== -->
+      <h1>
+        Book Your Stay
+      </h1>
 
-      <section class="booking-form">
-
-        <header class="page-heading">
-
-          <div class="eyebrow">
-            Isle RMS Reservations
-          </div>
-
-          <h1>
-            Book Your Escape
-          </h1>
-
-          <p>
-            Choose your accommodation, select your dates,
-            and let us prepare your island getaway.
-          </p>
-
-        </header>
+      <p>
+        Choose your accommodation, dates, guests,
+        and any available add-ons. Your final price
+        is calculated securely by the resort system.
+      </p>
+    </header>
 
 
-        <!-- ===================================================
-             SERVER MESSAGES
-        ==================================================== -->
+    <% if (error) { %>
+      <div class="alert alert-error">
+        <%= error %>
+      </div>
+    <% } %>
 
-        <% if (typeof error !== "undefined" && error) { %>
+    <% if (success) { %>
+      <div class="alert alert-success">
+        <%= success %>
+      </div>
+    <% } %>
 
-          <div
-            class="server-message error"
-            role="alert"
-          >
-            <span class="message-icon">⚠️</span>
 
-            <div>
-              <strong>We couldn't complete that request.</strong>
+    <form
+      id="bookingForm"
+      action="/appointment/submit"
+      method="POST"
+      novalidate
+    >
 
+      <div class="booking-layout">
+
+        <!-- =====================================================
+             LEFT / MAIN FORM
+        ====================================================== -->
+
+        <section class="card booking-card">
+
+          <!-- ===================================================
+               ACCOMMODATION
+          ==================================================== -->
+
+          <div class="section">
+
+            <div class="section-heading">
               <div>
-                <% if (error === "room_unavailable") { %>
-                  The selected accommodation is unavailable
-                  for some or all of those dates.
-                <% } else if (error === "invalid_dates") { %>
-                  Please select valid check-in and check-out
-                  dates.
-                <% } else if (error === "past_date") { %>
-                  Check-in dates cannot be in the past.
-                <% } else if (error === "invalid_guests") { %>
-                  The number of guests exceeds the capacity
-                  of the selected accommodation.
-                <% } else if (error === "invalid_room") { %>
-                  Please select a valid accommodation.
-                <% } else if (error === "missing_fields") { %>
-                  Please complete all required booking fields.
-                <% } else { %>
-                  Please review your booking details and try again.
-                <% } %>
+                <h2>
+                  1. Choose your accommodation
+                  <span class="required">*</span>
+                </h2>
+
+                <p>
+                  Current room information is managed by the resort.
+                </p>
               </div>
             </div>
+
+
+            <div class="catalog-grid">
+
+              <% if (rooms && rooms.length > 0) { %>
+
+                <% rooms.forEach((room) => { %>
+
+                  <label class="room-option">
+
+                    <input
+                      type="radio"
+                      name="room"
+                      value="<%= room._id %>"
+                      data-room-name="<%= room.name %>"
+                      data-room-price="<%= Number(room.price || 0) %>"
+                      data-room-capacity="<%= Number(room.maxGuests || 1) %>"
+                      required
+                    >
+
+                    <div class="room-card">
+
+                      <% if (room.image) { %>
+
+                        <img
+                          class="catalog-image"
+                          src="<%= room.image %>"
+                          alt="<%= room.name %>"
+                          loading="lazy"
+                        >
+
+                      <% } else { %>
+
+                        <div class="catalog-placeholder">
+                          <%= room.name
+                            ? room.name.charAt(0).toUpperCase()
+                            : "R" %>
+                        </div>
+
+                      <% } %>
+
+
+                      <div class="room-content">
+
+                        <div class="room-topline">
+
+                          <h3 class="room-name">
+                            <%= room.name %>
+                          </h3>
+
+                          <div class="room-price">
+                            ₱<%= Number(room.price || 0).toLocaleString("en-PH") %>
+                            <small>/night</small>
+                          </div>
+
+                        </div>
+
+
+                        <% if (room.description) { %>
+
+                          <p class="room-description">
+                            <%= room.description %>
+                          </p>
+
+                        <% } %>
+
+
+                        <div class="room-meta">
+
+                          <span class="meta-pill">
+                            Up to
+                            <%= Number(room.maxGuests || 1) %>
+                            guest<%= Number(room.maxGuests || 1) === 1 ? "" : "s" %>
+                          </span>
+
+                          <% if (Number(room.quantity || 1) > 1) { %>
+
+                            <span class="meta-pill">
+                              <%= Number(room.quantity) %>
+                              units
+                            </span>
+
+                          <% } %>
+
+                        </div>
+
+                      </div>
+
+                    </div>
+
+                  </label>
+
+                <% }) %>
+
+              <% } else { %>
+
+                <div class="empty-catalog">
+                  No accommodations are currently available.
+                  Please contact the resort.
+                </div>
+
+              <% } %>
+
+            </div>
+
           </div>
 
-        <% } %>
 
+          <!-- ===================================================
+               DATES + GUESTS
+          ==================================================== -->
 
-        <% if (
-          typeof success !== "undefined" &&
-          success
-        ) { %>
+          <div class="section">
 
-          <div
-            class="server-message success"
-            role="status"
-          >
-            <span class="message-icon">✅</span>
-
-            <div>
-              <strong>Booking request submitted.</strong>
-
+            <div class="section-heading">
               <div>
-                Your reservation is now pending confirmation.
+                <h2>
+                  2. Stay details
+                </h2>
+
+                <p>
+                  Select your dates and number of guests.
+                </p>
               </div>
             </div>
-          </div>
-
-        <% } %>
 
 
-        <% if (!user) { %>
+            <div class="form-grid">
 
-          <!-- =================================================
-               LOGIN REQUIRED
-          ================================================== -->
+              <div class="field">
 
-          <div class="login-required">
-
-            <div class="login-icon">
-              🔐
-            </div>
-
-            <h2>
-              Sign in to continue
-            </h2>
-
-            <p>
-              You need an account before you can submit
-              a reservation request.
-            </p>
-
-            <a
-              href="/"
-              class="primary-link"
-            >
-              Return to Home
-            </a>
-
-          </div>
-
-        <% } else { %>
-
-          <!-- =================================================
-               BOOKING FORM
-          ================================================== -->
-
-          <form
-            action="/booking/submit"
-            method="POST"
-            id="bookingForm"
-            novalidate
-          >
-
-            <!-- =================================================
-                 1. ACCOMMODATION
-            ================================================== -->
-
-            <section class="form-section">
-
-              <div class="section-heading">
-                <span class="section-number">1</span>
-
-                <h2>
-                  Choose Your Accommodation
-                </h2>
-              </div>
-
-              <p class="section-description">
-                Select the accommodation that best fits
-                your stay.
-              </p>
-
-
-              <div class="room-grid">
-
-                <!-- AIRCON ROOM -->
-
-                <label
-                  class="room-card"
-                  data-room="Aircon Room"
-                  data-capacity="8"
-                >
-
-                  <input
-                    type="radio"
-                    name="room"
-                    value="Aircon Room"
-                    data-price="3500"
-                    data-name="Aircon Suite"
-                    data-capacity="8"
-                    required
-                  />
-
-                  <div class="room-image-wrap">
-
-                    <img
-                      src="/images/room1.jpg"
-                      alt="Air-conditioned room"
-                      loading="lazy"
-                    />
-
-                    <span class="selected-badge">
-                      ✓ Selected
-                    </span>
-
-                  </div>
-
-                  <div class="room-content">
-
-                    <div class="room-name">
-                      Aircon Suite
-                    </div>
-
-                    <div class="room-description">
-                      A comfortable air-conditioned
-                      retreat for a relaxing island stay.
-                    </div>
-
-                    <div class="room-meta">
-
-                      <span class="room-price">
-                        ₱3,500 / night
-                      </span>
-
-                      <span class="room-capacity">
-                        Up to 8 guests
-                      </span>
-
-                    </div>
-
-                  </div>
-
+                <label for="checkin">
+                  Check-in
+                  <span class="required">*</span>
                 </label>
-
-
-                <!-- FAN ROOM -->
-
-                <label
-                  class="room-card"
-                  data-room="Fan Room"
-                  data-capacity="6"
-                >
-
-                  <input
-                    type="radio"
-                    name="room"
-                    value="Fan Room"
-                    data-price="2500"
-                    data-name="Cozy Fan Room"
-                    data-capacity="6"
-                    required
-                  />
-
-                  <div class="room-image-wrap">
-
-                    <img
-                      src="/images/room2.jpg"
-                      alt="Fan room accommodation"
-                      loading="lazy"
-                    />
-
-                    <span class="selected-badge">
-                      ✓ Selected
-                    </span>
-
-                  </div>
-
-                  <div class="room-content">
-
-                    <div class="room-name">
-                      Cozy Fan Room
-                    </div>
-
-                    <div class="room-description">
-                      A simple and comfortable island
-                      accommodation with a laid-back feel.
-                    </div>
-
-                    <div class="room-meta">
-
-                      <span class="room-price">
-                        ₱2,500 / night
-                      </span>
-
-                      <span class="room-capacity">
-                        Up to 6 guests
-                      </span>
-
-                    </div>
-
-                  </div>
-
-                </label>
-
-              </div>
-
-            </section>
-
-
-            <!-- =================================================
-                 2. ADD-ONS
-            ================================================== -->
-
-            <section class="form-section">
-
-              <div class="section-heading">
-                <span class="section-number">2</span>
-
-                <h2>
-                  Enhance Your Stay
-                </h2>
-              </div>
-
-              <p class="section-description">
-                Optional extras are charged per night.
-              </p>
-
-
-              <label
-                class="addon-card"
-                id="cottageCard"
-              >
 
                 <input
-                  type="checkbox"
-                  name="cottageAddon"
-                  id="cottageCheck"
-                  value="true"
-                  data-price="1200"
-                />
-
-                <div class="addon-image">
-
-                  <img
-                    src="/images/cottage.jpg"
-                    alt="Seaside cottage"
-                    loading="lazy"
-                  />
-
-                </div>
-
-                <div class="addon-content">
-
-                  <div class="addon-title">
-                    Add a Seaside Cottage
-                  </div>
-
-                  <div class="addon-description">
-                    Add a private seaside cottage experience
-                    to your Aircon or Fan Room reservation.
-                  </div>
-
-                  <div class="addon-price">
-                    + ₱1,200 / night
-                  </div>
-
-                </div>
-
-                <span
-                  class="checkbox-indicator"
-                  aria-hidden="true"
+                  type="date"
+                  id="checkin"
+                  name="checkin"
+                  required
                 >
-                  ✓
-                </span>
 
-              </label>
-
-            </section>
-
-
-            <!-- =================================================
-                 3. DETAILS
-            ================================================== -->
-
-            <section class="form-section">
-
-              <div class="section-heading">
-                <span class="section-number">3</span>
-
-                <h2>
-                  Booking Details
-                </h2>
-              </div>
-
-              <p class="section-description">
-                Tell us when you're arriving and how we
-                can contact you.
-              </p>
-
-
-              <div class="details-grid">
-
-                <!-- GUESTS -->
-
-                <div class="field">
-
-                  <label for="guests">
-                    <span>
-                      Number of Guests
-                      <span class="required">*</span>
-                    </span>
-
-                    <span
-                      class="field-hint"
-                      id="capacityHint"
-                    >
-                      Select a room first
-                    </span>
-                  </label>
-
-                  <input
-                    type="number"
-                    id="guests"
-                    name="guests"
-                    min="1"
-                    max="8"
-                    value="1"
-                    inputmode="numeric"
-                    required
-                  />
-
-                  <div
-                    class="field-error"
-                    id="guestError"
-                  >
-                    Please enter a valid number
-                    of guests.
-                  </div>
-
-                </div>
-
-
-                <!-- CONTACT -->
-
-                <div class="field">
-
-                  <label for="contact">
-                    <span>
-                      Contact Number
-                      <span class="required">*</span>
-                    </span>
-                  </label>
-
-                  <input
-                    type="tel"
-                    id="contact"
-                    name="contact"
-                    placeholder="09123456789"
-                    maxlength="20"
-                    autocomplete="tel"
-                    required
-                  />
-
-                  <div
-                    class="field-error"
-                    id="contactError"
-                  >
-                    Please enter your contact number.
-                  </div>
-
-                </div>
-
-
-                <!-- CHECK-IN -->
-
-                <div class="field">
-
-                  <label for="checkin">
-                    <span>
-                      Check-in
-                      <span class="required">*</span>
-                    </span>
-                  </label>
-
-                  <input
-                    type="date"
-                    id="checkin"
-                    name="checkin"
-                    required
-                  />
-
-                  <div
-                    class="field-error"
-                    id="checkinError"
-                  >
-                    Please select a valid check-in date.
-                  </div>
-
-                </div>
-
-
-                <!-- CHECK-OUT -->
-
-                <div class="field">
-
-                  <label for="checkout">
-                    <span>
-                      Check-out
-                      <span class="required">*</span>
-                    </span>
-                  </label>
-
-                  <input
-                    type="date"
-                    id="checkout"
-                    name="checkout"
-                    required
-                  />
-
-                  <div
-                    class="field-error"
-                    id="checkoutError"
-                  >
-                    Check-out must be after check-in.
-                  </div>
-
-                </div>
-
-
-                <!-- SPECIAL REQUESTS -->
-
-                <div class="field full">
-
-                  <label for="specialRequests">
-
-                    <span>
-                      Special Requests
-                    </span>
-
-                    <span class="field-hint">
-                      Optional
-                    </span>
-
-                  </label>
-
-                  <textarea
-                    id="specialRequests"
-                    name="specialRequests"
-                    maxlength="1000"
-                    placeholder="Dietary needs, surprise setup, accessibility requests, or anything else we should know..."
-                  ></textarea>
-
-                </div>
+                <small>
+                  Check-in cannot be in the past.
+                </small>
 
               </div>
 
-            </section>
 
-          </form>
+              <div class="field">
 
-        <% } %>
+                <label for="checkout">
+                  Check-out
+                  <span class="required">*</span>
+                </label>
 
-      </section>
+                <input
+                  type="date"
+                  id="checkout"
+                  name="checkout"
+                  required
+                >
 
+                <small>
+                  Must be after check-in.
+                </small>
 
-      <!-- =====================================================
-           RIGHT: SUMMARY
-      ====================================================== -->
-
-      <aside class="summary-panel">
-
-        <div class="summary-top">
-
-          <div class="summary-kicker">
-            Reservation Summary
-          </div>
-
-          <h2>
-            Your Island Escape
-          </h2>
-
-          <div class="summary-location">
-            Puffer Isle Resort · Philippines
-          </div>
-
-        </div>
+              </div>
 
 
-        <div class="summary-details">
+              <div class="field">
 
-          <!-- ROOM -->
+                <label for="guests">
+                  Number of guests
+                  <span class="required">*</span>
+                </label>
 
-          <div class="summary-item">
+                <input
+                  type="number"
+                  id="guests"
+                  name="guests"
+                  value="1"
+                  min="1"
+                  step="1"
+                  required
+                >
 
-            <span class="summary-label">
-              Accommodation
-            </span>
+                <small id="capacityHelp">
+                  Select a room to see its maximum capacity.
+                </small>
 
-            <span
-              class="summary-value"
-              id="summaryRoom"
-            >
-              Not selected
-            </span>
-
-          </div>
-
-
-          <!-- ADDON -->
-
-          <div
-            class="summary-item"
-            id="summaryAddonRow"
-            style="display: none;"
-          >
-
-            <span class="summary-label">
-              Add-on
-            </span>
-
-            <span
-              class="summary-value"
-              id="summaryAddon"
-            >
-              Seaside Cottage
-            </span>
-
-          </div>
+              </div>
 
 
-          <!-- DATES -->
+              <div class="field">
 
-          <div
-            class="summary-item summary-dates"
-            id="summaryDates"
-          >
+                <label for="contact">
+                  Contact number
+                  <span class="required">*</span>
+                </label>
 
-            <span class="summary-label">
-              Stay
-            </span>
+                <input
+                  type="tel"
+                  id="contact"
+                  name="contact"
+                  value="<%= user && user.phone ? user.phone : "" %>"
+                  autocomplete="tel"
+                  required
+                >
 
-            <span
-              class="summary-value"
-              id="summaryDateText"
-            >
-              —
-            </span>
+                <small>
+                  We'll use this for reservation communication.
+                </small>
 
-          </div>
+              </div>
 
-
-          <!-- NIGHTS -->
-
-          <div class="summary-item">
-
-            <span class="summary-label">
-              Nights
-            </span>
-
-            <span
-              class="summary-value"
-              id="summaryNights"
-            >
-              0
-            </span>
-
-          </div>
-
-
-          <!-- GUESTS -->
-
-          <div class="summary-item">
-
-            <span class="summary-label">
-              Guests
-            </span>
-
-            <span
-              class="summary-value"
-              id="summaryGuests"
-            >
-              1
-            </span>
-
-          </div>
-
-
-          <div
-            class="summary-placeholder"
-            id="summaryPlaceholder"
-          >
-            Select an accommodation and your dates
-            to see your estimated booking total.
-          </div>
-
-        </div>
-
-
-        <div class="summary-bottom">
-
-          <div class="price-box">
-
-            <span class="price-label">
-              Estimated Total
-            </span>
-
-            <strong
-              class="price-value"
-              id="summaryTotal"
-            >
-              ₱0
-            </strong>
-
-            <p class="price-note">
-              Final pricing is calculated and verified
-              securely by the server.
-            </p>
-
-          </div>
-
-
-          <% if (user) { %>
-
-            <button
-              type="submit"
-              class="submit-btn"
-              id="submitBtn"
-              form="bookingForm"
-              disabled
-            >
-
-              <span id="submitText">
-                Complete Reservation
-              </span>
-
-            </button>
-
-            <div class="security-note">
-              🔒 Your reservation request is securely processed
             </div>
 
-          <% } %>
+          </div>
+
+
+          <!-- ===================================================
+               ADD-ONS
+          ==================================================== -->
+
+          <div class="section">
+
+            <div class="section-heading">
+              <div>
+                <h2>
+                  3. Optional add-ons
+                </h2>
+
+                <p>
+                  Available extras are managed by the resort.
+                </p>
+              </div>
+            </div>
+
+
+            <% if (addOns && addOns.length > 0) { %>
+
+              <div class="addon-list">
+
+                <% addOns.forEach((addOn) => { %>
+
+                  <label class="addon-option">
+
+                    <input
+                      type="checkbox"
+                      name="addOns[]"
+                      value="<%= addOn._id %>"
+                      data-addon-name="<%= addOn.name %>"
+                      data-addon-price="<%= Number(addOn.price || 0) %>"
+                      data-addon-pricing-type="<%= addOn.pricingType || "once" %>"
+                    >
+
+                    <div class="addon-info">
+
+                      <div class="addon-title-row">
+
+                        <span class="addon-name">
+                          <%= addOn.name %>
+                        </span>
+
+                        <span class="addon-price">
+
+                          ₱<%= Number(addOn.price || 0).toLocaleString("en-PH") %>
+
+                        </span>
+
+                      </div>
+
+
+                      <% if (addOn.description) { %>
+
+                        <div class="addon-description">
+                          <%= addOn.description %>
+                        </div>
+
+                      <% } %>
+
+
+                      <div class="addon-note">
+
+                        <% if (addOn.pricingType === "perNight") { %>
+
+                          Charged per night
+
+                        <% } else { %>
+
+                          Charged once per stay
+
+                        <% } %>
+
+                      </div>
+
+                    </div>
+
+                  </label>
+
+                <% }) %>
+
+              </div>
+
+            <% } else { %>
+
+              <div class="empty-catalog">
+                No add-ons are currently available.
+              </div>
+
+            <% } %>
+
+          </div>
+
+
+          <!-- ===================================================
+               SPECIAL REQUESTS
+          ==================================================== -->
+
+          <div class="section">
+
+            <div class="section-heading">
+              <div>
+                <h2>
+                  4. Special requests
+                </h2>
+
+                <p>
+                  Optional notes for the resort team.
+                </p>
+              </div>
+            </div>
+
+
+            <div class="field">
+
+              <label for="specialRequests">
+                Special requests
+              </label>
+
+              <textarea
+                id="specialRequests"
+                name="specialRequests"
+                maxlength="3000"
+                placeholder="Tell us about any special requests or preferences..."
+              ></textarea>
+
+              <small>
+                Please note that special requests are subject to availability.
+              </small>
+
+            </div>
+
+          </div>
+
+        </section>
+
+
+        <!-- =====================================================
+             RIGHT / SUMMARY
+        ====================================================== -->
+
+        <aside class="card summary-card">
+
+          <h2>
+            Booking summary
+          </h2>
+
+          <p class="summary-subtitle">
+            Your displayed total is an estimate.
+            The server performs the final calculation.
+          </p>
+
+
+          <div
+            id="summaryRoom"
+            class="summary-room"
+          >
+
+            <div
+              id="summaryRoomName"
+              class="summary-room-name"
+            >
+              No room selected
+            </div>
+
+            <div
+              id="summaryRoomMeta"
+              class="summary-room-meta"
+            >
+              Choose an accommodation to continue.
+            </div>
+
+          </div>
+
+
+          <div class="price-lines">
+
+            <div class="price-line">
+
+              <span>
+                Room
+              </span>
+
+              <strong id="roomSubtotal">
+                ₱0
+              </strong>
+
+            </div>
+
+
+            <div class="price-line">
+
+              <span>
+                Add-ons
+              </span>
+
+              <strong id="addOnSubtotal">
+                ₱0
+              </strong>
+
+            </div>
+
+
+            <div class="price-line">
+
+              <span>
+                Nights
+              </span>
+
+              <strong id="nightCount">
+                0
+              </strong>
+
+            </div>
+
+
+            <div class="price-divider"></div>
+
+
+            <div class="total-line">
+
+              <span>
+                Estimated total
+              </span>
+
+              <strong id="estimatedTotal">
+                ₱0
+              </strong>
+
+            </div>
+
+          </div>
+
+
+          <div
+            id="validationMessage"
+            class="validation-message"
+          ></div>
+
+
+          <button
+            type="submit"
+            id="submitButton"
+            class="submit-button"
+          >
+            Submit Booking Request
+          </button>
+
+
+          <div class="security-note">
+
+            Your submitted total is not trusted by the server.
+            The booking system recalculates the price from the
+            current resort catalog before saving the reservation.
+
+          </div>
+
+        </aside>
+
+      </div>
+
+    </form>
+
+
+    <!-- =========================================================
+         BOOKING HISTORY
+    ========================================================== -->
+
+    <section class="card booking-history">
+
+      <h2>
+        Your reservations
+      </h2>
+
+      <p>
+        Review your recent booking requests and their current status.
+      </p>
+
+
+      <% if (appointments && appointments.length > 0) { %>
+
+        <div class="history-list">
+
+          <% appointments.forEach((appointment) => { %>
+
+            <article class="history-item">
+
+              <div>
+
+                <h3 class="history-name">
+                  <%= appointment.room || "Accommodation" %>
+                </h3>
+
+
+                <div class="history-meta">
+
+                  <% if (appointment.checkin) { %>
+
+                    <%= new Date(appointment.checkin).toLocaleDateString("en-PH", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric"
+                    }) %>
+
+                  <% } %>
+
+
+                  <% if (appointment.checkout) { %>
+
+                    —
+                    <%= new Date(appointment.checkout).toLocaleDateString("en-PH", {
+                      year: "numeric",
+                      month: "short",
+                      day: "numeric"
+                    }) %>
+
+                  <% } %>
+
+
+                  ·
+
+                  <%= Number(appointment.guests || 0) %>
+                  guest<%= Number(appointment.guests || 0) === 1 ? "" : "s" %>
+
+                </div>
+
+
+                <span
+                  class="status status-<%= String(appointment.status || "pending").toLowerCase().replace(/\s+/g, "-") %>"
+                >
+                  <%= appointment.status || "pending" %>
+                </span>
+
+              </div>
+
+
+              <div class="history-price">
+
+                ₱<%= Number(appointment.totalPrice || 0).toLocaleString("en-PH") %>
+
+              </div>
+
+            </article>
+
+          <% }) %>
 
         </div>
 
-      </aside>
+      <% } else { %>
 
-    </div>
+        <div class="empty-history">
+          You have no reservations yet.
+        </div>
+
+      <% } %>
+
+    </section>
 
   </main>
 
-
-  <!-- =========================================================
-       BOOKING JAVASCRIPT
-  ========================================================== -->
 
   <script>
     (() => {
       "use strict";
 
-      /*
-       * =======================================================
-       * Puffer Isle Resort | Booking UI
-       * =======================================================
-       *
-       * IMPORTANT:
-       *
-       * This JavaScript only provides the user with an
-       * estimated price and validation feedback.
-       *
-       * The server remains the authoritative source for:
-       *
-       * - dates
-       * - guests
-       * - room availability
-       * - price
-       * - booking status
-       *
-       * Never trust the browser's calculated price.
-       * =======================================================
-       */
-
       const form =
-        document.getElementById("bookingForm");
-
-      if (!form) {
-        return;
-      }
-
-
-      /* =====================================================
-         ELEMENTS
-      ====================================================== */
+        document.getElementById(
+          "bookingForm"
+        );
 
       const roomInputs =
         document.querySelectorAll(
           'input[name="room"]'
         );
 
-      const roomCards =
+      const addOnInputs =
         document.querySelectorAll(
-          ".room-card"
+          'input[name="addOns[]"]'
         );
 
-      const cottageCheck =
+      const checkInInput =
         document.getElementById(
-          "cottageCheck"
+          "checkin"
         );
 
-      const cottageCard =
+      const checkOutInput =
         document.getElementById(
-          "cottageCard"
+          "checkout"
         );
 
       const guestsInput =
@@ -1909,157 +1450,98 @@
           "guests"
         );
 
-      const contactInput =
+      const capacityHelp =
         document.getElementById(
-          "contact"
+          "capacityHelp"
         );
 
-      const checkinInput =
+      const summaryRoomName =
         document.getElementById(
-          "checkin"
+          "summaryRoomName"
         );
 
-      const checkoutInput =
+      const summaryRoomMeta =
         document.getElementById(
-          "checkout"
+          "summaryRoomMeta"
         );
 
-      const specialRequestsInput =
+      const roomSubtotalElement =
         document.getElementById(
-          "specialRequests"
+          "roomSubtotal"
         );
 
-      const capacityHint =
+      const addOnSubtotalElement =
         document.getElementById(
-          "capacityHint"
+          "addOnSubtotal"
         );
 
-      const submitBtn =
+      const nightCountElement =
         document.getElementById(
-          "submitBtn"
+          "nightCount"
         );
 
-      const submitText =
+      const estimatedTotalElement =
         document.getElementById(
-          "submitText"
+          "estimatedTotal"
         );
 
-
-      /* SUMMARY */
-
-      const summaryRoom =
+      const validationMessage =
         document.getElementById(
-          "summaryRoom"
+          "validationMessage"
         );
 
-      const summaryAddonRow =
+      const submitButton =
         document.getElementById(
-          "summaryAddonRow"
-        );
-
-      const summaryDates =
-        document.getElementById(
-          "summaryDates"
-        );
-
-      const summaryDateText =
-        document.getElementById(
-          "summaryDateText"
-        );
-
-      const summaryNights =
-        document.getElementById(
-          "summaryNights"
-        );
-
-      const summaryGuests =
-        document.getElementById(
-          "summaryGuests"
-        );
-
-      const summaryTotal =
-        document.getElementById(
-          "summaryTotal"
-        );
-
-      const summaryPlaceholder =
-        document.getElementById(
-          "summaryPlaceholder"
+          "submitButton"
         );
 
 
-      /* =====================================================
-         CONSTANTS
-      ====================================================== */
+      /*
+       * ----------------------------------------------------------
+       * MONEY
+       * ----------------------------------------------------------
+       */
 
-      const ROOM_CAPACITY = {
-        "Aircon Room": 8,
-        "Fan Room": 6
-      };
+      function formatMoney(
+        value
+      ) {
+        const amount =
+          Number(value) || 0;
 
-
-      /* =====================================================
-         DATE HELPERS
-      ====================================================== */
-
-      function formatDateInputValue(date) {
-        const year =
-          date.getFullYear();
-
-        const month =
-          String(
-            date.getMonth() + 1
-          ).padStart(2, "0");
-
-        const day =
-          String(
-            date.getDate()
-          ).padStart(2, "0");
-
-        return `${year}-${month}-${day}`;
+        return (
+          "₱" +
+          amount.toLocaleString(
+            "en-PH",
+            {
+              maximumFractionDigits: 2,
+            }
+          )
+        );
       }
 
 
-      function parseDateOnly(value) {
+      /*
+       * ----------------------------------------------------------
+       * DATE
+       * ----------------------------------------------------------
+       */
+
+      function parseDate(
+        value
+      ) {
         if (!value) {
-          return null;
-        }
-
-        const parts =
-          value.split("-");
-
-        if (parts.length !== 3) {
-          return null;
-        }
-
-        const year =
-          Number(parts[0]);
-
-        const month =
-          Number(parts[1]);
-
-        const day =
-          Number(parts[2]);
-
-        if (
-          !Number.isInteger(year) ||
-          !Number.isInteger(month) ||
-          !Number.isInteger(day)
-        ) {
           return null;
         }
 
         const date =
           new Date(
-            year,
-            month - 1,
-            day
+            value + "T00:00:00"
           );
 
         if (
-          date.getFullYear() !== year ||
-          date.getMonth() !== month - 1 ||
-          date.getDate() !== day
+          Number.isNaN(
+            date.getTime()
+          )
         ) {
           return null;
         }
@@ -2068,130 +1550,144 @@
       }
 
 
-      function calculateNights(
-        checkin,
-        checkout
-      ) {
-        const start =
-          parseDateOnly(checkin);
+      function getNights() {
+        const checkIn =
+          parseDate(
+            checkInInput.value
+          );
 
-        const end =
-          parseDateOnly(checkout);
+        const checkOut =
+          parseDate(
+            checkOutInput.value
+          );
 
-        if (!start || !end) {
+        if (
+          !checkIn ||
+          !checkOut ||
+          checkOut <= checkIn
+        ) {
           return 0;
         }
 
-        const millisecondsPerDay =
-          24 * 60 * 60 * 1000;
+        const milliseconds =
+          checkOut.getTime() -
+          checkIn.getTime();
 
-        return Math.round(
-          (end.getTime() -
-            start.getTime()) /
-            millisecondsPerDay
+        return Math.ceil(
+          milliseconds /
+            (1000 * 60 * 60 * 24)
         );
       }
 
 
-      function formatReadableDate(value) {
-        const date =
-          parseDateOnly(value);
+      /*
+       * ----------------------------------------------------------
+       * TODAY
+       * ----------------------------------------------------------
+       */
 
-        if (!date) {
-          return "—";
-        }
+      function getTodayInputValue() {
+        const now =
+          new Date();
 
-        return date.toLocaleDateString(
-          "en-US",
-          {
-            month: "short",
-            day: "numeric",
-            year: "numeric"
-          }
-        );
-      }
+        const year =
+          now.getFullYear();
 
-
-      /* =====================================================
-         INITIAL DATE LIMITS
-      ====================================================== */
-
-      const today =
-        new Date();
-
-      today.setHours(
-        0,
-        0,
-        0,
-        0
-      );
-
-      const todayValue =
-        formatDateInputValue(today);
-
-      checkinInput.min =
-        todayValue;
-
-
-      /* =====================================================
-         ROOM SELECTION
-      ====================================================== */
-
-      function getSelectedRoom() {
-        return document.querySelector(
-          'input[name="room"]:checked'
-        );
-      }
-
-
-      function updateRoomCards() {
-        roomCards.forEach(card => {
-
-          const input =
-            card.querySelector(
-              'input[name="room"]'
-            );
-
-          if (!input) {
-            return;
-          }
-
-          card.classList.toggle(
-            "selected",
-            input.checked
+        const month =
+          String(
+            now.getMonth() + 1
+          ).padStart(
+            2,
+            "0"
           );
 
-        });
+        const day =
+          String(
+            now.getDate()
+          ).padStart(
+            2,
+            "0"
+          );
+
+        return `${year}-${month}-${day}`;
       }
 
 
+      checkInInput.min =
+        getTodayInputValue();
+
+      checkOutInput.min =
+        getTodayInputValue();
+
+
+      /*
+       * ----------------------------------------------------------
+       * SELECTED ROOM
+       * ----------------------------------------------------------
+       */
+
+      function getSelectedRoom() {
+        return Array.from(
+          roomInputs
+        ).find(
+          (input) =>
+            input.checked
+        );
+      }
+
+
+      /*
+       * ----------------------------------------------------------
+       * SELECTED ADD-ONS
+       * ----------------------------------------------------------
+       */
+
+      function getSelectedAddOns() {
+        return Array.from(
+          addOnInputs
+        ).filter(
+          (input) =>
+            input.checked
+        );
+      }
+
+
+      /*
+       * ----------------------------------------------------------
+       * CAPACITY
+       * ----------------------------------------------------------
+       */
+
       function updateGuestCapacity() {
-        const room =
+        const selectedRoom =
           getSelectedRoom();
 
-        if (!room) {
+        if (!selectedRoom) {
+          guestsInput.removeAttribute(
+            "max"
+          );
 
-          guestsInput.max = 8;
-
-          capacityHint.textContent =
-            "Select a room first";
+          capacityHelp.textContent =
+            "Select a room to see its maximum capacity.";
 
           return;
         }
 
-        const roomName =
-          room.value;
-
-        const maxGuests =
-          ROOM_CAPACITY[
-            roomName
-          ] || 6;
+        const capacity =
+          Number(
+            selectedRoom.dataset.roomCapacity ||
+              1
+          );
 
         guestsInput.max =
-          String(maxGuests);
+          String(capacity);
 
-        capacityHint.textContent =
-          `Maximum ${maxGuests} guests`;
+        capacityHelp.textContent =
+          `Maximum capacity: ${capacity} guest${
+            capacity === 1
+              ? ""
+              : "s"
+          }.`;
 
         const currentGuests =
           Number(
@@ -2199,553 +1695,462 @@
           );
 
         if (
-          Number.isInteger(
-            currentGuests
-          ) &&
-          currentGuests > maxGuests
+          currentGuests > capacity
         ) {
           guestsInput.value =
-            String(maxGuests);
+            String(
+              capacity
+            );
         }
       }
 
 
-      roomInputs.forEach(input => {
+      /*
+       * ----------------------------------------------------------
+       * SUMMARY
+       * ----------------------------------------------------------
+       */
 
-        input.addEventListener(
-          "change",
-          () => {
+      function updateSummary() {
+        const selectedRoom =
+          getSelectedRoom();
 
-            updateRoomCards();
+        const nights =
+          getNights();
 
-            updateGuestCapacity();
+        let roomPrice =
+          0;
 
-            updateSummary();
+        let roomName =
+          "No room selected";
 
-            validateForm();
+        let roomCapacity =
+          0;
 
+        if (selectedRoom) {
+          roomPrice =
+            Number(
+              selectedRoom.dataset.roomPrice ||
+                0
+            );
+
+          roomName =
+            selectedRoom.dataset.roomName ||
+            "Selected room";
+
+          roomCapacity =
+            Number(
+              selectedRoom.dataset.roomCapacity ||
+                0
+            );
+        }
+
+
+        let addOnSubtotal =
+          0;
+
+        getSelectedAddOns().forEach(
+          (input) => {
+            const price =
+              Number(
+                input.dataset.addonPrice ||
+                  0
+              );
+
+            const pricingType =
+              input.dataset.addonPricingType ||
+              "once";
+
+            if (
+              pricingType ===
+              "perNight"
+            ) {
+              addOnSubtotal +=
+                price *
+                nights;
+            } else {
+              addOnSubtotal +=
+                price;
+            }
           }
         );
 
-      });
+
+        const roomSubtotal =
+          roomPrice *
+          nights;
+
+        const estimatedTotal =
+          roomSubtotal +
+          addOnSubtotal;
 
 
-      /* =====================================================
-         COTTAGE ADD-ON
-      ====================================================== */
+        summaryRoomName.textContent =
+          roomName;
 
-      function updateAddonCard() {
+        if (selectedRoom) {
 
-        const active =
-          cottageCheck.checked;
+          summaryRoomMeta.textContent =
+            `₱${roomPrice.toLocaleString(
+              "en-PH"
+            )} per night · Up to ${roomCapacity} guest${
+              roomCapacity === 1
+                ? ""
+                : "s"
+            }`;
 
-        cottageCard.classList.toggle(
-          "selected",
-          active
-        );
+        } else {
 
-        summaryAddonRow.style.display =
-          active
-            ? "flex"
-            : "none";
+          summaryRoomMeta.textContent =
+            "Choose an accommodation to continue.";
 
+        }
+
+
+        roomSubtotalElement.textContent =
+          formatMoney(
+            roomSubtotal
+          );
+
+        addOnSubtotalElement.textContent =
+          formatMoney(
+            addOnSubtotal
+          );
+
+        nightCountElement.textContent =
+          String(
+            nights
+          );
+
+        estimatedTotalElement.textContent =
+          formatMoney(
+            estimatedTotal
+          );
       }
 
 
-      cottageCheck.addEventListener(
-        "change",
-        () => {
+      /*
+       * ----------------------------------------------------------
+       * VALIDATION MESSAGE
+       * ----------------------------------------------------------
+       */
 
-          updateAddonCard();
+      function showValidation(
+        message
+      ) {
+        validationMessage.textContent =
+          message;
 
-          updateSummary();
-
-          validateForm();
-
-        }
-      );
+        validationMessage.style.display =
+          "block";
+      }
 
 
-      /* =====================================================
-         GUEST VALIDATION
-      ====================================================== */
+      function clearValidation() {
+        validationMessage.textContent =
+          "";
 
-      function validateGuests() {
+        validationMessage.style.display =
+          "none";
+      }
 
-        const room =
+
+      /*
+       * ----------------------------------------------------------
+       * FORM VALIDATION
+       * ----------------------------------------------------------
+       */
+
+      function validateForm() {
+        clearValidation();
+
+        const selectedRoom =
           getSelectedRoom();
+
+        if (!selectedRoom) {
+          showValidation(
+            "Please select an accommodation."
+          );
+
+          return false;
+        }
+
+
+        const checkIn =
+          parseDate(
+            checkInInput.value
+          );
+
+        const checkOut =
+          parseDate(
+            checkOutInput.value
+          );
+
+        if (!checkIn) {
+          showValidation(
+            "Please select a valid check-in date."
+          );
+
+          return false;
+        }
+
+
+        if (!checkOut) {
+          showValidation(
+            "Please select a valid check-out date."
+          );
+
+          return false;
+        }
+
+
+        const today =
+          parseDate(
+            getTodayInputValue()
+          );
+
+        if (
+          today &&
+          checkIn < today
+        ) {
+          showValidation(
+            "Check-in cannot be in the past."
+          );
+
+          return false;
+        }
+
+
+        if (
+          checkOut <= checkIn
+        ) {
+          showValidation(
+            "Check-out must be after check-in."
+          );
+
+          return false;
+        }
+
+
+        const nights =
+          getNights();
+
+        if (
+          nights < 1
+        ) {
+          showValidation(
+            "Your stay must be at least one night."
+          );
+
+          return false;
+        }
+
 
         const guests =
           Number(
             guestsInput.value
           );
 
-        const max =
-          room
-            ? (
-                ROOM_CAPACITY[
-                  room.value
-                ] || 6
-              )
-            : 8;
+        const capacity =
+          Number(
+            selectedRoom.dataset.roomCapacity ||
+              0
+          );
 
-        const valid =
-          Number.isInteger(guests) &&
-          guests >= 1 &&
-          guests <= max;
+        if (
+          !Number.isInteger(
+            guests
+          ) ||
+          guests < 1
+        ) {
+          showValidation(
+            "Please enter a valid number of guests."
+          );
 
-        guestsInput.classList.toggle(
-          "invalid",
-          !valid
-        );
+          return false;
+        }
 
-        return valid;
+
+        if (
+          capacity > 0 &&
+          guests > capacity
+        ) {
+          showValidation(
+            `This accommodation allows a maximum of ${capacity} guest${
+              capacity === 1
+                ? ""
+                : "s"
+            }.`
+          );
+
+          return false;
+        }
+
+
+        const contact =
+          document
+            .getElementById(
+              "contact"
+            )
+            .value
+            .trim();
+
+        if (
+          contact.length < 3
+        ) {
+          showValidation(
+            "Please provide a valid contact number."
+          );
+
+          return false;
+        }
+
+
+        return true;
       }
 
+
+      /*
+       * ----------------------------------------------------------
+       * ROOM CHANGE
+       * ----------------------------------------------------------
+       */
+
+      roomInputs.forEach(
+        (input) => {
+          input.addEventListener(
+            "change",
+            () => {
+              updateGuestCapacity();
+              updateSummary();
+              clearValidation();
+            }
+          );
+        }
+      );
+
+
+      /*
+       * ----------------------------------------------------------
+       * ADD-ON CHANGE
+       * ----------------------------------------------------------
+       */
+
+      addOnInputs.forEach(
+        (input) => {
+          input.addEventListener(
+            "change",
+            () => {
+              updateSummary();
+              clearValidation();
+            }
+          );
+        }
+      );
+
+
+      /*
+       * ----------------------------------------------------------
+       * DATE CHANGE
+       * ----------------------------------------------------------
+       */
+
+      checkInInput.addEventListener(
+        "change",
+        () => {
+          const checkIn =
+            parseDate(
+              checkInInput.value
+            );
+
+          if (checkIn) {
+            checkOutInput.min =
+              checkInInput.value;
+          } else {
+            checkOutInput.min =
+              getTodayInputValue();
+          }
+
+          updateSummary();
+        }
+      );
+
+
+      checkOutInput.addEventListener(
+        "change",
+        updateSummary
+      );
+
+
+      /*
+       * ----------------------------------------------------------
+       * GUEST CHANGE
+       * ----------------------------------------------------------
+       */
 
       guestsInput.addEventListener(
         "input",
         () => {
-
-          validateGuests();
-
           updateSummary();
-
-          validateForm();
-
+          clearValidation();
         }
       );
 
 
-      /* =====================================================
-         DATE VALIDATION
-      ====================================================== */
-
-      function updateCheckoutMinimum() {
-
-        const checkin =
-          parseDateOnly(
-            checkinInput.value
-          );
-
-        if (!checkin) {
-
-          checkoutInput.min =
-            todayValue;
-
-          return;
-        }
-
-        const minimumCheckout =
-          new Date(checkin);
-
-        minimumCheckout.setDate(
-          minimumCheckout.getDate() + 1
-        );
-
-        checkoutInput.min =
-          formatDateInputValue(
-            minimumCheckout
-          );
-
-        const currentCheckout =
-          parseDateOnly(
-            checkoutInput.value
-          );
-
-        if (
-          currentCheckout &&
-          currentCheckout <= checkin
-        ) {
-          checkoutInput.value =
-            "";
-        }
-
-      }
-
-
-      function validateDates() {
-
-        const checkin =
-          parseDateOnly(
-            checkinInput.value
-          );
-
-        const checkout =
-          parseDateOnly(
-            checkoutInput.value
-          );
-
-        const validCheckin =
-          Boolean(checkin) &&
-          checkin >= today;
-
-        const validCheckout =
-          Boolean(checkout) &&
-          Boolean(checkin) &&
-          checkout > checkin;
-
-        checkinInput.classList.toggle(
-          "invalid",
-          !validCheckin
-        );
-
-        checkoutInput.classList.toggle(
-          "invalid",
-          !validCheckout
-        );
-
-        return (
-          validCheckin &&
-          validCheckout
-        );
-      }
-
-
-      checkinInput.addEventListener(
-        "change",
-        () => {
-
-          updateCheckoutMinimum();
-
-          updateSummary();
-
-          validateForm();
-
-        }
-      );
-
-
-      checkoutInput.addEventListener(
-        "change",
-        () => {
-
-          updateSummary();
-
-          validateForm();
-
-        }
-      );
-
-
-      /* =====================================================
-         CONTACT
-      ====================================================== */
-
-      function validateContact() {
-
-        const value =
-          contactInput.value.trim();
-
-        const valid =
-          value.length >= 7 &&
-          value.length <= 20;
-
-        contactInput.classList.toggle(
-          "invalid",
-          !valid
-        );
-
-        return valid;
-      }
-
-
-      contactInput.addEventListener(
-        "input",
-        () => {
-
-          validateContact();
-
-          validateForm();
-
-        }
-      );
-
-
-      /* =====================================================
-         SPECIAL REQUESTS
-      ====================================================== */
-
-      specialRequestsInput.addEventListener(
-        "input",
-        () => {
-
-          if (
-            specialRequestsInput.value.length >
-            1000
-          ) {
-            specialRequestsInput.value =
-              specialRequestsInput.value.slice(
-                0,
-                1000
-              );
-          }
-
-        }
-      );
-
-
-      /* =====================================================
-         PRICE ESTIMATE
-      ====================================================== */
-
-      function updateSummary() {
-
-        const room =
-          getSelectedRoom();
-
-        const nights =
-          calculateNights(
-            checkinInput.value,
-            checkoutInput.value
-          );
-
-        const guests =
-          Number(
-            guestsInput.value
-          ) || 0;
-
-
-        /* ROOM */
-
-        if (room) {
-
-          summaryRoom.textContent =
-            room.dataset.name ||
-            room.value;
-
-        } else {
-
-          summaryRoom.textContent =
-            "Not selected";
-
-        }
-
-
-        /* GUESTS */
-
-        summaryGuests.textContent =
-          guests || 0;
-
-
-        /* DATES */
-
-        if (
-          checkinInput.value &&
-          checkoutInput.value
-        ) {
-
-          summaryDates.classList.add(
-            "visible"
-          );
-
-          summaryDateText.textContent =
-            `${formatReadableDate(
-              checkinInput.value
-            )} → ${formatReadableDate(
-              checkoutInput.value
-            )}`;
-
-        } else {
-
-          summaryDates.classList.remove(
-            "visible"
-          );
-
-          summaryDateText.textContent =
-            "—";
-
-        }
-
-
-        /* NIGHTS */
-
-        summaryNights.textContent =
-          nights > 0
-            ? nights
-            : "—";
-
-
-        /* TOTAL */
-
-        if (!room || nights < 1) {
-
-          summaryTotal.textContent =
-            "₱0";
-
-          summaryPlaceholder.style.display =
-            "block";
-
-          return;
-
-        }
-
-
-        summaryPlaceholder.style.display =
-          "none";
-
-
-        const roomRate =
-          Number(
-            room.dataset.price
-          ) || 0;
-
-        const addonRate =
-          cottageCheck.checked
-            ? Number(
-                cottageCheck.dataset.price
-              ) || 0
-            : 0;
-
-        /*
-         * This is ONLY a UI estimate.
-         * Server calculates the authoritative total.
-         */
-
-        const estimatedTotal =
-          (
-            roomRate +
-            addonRate
-          ) * nights;
-
-
-        summaryTotal.textContent =
-          `₱${estimatedTotal.toLocaleString(
-            "en-PH"
-          )}`;
-
-      }
-
-
-      /* =====================================================
-         COMPLETE FORM VALIDATION
-      ====================================================== */
-
-      function validateForm() {
-
-        const room =
-          Boolean(
-            getSelectedRoom()
-          );
-
-        const guests =
-          validateGuests();
-
-        const dates =
-          validateDates();
-
-        const contact =
-          validateContact();
-
-        const valid =
-          room &&
-          guests &&
-          dates &&
-          contact;
-
-        if (submitBtn) {
-
-          submitBtn.disabled =
-            !valid;
-
-        }
-
-        return valid;
-      }
-
-
-      /* =====================================================
-         FORM SUBMISSION
-      ====================================================== */
-
-      let submitting =
-        false;
+      /*
+       * ----------------------------------------------------------
+       * SUBMIT
+       * ----------------------------------------------------------
+       */
 
       form.addEventListener(
         "submit",
-        event => {
-
-          if (submitting) {
-
+        (event) => {
+          if (
+            !validateForm()
+          ) {
             event.preventDefault();
 
-            return;
+            window.scrollTo({
+              top:
+                validationMessage
+                  .getBoundingClientRect()
+                  .top +
+                window.scrollY -
+                120,
 
-          }
-
-
-          const valid =
-            validateForm();
-
-
-          if (!valid) {
-
-            event.preventDefault();
-
-            /*
-             * Scroll to the first invalid
-             * element for better UX.
-             */
-
-            const invalid =
-              form.querySelector(
-                ".invalid"
-              );
-
-            if (invalid) {
-
-              invalid.scrollIntoView({
-                behavior: "smooth",
-                block: "center"
-              });
-
-              invalid.focus();
-
-            }
+              behavior:
+                "smooth",
+            });
 
             return;
-
           }
 
-
-          /*
-           * Prevent accidental double clicks.
-           */
-
-          submitting = true;
-
-          submitBtn.disabled =
+          submitButton.disabled =
             true;
 
-          submitBtn.classList.add(
-            "loading"
-          );
+          submitButton.textContent =
+            "Submitting booking...";
 
-          submitText.innerHTML =
-            `
-              <span class="spinner"></span>
-              Submitting Reservation...
-            `;
-
+          /*
+           * IMPORTANT:
+           * We intentionally do NOT create or submit
+           * totalPrice as a trusted form value.
+           *
+           * The server calculates the final amount.
+           */
         }
       );
 
 
-      /* =====================================================
-         INITIAL STATE
-      ====================================================== */
-
-      updateRoomCards();
-
-      updateAddonCard();
+      /*
+       * ----------------------------------------------------------
+       * INITIAL STATE
+       * ----------------------------------------------------------
+       */
 
       updateGuestCapacity();
-
-      updateCheckoutMinimum();
-
       updateSummary();
-
-      validateForm();
 
     })();
   </script>

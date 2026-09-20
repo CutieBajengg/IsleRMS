@@ -1,231 +1,4618 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Front Desk | Puffer Isle Admin</title>
-    
-    <link rel="icon" type="image/png" href="/images/islelogo.png">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/all.min.css">
+  <meta charset="UTF-8">
 
-    <style>
-        :root {
-            --brand-teal: #1abc9c;
-            --success: #2ecc71;
-            --error: #e74c3c;
-            --pending: #f39c12;
-            --card-bg: #161e2d;
-            --card-border: rgba(255, 255, 255, 0.08);
-            --text-muted: #94a3b8;
-            --dark-bg: #0f172a;
-        }
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
 
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+  <meta
+    name="description"
+    content="Puffer Isle Resort Front Desk Operations"
+  >
 
-        body {
-            background-color: var(--dark-bg);
-            color: white;
-            font-family: 'Poppins', sans-serif;
-            min-height: 100vh;
-            display: flex;
-            justify-content: center; 
-            align-items: center;     
-            padding: 20px;
-        }
+  <title>Front Desk Operations | Puffer Isle Resort</title>
 
-        .container { 
-            width: 100%;
-            max-width: 1200px;
-        }
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/islelogo.png"
+  >
 
-        .header-flex {
-            display: flex;
-            justify-content: space-between;
-            align-items: flex-end;
-            margin-bottom: 30px;
-            padding: 0 10px;
-        }
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
 
-        .header-flex h1 { font-size: 2rem; font-weight: 700; }
-        .header-flex h1 span { color: var(--brand-teal); }
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
 
-        .front-desk-grid { 
-            display: grid; 
-            grid-template-columns: 1fr 1fr; 
-            gap: 30px; 
-        }
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
 
-        .status-card { 
-            background: var(--card-bg); 
-            border: 1px solid var(--card-border); 
-            padding: 25px; 
-            border-radius: 24px; 
-            box-shadow: 0 20px 50px rgba(0,0,0,0.3);
-            min-height: 550px;
-        }
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+  >
 
-        .status-card h3 {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            font-size: 1.1rem;
-            margin-bottom: 25px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid var(--card-border);
-        }
+  <style>
+    :root {
+      --fd-bg: #070a0c;
+      --fd-bg-soft: #0c1113;
+      --fd-panel: rgba(255, 255, 255, 0.045);
+      --fd-panel-strong: rgba(255, 255, 255, 0.065);
+      --fd-panel-hover: rgba(255, 255, 255, 0.085);
 
-        .guest-item {
-            display: flex; 
-            justify-content: space-between; 
-            align-items: center;
-            padding: 18px; 
-            background: rgba(255,255,255,0.03);
-            border-radius: 18px;
-            margin-bottom: 15px;
-            border: 1px solid transparent;
-            transition: 0.3s;
-        }
-        .guest-item:hover { border-color: var(--brand-teal); background: rgba(26, 188, 156, 0.05); }
+      --fd-border: rgba(255, 255, 255, 0.085);
+      --fd-border-strong: rgba(255, 255, 255, 0.14);
 
-        .guest-info strong { display: block; font-size: 1.05rem; margin-bottom: 2px; }
-        .guest-info small { color: var(--brand-teal); font-weight: 600; text-transform: uppercase; font-size: 0.7rem; letter-spacing: 0.5px; }
-        
-        .guest-meta { font-size: 0.75rem; color: var(--text-muted); margin-top: 6px; }
-        .guest-meta i { width: 18px; color: var(--brand-teal); opacity: 0.7; }
+      --fd-text: #ffffff;
+      --fd-text-soft: #dce4e6;
+      --fd-muted: #8e999e;
 
-        /* Buttons */
-        .btn-action {
-            border: none; 
-            color: white;
-            padding: 10px 16px; 
-            border-radius: 10px; 
-            cursor: pointer; 
-            font-weight: 600;
-            font-size: 0.8rem;
-            transition: 0.3s;
-        }
-        .btn-checkin { background: var(--brand-teal); }
-        .btn-checkout { background: rgba(231, 76, 60, 0.2); color: var(--error); border: 1px solid var(--error); }
-        .btn-checkout:hover { background: var(--error); color: white; }
+      --fd-teal: #00a6a6;
+      --fd-teal-light: #1fc7c7;
+      --fd-teal-deep: #006f70;
 
-        /* Status Badges */
-        .badge { font-size: 0.6rem; padding: 2px 8px; border-radius: 4px; text-transform: uppercase; font-weight: 700; margin-bottom: 5px; display: inline-block; }
-        .badge-pending { border: 1px solid var(--pending); color: var(--pending); }
-        .badge-active { border: 1px solid var(--success); color: var(--success); }
+      --fd-gold: #ffd700;
+      --fd-gold-soft: #f2cf36;
 
-        .pulse-indicator {
-            height: 10px; width: 10px; 
-            background: var(--success); 
-            border-radius: 50%;
-            display: inline-block; 
-            margin-right: 8px;
-            box-shadow: 0 0 8px var(--success);
-            animation: pulse 2s infinite;
-        }
+      --fd-success: #2ecc71;
+      --fd-danger: #e85d5d;
+      --fd-warning: #f2bd35;
+      --fd-info: #4da3ff;
 
-        @keyframes pulse {
-            0% { transform: scale(0.9); opacity: 1; }
-            70% { transform: scale(1.3); opacity: 0.5; }
-            100% { transform: scale(0.9); opacity: 1; }
-        }
+      --fd-shadow-sm: 0 12px 35px rgba(0, 0, 0, 0.18);
+      --fd-shadow-md: 0 20px 60px rgba(0, 0, 0, 0.28);
+      --fd-shadow-lg: 0 30px 90px rgba(0, 0, 0, 0.35);
 
-        @media (max-width: 950px) {
-            .front-desk-grid { grid-template-columns: 1fr; }
-        }
-    </style>
+      --fd-radius-xl: 28px;
+      --fd-radius-lg: 20px;
+      --fd-radius-md: 15px;
+      --fd-radius-sm: 10px;
+    }
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+      min-height: 100vh;
+      overflow-x: hidden;
+
+      font-family: "Poppins", sans-serif;
+      color: var(--fd-text);
+
+      background:
+        radial-gradient(
+          circle at 8% 5%,
+          rgba(0, 166, 166, 0.12),
+          transparent 26%
+        ),
+        radial-gradient(
+          circle at 92% 88%,
+          rgba(255, 215, 0, 0.045),
+          transparent 25%
+        ),
+        linear-gradient(
+          145deg,
+          #070a0c 0%,
+          #0a0e10 56%,
+          #080b0d 100%
+        );
+    }
+
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+
+      pointer-events: none;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.011) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          rgba(255, 255, 255, 0.011) 1px,
+          transparent 1px
+        );
+
+      background-size: 48px 48px;
+
+      mask-image: linear-gradient(
+        to bottom,
+        black,
+        transparent 78%
+      );
+
+      opacity: 0.24;
+    }
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+    button {
+      border: 0;
+    }
+
+    a {
+      color: inherit;
+    }
+
+    ::selection {
+      color: #071011;
+      background: var(--fd-gold);
+    }
+
+    .frontdesk-shell {
+      position: relative;
+      z-index: 1;
+
+      width: min(1580px, calc(100% - 48px));
+      margin: 0 auto;
+
+      padding: 42px 0 80px;
+    }
+
+    /* ---------------------------------------------------------
+       HEADER
+    --------------------------------------------------------- */
+
+    .frontdesk-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+
+      gap: 28px;
+      margin-bottom: 27px;
+    }
+
+    .frontdesk-copy {
+      min-width: 0;
+    }
+
+    .eyebrow {
+      display: flex;
+      align-items: center;
+      gap: 9px;
+
+      margin-bottom: 11px;
+
+      color: var(--fd-teal-light);
+
+      font-size: 0.68rem;
+      font-weight: 700;
+
+      letter-spacing: 2.1px;
+      line-height: 1;
+
+      text-transform: uppercase;
+    }
+
+    .eyebrow::before {
+      content: "";
+
+      width: 24px;
+      height: 1px;
+
+      background: var(--fd-teal-light);
+      opacity: 0.85;
+    }
+
+    .page-title {
+      font-family: "Playfair Display", serif;
+
+      font-size: clamp(2.25rem, 4vw, 3.45rem);
+      line-height: 1.04;
+
+      letter-spacing: -1.3px;
+    }
+
+    .page-title span {
+      color: var(--fd-teal-light);
+    }
+
+    .page-subtitle {
+      max-width: 740px;
+
+      margin-top: 9px;
+
+      color: var(--fd-muted);
+
+      font-size: 0.82rem;
+      line-height: 1.7;
+    }
+
+    .header-right {
+      display: flex;
+      align-items: stretch;
+      gap: 10px;
+
+      flex-shrink: 0;
+    }
+
+    .clock-card {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+
+      min-width: 235px;
+      min-height: 68px;
+
+      padding: 12px 16px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.055),
+          rgba(255, 255, 255, 0.018)
+        );
+
+      border: 1px solid var(--fd-border);
+      border-radius: var(--fd-radius-md);
+
+      box-shadow: var(--fd-shadow-sm);
+
+      backdrop-filter: blur(18px);
+    }
+
+    .clock-icon {
+      width: 38px;
+      height: 38px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      flex: 0 0 38px;
+
+      border-radius: 11px;
+
+      color: var(--fd-gold);
+      background: rgba(255, 215, 0, 0.085);
+    }
+
+    .clock-copy small {
+      display: block;
+
+      color: var(--fd-muted);
+
+      font-size: 0.57rem;
+      font-weight: 700;
+
+      letter-spacing: 1.05px;
+      text-transform: uppercase;
+    }
+
+    .clock-copy strong {
+      display: block;
+
+      margin-top: 2px;
+
+      font-size: 0.77rem;
+      font-weight: 600;
+    }
+
+    .clock-copy span {
+      display: block;
+
+      margin-top: 1px;
+
+      color: var(--fd-teal-light);
+
+      font-size: 0.61rem;
+    }
+
+    .refresh-btn {
+      min-height: 68px;
+
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+
+      padding: 0 17px;
+
+      color: var(--fd-text-soft);
+
+      background: var(--fd-panel);
+      border: 1px solid var(--fd-border);
+      border-radius: var(--fd-radius-md);
+
+      cursor: pointer;
+
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
+    }
+
+    .refresh-btn:hover {
+      transform: translateY(-2px);
+
+      color: #fff;
+      background: var(--fd-panel-hover);
+      border-color: rgba(0, 166, 166, 0.45);
+    }
+
+    .refresh-btn:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    /* ---------------------------------------------------------
+       LIVE STRIP
+    --------------------------------------------------------- */
+
+    .live-strip {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 15px;
+
+      margin-bottom: 19px;
+      padding: 13px 16px;
+
+      background:
+        linear-gradient(
+          100deg,
+          rgba(0, 166, 166, 0.10),
+          rgba(0, 166, 166, 0.025)
+        );
+
+      border: 1px solid rgba(0, 166, 166, 0.20);
+      border-radius: var(--fd-radius-md);
+    }
+
+    .live-indicator {
+      display: inline-flex;
+      align-items: center;
+      gap: 9px;
+
+      color: var(--fd-teal-light);
+
+      font-size: 0.67rem;
+      font-weight: 700;
+
+      letter-spacing: 0.9px;
+      text-transform: uppercase;
+    }
+
+    .live-dot {
+      position: relative;
+
+      width: 8px;
+      height: 8px;
+
+      border-radius: 50%;
+
+      background: var(--fd-success);
+
+      box-shadow: 0 0 13px rgba(46, 204, 113, 0.75);
+    }
+
+    .live-dot::after {
+      content: "";
+
+      position: absolute;
+      inset: -4px;
+
+      border: 1px solid rgba(46, 204, 113, 0.28);
+      border-radius: 50%;
+
+      animation: livePulse 2.3s ease-out infinite;
+    }
+
+    @keyframes livePulse {
+      0% {
+        opacity: 0.8;
+        transform: scale(0.85);
+      }
+
+      70%,
+      100% {
+        opacity: 0;
+        transform: scale(1.45);
+      }
+    }
+
+    .live-help {
+      color: var(--fd-muted);
+
+      font-size: 0.62rem;
+      text-align: right;
+    }
+
+    /* ---------------------------------------------------------
+       METRICS
+    --------------------------------------------------------- */
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+
+      gap: 14px;
+
+      margin-bottom: 22px;
+    }
+
+    .metric-card {
+      position: relative;
+
+      min-height: 122px;
+
+      padding: 19px;
+
+      overflow: hidden;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.05),
+          rgba(255, 255, 255, 0.018)
+        );
+
+      border: 1px solid var(--fd-border);
+      border-radius: var(--fd-radius-lg);
+
+      box-shadow: var(--fd-shadow-sm);
+    }
+
+    .metric-card::after {
+      content: "";
+
+      position: absolute;
+      right: -14px;
+      bottom: -28px;
+
+      width: 100px;
+      height: 100px;
+
+      border-radius: 50%;
+
+      background: rgba(0, 166, 166, 0.06);
+      filter: blur(2px);
+    }
+
+    .metric-head {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 10px;
+    }
+
+    .metric-icon {
+      width: 38px;
+      height: 38px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 11px;
+
+      color: var(--fd-teal-light);
+      background: rgba(0, 166, 166, 0.10);
+    }
+
+    .metric-card.gold .metric-icon {
+      color: var(--fd-gold);
+      background: rgba(255, 215, 0, 0.09);
+    }
+
+    .metric-card.green .metric-icon {
+      color: var(--fd-success);
+      background: rgba(46, 204, 113, 0.09);
+    }
+
+    .metric-card.blue .metric-icon {
+      color: var(--fd-info);
+      background: rgba(77, 163, 255, 0.09);
+    }
+
+    .metric-label {
+      display: block;
+
+      margin-top: 13px;
+
+      color: var(--fd-muted);
+
+      font-size: 0.60rem;
+      font-weight: 700;
+
+      letter-spacing: 1px;
+      text-transform: uppercase;
+    }
+
+    .metric-value {
+      display: block;
+
+      margin-top: 2px;
+
+      font-size: 1.75rem;
+      line-height: 1.1;
+      font-weight: 700;
+    }
+
+    .metric-note {
+      margin-top: 5px;
+
+      color: var(--fd-muted);
+
+      font-size: 0.61rem;
+    }
+
+    /* ---------------------------------------------------------
+       OPERATIONS GRID
+    --------------------------------------------------------- */
+
+    .operations-grid {
+      display: grid;
+
+      grid-template-columns:
+        minmax(0, 1.12fr)
+        minmax(0, 1fr);
+
+      gap: 20px;
+
+      align-items: start;
+    }
+
+    .operation-panel {
+      min-width: 0;
+
+      padding: 24px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.043),
+          rgba(255, 255, 255, 0.017)
+        );
+
+      border: 1px solid var(--fd-border);
+      border-radius: var(--fd-radius-xl);
+
+      box-shadow: var(--fd-shadow-lg);
+
+      backdrop-filter: blur(18px);
+    }
+
+    .operation-panel.arrivals {
+      border-top: 2px solid rgba(255, 215, 0, 0.55);
+    }
+
+    .operation-panel.inhouse {
+      border-top: 2px solid rgba(46, 204, 113, 0.55);
+    }
+
+    .panel-heading {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+
+      gap: 18px;
+
+      margin-bottom: 18px;
+    }
+
+    .panel-heading-copy {
+      min-width: 0;
+    }
+
+    .panel-title-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .panel-title {
+      font-family: "Playfair Display", serif;
+
+      font-size: 1.37rem;
+      line-height: 1.2;
+    }
+
+    .panel-title-icon {
+      width: 35px;
+      height: 35px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      border-radius: 10px;
+
+      color: var(--fd-gold);
+      background: rgba(255, 215, 0, 0.085);
+    }
+
+    .inhouse .panel-title-icon {
+      color: var(--fd-success);
+      background: rgba(46, 204, 113, 0.085);
+    }
+
+    .panel-description {
+      margin-top: 5px;
+
+      color: var(--fd-muted);
+
+      font-size: 0.65rem;
+      line-height: 1.55;
+    }
+
+    .count-pill {
+      flex: 0 0 auto;
+
+      padding: 5px 9px;
+
+      border: 1px solid var(--fd-border);
+      border-radius: 999px;
+
+      color: var(--fd-text-soft);
+
+      background: rgba(255, 255, 255, 0.035);
+
+      font-size: 0.60rem;
+      font-weight: 700;
+    }
+
+    .arrivals .count-pill {
+      color: var(--fd-gold);
+      border-color: rgba(255, 215, 0, 0.18);
+      background: rgba(255, 215, 0, 0.055);
+    }
+
+    .inhouse .count-pill {
+      color: var(--fd-success);
+      border-color: rgba(46, 204, 113, 0.18);
+      background: rgba(46, 204, 113, 0.055);
+    }
+
+    /* ---------------------------------------------------------
+       TOOLBAR
+    --------------------------------------------------------- */
+
+    .panel-toolbar {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 9px;
+
+      margin-bottom: 15px;
+    }
+
+    .search-box {
+      position: relative;
+    }
+
+    .search-box i {
+      position: absolute;
+      top: 50%;
+      left: 13px;
+
+      color: var(--fd-muted);
+
+      font-size: 0.72rem;
+
+      transform: translateY(-50%);
+
+      pointer-events: none;
+    }
+
+    .search-box input,
+    .status-filter {
+      width: 100%;
+
+      min-height: 42px;
+
+      padding: 0 13px 0 35px;
+
+      color: var(--fd-text);
+
+      background: rgba(255, 255, 255, 0.028);
+
+      border: 1px solid var(--fd-border);
+      border-radius: 11px;
+
+      outline: none;
+
+      font-size: 0.67rem;
+
+      transition:
+        border-color 0.2s ease,
+        background 0.2s ease;
+    }
+
+    .status-filter {
+      width: 130px;
+      padding: 0 12px;
+    }
+
+    .search-box input::placeholder {
+      color: #6f7a7f;
+    }
+
+    .search-box input:focus,
+    .status-filter:focus {
+      border-color: rgba(0, 166, 166, 0.5);
+      background: rgba(0, 166, 166, 0.035);
+    }
+
+    /* ---------------------------------------------------------
+       BOOKING CARD
+    --------------------------------------------------------- */
+
+    .booking-list {
+      display: grid;
+
+      gap: 10px;
+    }
+
+    .booking-item {
+      position: relative;
+
+      display: grid;
+
+      grid-template-columns:
+        minmax(0, 1fr)
+        auto;
+
+      gap: 14px;
+
+      padding: 15px;
+
+      background: rgba(255, 255, 255, 0.023);
+
+      border: 1px solid var(--fd-border);
+      border-radius: 16px;
+
+      transition:
+        transform 0.22s ease,
+        border-color 0.22s ease,
+        background 0.22s ease,
+        opacity 0.22s ease;
+    }
+
+    .booking-item:hover {
+      transform: translateY(-2px);
+
+      background: rgba(255, 255, 255, 0.043);
+      border-color: rgba(0, 166, 166, 0.32);
+    }
+
+    .booking-item.action-success {
+      background: rgba(46, 204, 113, 0.07);
+      border-color: rgba(46, 204, 113, 0.28);
+    }
+
+    .booking-item.action-info {
+      background: rgba(77, 163, 255, 0.065);
+      border-color: rgba(77, 163, 255, 0.26);
+    }
+
+    .booking-main {
+      min-width: 0;
+    }
+
+    .booking-topline {
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+    }
+
+    .guest-avatar {
+      width: 40px;
+      height: 40px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      flex: 0 0 40px;
+
+      border-radius: 12px;
+
+      color: white;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--fd-teal),
+          var(--fd-teal-deep)
+        );
+
+      box-shadow:
+        inset 0 1px 0 rgba(255, 255, 255, 0.11),
+        0 7px 16px rgba(0, 166, 166, 0.15);
+
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .guest-copy {
+      min-width: 0;
+    }
+
+    .guest-name {
+      overflow: hidden;
+
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      font-size: 0.79rem;
+      font-weight: 700;
+    }
+
+    .guest-email {
+      margin-top: 2px;
+
+      color: var(--fd-muted);
+
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      font-size: 0.58rem;
+    }
+
+    .booking-badges {
+      display: flex;
+      flex-wrap: wrap;
+
+      gap: 5px;
+
+      margin-top: 8px;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+
+      padding: 4px 7px;
+
+      border-radius: 999px;
+
+      font-size: 0.53rem;
+      font-weight: 700;
+
+      letter-spacing: 0.35px;
+
+      text-transform: uppercase;
+    }
+
+    .badge.accepted {
+      color: var(--fd-success);
+
+      background: rgba(46, 204, 113, 0.08);
+
+      border: 1px solid rgba(46, 204, 113, 0.17);
+    }
+
+    .badge.checked {
+      color: var(--fd-info);
+
+      background: rgba(77, 163, 255, 0.08);
+
+      border: 1px solid rgba(77, 163, 255, 0.17);
+    }
+
+    .badge.addon {
+      color: var(--fd-gold);
+
+      background: rgba(255, 215, 0, 0.07);
+
+      border: 1px solid rgba(255, 215, 0, 0.15);
+    }
+
+    .booking-details {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 7px 12px;
+
+      margin-top: 11px;
+    }
+
+    .detail-item {
+      min-width: 0;
+    }
+
+    .detail-item span {
+      display: block;
+
+      color: var(--fd-muted);
+
+      font-size: 0.53rem;
+      line-height: 1.3;
+    }
+
+    .detail-item strong {
+      display: block;
+
+      margin-top: 1px;
+
+      color: var(--fd-text-soft);
+
+      overflow: hidden;
+      text-overflow: ellipsis;
+      white-space: nowrap;
+
+      font-size: 0.62rem;
+      font-weight: 600;
+    }
+
+    .request-note {
+      display: flex;
+      align-items: flex-start;
+      gap: 7px;
+
+      margin-top: 10px;
+      padding: 8px 9px;
+
+      color: #c4ced1;
+
+      background: rgba(255, 255, 255, 0.025);
+
+      border: 1px solid rgba(255, 255, 255, 0.055);
+      border-radius: 9px;
+
+      font-size: 0.56rem;
+      line-height: 1.5;
+    }
+
+    .request-note i {
+      margin-top: 1px;
+
+      color: var(--fd-gold);
+
+      flex: 0 0 auto;
+    }
+
+    .booking-side {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: space-between;
+
+      gap: 10px;
+
+      min-width: 124px;
+    }
+
+    .amount {
+      color: var(--fd-text-soft);
+
+      font-size: 0.78rem;
+      font-weight: 700;
+
+      white-space: nowrap;
+    }
+
+    .amount small {
+      display: block;
+
+      margin-bottom: 1px;
+
+      color: var(--fd-muted);
+
+      font-size: 0.48rem;
+      font-weight: 500;
+
+      text-align: right;
+      text-transform: uppercase;
+    }
+
+    .action-stack {
+      display: flex;
+      flex-direction: column;
+
+      gap: 6px;
+    }
+
+    .action-btn {
+      min-width: 108px;
+      min-height: 37px;
+
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+
+      padding: 0 12px;
+
+      border-radius: 10px;
+
+      cursor: pointer;
+
+      font-size: 0.61rem;
+      font-weight: 700;
+
+      transition:
+        transform 0.2s ease,
+        filter 0.2s ease,
+        opacity 0.2s ease,
+        background 0.2s ease;
+    }
+
+    .action-btn:hover:not(:disabled) {
+      transform: translateY(-1px);
+      filter: brightness(1.06);
+    }
+
+    .action-btn:disabled {
+      opacity: 0.55;
+      cursor: wait;
+    }
+
+    .action-btn.checkin {
+      color: #061011;
+
+      background:
+        linear-gradient(
+          135deg,
+          #1bcfcf,
+          #00a6a6
+        );
+
+      box-shadow:
+        0 8px 18px rgba(0, 166, 166, 0.18);
+    }
+
+    .action-btn.checkout {
+      color: #fff;
+
+      background:
+        linear-gradient(
+          135deg,
+          #e85d5d,
+          #bd4141
+        );
+
+      box-shadow:
+        0 8px 18px rgba(232, 93, 93, 0.14);
+    }
+
+    .action-btn.details {
+      color: var(--fd-text-soft);
+
+      background: rgba(255, 255, 255, 0.035);
+
+      border: 1px solid var(--fd-border);
+    }
+
+    /* ---------------------------------------------------------
+       EMPTY
+    --------------------------------------------------------- */
+
+    .empty-state {
+      padding: 44px 20px;
+
+      text-align: center;
+
+      color: var(--fd-muted);
+
+      border: 1px dashed rgba(255, 255, 255, 0.09);
+      border-radius: 16px;
+    }
+
+    .empty-icon {
+      width: 52px;
+      height: 52px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      margin: 0 auto 13px;
+
+      border-radius: 15px;
+
+      color: var(--fd-teal-light);
+      background: rgba(0, 166, 166, 0.08);
+
+      font-size: 1rem;
+    }
+
+    .empty-state strong {
+      display: block;
+
+      margin-bottom: 4px;
+
+      color: #fff;
+
+      font-size: 0.82rem;
+    }
+
+    .empty-state p {
+      font-size: 0.60rem;
+      line-height: 1.55;
+    }
+
+    /* ---------------------------------------------------------
+       FOOTER OPERATIONS BAR
+    --------------------------------------------------------- */
+
+    .operations-footer {
+      display: grid;
+
+      grid-template-columns:
+        minmax(0, 1fr)
+        auto
+        auto;
+
+      align-items: center;
+
+      gap: 10px;
+
+      margin-top: 18px;
+      padding: 14px 16px;
+
+      background:
+        linear-gradient(
+          100deg,
+          rgba(255, 255, 255, 0.035),
+          rgba(255, 255, 255, 0.018)
+        );
+
+      border: 1px solid var(--fd-border);
+      border-radius: var(--fd-radius-md);
+    }
+
+    .footer-copy {
+      min-width: 0;
+    }
+
+    .footer-copy strong {
+      display: block;
+
+      font-size: 0.67rem;
+      font-weight: 700;
+    }
+
+    .footer-copy span {
+      display: block;
+
+      margin-top: 2px;
+
+      color: var(--fd-muted);
+
+      font-size: 0.57rem;
+    }
+
+    .footer-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+
+      padding: 9px 11px;
+
+      color: var(--fd-text-soft);
+
+      background: rgba(255, 255, 255, 0.025);
+
+      border: 1px solid var(--fd-border);
+      border-radius: 9px;
+
+      text-decoration: none;
+
+      font-size: 0.60rem;
+      font-weight: 600;
+
+      transition:
+        transform 0.2s ease,
+        border-color 0.2s ease,
+        background 0.2s ease;
+    }
+
+    .footer-link:hover {
+      transform: translateY(-1px);
+
+      background: rgba(255, 255, 255, 0.05);
+      border-color: rgba(0, 166, 166, 0.35);
+    }
+
+    /* ---------------------------------------------------------
+       TOAST
+    --------------------------------------------------------- */
+
+    .toast-container {
+      position: fixed;
+
+      right: 22px;
+      bottom: 22px;
+
+      z-index: 10000;
+
+      width: min(410px, calc(100vw - 24px));
+
+      display: flex;
+      flex-direction: column;
+
+      gap: 8px;
+
+      pointer-events: none;
+    }
+
+    .toast {
+      display: flex;
+      align-items: flex-start;
+      gap: 11px;
+
+      padding: 13px 14px;
+
+      background: #111719;
+
+      border: 1px solid var(--fd-border-strong);
+      border-radius: 14px;
+
+      box-shadow: 0 25px 65px rgba(0, 0, 0, 0.48);
+
+      pointer-events: auto;
+
+      animation: toastIn 0.25s ease;
+    }
+
+    .toast.success {
+      border-color: rgba(46, 204, 113, 0.25);
+    }
+
+    .toast.error {
+      border-color: rgba(232, 93, 93, 0.25);
+    }
+
+    .toast.warning {
+      border-color: rgba(242, 189, 53, 0.25);
+    }
+
+    .toast-icon {
+      width: 30px;
+      height: 30px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      flex: 0 0 30px;
+
+      border-radius: 9px;
+
+      background: rgba(255, 255, 255, 0.05);
+
+      font-size: 0.71rem;
+    }
+
+    .toast.success .toast-icon {
+      color: var(--fd-success);
+      background: rgba(46, 204, 113, 0.10);
+    }
+
+    .toast.error .toast-icon {
+      color: var(--fd-danger);
+      background: rgba(232, 93, 93, 0.10);
+    }
+
+    .toast.warning .toast-icon {
+      color: var(--fd-warning);
+      background: rgba(242, 189, 53, 0.10);
+    }
+
+    .toast-copy {
+      min-width: 0;
+    }
+
+    .toast-copy strong {
+      display: block;
+
+      margin-bottom: 2px;
+
+      font-size: 0.70rem;
+    }
+
+    .toast-copy p {
+      color: var(--fd-muted);
+
+      font-size: 0.59rem;
+      line-height: 1.5;
+    }
+
+    @keyframes toastIn {
+      from {
+        opacity: 0;
+        transform: translateY(10px) scale(0.98);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    /* ---------------------------------------------------------
+       DETAILS MODAL
+    --------------------------------------------------------- */
+
+    .modal-overlay {
+      position: fixed;
+      inset: 0;
+
+      z-index: 9998;
+
+      display: none;
+      align-items: center;
+      justify-content: center;
+
+      padding: 18px;
+
+      background: rgba(2, 5, 6, 0.70);
+
+      backdrop-filter: blur(10px);
+    }
+
+    .modal-overlay.open {
+      display: flex;
+    }
+
+    .details-modal {
+      width: min(720px, 100%);
+
+      max-height: min(720px, calc(100vh - 36px));
+
+      overflow: auto;
+
+      padding: 24px;
+
+      background:
+        linear-gradient(
+          145deg,
+          #121a1c,
+          #0d1315
+        );
+
+      border: 1px solid var(--fd-border-strong);
+      border-radius: 24px;
+
+      box-shadow:
+        0 35px 100px rgba(0, 0, 0, 0.55);
+
+      animation: modalIn 0.22s ease;
+    }
+
+    @keyframes modalIn {
+      from {
+        opacity: 0;
+        transform: translateY(12px) scale(0.985);
+      }
+
+      to {
+        opacity: 1;
+        transform: translateY(0) scale(1);
+      }
+    }
+
+    .modal-header {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+
+      gap: 18px;
+
+      margin-bottom: 18px;
+    }
+
+    .modal-title {
+      font-family: "Playfair Display", serif;
+
+      font-size: 1.45rem;
+    }
+
+    .modal-subtitle {
+      margin-top: 3px;
+
+      color: var(--fd-muted);
+
+      font-size: 0.61rem;
+    }
+
+    .modal-close {
+      width: 34px;
+      height: 34px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      flex: 0 0 34px;
+
+      color: var(--fd-text-soft);
+
+      background: rgba(255, 255, 255, 0.04);
+
+      border: 1px solid var(--fd-border);
+      border-radius: 9px;
+
+      cursor: pointer;
+    }
+
+    .modal-close:hover {
+      background: rgba(255, 255, 255, 0.075);
+    }
+
+    .modal-grid {
+      display: grid;
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+      gap: 10px;
+    }
+
+    .modal-field {
+      padding: 12px;
+
+      background: rgba(255, 255, 255, 0.028);
+
+      border: 1px solid var(--fd-border);
+      border-radius: 12px;
+    }
+
+    .modal-field.full {
+      grid-column: 1 / -1;
+    }
+
+    .modal-field span {
+      display: block;
+
+      color: var(--fd-muted);
+
+      font-size: 0.52rem;
+
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+
+    .modal-field strong {
+      display: block;
+
+      margin-top: 3px;
+
+      color: var(--fd-text-soft);
+
+      font-size: 0.65rem;
+      line-height: 1.5;
+
+      word-break: break-word;
+    }
+
+    /* ---------------------------------------------------------
+       RESPONSIVE
+    --------------------------------------------------------- */
+
+    @media (max-width: 1250px) {
+      .metric-grid {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 1080px) {
+      .operations-grid {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    @media (max-width: 860px) {
+      .frontdesk-shell {
+        width: min(100% - 30px, 1580px);
+
+        padding-top: 28px;
+      }
+
+      .frontdesk-header {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .header-right {
+        width: 100%;
+      }
+
+      .clock-card {
+        flex: 1;
+      }
+    }
+
+    @media (max-width: 650px) {
+      .frontdesk-shell {
+        width: min(100% - 22px, 1580px);
+
+        padding-bottom: 50px;
+      }
+
+      .metric-grid {
+        grid-template-columns: 1fr;
+        gap: 10px;
+      }
+
+      .metric-card {
+        min-height: 110px;
+      }
+
+      .header-right {
+        align-items: stretch;
+        flex-direction: column;
+      }
+
+      .refresh-btn {
+        min-height: 48px;
+      }
+
+      .clock-card {
+        min-width: 0;
+        min-height: 60px;
+      }
+
+      .operation-panel {
+        padding: 18px;
+        border-radius: 21px;
+      }
+
+      .panel-toolbar {
+        grid-template-columns: 1fr;
+      }
+
+      .status-filter {
+        width: 100%;
+      }
+
+      .booking-item {
+        grid-template-columns: 1fr;
+      }
+
+      .booking-side {
+        align-items: stretch;
+        min-width: 0;
+      }
+
+      .action-stack {
+        flex-direction: row;
+      }
+
+      .action-btn {
+        flex: 1;
+      }
+
+      .operations-footer {
+        grid-template-columns: 1fr;
+      }
+
+      .footer-link {
+        justify-content: center;
+      }
+
+      .modal-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .modal-field.full {
+        grid-column: auto;
+      }
+
+      .toast-container {
+        right: 11px;
+        bottom: 11px;
+        left: 11px;
+
+        width: auto;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
 </head>
+
 <body>
 
-<div class="container">
-    <div class="header-flex">
+  <%- include('../partials/navadmin') %>
+
+  <%
+    /* =========================================================
+       FIX: Safely handle missing EJS locals.
+       This prevents "arrivals is not defined" /
+       "inHouse is not defined" from crashing the page.
+       ========================================================= */
+    const arrivalData =
+      typeof arrivals !== "undefined"
+        ? arrivals
+        : [];
+
+    const inHouseData =
+      typeof inHouse !== "undefined"
+        ? inHouse
+        : [];
+
+    const arrivalList =
+      Array.isArray(arrivalData)
+        ? arrivalData
+        : [];
+
+    const inHouseList =
+      Array.isArray(inHouseData)
+        ? inHouseData
+        : [];
+
+    function safeString(value, fallback = "") {
+      if (value === null || value === undefined) {
+        return fallback;
+      }
+
+      return String(value);
+    }
+
+    function guestName(booking) {
+      const populatedUser =
+        booking &&
+        booking.userId &&
+        typeof booking.userId === "object"
+          ? booking.userId
+          : null;
+
+      return (
+        populatedUser?.fullname ||
+        booking?.guestName ||
+        "Guest"
+      );
+    }
+
+    function guestEmail(booking) {
+      const populatedUser =
+        booking &&
+        booking.userId &&
+        typeof booking.userId === "object"
+          ? booking.userId
+          : null;
+
+      return (
+        populatedUser?.email ||
+        booking?.email ||
+        ""
+      );
+    }
+
+    function bookingId(booking) {
+      return booking?._id
+        ? String(booking._id)
+        : "";
+    }
+
+    function roomName(booking) {
+      if (!booking) {
+        return "Accommodation";
+      }
+
+      if (typeof booking.room === "string") {
+        return booking.room;
+      }
+
+      if (
+        booking.room &&
+        typeof booking.room === "object"
+      ) {
+        return (
+          booking.room.name ||
+          booking.room.title ||
+          booking.room.roomName ||
+          "Accommodation"
+        );
+      }
+
+      return (
+        booking.roomName ||
+        booking.roomType ||
+        "Accommodation"
+      );
+    }
+
+    function initials(name) {
+      const value =
+        safeString(name, "Guest")
+          .trim()
+          .split(/\s+/)
+          .slice(0, 2)
+          .map(part =>
+            part.charAt(0).toUpperCase()
+          )
+          .join("");
+
+      return value || "G";
+    }
+
+    function formatDate(value) {
+      if (!value) {
+        return "Not recorded";
+      }
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return "Invalid date";
+      }
+
+      return date.toLocaleDateString(
+        "en-PH",
+        {
+          weekday: "short",
+          month: "short",
+          day: "numeric",
+          year: "numeric"
+        }
+      );
+    }
+
+    function formatTime(value) {
+      if (!value) {
+        return "Not recorded";
+      }
+
+      const date = new Date(value);
+
+      if (Number.isNaN(date.getTime())) {
+        return "Invalid time";
+      }
+
+      return date.toLocaleTimeString(
+        "en-PH",
+        {
+          hour: "2-digit",
+          minute: "2-digit",
+          hour12: true
+        }
+      );
+    }
+
+    function formatMoney(value) {
+      const amount =
+        Number(value);
+
+      if (!Number.isFinite(amount)) {
+        return "—";
+      }
+
+      return `₱${amount.toLocaleString(
+        "en-PH",
+        {
+          minimumFractionDigits: 2,
+          maximumFractionDigits: 2
+        }
+      )}`;
+    }
+
+    function guestCount(booking) {
+      const value =
+        Number(booking?.guests);
+
+      return Number.isFinite(value)
+        ? value
+        : 0;
+    }
+
+    function hasAddon(booking) {
+      return (
+        booking?.cottageAddon === true ||
+        booking?.cottageAddon === "true" ||
+        booking?.cottageAddon === "on"
+      );
+    }
+
+    function bookingData(booking) {
+      const name =
+        guestName(booking);
+
+      return {
+        id:
+          bookingId(booking),
+
+        name,
+
+        email:
+          guestEmail(booking),
+
+        contact:
+          safeString(
+            booking?.contact,
+            "Not provided"
+          ),
+
+        room:
+          roomName(booking),
+
+        guests:
+          guestCount(booking),
+
+        checkin:
+          formatDate(booking?.checkin),
+
+        checkout:
+          formatDate(booking?.checkout),
+
+        checkinRaw:
+          booking?.checkin || null,
+
+        checkoutRaw:
+          booking?.checkout || null,
+
+        checkInTime:
+          booking?.checkInTime
+            ? formatTime(
+                booking.checkInTime
+              )
+            : "Not yet checked in",
+
+        totalPrice:
+          formatMoney(
+            booking?.totalPrice
+          ),
+
+        cottageAddon:
+          hasAddon(booking)
+            ? "Included"
+            : "None",
+
+        specialRequests:
+          safeString(
+            booking?.specialRequests,
+            "None"
+          ),
+
+        status:
+          safeString(
+            booking?.status,
+            "unknown"
+          )
+      };
+    }
+  %>
+
+  <main class="frontdesk-shell">
+
+    <header class="frontdesk-header">
+
+      <div class="frontdesk-copy">
+
+        <div class="eyebrow">
+          Resort Operations
+        </div>
+
+        <h1 class="page-title">
+          Front Desk <span>Operations</span>
+        </h1>
+
+        <p class="page-subtitle">
+          Manage today's arrivals, verify guests, record check-ins,
+          monitor in-house stays, and complete departures from one
+          operational workspace.
+        </p>
+
+      </div>
+
+      <div class="header-right">
+
+        <div
+          class="clock-card"
+          aria-label="Current local time"
+        >
+
+          <div class="clock-icon">
+            <i
+              class="fas fa-clock"
+              aria-hidden="true"
+            ></i>
+          </div>
+
+          <div class="clock-copy">
+
+            <small>
+              Front Desk Time
+            </small>
+
+            <strong id="currentTime">
+              Loading...
+            </strong>
+
+            <span>
+              Puffer Isle Resort
+            </span>
+
+          </div>
+
+        </div>
+
+        <button
+          type="button"
+          class="refresh-btn"
+          id="refreshPage"
+          title="Refresh front desk"
+          aria-label="Refresh front desk"
+        >
+          <i
+            class="fas fa-rotate"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Refresh
+          </span>
+        </button>
+
+      </div>
+
+    </header>
+
+    <div class="live-strip">
+
+      <div class="live-indicator">
+        <span class="live-dot"></span>
+
+        Front desk live
+
+        <span>
+          ·
+        </span>
+
+        <span id="lastUpdated">
+          Just loaded
+        </span>
+      </div>
+
+      <div class="live-help">
+        Changes are saved directly to the reservation record.
+      </div>
+
+    </div>
+
+    <section
+      class="metric-grid"
+      aria-label="Front desk statistics"
+    >
+
+      <article class="metric-card gold">
+
+        <div class="metric-head">
+
+          <div class="metric-icon">
+            <i
+              class="fas fa-plane-arrival"
+              aria-hidden="true"
+            ></i>
+          </div>
+
+        </div>
+
+        <span class="metric-label">
+          Arrivals
+        </span>
+
+        <span
+          class="metric-value"
+          id="arrivalMetric"
+        >
+          <%= arrivalList.length %>
+        </span>
+
+        <p class="metric-note">
+          Accepted reservations awaiting check-in
+        </p>
+
+      </article>
+
+      <article class="metric-card green">
+
+        <div class="metric-head">
+
+          <div class="metric-icon">
+            <i
+              class="fas fa-bed"
+              aria-hidden="true"
+            ></i>
+          </div>
+
+        </div>
+
+        <span class="metric-label">
+          In-House
+        </span>
+
+        <span
+          class="metric-value"
+          id="inHouseMetric"
+        >
+          <%= inHouseList.length %>
+        </span>
+
+        <p class="metric-note">
+          Guests currently checked in
+        </p>
+
+      </article>
+
+      <article class="metric-card blue">
+
+        <div class="metric-head">
+
+          <div class="metric-icon">
+            <i
+              class="fas fa-calendar-day"
+              aria-hidden="true"
+            ></i>
+          </div>
+
+        </div>
+
+        <span class="metric-label">
+          Today
+        </span>
+
+        <span
+          class="metric-value"
+          id="todayMetric"
+        >
+          0
+        </span>
+
+        <p class="metric-note">
+          Scheduled arrivals for today
+        </p>
+
+      </article>
+
+      <article class="metric-card">
+
+        <div class="metric-head">
+
+          <div class="metric-icon">
+            <i
+              class="fas fa-arrow-right-to-bracket"
+              aria-hidden="true"
+            ></i>
+          </div>
+
+        </div>
+
+        <span class="metric-label">
+          Operations
+        </span>
+
+        <span
+          class="metric-value"
+          id="operationMetric"
+        >
+          <%= arrivalList.length + inHouseList.length %>
+        </span>
+
+        <p class="metric-note">
+          Total active front-desk records
+        </p>
+
+      </article>
+
+    </section>
+
+    <section class="operations-grid">
+
+      <!-- =====================================================
+           ARRIVALS
+      ====================================================== -->
+
+      <section class="operation-panel arrivals">
+
+        <header class="panel-heading">
+
+          <div class="panel-heading-copy">
+
+            <div class="panel-title-row">
+
+              <div class="panel-title-icon">
+                <i
+                  class="fas fa-plane-arrival"
+                  aria-hidden="true"
+                ></i>
+              </div>
+
+              <h2 class="panel-title">
+                Arrivals
+              </h2>
+
+            </div>
+
+            <p class="panel-description">
+              Guests with accepted reservations who have not yet
+              completed check-in.
+            </p>
+
+          </div>
+
+          <span
+            class="count-pill"
+            id="arrivalCount"
+          >
+            <%= arrivalList.length %> pending
+          </span>
+
+        </header>
+
+        <div class="panel-toolbar">
+
+          <div class="search-box">
+
+            <i
+              class="fas fa-magnifying-glass"
+              aria-hidden="true"
+            ></i>
+
+            <input
+              type="search"
+              id="arrivalSearch"
+              placeholder="Search guest, room, contact..."
+              autocomplete="off"
+              aria-label="Search arrivals"
+            >
+
+          </div>
+
+          <select
+            id="arrivalFilter"
+            class="status-filter"
+            aria-label="Filter arrivals"
+          >
+            <option value="all">
+              All arrivals
+            </option>
+
+            <option value="today">
+              Today
+            </option>
+
+            <option value="upcoming">
+              Upcoming
+            </option>
+
+          </select>
+
+        </div>
+
+        <div
+          class="booking-list"
+          id="arrivalList"
+        >
+
+          <% if (arrivalList.length) { %>
+
+            <% arrivalList.forEach(booking => { %>
+
+              <%
+                const id =
+                  bookingId(booking);
+
+                const name =
+                  guestName(booking);
+
+                const email =
+                  guestEmail(booking);
+
+                const room =
+                  roomName(booking);
+
+                const guests =
+                  guestCount(booking);
+
+                const addon =
+                  hasAddon(booking);
+
+                const requests =
+                  safeString(
+                    booking.specialRequests,
+                    ""
+                  );
+
+                const checkinDate =
+                  booking.checkin
+                    ? new Date(
+                        booking.checkin
+                      )
+                    : null;
+
+                const validCheckin =
+                  checkinDate &&
+                  !Number.isNaN(
+                    checkinDate.getTime()
+                  );
+
+                const data =
+                  bookingData(booking);
+              %>
+
+              <article
+                class="booking-item"
+                id="arrival-<%= id %>"
+                data-booking-id="<%= id %>"
+                data-search="
+                  <%= [
+                    name,
+                    email,
+                    booking.contact,
+                    room
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                    .toLowerCase()
+                  %>
+                "
+                data-checkin-date="
+                  <%= validCheckin
+                    ? checkinDate.toISOString()
+                    : ''
+                  %>
+                "
+                data-booking-json="<%= encodeURIComponent(JSON.stringify(data)) %>"
+              >
+
+                <div class="booking-main">
+
+                  <div class="booking-topline">
+
+                    <div
+                      class="guest-avatar"
+                      aria-hidden="true"
+                    >
+                      <%= initials(name) %>
+                    </div>
+
+                    <div class="guest-copy">
+
+                      <div class="guest-name">
+                        <%= name %>
+                      </div>
+
+                      <% if (email) { %>
+
+                        <div class="guest-email">
+                          <%= email %>
+                        </div>
+
+                      <% } %>
+
+                    </div>
+
+                  </div>
+
+                  <div class="booking-badges">
+
+                    <span class="badge accepted">
+                      <i
+                        class="fas fa-circle-check"
+                        aria-hidden="true"
+                      ></i>
+
+                      Accepted
+                    </span>
+
+                    <% if (addon) { %>
+
+                      <span class="badge addon">
+                        <i
+                          class="fas fa-umbrella-beach"
+                          aria-hidden="true"
+                        ></i>
+
+                        Cottage Add-on
+                      </span>
+
+                    <% } %>
+
+                  </div>
+
+                  <div class="booking-details">
+
+                    <div class="detail-item">
+                      <span>
+                        Accommodation
+                      </span>
+
+                      <strong>
+                        <%= room %>
+                      </strong>
+                    </div>
+
+                    <div class="detail-item">
+                      <span>
+                        Contact
+                      </span>
+
+                      <strong>
+                        <%= safeString(
+                          booking.contact,
+                          "Not provided"
+                        ) %>
+                      </strong>
+                    </div>
+
+                    <div class="detail-item">
+                      <span>
+                        Arrival
+                      </span>
+
+                      <strong>
+                        <%= formatDate(
+                          booking.checkin
+                        ) %>
+                      </strong>
+                    </div>
+
+                    <div class="detail-item">
+                      <span>
+                        Departure
+                      </span>
+
+                      <strong>
+                        <%= formatDate(
+                          booking.checkout
+                        ) %>
+                      </strong>
+                    </div>
+
+                    <div class="detail-item">
+                      <span>
+                        Party
+                      </span>
+
+                      <strong>
+                        <%= guests %>
+                        <%= guests === 1
+                          ? "guest"
+                          : "guests"
+                        %>
+                      </strong>
+                    </div>
+
+                    <div class="detail-item">
+                      <span>
+                        Reservation Total
+                      </span>
+
+                      <strong>
+                        <%= formatMoney(
+                          booking.totalPrice
+                        ) %>
+                      </strong>
+                    </div>
+
+                  </div>
+
+                  <% if (requests) { %>
+
+                    <div class="request-note">
+
+                      <i
+                        class="fas fa-note-sticky"
+                        aria-hidden="true"
+                      ></i>
+
+                      <span>
+                        <%= requests %>
+                      </span>
+
+                    </div>
+
+                  <% } %>
+
+                </div>
+
+                <div class="booking-side">
+
+                  <div class="amount">
+
+                    <small>
+                      Reservation
+                    </small>
+
+                    <%= formatMoney(
+                      booking.totalPrice
+                    ) %>
+
+                  </div>
+
+                  <div class="action-stack">
+
+                    <button
+                      type="button"
+                      class="action-btn details js-details"
+                      data-booking-id="<%= id %>"
+                    >
+                      <i
+                        class="fas fa-eye"
+                        aria-hidden="true"
+                      ></i>
+
+                      Details
+                    </button>
+
+                    <button
+                      type="button"
+                      class="action-btn checkin js-checkin"
+                      data-booking-id="<%= id %>"
+                    >
+                      <i
+                        class="fas fa-key"
+                        aria-hidden="true"
+                      ></i>
+
+                      Check In
+                    </button>
+
+                  </div>
+
+                </div>
+
+              </article>
+
+            <% }) %>
+
+          <% } else { %>
+
+            <div
+              class="empty-state"
+              id="arrivalEmpty"
+            >
+
+              <div class="empty-icon">
+                <i
+                  class="fas fa-check"
+                  aria-hidden="true"
+                ></i>
+              </div>
+
+              <strong>
+                No arrivals waiting
+              </strong>
+
+              <p>
+                The front desk is currently clear.
+                New accepted reservations will appear here automatically
+                after this page is refreshed.
+              </p>
+
+            </div>
+
+          <% } %>
+
+        </div>
+
+      </section>
+
+      <!-- =====================================================
+           IN-HOUSE
+      ====================================================== -->
+
+      <section class="operation-panel inhouse">
+
+        <header class="panel-heading">
+
+          <div class="panel-heading-copy">
+
+            <div class="panel-title-row">
+
+              <div class="panel-title-icon">
+                <i
+                  class="fas fa-hotel"
+                  aria-hidden="true"
+                ></i>
+              </div>
+
+              <h2 class="panel-title">
+                In-House Guests
+              </h2>
+
+            </div>
+
+            <p class="panel-description">
+              Guests currently staying at the resort.
+              Check-out completes the front-desk stay record.
+            </p>
+
+          </div>
+
+          <span
+            class="count-pill"
+            id="inHouseCount"
+          >
+            <%= inHouseList.length %> active
+          </span>
+
+        </header>
+
+        <div class="panel-toolbar">
+
+          <div class="search-box">
+
+            <i
+              class="fas fa-magnifying-glass"
+              aria-hidden="true"
+            ></i>
+
+            <input
+              type="search"
+              id="inHouseSearch"
+              placeholder="Search guest, room, contact..."
+              autocomplete="off"
+              aria-label="Search in-house guests"
+            >
+
+          </div>
+
+          <select
+            id="inHouseFilter"
+            class="status-filter"
+            aria-label="Filter in-house guests"
+          >
+            <option value="all">
+              All in-house
+            </option>
+
+            <option value="today">
+              Checkout today
+            </option>
+
+          </select>
+
+        </div>
+
+        <div
+          class="booking-list"
+          id="inHouseList"
+        >
+
+          <% if (inHouseList.length) { %>
+
+            <% inHouseList.forEach(booking => { %>
+
+              <%
+                const id =
+                  bookingId(booking);
+
+                const name =
+                  guestName(booking);
+
+                const email =
+                  guestEmail(booking);
+
+                const room =
+                  roomName(booking);
+
+                const guests =
+                  guestCount(booking);
+
+                const requests =
+                  safeString(
+                    booking.specialRequests,
+                    ""
+                  );
+
+                const data =
+                  bookingData(booking);
+              %>
+
+              <article
+                class="booking-item"
+                id="inhouse-<%= id %>"
+                data-booking-id="<%= id %>"
+                data-search="
+                  <%= [
+                    name,
+                    email,
+                    booking.contact,
+                    room
+                  ]
+                    .filter(Boolean)
+                    .join(' ')
+                    .toLowerCase()
+                  %>
+                "
+                data-checkout-date="
+                  <%= booking.checkout
+                    ? new Date(
+                        booking.checkout
+                      ).toISOString()
+                    : ''
+                  %>
+                "
+                data-booking-json="<%= encodeURIComponent(JSON.stringify(data)) %>"
+              >
+
+                <div class="booking-main">
+
+                  <div class="booking-topline">
+
+                    <div
+                      class="guest-avatar"
+                      aria-hidden="true"
+                    >
+                      <%= initials(name) %>
+                    </div>
+
+                    <div class="guest-copy">
+
+                      <div class="guest-name">
+                        <%= name %>
+                      </div>
+
+                      <% if (email) { %>
+
+                        <div class="guest-email">
+                          <%= email %>
+                        </div>
+
+                      <% } %>
+
+                    </div>
+
+                  </div>
+
+                  <div class="booking-badges">
+
+                    <span class="badge checked">
+                      <i
+                        class="fas fa-bed"
+                        aria-hidden="true"
+                      ></i>
+
+                      Checked In
+                    </span>
+
+                    <% if (hasAddon(booking)) { %>
+
+                      <span class="badge addon">
+                        <i
+                          class="fas fa-umbrella-beach"
+                          aria-hidden="true"
+                        ></i>
+
+                        Cottage Add-on
+                      </span>
+
+                    <% } %>
+
+                  </div>
+
+                  <div class="booking-details">
+
+                    <div class="detail-item">
+                      <span>
+                        Accommodation
+                      </span>
+
+                      <strong>
+                        <%= room %>
+                      </strong>
+                    </div>
+
+                    <div class="detail-item">
+                      <span>
+                        Contact
+                      </span>
+
+                      <strong>
+                        <%= safeString(
+                          booking.contact,
+                          "Not provided"
+                        ) %>
+                      </strong>
+                    </div>
+
+                    <div class="detail-item">
+                      <span>
+                        Checked In
+                      </span>
+
+                      <strong>
+                        <%= booking.checkInTime
+                          ? formatTime(
+                              booking.checkInTime
+                            )
+                          : "Recorded" %>
+                      </strong>
+                    </div>
+
+                    <div class="detail-item">
+                      <span>
+                        Scheduled Checkout
+                      </span>
+
+                      <strong>
+                        <%= formatDate(
+                          booking.checkout
+                        ) %>
+                      </strong>
+                    </div>
+
+                    <div class="detail-item">
+                      <span>
+                        Party
+                      </span>
+
+                      <strong>
+                        <%= guests %>
+                        <%= guests === 1
+                          ? "guest"
+                          : "guests"
+                        %>
+                      </strong>
+                    </div>
+
+                    <div class="detail-item">
+                      <span>
+                        Reservation Total
+                      </span>
+
+                      <strong>
+                        <%= formatMoney(
+                          booking.totalPrice
+                        ) %>
+                      </strong>
+                    </div>
+
+                  </div>
+
+                  <% if (requests) { %>
+
+                    <div class="request-note">
+
+                      <i
+                        class="fas fa-note-sticky"
+                        aria-hidden="true"
+                      ></i>
+
+                      <span>
+                        <%= requests %>
+                      </span>
+
+                    </div>
+
+                  <% } %>
+
+                </div>
+
+                <div class="booking-side">
+
+                  <div class="amount">
+
+                    <small>
+                      Stay total
+                    </small>
+
+                    <%= formatMoney(
+                      booking.totalPrice
+                    ) %>
+
+                  </div>
+
+                  <div class="action-stack">
+
+                    <button
+                      type="button"
+                      class="action-btn details js-details"
+                      data-booking-id="<%= id %>"
+                    >
+                      <i
+                        class="fas fa-eye"
+                        aria-hidden="true"
+                      ></i>
+
+                      Details
+                    </button>
+
+                    <button
+                      type="button"
+                      class="action-btn checkout js-checkout"
+                      data-booking-id="<%= id %>"
+                    >
+                      <i
+                        class="fas fa-right-from-bracket"
+                        aria-hidden="true"
+                      ></i>
+
+                      Check Out
+                    </button>
+
+                  </div>
+
+                </div>
+
+              </article>
+
+            <% }) %>
+
+          <% } else { %>
+
+            <div
+              class="empty-state"
+              id="inHouseEmpty"
+            >
+
+              <div class="empty-icon">
+                <i
+                  class="fas fa-bed"
+                  aria-hidden="true"
+                ></i>
+              </div>
+
+              <strong>
+                No guests currently in-house
+              </strong>
+
+              <p>
+                Checked-in reservations will appear here.
+              </p>
+
+            </div>
+
+          <% } %>
+
+        </div>
+
+      </section>
+
+    </section>
+
+    <div class="operations-footer">
+
+      <div class="footer-copy">
+
+        <strong>
+          Front Desk Safety Check
+        </strong>
+
+        <span>
+          Always verify the reservation, guest identity, accommodation,
+          and stay dates before changing a guest's occupancy state.
+        </span>
+
+      </div>
+
+      <a
+        href="/admin/history"
+        class="footer-link"
+      >
+        <i
+          class="fas fa-clock-rotate-left"
+          aria-hidden="true"
+        ></i>
+
+        Reservation Archive
+      </a>
+
+      <a
+        href="/admin/dashboard"
+        class="footer-link"
+      >
+        <i
+          class="fas fa-gauge-high"
+          aria-hidden="true"
+        ></i>
+
+        Command Center
+      </a>
+
+    </div>
+
+  </main>
+
+  <div
+    class="toast-container"
+    id="toastContainer"
+    aria-live="polite"
+    aria-atomic="true"
+  ></div>
+
+  <div
+    class="modal-overlay"
+    id="detailsModal"
+    aria-hidden="true"
+  >
+
+    <section
+      class="details-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitle"
+    >
+
+      <header class="modal-header">
+
         <div>
-            <h1>Front Desk <span>Operations</span></h1>
-            <p style="color: var(--text-muted); font-size: 0.85rem;">Live Island Management</p>
-        </div>
-        <a href="/admin/dashboard" style="text-decoration: none; color: var(--text-muted); font-size: 0.8rem;"><i class="fas fa-arrow-left"></i> Exit to Dashboard</a>
-    </div>
 
-    <div class="front-desk-grid">
-        
-        <div class="status-card">
-            <h3><span><i class="fas fa-plane-arrival"></i> Expected Today</span></h3>
-            
-            <div class="guest-item">
-                <div class="guest-info">
-                    <span class="badge badge-pending">Pending Approval</span>
-                    <strong>John Soledad</strong>
-                    <small>Room: Fan Room</small>
-                    <div class="guest-meta">
-                        <div><i class="fas fa-phone"></i> 09090909009</div>
-                        <div><i class="fas fa-umbrella-beach"></i> Cottage Add-on: Yes</div>
-                    </div>
-                </div>
-                <button class="btn-action btn-checkin" onclick="alert('Checking in John Soledad...')">Check In</button>
-            </div>
+          <h2
+            class="modal-title"
+            id="modalTitle"
+          >
+            Reservation Details
+          </h2>
 
-            <div class="guest-item" style="opacity: 0.7;">
-                <div class="guest-info">
-                    <span class="badge" style="border: 1px solid #7f8c8d; color: #7f8c8d;">Declined</span>
-                    <strong>Nathaniel Palafox</strong>
-                    <small>Room: Aircon Room</small>
-                    <div class="guest-meta">
-                        <div><i class="fas fa-phone"></i> 09682959607</div>
-                    </div>
-                </div>
-                <button class="btn-action" style="background: #2d3748; cursor: not-allowed;">Locked</button>
-            </div>
-        </div>
-
-        <div class="status-card" style="border-top: 4px solid var(--success);">
-            <h3>
-                <span><span class="pulse-indicator"></span> Currently In-House</span>
-                <span style="font-size: 0.8rem; background: rgba(46, 204, 113, 0.1); color: var(--success); padding: 4px 10px; border-radius: 20px;">3 Active</span>
-            </h3>
-            
-            <div class="guest-item">
-                <div class="guest-info">
-                    <span class="badge badge-active">Verified</span>
-                    <strong>John Doe</strong>
-                    <small>Room: Aircon Room</small>
-                    <div class="guest-meta">
-                        <div><i class="fas fa-clock"></i> In: 08:30 AM</div>
-                        <div><i class="fas fa-users"></i> Guests: 6</div>
-                    </div>
-                </div>
-                <button class="btn-action btn-checkout" onclick="alert('Processing Checkout for John Doe')">Check Out</button>
-            </div>
-
-            <div class="guest-item">
-                <div class="guest-info">
-                    <span class="badge badge-active">Verified</span>
-                    <strong>Alice Wonderland</strong>
-                    <small>Room: Fan Room</small>
-                    <div class="guest-meta">
-                        <div><i class="fas fa-clock"></i> In: 10:15 AM</div>
-                        <div><i class="fas fa-key"></i> Key Issued</div>
-                    </div>
-                </div>
-                <button class="btn-action btn-checkout" onclick="alert('Processing Checkout for Alice')">Check Out</button>
-            </div>
-
-            <div class="guest-item">
-                <div class="guest-info">
-                    <span class="badge badge-active">Verified</span>
-                    <strong>Bob Marley</strong>
-                    <small>Room: Aircon Room</small>
-                    <div class="guest-meta">
-                        <div><i class="fas fa-clock"></i> In: 11:00 AM</div>
-                        <div><i class="fas fa-concierge-bell"></i> Special Request: Extra Pillow</div>
-                    </div>
-                </div>
-                <button class="btn-action btn-checkout" onclick="alert('Processing Checkout for Bob')">Check Out</button>
-            </div>
+          <p
+            class="modal-subtitle"
+            id="modalSubtitle"
+          >
+            Front desk reservation record
+          </p>
 
         </div>
 
-    </div>
-</div>
+        <button
+          type="button"
+          class="modal-close"
+          id="closeDetails"
+          aria-label="Close details"
+        >
+          <i
+            class="fas fa-xmark"
+            aria-hidden="true"
+          ></i>
+        </button>
+
+      </header>
+
+      <div
+        class="modal-grid"
+        id="modalGrid"
+      ></div>
+
+    </section>
+
+  </div>
+
+  <script>
+    "use strict";
+
+    /*
+     * ---------------------------------------------------------
+     * LOCAL HELPERS
+     * ---------------------------------------------------------
+     */
+
+    function nowPhilippines() {
+      return new Date();
+    }
+
+    function startOfDay(date) {
+      const value =
+        new Date(date);
+
+      value.setHours(
+        0,
+        0,
+        0,
+        0
+      );
+
+      return value;
+    }
+
+    function sameLocalDay(a, b) {
+      if (!a || !b) {
+        return false;
+      }
+
+      const first =
+        startOfDay(a);
+
+      const second =
+        startOfDay(b);
+
+      return (
+        first.getTime() ===
+        second.getTime()
+      );
+    }
+
+    function showToast(
+      title,
+      message,
+      type = "success"
+    ) {
+      const container =
+        document.getElementById(
+          "toastContainer"
+        );
+
+      if (!container) {
+        return;
+      }
+
+      const iconMap = {
+        success:
+          "fa-circle-check",
+
+        error:
+          "fa-circle-exclamation",
+
+        warning:
+          "fa-triangle-exclamation"
+      };
+
+      const toast =
+        document.createElement(
+          "div"
+        );
+
+      toast.className =
+        `toast ${type}`;
+
+      toast.innerHTML = `
+        <div class="toast-icon">
+          <i
+            class="fas ${iconMap[type] || iconMap.success}"
+            aria-hidden="true"
+          ></i>
+        </div>
+
+        <div class="toast-copy">
+          <strong></strong>
+          <p></p>
+        </div>
+      `;
+
+      toast
+        .querySelector("strong")
+        .textContent =
+        title || "Front Desk";
+
+      toast
+        .querySelector("p")
+        .textContent =
+        message || "";
+
+      container.appendChild(
+        toast
+      );
+
+      window.setTimeout(
+        () => {
+          toast.style.opacity =
+            "0";
+
+          toast.style.transform =
+            "translateY(8px)";
+
+          window.setTimeout(
+            () => {
+              toast.remove();
+            },
+            200
+          );
+        },
+        4200
+      );
+    }
+
+    function setLastUpdated() {
+      const target =
+        document.getElementById(
+          "lastUpdated"
+        );
+
+      if (!target) {
+        return;
+      }
+
+      target.textContent =
+        `Updated ${new Date().toLocaleTimeString(
+          "en-PH",
+          {
+            hour: "2-digit",
+            minute: "2-digit",
+            hour12: true
+          }
+        )}`;
+    }
+
+    function updateClock() {
+      const target =
+        document.getElementById(
+          "currentTime"
+        );
+
+      if (!target) {
+        return;
+      }
+
+      target.textContent =
+        nowPhilippines().toLocaleString(
+          "en-PH",
+          {
+            weekday: "short",
+            month: "short",
+            day: "numeric",
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+            hour12: true
+          }
+        );
+    }
+
+    function updateMetrics() {
+      const arrivalItems =
+        document.querySelectorAll(
+          "#arrivalList .booking-item"
+        );
+
+      const inHouseItems =
+        document.querySelectorAll(
+          "#inHouseList .booking-item"
+        );
+
+      const arrivalMetric =
+        document.getElementById(
+          "arrivalMetric"
+        );
+
+      const inHouseMetric =
+        document.getElementById(
+          "inHouseMetric"
+        );
+
+      const operationMetric =
+        document.getElementById(
+          "operationMetric"
+        );
+
+      const arrivalCount =
+        document.getElementById(
+          "arrivalCount"
+        );
+
+      const inHouseCount =
+        document.getElementById(
+          "inHouseCount"
+        );
+
+      if (arrivalMetric) {
+        arrivalMetric.textContent =
+          arrivalItems.length;
+      }
+
+      if (inHouseMetric) {
+        inHouseMetric.textContent =
+          inHouseItems.length;
+      }
+
+      if (operationMetric) {
+        operationMetric.textContent =
+          arrivalItems.length +
+          inHouseItems.length;
+      }
+
+      if (arrivalCount) {
+        arrivalCount.textContent =
+          `${arrivalItems.length} pending`;
+      }
+
+      if (inHouseCount) {
+        inHouseCount.textContent =
+          `${inHouseItems.length} active`;
+      }
+
+      const todayMetric =
+        document.getElementById(
+          "todayMetric"
+        );
+
+      if (todayMetric) {
+        const today =
+          startOfDay(
+            new Date()
+          );
+
+        let count = 0;
+
+        arrivalItems.forEach(
+          item => {
+            const value =
+              item.dataset.checkinDate;
+
+            if (!value) {
+              return;
+            }
+
+            const date =
+              new Date(value);
+
+            if (
+              !Number.isNaN(
+                date.getTime()
+              ) &&
+              sameLocalDay(
+                date,
+                today
+              )
+            ) {
+              count += 1;
+            }
+          }
+        );
+
+        todayMetric.textContent =
+          count;
+      }
+    }
+
+    function emptyState(
+      list,
+      icon,
+      title,
+      message
+    ) {
+      const existing =
+        list.querySelector(
+          ".empty-state.dynamic-empty"
+        );
+
+      const items =
+        list.querySelectorAll(
+          ".booking-item"
+        );
+
+      if (items.length > 0) {
+        if (existing) {
+          existing.remove();
+        }
+
+        return;
+      }
+
+      if (existing) {
+        return;
+      }
+
+      const wrapper =
+        document.createElement(
+          "div"
+        );
+
+      wrapper.className =
+        "empty-state dynamic-empty";
+
+      wrapper.innerHTML = `
+        <div class="empty-icon">
+          <i
+            class="fas ${icon}"
+            aria-hidden="true"
+          ></i>
+        </div>
+
+        <strong></strong>
+        <p></p>
+      `;
+
+      wrapper.querySelector(
+        "strong"
+      ).textContent =
+        title;
+
+      wrapper.querySelector(
+        "p"
+      ).textContent =
+        message;
+
+      list.appendChild(
+        wrapper
+      );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * FILTERS
+     * ---------------------------------------------------------
+     */
+
+    function applyListFilters({
+      listId,
+      searchId,
+      filterId,
+      dateAttribute,
+      mode
+    }) {
+      const list =
+        document.getElementById(
+          listId
+        );
+
+      const search =
+        document.getElementById(
+          searchId
+        );
+
+      const filter =
+        document.getElementById(
+          filterId
+        );
+
+      if (
+        !list ||
+        !search ||
+        !filter
+      ) {
+        return;
+      }
+
+      const query =
+        search.value
+          .trim()
+          .toLowerCase();
+
+      const filterValue =
+        filter.value;
+
+      const today =
+        startOfDay(
+          new Date()
+        );
+
+      list
+        .querySelectorAll(
+          ".booking-item"
+        )
+        .forEach(
+          item => {
+            const haystack =
+              item.dataset.search ||
+              "";
+
+            let matchesSearch =
+              !query ||
+              haystack.includes(
+                query
+              );
+
+            let matchesFilter =
+              true;
+
+            if (
+              filterValue ===
+              "today"
+            ) {
+              const value =
+                item.dataset[
+                  dateAttribute
+                ];
+
+              const date =
+                value
+                  ? new Date(value)
+                  : null;
+
+              matchesFilter =
+                Boolean(
+                  date &&
+                  !Number.isNaN(
+                    date.getTime()
+                  ) &&
+                  sameLocalDay(
+                    date,
+                    today
+                  )
+                );
+            }
+
+            if (
+              filterValue ===
+              "upcoming"
+            ) {
+              const value =
+                item.dataset[
+                  dateAttribute
+                ];
+
+              const date =
+                value
+                  ? new Date(value)
+                  : null;
+
+              matchesFilter =
+                Boolean(
+                  date &&
+                  !Number.isNaN(
+                    date.getTime()
+                  ) &&
+                  startOfDay(date) >
+                    today
+                );
+            }
+
+            item.hidden =
+              !(
+                matchesSearch &&
+                matchesFilter
+              );
+          }
+        );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * DETAILS MODAL
+     * ---------------------------------------------------------
+     */
+
+    function parseBookingFromElement(
+      element
+    ) {
+      if (!element) {
+        return null;
+      }
+
+      const encoded =
+        element.dataset.bookingJson;
+
+      if (!encoded) {
+        return null;
+      }
+
+      try {
+        return JSON.parse(
+          decodeURIComponent(
+            encoded
+          )
+        );
+      } catch (error) {
+        console.error(
+          "Reservation JSON parsing error:",
+          error
+        );
+
+        return null;
+      }
+    }
+
+    function openDetails(
+      booking
+    ) {
+      const modal =
+        document.getElementById(
+          "detailsModal"
+        );
+
+      const grid =
+        document.getElementById(
+          "modalGrid"
+        );
+
+      const title =
+        document.getElementById(
+          "modalTitle"
+        );
+
+      const subtitle =
+        document.getElementById(
+          "modalSubtitle"
+        );
+
+      if (
+        !modal ||
+        !grid ||
+        !booking
+      ) {
+        return;
+      }
+
+      title.textContent =
+        booking.name ||
+        "Guest";
+
+      subtitle.textContent =
+        `${booking.room || "Accommodation"} · Reservation ${booking.id || "—"}`;
+
+      grid.innerHTML = `
+        <div class="modal-field">
+          <span>Guest</span>
+          <strong>${escapeHtml(booking.name || "Guest")}</strong>
+        </div>
+
+        <div class="modal-field">
+          <span>Contact</span>
+          <strong>${escapeHtml(booking.contact || "Not provided")}</strong>
+        </div>
+
+        <div class="modal-field">
+          <span>Email</span>
+          <strong>${escapeHtml(booking.email || "Not provided")}</strong>
+        </div>
+
+        <div class="modal-field">
+          <span>Accommodation</span>
+          <strong>${escapeHtml(booking.room || "Accommodation")}</strong>
+        </div>
+
+        <div class="modal-field">
+          <span>Arrival</span>
+          <strong>${escapeHtml(booking.checkin || "Not recorded")}</strong>
+        </div>
+
+        <div class="modal-field">
+          <span>Departure</span>
+          <strong>${escapeHtml(booking.checkout || "Not recorded")}</strong>
+        </div>
+
+        <div class="modal-field">
+          <span>Party</span>
+          <strong>${escapeHtml(String(booking.guests || 0))} ${Number(booking.guests) === 1 ? "guest" : "guests"}</strong>
+        </div>
+
+        <div class="modal-field">
+          <span>Reservation Total</span>
+          <strong>${escapeHtml(booking.totalPrice || "—")}</strong>
+        </div>
+
+        <div class="modal-field">
+          <span>Cottage Add-on</span>
+          <strong>${escapeHtml(booking.cottageAddon || "None")}</strong>
+        </div>
+
+        <div class="modal-field">
+          <span>Current Status</span>
+          <strong>${escapeHtml(booking.status || "Unknown")}</strong>
+        </div>
+
+        <div class="modal-field full">
+          <span>Special Requests</span>
+          <strong>${escapeHtml(booking.specialRequests || "None")}</strong>
+        </div>
+      `;
+
+      modal.classList.add(
+        "open"
+      );
+
+      modal.setAttribute(
+        "aria-hidden",
+        "false"
+      );
+
+      document.body.style.overflow =
+        "hidden";
+    }
+
+    function closeDetails() {
+      const modal =
+        document.getElementById(
+          "detailsModal"
+        );
+
+      if (!modal) {
+        return;
+      }
+
+      modal.classList.remove(
+        "open"
+      );
+
+      modal.setAttribute(
+        "aria-hidden",
+        "true"
+      );
+
+      document.body.style.overflow =
+        "";
+    }
+
+    function escapeHtml(
+      value
+    ) {
+      return String(value)
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;")
+        .replaceAll("'", "&#039;");
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * CHECK-IN
+     * ---------------------------------------------------------
+     */
+
+    async function performCheckIn(
+      button
+    ) {
+      if (!button) {
+        return;
+      }
+
+      const bookingId =
+        button.dataset.bookingId;
+
+      if (!bookingId) {
+        showToast(
+          "Check-in unavailable",
+          "The reservation ID is missing.",
+          "error"
+        );
+
+        return;
+      }
+
+      const card =
+        document.getElementById(
+          `arrival-${bookingId}`
+        );
+
+      if (!card) {
+        showToast(
+          "Reservation not found",
+          "The arrival record is no longer visible on this page.",
+          "error"
+        );
+
+        return;
+      }
+
+      const confirmed =
+        window.confirm(
+          "Confirm guest check-in? This will record the guest as currently in-house."
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const originalHtml =
+        button.innerHTML;
+
+      button.disabled =
+        true;
+
+      button.innerHTML = `
+        <i
+          class="fas fa-spinner fa-spin"
+          aria-hidden="true"
+        ></i>
+
+        Saving...
+      `;
+
+      try {
+        const response =
+          await fetch(
+            "/admin/update-checkin",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                "Accept":
+                  "application/json"
+              },
+
+              credentials:
+                "same-origin",
+
+              body:
+                JSON.stringify({
+                  bookingId,
+                  checkedIn: true
+                })
+            }
+          );
+
+        if (
+          response.status ===
+            401 ||
+          response.status ===
+            403
+        ) {
+          showToast(
+            "Session required",
+            "Your administrator session may have expired. Please log in again.",
+            "error"
+          );
+
+          button.disabled =
+            false;
+
+          button.innerHTML =
+            originalHtml;
+
+          return;
+        }
+
+        const contentType =
+          response.headers.get(
+            "content-type"
+          ) || "";
+
+        let data =
+          null;
+
+        if (
+          contentType.includes(
+            "application/json"
+          )
+        ) {
+          data =
+            await response.json();
+        }
+
+        if (
+          !response.ok ||
+          !data ||
+          !data.success
+        ) {
+          throw new Error(
+            data?.message ||
+              "Unable to complete check-in."
+          );
+        }
+
+        /*
+         * Keep the existing reservation card,
+         * but move its DOM element to In-House.
+         */
+        card.classList.add(
+          "action-success"
+        );
+
+        const dataPayload =
+          card.dataset.bookingJson;
+
+        card.remove();
+
+        const arrivalList =
+          document.getElementById(
+            "arrivalList"
+          );
+
+        const inHouseList =
+          document.getElementById(
+            "inHouseList"
+          );
+
+        if (
+          arrivalList &&
+          inHouseList
+        ) {
+          /*
+           * Build a new in-house card from the
+           * existing server-rendered DOM data.
+           */
+          const booking =
+            JSON.parse(
+              decodeURIComponent(
+                dataPayload
+              )
+            );
+
+          booking.status =
+            "checked-in";
+
+          booking.checkInTime =
+            new Date().toLocaleTimeString(
+              "en-PH",
+              {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: true
+              }
+            );
+
+          const newCard =
+            document.createElement(
+              "article"
+            );
+
+          newCard.className =
+            "booking-item action-success";
+
+          newCard.id =
+            `inhouse-${bookingId}`;
+
+          newCard.dataset.bookingId =
+            bookingId;
+
+          newCard.dataset.search =
+            [
+              booking.name,
+              booking.email,
+              booking.contact,
+              booking.room
+            ]
+              .filter(Boolean)
+              .join(" ")
+              .toLowerCase();
+
+          newCard.dataset.checkoutDate =
+            booking.checkoutRaw || "";
+
+          newCard.dataset.bookingJson =
+            encodeURIComponent(
+              JSON.stringify(
+                booking
+              )
+            );
+
+          newCard.innerHTML = `
+            <div class="booking-main">
+
+              <div class="booking-topline">
+
+                <div class="guest-avatar" aria-hidden="true">
+                  ${escapeHtml(
+                    booking.name
+                      .trim()
+                      .split(/\s+/)
+                      .slice(0, 2)
+                      .map(part =>
+                        part
+                          .charAt(0)
+                          .toUpperCase()
+                      )
+                      .join("") || "G"
+                  )}
+                </div>
+
+                <div class="guest-copy">
+
+                  <div class="guest-name">
+                    ${escapeHtml(
+                      booking.name
+                    )}
+                  </div>
+
+                  ${
+                    booking.email
+                      ? `
+                        <div class="guest-email">
+                          ${escapeHtml(
+                            booking.email
+                          )}
+                        </div>
+                      `
+                      : ""
+                  }
+
+                </div>
+
+              </div>
+
+              <div class="booking-badges">
+
+                <span class="badge checked">
+                  <i
+                    class="fas fa-bed"
+                    aria-hidden="true"
+                  ></i>
+                  Checked In
+                </span>
+
+                ${
+                  booking.cottageAddon ===
+                    "Included"
+                    ? `
+                      <span class="badge addon">
+                        <i
+                          class="fas fa-umbrella-beach"
+                          aria-hidden="true"
+                        ></i>
+                        Cottage Add-on
+                      </span>
+                    `
+                    : ""
+                }
+
+              </div>
+
+              <div class="booking-details">
+
+                <div class="detail-item">
+                  <span>Accommodation</span>
+                  <strong>${escapeHtml(
+                    booking.room
+                  )}</strong>
+                </div>
+
+                <div class="detail-item">
+                  <span>Contact</span>
+                  <strong>${escapeHtml(
+                    booking.contact
+                  )}</strong>
+                </div>
+
+                <div class="detail-item">
+                  <span>Checked In</span>
+                  <strong>${escapeHtml(
+                    booking.checkInTime ||
+                      "Recorded"
+                  )}</strong>
+                </div>
+
+                <div class="detail-item">
+                  <span>Scheduled Checkout</span>
+                  <strong>${escapeHtml(
+                    booking.checkout
+                  )}</strong>
+                </div>
+
+                <div class="detail-item">
+                  <span>Party</span>
+                  <strong>${escapeHtml(
+                    String(
+                      booking.guests
+                    )
+                  )} ${
+            Number(booking.guests) === 1
+              ? "guest"
+              : "guests"
+          }</strong>
+                </div>
+
+                <div class="detail-item">
+                  <span>Reservation Total</span>
+                  <strong>${escapeHtml(
+                    booking.totalPrice
+                  )}</strong>
+                </div>
+
+              </div>
+
+              ${
+                booking.specialRequests &&
+                booking.specialRequests !==
+                  "None"
+                  ? `
+                    <div class="request-note">
+
+                      <i
+                        class="fas fa-note-sticky"
+                        aria-hidden="true"
+                      ></i>
+
+                      <span>
+                        ${escapeHtml(
+                          booking.specialRequests
+                        )}
+                      </span>
+
+                    </div>
+                  `
+                  : ""
+              }
+
+            </div>
+
+            <div class="booking-side">
+
+              <div class="amount">
+                <small>Stay total</small>
+                ${escapeHtml(
+                  booking.totalPrice
+                )}
+              </div>
+
+              <div class="action-stack">
+
+                <button
+                  type="button"
+                  class="action-btn details js-details"
+                  data-booking-id="${escapeHtml(
+                    bookingId
+                  )}"
+                >
+                  <i
+                    class="fas fa-eye"
+                    aria-hidden="true"
+                  ></i>
+                  Details
+                </button>
+
+                <button
+                  type="button"
+                  class="action-btn checkout js-checkout"
+                  data-booking-id="${escapeHtml(
+                    bookingId
+                  )}"
+                >
+                  <i
+                    class="fas fa-right-from-bracket"
+                    aria-hidden="true"
+                  ></i>
+                  Check Out
+                </button>
+
+              </div>
+
+            </div>
+          `;
+
+          inHouseList.prepend(
+            newCard
+          );
+        }
+
+        showToast(
+          "Guest checked in",
+          `${bookingNameFromCard(card)} is now marked as in-house.`,
+          "success"
+        );
+
+        updateMetrics();
+        setLastUpdated();
+
+        wireDynamicButtons();
+
+        emptyState(
+          arrivalList,
+          "fa-check",
+          "No arrivals waiting",
+          "The front desk is currently clear."
+        );
+
+        const inHouseEmpty =
+          inHouseList?.querySelector(
+            ".dynamic-empty"
+          );
+
+        if (inHouseEmpty) {
+          inHouseEmpty.remove();
+        }
+
+      } catch (error) {
+        console.error(
+          "Check-in error:",
+          error
+        );
+
+        showToast(
+          "Check-in failed",
+          error.message ||
+            "Unable to complete the check-in.",
+          "error"
+        );
+
+        button.disabled =
+          false;
+
+        button.innerHTML =
+          originalHtml;
+      }
+    }
+
+    function bookingNameFromCard(
+      card
+    ) {
+      return (
+        card?.querySelector(
+          ".guest-name"
+        )?.textContent
+          ?.trim() ||
+        "Guest"
+      );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * CHECK-OUT
+     *
+     * IMPORTANT:
+     * The current backend source available to me exposes the
+     * check-in endpoint. Before using this action in production,
+     * /admin/update-checkout must exist and persist checkout data.
+     * The UI calls that endpoint and will show a clean error if
+     * it is not present yet.
+     * ---------------------------------------------------------
+     */
+
+    async function performCheckOut(
+      button
+    ) {
+      if (!button) {
+        return;
+      }
+
+      const bookingId =
+        button.dataset.bookingId;
+
+      const card =
+        document.getElementById(
+          `inhouse-${bookingId}`
+        );
+
+      if (!bookingId || !card) {
+        showToast(
+          "Checkout unavailable",
+          "The in-house reservation could not be identified.",
+          "error"
+        );
+
+        return;
+      }
+
+      const guest =
+        bookingNameFromCard(
+          card
+        );
+
+      const confirmed =
+        window.confirm(
+          `Confirm checkout for ${guest}? This will complete the guest's front-desk stay.`
+        );
+
+      if (!confirmed) {
+        return;
+      }
+
+      const originalHtml =
+        button.innerHTML;
+
+      button.disabled =
+        true;
+
+      button.innerHTML = `
+        <i
+          class="fas fa-spinner fa-spin"
+          aria-hidden="true"
+        ></i>
+
+        Saving...
+      `;
+
+      try {
+        const response =
+          await fetch(
+            "/admin/update-checkout",
+            {
+              method: "POST",
+
+              headers: {
+                "Content-Type":
+                  "application/json",
+
+                "Accept":
+                  "application/json"
+              },
+
+              credentials:
+                "same-origin",
+
+              body:
+                JSON.stringify({
+                  bookingId,
+                  checkedOut: true
+                })
+            }
+          );
+
+        const contentType =
+          response.headers.get(
+            "content-type"
+          ) || "";
+
+        let data =
+          null;
+
+        if (
+          contentType.includes(
+            "application/json"
+          )
+        ) {
+          data =
+            await response.json();
+        }
+
+        if (
+          response.status ===
+            404
+        ) {
+          throw new Error(
+            "The checkout endpoint is not connected in the server yet. Add /admin/update-checkout before testing departures."
+          );
+        }
+
+        if (
+          response.status ===
+            401 ||
+          response.status ===
+            403
+        ) {
+          throw new Error(
+            "Your administrator session may have expired. Please log in again."
+          );
+        }
+
+        if (
+          !response.ok ||
+          !data ||
+          !data.success
+        ) {
+          throw new Error(
+            data?.message ||
+              "Unable to complete checkout."
+          );
+        }
+
+        card.classList.add(
+          "action-info"
+        );
+
+        window.setTimeout(
+          () => {
+            card.remove();
+
+            const inHouseList =
+              document.getElementById(
+                "inHouseList"
+              );
+
+            emptyState(
+              inHouseList,
+              "fa-bed",
+              "No guests currently in-house",
+              "Checked-in reservations will appear here."
+            );
+
+            updateMetrics();
+            setLastUpdated();
+          },
+          250
+        );
+
+        showToast(
+          "Guest checked out",
+          `${guest} has been checked out successfully.`,
+          "success"
+        );
+
+      } catch (error) {
+        console.error(
+          "Checkout error:",
+          error
+        );
+
+        showToast(
+          "Checkout failed",
+          error.message ||
+            "Unable to complete the checkout.",
+          "error"
+        );
+
+        button.disabled =
+          false;
+
+        button.innerHTML =
+          originalHtml;
+      }
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * BUTTON WIRING
+     * ---------------------------------------------------------
+     */
+
+    function wireDynamicButtons() {
+      document
+        .querySelectorAll(
+          ".js-checkin"
+        )
+        .forEach(
+          button => {
+            button.onclick =
+              () => {
+                performCheckIn(
+                  button
+                );
+              };
+          }
+        );
+
+      document
+        .querySelectorAll(
+          ".js-checkout"
+        )
+        .forEach(
+          button => {
+            button.onclick =
+              () => {
+                performCheckOut(
+                  button
+                );
+              };
+          }
+        );
+
+      document
+        .querySelectorAll(
+          ".js-details"
+        )
+        .forEach(
+          button => {
+            button.onclick =
+              () => {
+                const card =
+                  document.getElementById(
+                    button.dataset
+                      .bookingId
+                      ?.startsWith(
+                        "arr"
+                      )
+                      ? `arrival-${button.dataset.bookingId}`
+                      : `inhouse-${button.dataset.bookingId}`
+                  );
+
+                /*
+                 * Use the two known IDs first, then fall back
+                 * to scanning the page. This keeps the handler
+                 * resilient when cards are moved client-side.
+                 */
+                const possibleCards = [
+                  document.getElementById(
+                    `arrival-${button.dataset.bookingId}`
+                  ),
+                  document.getElementById(
+                    `inhouse-${button.dataset.bookingId}`
+                  ),
+                  card
+                ];
+
+                const source =
+                  possibleCards.find(
+                    Boolean
+                  );
+
+                const booking =
+                  parseBookingFromElement(
+                    source
+                  );
+
+                if (booking) {
+                  openDetails(
+                    booking
+                  );
+                }
+              };
+          }
+        );
+    }
+
+    /*
+     * ---------------------------------------------------------
+     * EVENTS
+     * ---------------------------------------------------------
+     */
+
+    document.addEventListener(
+      "DOMContentLoaded",
+      () => {
+        updateClock();
+        setLastUpdated();
+        updateMetrics();
+        wireDynamicButtons();
+
+        window.setInterval(
+          updateClock,
+          1000
+        );
+
+        const refresh =
+          document.getElementById(
+            "refreshPage"
+          );
+
+        if (refresh) {
+          refresh.addEventListener(
+            "click",
+            () => {
+              refresh.disabled =
+                true;
+
+              const icon =
+                refresh.querySelector(
+                  "i"
+                );
+
+              if (icon) {
+                icon.className =
+                  "fas fa-spinner fa-spin";
+              }
+
+              window.setTimeout(
+                () => {
+                  window.location.reload();
+                },
+                220
+              );
+            }
+          );
+        }
+
+        const arrivalSearch =
+          document.getElementById(
+            "arrivalSearch"
+          );
+
+        const arrivalFilter =
+          document.getElementById(
+            "arrivalFilter"
+          );
+
+        if (arrivalSearch) {
+          arrivalSearch.addEventListener(
+            "input",
+            () => {
+              applyListFilters({
+                listId:
+                  "arrivalList",
+                searchId:
+                  "arrivalSearch",
+                filterId:
+                  "arrivalFilter",
+                dateAttribute:
+                  "checkinDate",
+                mode:
+                  "arrivals"
+              });
+            }
+          );
+        }
+
+        if (arrivalFilter) {
+          arrivalFilter.addEventListener(
+            "change",
+            () => {
+              applyListFilters({
+                listId:
+                  "arrivalList",
+                searchId:
+                  "arrivalSearch",
+                filterId:
+                  "arrivalFilter",
+                dateAttribute:
+                  "checkinDate",
+                mode:
+                  "arrivals"
+              });
+            }
+          );
+        }
+
+        const inHouseSearch =
+          document.getElementById(
+            "inHouseSearch"
+          );
+
+        const inHouseFilter =
+          document.getElementById(
+            "inHouseFilter"
+          );
+
+        if (inHouseSearch) {
+          inHouseSearch.addEventListener(
+            "input",
+            () => {
+              applyListFilters({
+                listId:
+                  "inHouseList",
+                searchId:
+                  "inHouseSearch",
+                filterId:
+                  "inHouseFilter",
+                dateAttribute:
+                  "checkoutDate",
+                mode:
+                  "inhouse"
+              });
+            }
+          );
+        }
+
+        if (inHouseFilter) {
+          inHouseFilter.addEventListener(
+            "change",
+            () => {
+              applyListFilters({
+                listId:
+                  "inHouseList",
+                searchId:
+                  "inHouseSearch",
+                filterId:
+                  "inHouseFilter",
+                dateAttribute:
+                  "checkoutDate",
+                mode:
+                  "inhouse"
+              });
+            }
+          );
+        }
+
+        const closeButton =
+          document.getElementById(
+            "closeDetails"
+          );
+
+        if (closeButton) {
+          closeButton.addEventListener(
+            "click",
+            closeDetails
+          );
+        }
+
+        const modal =
+          document.getElementById(
+            "detailsModal"
+          );
+
+        if (modal) {
+          modal.addEventListener(
+            "click",
+            event => {
+              if (
+                event.target ===
+                modal
+              ) {
+                closeDetails();
+              }
+            }
+          );
+        }
+
+        document.addEventListener(
+          "keydown",
+          event => {
+            if (
+              event.key ===
+              "Escape"
+            ) {
+              closeDetails();
+            }
+          }
+        );
+      }
+    );
+  </script>
 
 </body>
 </html>
