@@ -1,0 +1,5534 @@
+<%
+/* ============================================================
+   PUFFER ISLE RESORT | IsleRMS
+   ADMIN ANALYTICS
+   ------------------------------------------------------------
+   Premium dark "Isle Command" visual system.
+   Server-generated data remains separate from executable JS
+   to avoid EJS parsing problems in VS Code.
+============================================================ */
+
+/* ============================================================
+   SAFE HELPERS
+============================================================ */
+
+function safeNumber(value, fallback = 0) {
+  const number = Number(value);
+
+  return Number.isFinite(number)
+    ? number
+    : fallback;
+}
+
+function safeText(value, fallback = "") {
+  if (
+    value === undefined ||
+    value === null
+  ) {
+    return fallback;
+  }
+
+  return String(value);
+}
+
+function validDate(value) {
+  if (!value) {
+    return null;
+  }
+
+  const date = new Date(value);
+
+  return Number.isNaN(date.getTime())
+    ? null
+    : date;
+}
+
+function dateLabel(value) {
+  const date = validDate(value);
+
+  if (!date) {
+    return "—";
+  }
+
+  return date.toLocaleDateString(
+    "en-PH",
+    {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    }
+  );
+}
+
+function timeLabel(value) {
+  const date = validDate(value);
+
+  if (!date) {
+    return "—";
+  }
+
+  return date.toLocaleTimeString(
+    "en-PH",
+    {
+      hour: "2-digit",
+      minute: "2-digit",
+      hour12: true,
+    }
+  );
+}
+
+function money(value) {
+  return safeNumber(
+    value,
+    0
+  ).toLocaleString(
+    "en-PH",
+    {
+      style: "currency",
+      currency: "PHP",
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    }
+  );
+}
+
+function whole(value) {
+  return safeNumber(
+    value,
+    0
+  ).toLocaleString(
+    "en-PH"
+  );
+}
+
+function getUserName(activity) {
+  if (!activity) {
+    return "Guest";
+  }
+
+  const user =
+    activity.userId;
+
+  if (
+    user &&
+    typeof user === "object"
+  ) {
+    return (
+      user.fullname ||
+      user.name ||
+      user.username ||
+      "Guest"
+    );
+  }
+
+  return (
+    activity.fullname ||
+    activity.name ||
+    activity.username ||
+    "Guest"
+  );
+}
+
+function getRoomName(room) {
+  if (!room) {
+    return "Unassigned";
+  }
+
+  if (
+    typeof room === "string"
+  ) {
+    return room;
+  }
+
+  return (
+    room.name ||
+    room.roomName ||
+    room.roomType ||
+    room.accommodation ||
+    "Unassigned"
+  );
+}
+
+function statusLabel(status) {
+  const normalized =
+    safeText(
+      status,
+      "pending"
+    )
+      .trim()
+      .toLowerCase();
+
+  const labels = {
+    pending: "Pending",
+    accepted: "Accepted",
+    confirmed: "Confirmed",
+    declined: "Declined",
+    rejected: "Rejected",
+    cancelled: "Cancelled",
+    "checked-in": "Checked In",
+    "checked-out": "Checked Out",
+    completed: "Completed",
+  };
+
+  return (
+    labels[normalized] ||
+    normalized
+      .replace(
+        /-/g,
+        " "
+      )
+      .replace(
+        /\b\w/g,
+        (letter) =>
+          letter.toUpperCase()
+      )
+  );
+}
+
+/* ============================================================
+   NORMALIZED SERVER DATA
+============================================================ */
+
+const analyticsTotalBookings =
+  safeNumber(
+    totalBookings
+  );
+
+const analyticsTotalUsers =
+  safeNumber(
+    totalUsers
+  );
+
+const analyticsPending =
+  safeNumber(
+    pending
+  );
+
+const analyticsAccepted =
+  safeNumber(
+    accepted
+  );
+
+const analyticsConfirmed =
+  safeNumber(
+    confirmed
+  );
+
+const analyticsDeclined =
+  safeNumber(
+    declined
+  );
+
+const analyticsCancelled =
+  safeNumber(
+    cancelled
+  );
+
+const analyticsCheckedIn =
+  safeNumber(
+    checkedIn
+  );
+
+const analyticsCheckedOut =
+  safeNumber(
+    checkedOut
+  );
+
+const analyticsCompleted =
+  safeNumber(
+    completed
+  );
+
+const analyticsRevenue =
+  safeNumber(
+    revenue
+  );
+
+/* ============================================================
+   ROOM DATA
+============================================================ */
+
+const normalizedRoomBreakdown =
+  Array.isArray(
+    roomBreakdown
+  )
+    ? roomBreakdown.map(
+        (item) => ({
+          name:
+            getRoomName(
+              item?._id
+            ),
+
+          bookings:
+            safeNumber(
+              item?.bookings
+            ),
+
+          revenue:
+            safeNumber(
+              item?.revenue
+            ),
+        })
+      )
+    : [];
+
+/* ============================================================
+   RECENT ACTIVITY DATA
+============================================================ */
+
+const normalizedRecentActivity =
+  Array.isArray(
+    recentActivity
+  )
+    ? recentActivity.map(
+        (item) => ({
+          id:
+            item?._id
+              ? String(
+                  item._id
+                )
+              : "",
+
+          user:
+            getUserName(
+              item
+            ),
+
+          email:
+            item?.userId &&
+            typeof item.userId ===
+              "object"
+              ? safeText(
+                  item.userId.email,
+                  ""
+                )
+              : safeText(
+                  item?.email,
+                  ""
+                ),
+
+          room:
+            getRoomName(
+              item?.roomDisplayName ||
+              item?.room
+            ),
+
+          status:
+            safeText(
+              item?.status,
+              "pending"
+            )
+              .trim()
+              .toLowerCase(),
+
+          totalPrice:
+            safeNumber(
+              item?.totalPrice
+            ),
+
+          createdAt:
+            item?.createdAt ||
+            item?.updatedAt ||
+            null,
+
+          updatedAt:
+            item?.updatedAt ||
+            item?.createdAt ||
+            null,
+        })
+      )
+    : [];
+
+/* ============================================================
+   STATUS DATA
+============================================================ */
+
+const statusRows = [
+  {
+    key: "pending",
+    label: "Pending",
+    value: analyticsPending,
+  },
+  {
+    key: "accepted",
+    label: "Accepted",
+    value: analyticsAccepted,
+  },
+  {
+    key: "confirmed",
+    label: "Confirmed",
+    value: analyticsConfirmed,
+  },
+  {
+    key: "checked-in",
+    label: "Checked In",
+    value: analyticsCheckedIn,
+  },
+  {
+    key: "checked-out",
+    label: "Checked Out",
+    value: analyticsCheckedOut,
+  },
+  {
+    key: "completed",
+    label: "Completed",
+    value: analyticsCompleted,
+  },
+  {
+    key: "cancelled",
+    label: "Cancelled",
+    value: analyticsCancelled,
+  },
+  {
+    key: "declined",
+    label: "Declined",
+    value: analyticsDeclined,
+  },
+];
+
+const analyticsStatusData = {
+  statusRows,
+  total:
+    analyticsTotalBookings,
+};
+%>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="description"
+    content="Puffer Isle Resort administrative analytics and operational intelligence"
+  >
+
+  <meta
+    name="color-scheme"
+    content="dark"
+  >
+
+  <title>
+    <%= safeText(
+      title,
+      "Resort Analytics"
+    ) %>
+  </title>
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/islelogo.png"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
+
+  <style>
+
+    /* =========================================================
+       DESIGN TOKENS
+    ========================================================= */
+
+    :root {
+
+      --teal:
+        #008080;
+
+      --teal-dark:
+        #005c5c;
+
+      --teal-deep:
+        #003f3f;
+
+      --teal-light:
+        #12a9a9;
+
+      --gold:
+        #ffd700;
+
+      --gold-dark:
+        #d4b400;
+
+      --background:
+        #070a0c;
+
+      --background-soft:
+        #0c1113;
+
+      --surface:
+        rgba(
+          255,
+          255,
+          255,
+          0.035
+        );
+
+      --surface-strong:
+        rgba(
+          255,
+          255,
+          255,
+          0.055
+        );
+
+      --surface-hover:
+        rgba(
+          255,
+          255,
+          255,
+          0.075
+        );
+
+      --border:
+        rgba(
+          255,
+          255,
+          255,
+          0.08
+        );
+
+      --border-strong:
+        rgba(
+          255,
+          255,
+          255,
+          0.14
+        );
+
+      --text:
+        #ffffff;
+
+      --text-soft:
+        #dce2e4;
+
+      --muted:
+        #929ca1;
+
+      --success:
+        #2ecc71;
+
+      --danger:
+        #e74c3c;
+
+      --warning:
+        #f1c40f;
+
+      --info:
+        #3498db;
+
+      --neutral:
+        #9fa8ad;
+
+      --shadow-sm:
+        0 10px 30px
+        rgba(
+          0,
+          0,
+          0,
+          0.18
+        );
+
+      --shadow-md:
+        0 18px 50px
+        rgba(
+          0,
+          0,
+          0,
+          0.25
+        );
+
+      --shadow-lg:
+        0 28px 80px
+        rgba(
+          0,
+          0,
+          0,
+          0.35
+        );
+
+      --radius-xl:
+        28px;
+
+      --radius-lg:
+        21px;
+
+      --radius-md:
+        16px;
+
+      --radius-sm:
+        11px;
+    }
+
+    /* =========================================================
+       RESET
+    ========================================================= */
+
+    *,
+    *::before,
+    *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior:
+        smooth;
+    }
+
+    body {
+      min-height:
+        100vh;
+
+      overflow-x:
+        hidden;
+
+      font-family:
+        "Poppins",
+        sans-serif;
+
+      color:
+        var(--text);
+
+      background:
+        radial-gradient(
+          circle at 8% 8%,
+          rgba(
+            0,
+            128,
+            128,
+            0.13
+          ),
+          transparent 27%
+        ),
+
+        radial-gradient(
+          circle at 92% 85%,
+          rgba(
+            255,
+            215,
+            0,
+            0.045
+          ),
+          transparent 25%
+        ),
+
+        linear-gradient(
+          145deg,
+          #070a0c 0%,
+          #0a0e10 55%,
+          #080b0d 100%
+        );
+    }
+
+    body::before {
+      content:
+        "";
+
+      position:
+        fixed;
+
+      inset:
+        0;
+
+      pointer-events:
+        none;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(
+            255,
+            255,
+            255,
+            0.012
+          ) 1px,
+          transparent 1px
+        ),
+
+        linear-gradient(
+          rgba(
+            255,
+            255,
+            255,
+            0.012
+          ) 1px,
+          transparent 1px
+        );
+
+      background-size:
+        48px 48px;
+
+      mask-image:
+        linear-gradient(
+          to bottom,
+          black,
+          transparent 75%
+        );
+
+      opacity:
+        0.25;
+
+      z-index:
+        0;
+    }
+
+    button,
+    input,
+    select,
+    textarea,
+    a {
+      font:
+        inherit;
+    }
+
+    button {
+      border:
+        0;
+    }
+
+    a {
+      color:
+        inherit;
+    }
+
+    img {
+      max-width:
+        100%;
+
+      display:
+        block;
+    }
+
+    code {
+      color:
+        var(--gold);
+
+      font-family:
+        Consolas,
+        "Courier New",
+        monospace;
+    }
+
+    ::selection {
+      color:
+        #071011;
+
+      background:
+        var(--gold);
+    }
+
+    ::-webkit-scrollbar {
+      width:
+        8px;
+    }
+
+    ::-webkit-scrollbar-track {
+      background:
+        var(--background);
+    }
+
+    ::-webkit-scrollbar-thumb {
+      background:
+        var(--teal);
+
+      border-radius:
+        999px;
+    }
+
+    ::-webkit-scrollbar-thumb:hover {
+      background:
+        var(--teal-light);
+    }
+
+    /* =========================================================
+       PAGE CONTAINER
+    ========================================================= */
+
+    .analytics-container {
+      position:
+        relative;
+
+      z-index:
+        1;
+
+      width:
+        min(
+          1600px,
+          calc(
+            100% - 48px
+          )
+        );
+
+      margin:
+        0 auto;
+
+      padding:
+        40px 0 78px;
+    }
+
+    /* =========================================================
+       HEADER
+    ========================================================= */
+
+    .analytics-header {
+      display:
+        flex;
+
+      align-items:
+        flex-end;
+
+      justify-content:
+        space-between;
+
+      gap:
+        28px;
+
+      margin-bottom:
+        24px;
+    }
+
+    .header-copy {
+      min-width:
+        0;
+    }
+
+    .eyebrow {
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      gap:
+        9px;
+
+      color:
+        var(--teal-light);
+
+      font-size:
+        0.68rem;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        2.2px;
+
+      line-height:
+        1;
+
+      text-transform:
+        uppercase;
+
+      margin-bottom:
+        11px;
+    }
+
+    .eyebrow::before {
+      content:
+        "";
+
+      width:
+        24px;
+
+      height:
+        1px;
+
+      background:
+        var(--teal-light);
+
+      opacity:
+        0.8;
+    }
+
+    .analytics-title {
+      font-family:
+        "Playfair Display",
+        serif;
+
+      font-size:
+        clamp(
+          2.3rem,
+          4vw,
+          3.55rem
+        );
+
+      line-height:
+        1.04;
+
+      letter-spacing:
+        -1.5px;
+    }
+
+    .analytics-title span {
+      color:
+        var(--gold);
+    }
+
+    .analytics-subtitle {
+      max-width:
+        750px;
+
+      margin-top:
+        10px;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.88rem;
+
+      line-height:
+        1.72;
+    }
+
+    .analytics-greeting {
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      gap:
+        7px;
+
+      margin-top:
+        9px;
+
+      color:
+        var(--text-soft);
+
+      font-size:
+        0.69rem;
+    }
+
+    .analytics-greeting i {
+      color:
+        var(--gold);
+    }
+
+    .header-actions {
+      display:
+        flex;
+
+      align-items:
+        stretch;
+
+      gap:
+        10px;
+
+      flex-shrink:
+        0;
+    }
+
+    .analytics-refresh {
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      gap:
+        8px;
+
+      min-height:
+        68px;
+
+      padding:
+        0 18px;
+
+      color:
+        var(--text-soft);
+
+      background:
+        var(--surface);
+
+      border:
+        1px solid
+        var(--border);
+
+      border-radius:
+        var(--radius-md);
+
+      cursor:
+        pointer;
+
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease,
+        color 0.2s ease;
+    }
+
+    .analytics-refresh:hover {
+      transform:
+        translateY(-2px);
+
+      color:
+        white;
+
+      background:
+        var(--surface-hover);
+
+      border-color:
+        rgba(
+          0,
+          128,
+          128,
+          0.5
+        );
+    }
+
+    .analytics-refresh:disabled {
+      cursor:
+        wait;
+
+      opacity:
+        0.7;
+    }
+
+    .analytics-status {
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      gap:
+        13px;
+
+      min-width:
+        255px;
+
+      min-height:
+        68px;
+
+      padding:
+        12px 16px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(
+            255,
+            255,
+            255,
+            0.055
+          ),
+          rgba(
+            255,
+            255,
+            255,
+            0.02
+          )
+        );
+
+      border:
+        1px solid
+        var(--border);
+
+      border-radius:
+        var(--radius-md);
+
+      box-shadow:
+        var(--shadow-sm);
+
+      backdrop-filter:
+        blur(18px);
+    }
+
+    .status-indicator {
+      position:
+        relative;
+
+      width:
+        10px;
+
+      height:
+        10px;
+
+      flex:
+        0 0 10px;
+
+      border-radius:
+        50%;
+
+      background:
+        var(--success);
+
+      box-shadow:
+        0 0 0 5px
+        rgba(
+          46,
+          204,
+          113,
+          0.09
+        ),
+
+        0 0 20px
+        rgba(
+          46,
+          204,
+          113,
+          0.55
+        );
+    }
+
+    .status-indicator::after {
+      content:
+        "";
+
+      position:
+        absolute;
+
+      inset:
+        -5px;
+
+      border:
+        1px solid
+        rgba(
+          46,
+          204,
+          113,
+          0.28
+        );
+
+      border-radius:
+        50%;
+
+      animation:
+        pulseStatus
+        2.2s
+        ease-out
+        infinite;
+    }
+
+    @keyframes pulseStatus {
+
+      0% {
+        opacity:
+          0.8;
+
+        transform:
+          scale(
+            0.8
+          );
+      }
+
+      70%,
+      100% {
+        opacity:
+          0;
+
+        transform:
+          scale(
+            1.45
+          );
+      }
+    }
+
+    .analytics-status-content {
+      min-width:
+        0;
+    }
+
+    .analytics-status small {
+      display:
+        block;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.61rem;
+
+      font-weight:
+        600;
+
+      letter-spacing:
+        1.1px;
+
+      text-transform:
+        uppercase;
+    }
+
+    .analytics-status strong {
+      display:
+        block;
+
+      margin-top:
+        3px;
+
+      font-size:
+        0.82rem;
+
+      font-weight:
+        600;
+    }
+
+    .analytics-local-time {
+      margin-top:
+        2px;
+
+      color:
+        var(--teal-light);
+
+      font-size:
+        0.64rem;
+
+      font-weight:
+        500;
+
+      white-space:
+        nowrap;
+    }
+
+    /* =========================================================
+       METRIC CARDS
+    ========================================================= */
+
+    .metric-grid {
+      display:
+        grid;
+
+      grid-template-columns:
+        repeat(
+          4,
+          minmax(
+            0,
+            1fr
+          )
+        );
+
+      gap:
+        16px;
+
+      margin-bottom:
+        22px;
+    }
+
+    .metric-card {
+      position:
+        relative;
+
+      min-height:
+        160px;
+
+      padding:
+        22px;
+
+      overflow:
+        hidden;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(
+            255,
+            255,
+            255,
+            0.055
+          ),
+          rgba(
+            255,
+            255,
+            255,
+            0.018
+          )
+        );
+
+      border:
+        1px solid
+        var(--border);
+
+      border-radius:
+        var(--radius-lg);
+
+      box-shadow:
+        var(--shadow-sm);
+
+      transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        background 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+
+    .metric-card:hover {
+      transform:
+        translateY(-4px);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(
+            255,
+            255,
+            255,
+            0.075
+          ),
+          rgba(
+            255,
+            255,
+            255,
+            0.025
+          )
+        );
+
+      border-color:
+        rgba(
+          0,
+          128,
+          128,
+          0.52
+        );
+
+      box-shadow:
+        var(--shadow-md);
+    }
+
+    .metric-card.gold:hover {
+      border-color:
+        rgba(
+          255,
+          215,
+          0,
+          0.35
+        );
+    }
+
+    .metric-card.green:hover {
+      border-color:
+        rgba(
+          46,
+          204,
+          113,
+          0.38
+        );
+    }
+
+    .metric-card.blue:hover {
+      border-color:
+        rgba(
+          52,
+          152,
+          219,
+          0.38
+        );
+    }
+
+    .metric-card::before {
+      content:
+        "";
+
+      position:
+        absolute;
+
+      left:
+        22px;
+
+      right:
+        22px;
+
+      top:
+        0;
+
+      height:
+        1px;
+
+      background:
+        linear-gradient(
+          90deg,
+          transparent,
+          rgba(
+            255,
+            255,
+            255,
+            0.13
+          ),
+          transparent
+        );
+    }
+
+    .metric-card::after {
+      content:
+        "";
+
+      position:
+        absolute;
+
+      right:
+        -25px;
+
+      bottom:
+        -36px;
+
+      width:
+        110px;
+
+      height:
+        110px;
+
+      border-radius:
+        50%;
+
+      background:
+        rgba(
+          0,
+          128,
+          128,
+          0.035
+        );
+
+      pointer-events:
+        none;
+    }
+
+    .metric-icon {
+      width:
+        44px;
+
+      height:
+        44px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      margin-bottom:
+        16px;
+
+      border-radius:
+        12px;
+
+      color:
+        var(--teal-light);
+
+      background:
+        rgba(
+          0,
+          128,
+          128,
+          0.11
+        );
+
+      font-size:
+        0.9rem;
+    }
+
+    .metric-card.gold
+      .metric-icon {
+      color:
+        var(--gold);
+
+      background:
+        rgba(
+          255,
+          215,
+          0,
+          0.09
+        );
+    }
+
+    .metric-card.green
+      .metric-icon {
+      color:
+        var(--success);
+
+      background:
+        rgba(
+          46,
+          204,
+          113,
+          0.09
+        );
+    }
+
+    .metric-card.blue
+      .metric-icon {
+      color:
+        var(--info);
+
+      background:
+        rgba(
+          52,
+          152,
+          219,
+          0.09
+        );
+    }
+
+    .metric-label {
+      display:
+        block;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.64rem;
+
+      font-weight:
+        600;
+
+      letter-spacing:
+        1.1px;
+
+      text-transform:
+        uppercase;
+    }
+
+    .metric-value {
+      display:
+        block;
+
+      margin-top:
+        3px;
+
+      color:
+        var(--text);
+
+      font-size:
+        1.8rem;
+
+      line-height:
+        1.2;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        -0.5px;
+    }
+
+    .metric-description {
+      margin-top:
+        5px;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.66rem;
+
+      line-height:
+        1.48;
+    }
+
+    .metric-background-icon {
+      position:
+        absolute;
+
+      right:
+        -12px;
+
+      bottom:
+        -25px;
+
+      color:
+        rgba(
+          255,
+          255,
+          255,
+          0.025
+        );
+
+      font-size:
+        6rem;
+
+      pointer-events:
+        none;
+    }
+
+    /* =========================================================
+       MAIN GRID
+    ========================================================= */
+
+    .analytics-grid {
+      display:
+        grid;
+
+      grid-template-columns:
+        minmax(
+          0,
+          1.95fr
+        )
+        minmax(
+          320px,
+          0.78fr
+        );
+
+      gap:
+        20px;
+
+      align-items:
+        start;
+    }
+
+    .analytics-column {
+      min-width:
+        0;
+    }
+
+    .panel-stack {
+      display:
+        grid;
+
+      gap:
+        18px;
+    }
+
+    /* =========================================================
+       GLASS PANEL
+    ========================================================= */
+
+    .panel {
+      min-width:
+        0;
+
+      padding:
+        25px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(
+            255,
+            255,
+            255,
+            0.04
+          ),
+          rgba(
+            255,
+            255,
+            255,
+            0.018
+          )
+        );
+
+      border:
+        1px solid
+        var(--border);
+
+      border-radius:
+        var(--radius-xl);
+
+      box-shadow:
+        var(--shadow-lg);
+
+      backdrop-filter:
+        blur(18px);
+    }
+
+    .panel-header {
+      display:
+        flex;
+
+      align-items:
+        flex-start;
+
+      justify-content:
+        space-between;
+
+      gap:
+        18px;
+
+      margin-bottom:
+        20px;
+    }
+
+    .panel-heading {
+      min-width:
+        0;
+    }
+
+    .panel-title {
+      font-family:
+        "Playfair Display",
+        serif;
+
+      font-size:
+        1.38rem;
+
+      line-height:
+        1.2;
+    }
+
+    .panel-description {
+      margin-top:
+        5px;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.71rem;
+
+      line-height:
+        1.55;
+    }
+
+    .panel-link {
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      gap:
+        7px;
+
+      padding:
+        7px 0;
+
+      color:
+        var(--gold);
+
+      font-size:
+        0.71rem;
+
+      font-weight:
+        600;
+
+      text-decoration:
+        none;
+
+      white-space:
+        nowrap;
+
+      transition:
+        color 0.2s ease,
+        gap 0.2s ease;
+    }
+
+    .panel-link:hover {
+      color:
+        white;
+
+      gap:
+        10px;
+    }
+
+    /* =========================================================
+       STATUS BREAKDOWN
+    ========================================================= */
+
+    .status-overview {
+      display:
+        grid;
+
+      grid-template-columns:
+        minmax(
+          250px,
+          0.9fr
+        )
+        minmax(
+          0,
+          1.1fr
+        );
+
+      gap:
+        30px;
+
+      align-items:
+        center;
+    }
+
+    .donut-wrap {
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      min-height:
+        315px;
+    }
+
+    .donut {
+      position:
+        relative;
+
+      width:
+        245px;
+
+      aspect-ratio:
+        1 / 1;
+
+      border-radius:
+        50%;
+
+      background:
+        conic-gradient(
+          #1a2527 0deg,
+          #1a2527 360deg
+        );
+
+      box-shadow:
+        0 0 0 1px
+        rgba(
+          255,
+          255,
+          255,
+          0.04
+        ),
+
+        0 18px 50px
+        rgba(
+          0,
+          0,
+          0,
+          0.3
+        );
+    }
+
+    .donut::before {
+      content:
+        "";
+
+      position:
+        absolute;
+
+      inset:
+        31px;
+
+      border-radius:
+        50%;
+
+      background:
+        #0c1113;
+
+      box-shadow:
+        inset
+        0 0 0 1px
+        rgba(
+          255,
+          255,
+          255,
+          0.04
+        );
+    }
+
+    .donut-center {
+      position:
+        absolute;
+
+      inset:
+        0;
+
+      z-index:
+        2;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      flex-direction:
+        column;
+    }
+
+    .donut-center strong {
+      color:
+        var(--text);
+
+      font-size:
+        2.35rem;
+
+      line-height:
+        1;
+
+      font-weight:
+        700;
+    }
+
+    .donut-center span {
+      margin-top:
+        8px;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.66rem;
+
+      font-weight:
+        600;
+
+      text-transform:
+        uppercase;
+
+      letter-spacing:
+        0.11em;
+    }
+
+    .donut-center small {
+      margin-top:
+        4px;
+
+      color:
+        var(--teal-light);
+
+      font-size:
+        0.6rem;
+    }
+
+    .status-list {
+      display:
+        grid;
+
+      gap:
+        14px;
+    }
+
+    .status-row {
+      display:
+        grid;
+
+      grid-template-columns:
+        auto
+        minmax(
+          0,
+          1fr
+        )
+        auto;
+
+      gap:
+        12px;
+
+      align-items:
+        center;
+    }
+
+    .status-dot {
+      width:
+        9px;
+
+      height:
+        9px;
+
+      border-radius:
+        50%;
+
+      background:
+        var(--neutral);
+
+      box-shadow:
+        0 0 8px
+        currentColor;
+    }
+
+    .status-name {
+      min-width:
+        0;
+
+      color:
+        var(--text-soft);
+
+      font-size:
+        0.73rem;
+
+      font-weight:
+        600;
+    }
+
+    .status-value {
+      color:
+        white;
+
+      font-size:
+        0.76rem;
+
+      font-weight:
+        700;
+    }
+
+    .status-bar {
+      grid-column:
+        2 / 4;
+
+      position:
+        relative;
+
+      height:
+        6px;
+
+      margin-top:
+        -5px;
+
+      overflow:
+        hidden;
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.06
+        );
+    }
+
+    .status-fill {
+      width:
+        0;
+
+      height:
+        100%;
+
+      border-radius:
+        inherit;
+
+      background:
+        var(--teal);
+
+      box-shadow:
+        0 0 12px
+        rgba(
+          0,
+          128,
+          128,
+          0.24
+        );
+
+      transition:
+        width
+        700ms
+        cubic-bezier(
+          0.2,
+          0.8,
+          0.2,
+          1
+        );
+    }
+
+    /* =========================================================
+       ROOM PERFORMANCE
+    ========================================================= */
+
+    .room-list {
+      display:
+        grid;
+
+      gap:
+        13px;
+    }
+
+    .room-item {
+      display:
+        grid;
+
+      grid-template-columns:
+        minmax(
+          145px,
+          0.9fr
+        )
+        minmax(
+          180px,
+          1.5fr
+        )
+        auto;
+
+      gap:
+        18px;
+
+      align-items:
+        center;
+
+      padding:
+        13px 14px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.024
+        );
+
+      border:
+        1px solid
+        rgba(
+          255,
+          255,
+          255,
+          0.05
+        );
+
+      border-radius:
+        14px;
+
+      transition:
+        transform 0.2s ease,
+        background 0.2s ease,
+        border-color 0.2s ease;
+    }
+
+    .room-item:hover {
+      transform:
+        translateX(3px);
+
+      background:
+        rgba(
+          0,
+          128,
+          128,
+          0.045
+        );
+
+      border-color:
+        rgba(
+          0,
+          128,
+          128,
+          0.24
+        );
+    }
+
+    .room-name {
+      color:
+        var(--text-soft);
+
+      font-size:
+        0.75rem;
+
+      font-weight:
+        600;
+
+      white-space:
+        nowrap;
+
+      overflow:
+        hidden;
+
+      text-overflow:
+        ellipsis;
+    }
+
+    .room-track {
+      position:
+        relative;
+
+      height:
+        8px;
+
+      overflow:
+        hidden;
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.06
+        );
+    }
+
+    .room-fill {
+      width:
+        0;
+
+      height:
+        100%;
+
+      border-radius:
+        inherit;
+
+      background:
+        linear-gradient(
+          90deg,
+          var(--teal-dark),
+          var(--teal-light)
+        );
+
+      box-shadow:
+        0 0 14px
+        rgba(
+          0,
+          128,
+          128,
+          0.18
+        );
+
+      transition:
+        width
+        700ms
+        cubic-bezier(
+          0.2,
+          0.8,
+          0.2,
+          1
+        );
+    }
+
+    .room-meta {
+      min-width:
+        105px;
+
+      text-align:
+        right;
+    }
+
+    .room-meta strong {
+      display:
+        block;
+
+      color:
+        white;
+
+      font-size:
+        0.73rem;
+    }
+
+    .room-meta span {
+      display:
+        block;
+
+      margin-top:
+        3px;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.61rem;
+    }
+
+    /* =========================================================
+       ACTIVITY
+    ========================================================= */
+
+    .activity-list {
+      display:
+        grid;
+    }
+
+    .activity-item {
+      display:
+        grid;
+
+      grid-template-columns:
+        42px
+        minmax(
+          0,
+          1fr
+        )
+        auto;
+
+      gap:
+        14px;
+
+      align-items:
+        center;
+
+      padding:
+        14px 0;
+
+      border-bottom:
+        1px solid
+        rgba(
+          255,
+          255,
+          255,
+          0.055
+        );
+    }
+
+    .activity-item:first-child {
+      padding-top:
+        0;
+    }
+
+    .activity-item:last-child {
+      padding-bottom:
+        0;
+
+      border-bottom:
+        none;
+    }
+
+    .activity-avatar {
+      width:
+        42px;
+
+      height:
+        42px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border-radius:
+        11px;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--teal),
+          var(--teal-dark)
+        );
+
+      color:
+        white;
+
+      font-size:
+        0.72rem;
+
+      font-weight:
+        700;
+
+      box-shadow:
+        inset
+        0 1px 0
+        rgba(
+          255,
+          255,
+          255,
+          0.13
+        ),
+
+        0 5px 15px
+        rgba(
+          0,
+          128,
+          128,
+          0.16
+        );
+    }
+
+    .activity-main {
+      min-width:
+        0;
+    }
+
+    .activity-name {
+      display:
+        block;
+
+      overflow:
+        hidden;
+
+      color:
+        var(--text-soft);
+
+      font-size:
+        0.76rem;
+
+      font-weight:
+        600;
+
+      white-space:
+        nowrap;
+
+      text-overflow:
+        ellipsis;
+    }
+
+    .activity-detail {
+      display:
+        block;
+
+      margin-top:
+        3px;
+
+      overflow:
+        hidden;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.62rem;
+
+      white-space:
+        nowrap;
+
+      text-overflow:
+        ellipsis;
+    }
+
+    .activity-side {
+      text-align:
+        right;
+    }
+
+    .activity-status {
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      gap:
+        6px;
+
+      padding:
+        6px 9px;
+
+      border-radius:
+        999px;
+
+      border:
+        1px solid
+        transparent;
+
+      font-size:
+        0.54rem;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        0.55px;
+
+      text-transform:
+        uppercase;
+
+      white-space:
+        nowrap;
+    }
+
+    .activity-status::before {
+      content:
+        "";
+
+      width:
+        5px;
+
+      height:
+        5px;
+
+      flex:
+        0 0 5px;
+
+      border-radius:
+        50%;
+
+      background:
+        currentColor;
+    }
+
+    .activity-status.status-pending {
+      color:
+        var(--warning);
+
+      background:
+        rgba(
+          241,
+          196,
+          15,
+          0.08
+        );
+
+      border-color:
+        rgba(
+          241,
+          196,
+          15,
+          0.16
+        );
+    }
+
+    .activity-status.status-accepted,
+    .activity-status.status-confirmed,
+    .activity-status.status-completed {
+      color:
+        var(--success);
+
+      background:
+        rgba(
+          46,
+          204,
+          113,
+          0.08
+        );
+
+      border-color:
+        rgba(
+          46,
+          204,
+          113,
+          0.16
+        );
+    }
+
+    .activity-status.status-checked-in {
+      color:
+        var(--info);
+
+      background:
+        rgba(
+          52,
+          152,
+          219,
+          0.08
+        );
+
+      border-color:
+        rgba(
+          52,
+          152,
+          219,
+          0.16
+        );
+    }
+
+    .activity-status.status-checked-out {
+      color:
+        #aeb7bb;
+
+      background:
+        rgba(
+          174,
+          183,
+          187,
+          0.07
+        );
+
+      border-color:
+        rgba(
+          174,
+          183,
+          187,
+          0.14
+        );
+    }
+
+    .activity-status.status-cancelled {
+      color:
+        #b8c0c4;
+
+      background:
+        rgba(
+          189,
+          195,
+          199,
+          0.07
+        );
+
+      border-color:
+        rgba(
+          189,
+          195,
+          199,
+          0.14
+        );
+    }
+
+    .activity-status.status-declined,
+    .activity-status.status-rejected {
+      color:
+        var(--danger);
+
+      background:
+        rgba(
+          231,
+          76,
+          60,
+          0.08
+        );
+
+      border-color:
+        rgba(
+          231,
+          76,
+          60,
+          0.16
+        );
+    }
+
+    .activity-time {
+      display:
+        block;
+
+      margin-top:
+        6px;
+
+      color:
+        rgba(
+          220,
+          226,
+          228,
+          0.45
+        );
+
+      font-size:
+        0.59rem;
+    }
+
+    /* =========================================================
+       REVENUE / PRIMARY FEATURE CARD
+    ========================================================= */
+
+    .revenue-card {
+      position:
+        relative;
+
+      overflow:
+        hidden;
+
+      padding:
+        25px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(
+            0,
+            128,
+            128,
+            0.14
+          ),
+          rgba(
+            255,
+            215,
+            0,
+            0.035
+          )
+        );
+
+      border:
+        1px solid
+        rgba(
+          0,
+          128,
+          128,
+          0.2
+        );
+
+      border-radius:
+        var(--radius-xl);
+
+      box-shadow:
+        var(--shadow-lg);
+
+      backdrop-filter:
+        blur(18px);
+    }
+
+    .revenue-card::before {
+      content:
+        "";
+
+      position:
+        absolute;
+
+      top:
+        0;
+
+      left:
+        22px;
+
+      right:
+        22px;
+
+      height:
+        1px;
+
+      background:
+        linear-gradient(
+          90deg,
+          transparent,
+          rgba(
+            255,
+            215,
+            0,
+            0.35
+          ),
+          transparent
+        );
+    }
+
+    .revenue-card::after {
+      content:
+        "";
+
+      position:
+        absolute;
+
+      width:
+        190px;
+
+      height:
+        190px;
+
+      right:
+        -78px;
+
+      top:
+        -86px;
+
+      border-radius:
+        50%;
+
+      border:
+        1px solid
+        rgba(
+          255,
+          255,
+          255,
+          0.07
+        );
+
+      box-shadow:
+        0 0 50px
+        rgba(
+          0,
+          128,
+          128,
+          0.05
+        );
+    }
+
+    .revenue-label {
+      display:
+        block;
+
+      margin-bottom:
+        10px;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.65rem;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        1.3px;
+
+      text-transform:
+        uppercase;
+    }
+
+    .revenue-value {
+      color:
+        var(--gold);
+
+      font-size:
+        clamp(
+          1.9rem,
+          4vw,
+          2.8rem
+        );
+
+      line-height:
+        1.1;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        -0.7px;
+
+      text-shadow:
+        0 0 25px
+        rgba(
+          255,
+          215,
+          0,
+          0.08
+        );
+    }
+
+    .revenue-divider {
+      width:
+        100%;
+
+      height:
+        1px;
+
+      margin:
+        17px 0;
+
+      background:
+        var(--border);
+    }
+
+    .revenue-note {
+      color:
+        var(--muted);
+
+      font-size:
+        0.64rem;
+
+      line-height:
+        1.7;
+    }
+
+    .revenue-note strong {
+      color:
+        var(--text-soft);
+    }
+
+    /* =========================================================
+       STATUS DETAIL TABLE
+    ========================================================= */
+
+    .detail-table-wrap {
+      width:
+        100%;
+
+      overflow-x:
+        auto;
+
+      scrollbar-width:
+        thin;
+    }
+
+    .detail-table {
+      width:
+        100%;
+
+      border-collapse:
+        collapse;
+    }
+
+    .detail-table th {
+      padding:
+        0 0 11px;
+
+      border-bottom:
+        1px solid
+        var(--border);
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.57rem;
+
+      font-weight:
+        600;
+
+      letter-spacing:
+        1px;
+
+      text-align:
+        left;
+
+      text-transform:
+        uppercase;
+
+      white-space:
+        nowrap;
+    }
+
+    .detail-table th:not(:first-child),
+    .detail-table td:not(:first-child) {
+      text-align:
+        right;
+    }
+
+    .detail-table td {
+      padding:
+        12px 0;
+
+      border-bottom:
+        1px solid
+        rgba(
+          255,
+          255,
+          255,
+          0.045
+        );
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.68rem;
+    }
+
+    .detail-table tbody tr:last-child td {
+      border-bottom:
+        none;
+    }
+
+    .detail-table .strong {
+      color:
+        var(--text-soft);
+
+      font-weight:
+        600;
+    }
+
+    .percentage-value {
+      color:
+        var(--teal-light);
+
+      font-weight:
+        600;
+    }
+
+    /* =========================================================
+       OPERATIONS SNAPSHOT
+    ========================================================= */
+
+    .operation-list {
+      display:
+        grid;
+
+      gap:
+        10px;
+    }
+
+    .operation-item {
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        space-between;
+
+      gap:
+        14px;
+
+      padding:
+        12px 13px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.025
+        );
+
+      border:
+        1px solid
+        rgba(
+          255,
+          255,
+          255,
+          0.05
+        );
+
+      border-radius:
+        13px;
+
+      transition:
+        background 0.2s ease,
+        border-color 0.2s ease,
+        transform 0.2s ease;
+    }
+
+    .operation-item:hover {
+      transform:
+        translateX(3px);
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.04
+        );
+
+      border-color:
+        rgba(
+          0,
+          128,
+          128,
+          0.18
+        );
+    }
+
+    .operation-info {
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      gap:
+        10px;
+
+      min-width:
+        0;
+    }
+
+    .operation-dot {
+      width:
+        7px;
+
+      height:
+        7px;
+
+      flex:
+        0 0 7px;
+
+      border-radius:
+        50%;
+
+      background:
+        var(--teal-light);
+
+      box-shadow:
+        0 0 8px
+        rgba(
+          18,
+          169,
+          169,
+          0.35
+        );
+    }
+
+    .operation-item.pending
+      .operation-dot {
+      background:
+        var(--warning);
+    }
+
+    .operation-item.accepted
+      .operation-dot,
+    .operation-item.confirmed
+      .operation-dot,
+    .operation-item.completed
+      .operation-dot {
+      background:
+        var(--success);
+    }
+
+    .operation-item.checked-in
+      .operation-dot {
+      background:
+        var(--info);
+    }
+
+    .operation-item.cancelled
+      .operation-dot,
+    .operation-item.declined
+      .operation-dot {
+      background:
+        var(--danger);
+    }
+
+    .operation-name {
+      color:
+        var(--text-soft);
+
+      font-size:
+        0.69rem;
+
+      font-weight:
+        500;
+    }
+
+    .operation-count {
+      color:
+        white;
+
+      font-size:
+        0.72rem;
+
+      font-weight:
+        700;
+    }
+
+    /* =========================================================
+       DATA NOTE
+    ========================================================= */
+
+    .data-note-card {
+      display:
+        flex;
+
+      align-items:
+        flex-start;
+
+      gap:
+        12px;
+
+      padding:
+        15px 16px;
+
+      background:
+        linear-gradient(
+          135deg,
+          rgba(
+            0,
+            128,
+            128,
+            0.065
+          ),
+          rgba(
+            255,
+            215,
+            0,
+            0.018
+          )
+        );
+
+      border:
+        1px solid
+        rgba(
+          0,
+          128,
+          128,
+          0.13
+        );
+
+      border-radius:
+        15px;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.61rem;
+
+      line-height:
+        1.65;
+    }
+
+    .data-note-icon {
+      width:
+        31px;
+
+      height:
+        31px;
+
+      flex:
+        0 0 31px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border-radius:
+        9px;
+
+      background:
+        rgba(
+          0,
+          128,
+          128,
+          0.1
+        );
+
+      color:
+        var(--teal-light);
+
+      font-size:
+        0.7rem;
+    }
+
+    .data-note-card strong {
+      color:
+        var(--text-soft);
+    }
+
+    /* =========================================================
+       EMPTY STATE
+    ========================================================= */
+
+    .empty-state {
+      padding:
+        48px 20px;
+
+      text-align:
+        center;
+
+      color:
+        var(--muted);
+    }
+
+    .empty-state-icon {
+      width:
+        58px;
+
+      height:
+        58px;
+
+      margin:
+        0 auto 16px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border-radius:
+        16px;
+
+      background:
+        rgba(
+          0,
+          128,
+          128,
+          0.08
+        );
+
+      color:
+        var(--teal-light);
+
+      font-size:
+        1.15rem;
+    }
+
+    .empty-state strong {
+      display:
+        block;
+
+      margin-bottom:
+        5px;
+
+      color:
+        white;
+
+      font-size:
+        0.84rem;
+    }
+
+    .empty-state p {
+      font-size:
+        0.63rem;
+    }
+
+    /* =========================================================
+       SMALL KPI / SIDE INFO
+    ========================================================= */
+
+    .side-stat-grid {
+      display:
+        grid;
+
+      grid-template-columns:
+        repeat(
+          2,
+          minmax(
+            0,
+            1fr
+          )
+        );
+
+      gap:
+        10px;
+    }
+
+    .side-stat {
+      padding:
+        13px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.025
+        );
+
+      border:
+        1px solid
+        var(--border);
+
+      border-radius:
+        13px;
+    }
+
+    .side-stat-label {
+      display:
+        block;
+
+      color:
+        var(--muted);
+
+      font-size:
+        0.56rem;
+
+      font-weight:
+        600;
+
+      letter-spacing:
+        0.8px;
+
+      text-transform:
+        uppercase;
+    }
+
+    .side-stat-value {
+      display:
+        block;
+
+      margin-top:
+        4px;
+
+      color:
+        white;
+
+      font-size:
+        1rem;
+
+      font-weight:
+        700;
+    }
+
+    /* =========================================================
+       FOCUS STATES
+    ========================================================= */
+
+    a:focus-visible,
+    button:focus-visible {
+      outline:
+        2px solid
+        var(--gold);
+
+      outline-offset:
+        3px;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+
+    @media (max-width: 1280px) {
+
+      .metric-grid {
+        grid-template-columns:
+          repeat(
+            2,
+            minmax(
+              0,
+              1fr
+            )
+          );
+      }
+
+      .analytics-grid {
+        grid-template-columns:
+          1fr;
+      }
+
+    }
+
+    @media (max-width: 980px) {
+
+      .analytics-container {
+        width:
+          min(
+            100% - 30px,
+            1600px
+          );
+
+        padding-top:
+          28px;
+      }
+
+      .analytics-header {
+        align-items:
+          stretch;
+
+        flex-direction:
+          column;
+      }
+
+      .header-actions {
+        width:
+          100%;
+      }
+
+      .analytics-refresh {
+        flex:
+          0 0 auto;
+      }
+
+      .analytics-status {
+        flex:
+          1;
+
+        width:
+          100%;
+      }
+
+      .status-overview {
+        grid-template-columns:
+          1fr;
+      }
+
+      .donut-wrap {
+        min-height:
+          275px;
+      }
+
+    }
+
+    @media (max-width: 760px) {
+
+      .room-item {
+        grid-template-columns:
+          1fr;
+      }
+
+      .room-meta {
+        text-align:
+          left;
+      }
+
+      .activity-item {
+        grid-template-columns:
+          42px
+          minmax(
+            0,
+            1fr
+          );
+      }
+
+      .activity-side {
+        grid-column:
+          2;
+
+        text-align:
+          left;
+      }
+
+    }
+
+    @media (max-width: 640px) {
+
+      .analytics-container {
+        width:
+          min(
+            100% - 22px,
+            1600px
+          );
+
+        padding-bottom:
+          50px;
+      }
+
+      .analytics-title {
+        font-size:
+          2.15rem;
+      }
+
+      .analytics-subtitle {
+        font-size:
+          0.77rem;
+      }
+
+      .metric-grid {
+        grid-template-columns:
+          1fr;
+
+        gap:
+          11px;
+      }
+
+      .metric-card {
+        min-height:
+          145px;
+      }
+
+      .header-actions {
+        align-items:
+          stretch;
+
+        flex-direction:
+          column;
+      }
+
+      .analytics-refresh {
+        width:
+          100%;
+      }
+
+      .analytics-status {
+        min-width:
+          0;
+      }
+
+      .panel {
+        padding:
+          21px;
+
+        border-radius:
+          21px;
+      }
+
+      .panel-header {
+        align-items:
+          flex-start;
+
+        flex-direction:
+          column;
+
+        gap:
+          8px;
+      }
+
+      .donut {
+        width:
+          215px;
+      }
+
+      .side-stat-grid {
+        grid-template-columns:
+          1fr;
+      }
+
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+
+      html {
+        scroll-behavior:
+          auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration:
+          0.01ms !important;
+
+        animation-iteration-count:
+          1 !important;
+
+        transition-duration:
+          0.01ms !important;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+<body>
+
+  <!-- =======================================================
+       ADMIN NAVIGATION
+  ======================================================== -->
+
+  <%- include("../partials/navadmin") %>
+
+  <!-- =======================================================
+       MAIN ANALYTICS
+  ======================================================== -->
+
+  <main
+    class="analytics-container"
+  >
+
+    <!-- =====================================================
+         HEADER
+    ====================================================== -->
+
+    <header
+      class="analytics-header"
+    >
+
+      <div
+        class="header-copy"
+      >
+
+        <div
+          class="eyebrow"
+        >
+          Resort Intelligence
+        </div>
+
+        <h1
+          class="analytics-title"
+        >
+          Isle
+          <span>
+            Analytics
+          </span>
+        </h1>
+
+        <p
+          class="analytics-subtitle"
+        >
+          A centralized operational view of
+          reservation activity, accommodation
+          performance, guest movement, and
+          booking-value metrics across
+          Puffer Isle Resort.
+        </p>
+
+        <div
+          class="analytics-greeting"
+        >
+          <i
+            class="fas fa-chart-line"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Administrative intelligence
+            &nbsp;•&nbsp;
+            Current resort database snapshot
+          </span>
+        </div>
+
+      </div>
+
+      <div
+        class="header-actions"
+      >
+
+        <button
+          type="button"
+          class="analytics-refresh"
+          id="refreshAnalytics"
+          title="Refresh analytics"
+          aria-label="Refresh analytics"
+        >
+
+          <i
+            class="fas fa-arrows-rotate"
+            aria-hidden="true"
+          ></i>
+
+          <span>
+            Refresh
+          </span>
+
+        </button>
+
+        <div
+          class="analytics-status"
+          aria-label="Analytics system status"
+        >
+
+          <span
+            class="status-indicator"
+            aria-hidden="true"
+          ></span>
+
+          <div
+            class="analytics-status-content"
+          >
+
+            <small>
+              Analytics Status
+            </small>
+
+            <strong>
+              Operational
+            </strong>
+
+            <div
+              class="analytics-local-time"
+              id="analyticsLocalTime"
+              aria-live="polite"
+            >
+              Loading local time...
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </header>
+
+    <!-- =====================================================
+         TOP METRICS
+    ====================================================== -->
+
+    <section
+      class="metric-grid"
+      aria-label="Analytics summary"
+    >
+
+      <!-- TOTAL BOOKINGS -->
+
+      <article
+        class="metric-card gold"
+      >
+
+        <div
+          class="metric-icon"
+        >
+
+          <i
+            class="fas fa-calendar-check"
+            aria-hidden="true"
+          ></i>
+
+        </div>
+
+        <span
+          class="metric-label"
+        >
+          Total Bookings
+        </span>
+
+        <strong
+          class="metric-value"
+        >
+          <%= whole(
+            analyticsTotalBookings
+          ) %>
+        </strong>
+
+        <p
+          class="metric-description"
+        >
+          All reservation records currently
+          stored in IsleRMS.
+        </p>
+
+        <i
+          class="fas fa-calendar-days metric-background-icon"
+          aria-hidden="true"
+        ></i>
+
+      </article>
+
+      <!-- REGISTERED GUESTS -->
+
+      <article
+        class="metric-card"
+      >
+
+        <div
+          class="metric-icon"
+        >
+
+          <i
+            class="fas fa-users"
+            aria-hidden="true"
+          ></i>
+
+        </div>
+
+        <span
+          class="metric-label"
+        >
+          Registered Guests
+        </span>
+
+        <strong
+          class="metric-value"
+        >
+          <%= whole(
+            analyticsTotalUsers
+          ) %>
+        </strong>
+
+        <p
+          class="metric-description"
+        >
+          Customer accounts registered
+          within the resort system.
+        </p>
+
+        <i
+          class="fas fa-users metric-background-icon"
+          aria-hidden="true"
+        ></i>
+
+      </article>
+
+      <!-- IN-HOUSE -->
+
+      <article
+        class="metric-card green"
+      >
+
+        <div
+          class="metric-icon"
+        >
+
+          <i
+            class="fas fa-bed"
+            aria-hidden="true"
+          ></i>
+
+        </div>
+
+        <span
+          class="metric-label"
+        >
+          Currently In-House
+        </span>
+
+        <strong
+          class="metric-value"
+        >
+          <%= whole(
+            analyticsCheckedIn
+          ) %>
+        </strong>
+
+        <p
+          class="metric-description"
+        >
+          Guests currently marked as
+          checked in.
+        </p>
+
+        <i
+          class="fas fa-bed metric-background-icon"
+          aria-hidden="true"
+        ></i>
+
+      </article>
+
+      <!-- BOOKING VALUE -->
+
+      <article
+        class="metric-card blue"
+      >
+
+        <div
+          class="metric-icon"
+        >
+
+          <i
+            class="fas fa-peso-sign"
+            aria-hidden="true"
+          ></i>
+
+        </div>
+
+        <span
+          class="metric-label"
+        >
+          Booking Value
+        </span>
+
+        <strong
+          class="metric-value"
+        >
+          <%= money(
+            analyticsRevenue
+          ) %>
+        </strong>
+
+        <p
+          class="metric-description"
+        >
+          Tracked appointment value for
+          qualifying booking statuses.
+        </p>
+
+        <i
+          class="fas fa-chart-column metric-background-icon"
+          aria-hidden="true"
+        ></i>
+
+      </article>
+
+    </section>
+
+    <!-- =====================================================
+         ANALYTICS GRID
+    ====================================================== -->
+
+    <section
+      class="analytics-grid"
+    >
+
+      <!-- ===================================================
+           LEFT COLUMN
+      ==================================================== -->
+
+      <div
+        class="analytics-column"
+      >
+
+        <div
+          class="panel-stack"
+        >
+
+          <!-- =============================================
+               STATUS BREAKDOWN
+          ============================================== -->
+
+          <section
+            class="panel"
+          >
+
+            <div
+              class="panel-header"
+            >
+
+              <div
+                class="panel-heading"
+              >
+
+                <h2
+                  class="panel-title"
+                >
+                  Booking Status Breakdown
+                </h2>
+
+                <p
+                  class="panel-description"
+                >
+                  Distribution of reservation
+                  records across the operational
+                  booking lifecycle.
+                </p>
+
+              </div>
+
+              <span
+                class="panel-link"
+              >
+                <i
+                  class="fas fa-chart-pie"
+                  aria-hidden="true"
+                ></i>
+
+                Operational mix
+              </span>
+
+            </div>
+
+            <div
+              class="status-overview"
+            >
+
+              <!-- DONUT -->
+
+              <div
+                class="donut-wrap"
+              >
+
+                <div
+                  id="analyticsStatusDonut"
+                  class="donut"
+                  role="img"
+                  aria-label="Booking status distribution"
+                >
+
+                  <div
+                    class="donut-center"
+                  >
+
+                    <strong>
+                      <%= whole(
+                        analyticsTotalBookings
+                      ) %>
+                    </strong>
+
+                    <span>
+                      Total Bookings
+                    </span>
+
+                    <small>
+                      Current records
+                    </small>
+
+                  </div>
+
+                </div>
+
+              </div>
+
+              <!-- STATUS LIST -->
+
+              <div
+                class="status-list"
+              >
+
+                <% statusRows.forEach(
+                  (row) => {
+                %>
+
+                  <div
+                    class="status-row"
+                  >
+
+                    <span
+                      class="status-dot"
+                      data-status="<%= row.key %>"
+                      aria-hidden="true"
+                    ></span>
+
+                    <span
+                      class="status-name"
+                    >
+                      <%= row.label %>
+                    </span>
+
+                    <span
+                      class="status-value"
+                    >
+                      <%= whole(
+                        row.value
+                      ) %>
+                    </span>
+
+                    <div
+                      class="status-bar"
+                    >
+
+                      <div
+                        class="status-fill"
+                        data-status-key="<%= row.key %>"
+                        data-progress="0"
+                      ></div>
+
+                    </div>
+
+                  </div>
+
+                <% }); %>
+
+              </div>
+
+            </div>
+
+          </section>
+
+          <!-- =============================================
+               ACCOMMODATION PERFORMANCE
+          ============================================== -->
+
+          <section
+            class="panel"
+          >
+
+            <div
+              class="panel-header"
+            >
+
+              <div
+                class="panel-heading"
+              >
+
+                <h2
+                  class="panel-title"
+                >
+                  Accommodation Performance
+                </h2>
+
+                <p
+                  class="panel-description"
+                >
+                  Booking volume and recorded value
+                  by accommodation.
+                </p>
+
+              </div>
+
+              <span
+                class="panel-link"
+              >
+                <i
+                  class="fas fa-bed"
+                  aria-hidden="true"
+                ></i>
+
+                Inventory intelligence
+              </span>
+
+            </div>
+
+            <%
+              const maxRoomBookings =
+                normalizedRoomBreakdown.length > 0
+                  ? Math.max(
+                      ...normalizedRoomBreakdown.map(
+                        (item) =>
+                          safeNumber(
+                            item.bookings
+                          )
+                      ),
+                      1
+                    )
+                  : 1;
+            %>
+
+            <% if (
+              normalizedRoomBreakdown.length === 0
+            ) { %>
+
+              <div
+                class="empty-state"
+              >
+
+                <div
+                  class="empty-state-icon"
+                >
+
+                  <i
+                    class="fas fa-bed"
+                    aria-hidden="true"
+                  ></i>
+
+                </div>
+
+                <strong>
+                  No accommodation data
+                </strong>
+
+                <p>
+                  Room performance information
+                  will appear when booking records
+                  are available.
+                </p>
+
+              </div>
+
+            <% } else { %>
+
+              <div
+                class="room-list"
+              >
+
+                <% normalizedRoomBreakdown.forEach(
+                  (room) => {
+                %>
+
+                  <div
+                    class="room-item"
+                  >
+
+                    <div
+                      class="room-name"
+                      title="<%= room.name %>"
+                    >
+
+                      <%= room.name %>
+
+                    </div>
+
+                    <div
+                      class="room-track"
+                      aria-label="<%= room.name %> booking volume"
+                    >
+
+                      <div
+                        class="room-fill"
+                        data-width="<%= Math.round(
+                          (
+                            safeNumber(
+                              room.bookings
+                            ) /
+                            maxRoomBookings
+                          ) *
+                          100
+                        ) %>"
+                      ></div>
+
+                    </div>
+
+                    <div
+                      class="room-meta"
+                    >
+
+                      <strong>
+
+                        <%= whole(
+                          room.bookings
+                        ) %>
+
+                        booking<%= safeNumber(
+                          room.bookings
+                        ) === 1
+                          ? ""
+                          : "s" %>
+
+                      </strong>
+
+                      <span>
+
+                        <%= money(
+                          room.revenue
+                        ) %>
+
+                      </span>
+
+                    </div>
+
+                  </div>
+
+                <% }); %>
+
+              </div>
+
+            <% } %>
+
+          </section>
+
+          <!-- =============================================
+               RECENT ACTIVITY
+          ============================================== -->
+
+          <section
+            class="panel"
+          >
+
+            <div
+              class="panel-header"
+            >
+
+              <div
+                class="panel-heading"
+              >
+
+                <h2
+                  class="panel-title"
+                >
+                  Recent Booking Activity
+                </h2>
+
+                <p
+                  class="panel-description"
+                >
+                  The most recently updated
+                  reservation records.
+                </p>
+
+              </div>
+
+              <span
+                class="panel-link"
+              >
+                <i
+                  class="fas fa-clock-rotate-left"
+                  aria-hidden="true"
+                ></i>
+
+                Latest activity
+              </span>
+
+            </div>
+
+            <% if (
+              normalizedRecentActivity.length === 0
+            ) { %>
+
+              <div
+                class="empty-state"
+              >
+
+                <div
+                  class="empty-state-icon"
+                >
+
+                  <i
+                    class="fas fa-clock-rotate-left"
+                    aria-hidden="true"
+                  ></i>
+
+                </div>
+
+                <strong>
+                  No recent activity
+                </strong>
+
+                <p>
+                  New or updated booking activity
+                  will appear here.
+                </p>
+
+              </div>
+
+            <% } else { %>
+
+              <div
+                class="activity-list"
+              >
+
+                <% normalizedRecentActivity.forEach(
+                  (activity) => {
+
+                    const initials =
+                      safeText(
+                        activity.user,
+                        "Guest"
+                      )
+                        .trim()
+                        .split(/\s+/)
+                        .filter(
+                          Boolean
+                        )
+                        .slice(
+                          0,
+                          2
+                        )
+                        .map(
+                          (part) =>
+                            part
+                              .charAt(0)
+                              .toUpperCase()
+                        )
+                        .join("") ||
+                      "G";
+
+                    const activityDate =
+                      activity.updatedAt ||
+                      activity.createdAt;
+
+                    const activityRoom =
+                      activity.room ||
+                      "Unassigned";
+
+                    const normalizedActivityStatus =
+                      safeText(
+                        activity.status,
+                        "pending"
+                      )
+                        .trim()
+                        .toLowerCase();
+
+                %>
+
+                  <article
+                    class="activity-item"
+                  >
+
+                    <div
+                      class="activity-avatar"
+                      aria-hidden="true"
+                    >
+                      <%= initials %>
+                    </div>
+
+                    <div
+                      class="activity-main"
+                    >
+
+                      <span
+                        class="activity-name"
+                        title="<%= activity.user %>"
+                      >
+                        <%= activity.user %>
+                      </span>
+
+                      <span
+                        class="activity-detail"
+                        title="<%= activityRoom %>"
+                      >
+
+                        <%= activityRoom %>
+
+                        <% if (
+                          activity.email
+                        ) { %>
+
+                          <span>
+                            &nbsp;•&nbsp;
+                            <%= activity.email %>
+                          </span>
+
+                        <% } %>
+
+                      </span>
+
+                    </div>
+
+                    <div
+                      class="activity-side"
+                    >
+
+                      <span
+                        class="
+                          activity-status
+                          status-<%= normalizedActivityStatus %>
+                        "
+                      >
+                        <%= statusLabel(
+                          normalizedActivityStatus
+                        ) %>
+                      </span>
+
+                      <span
+                        class="activity-time"
+                      >
+
+                        <%= dateLabel(
+                          activityDate
+                        ) %>
+
+                        &nbsp;•&nbsp;
+
+                        <%= timeLabel(
+                          activityDate
+                        ) %>
+
+                      </span>
+
+                    </div>
+
+                  </article>
+
+                <% }); %>
+
+              </div>
+
+            <% } %>
+
+          </section>
+
+        </div>
+
+      </div>
+
+      <!-- ===================================================
+           RIGHT COLUMN
+      ==================================================== -->
+
+      <aside
+        class="analytics-column"
+      >
+
+        <div
+          class="panel-stack"
+        >
+
+          <!-- =============================================
+               TRACKED BOOKING VALUE
+          ============================================== -->
+
+          <section
+            class="revenue-card"
+          >
+
+            <span
+              class="revenue-label"
+            >
+              Tracked Booking Value
+            </span>
+
+            <div
+              class="revenue-value"
+            >
+              <%= money(
+                analyticsRevenue
+              ) %>
+            </div>
+
+            <div
+              class="revenue-divider"
+            ></div>
+
+            <p
+              class="revenue-note"
+            >
+
+              The figure above is calculated from
+              <strong>
+                <code>Appointment.totalPrice</code>
+              </strong>
+
+              for accepted, confirmed, checked-in,
+              checked-out, and completed bookings.
+
+              It represents an operational
+              booking-value metric and should not
+              be interpreted as collected cash,
+              outstanding balance, net revenue,
+              or profit.
+
+            </p>
+
+          </section>
+
+          <!-- =============================================
+               QUICK SUMMARY
+          ============================================== -->
+
+          <section
+            class="panel"
+          >
+
+            <div
+              class="panel-header"
+            >
+
+              <div
+                class="panel-heading"
+              >
+
+                <h2
+                  class="panel-title"
+                >
+                  Executive Snapshot
+                </h2>
+
+                <p
+                  class="panel-description"
+                >
+                  High-level operational indicators.
+                </p>
+
+              </div>
+
+            </div>
+
+            <div
+              class="side-stat-grid"
+            >
+
+              <div
+                class="side-stat"
+              >
+
+                <span
+                  class="side-stat-label"
+                >
+                  Pending
+                </span>
+
+                <strong
+                  class="side-stat-value"
+                >
+                  <%= whole(
+                    analyticsPending
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="side-stat"
+              >
+
+                <span
+                  class="side-stat-label"
+                >
+                  Accepted
+                </span>
+
+                <strong
+                  class="side-stat-value"
+                >
+                  <%= whole(
+                    analyticsAccepted
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="side-stat"
+              >
+
+                <span
+                  class="side-stat-label"
+                >
+                  Confirmed
+                </span>
+
+                <strong
+                  class="side-stat-value"
+                >
+                  <%= whole(
+                    analyticsConfirmed
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="side-stat"
+              >
+
+                <span
+                  class="side-stat-label"
+                >
+                  Checked In
+                </span>
+
+                <strong
+                  class="side-stat-value"
+                >
+                  <%= whole(
+                    analyticsCheckedIn
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="side-stat"
+              >
+
+                <span
+                  class="side-stat-label"
+                >
+                  Checked Out
+                </span>
+
+                <strong
+                  class="side-stat-value"
+                >
+                  <%= whole(
+                    analyticsCheckedOut
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="side-stat"
+              >
+
+                <span
+                  class="side-stat-label"
+                >
+                  Completed
+                </span>
+
+                <strong
+                  class="side-stat-value"
+                >
+                  <%= whole(
+                    analyticsCompleted
+                  ) %>
+                </strong>
+
+              </div>
+
+            </div>
+
+          </section>
+
+          <!-- =============================================
+               STATUS DETAILS
+          ============================================== -->
+
+          <section
+            class="panel"
+          >
+
+            <div
+              class="panel-header"
+            >
+
+              <div
+                class="panel-heading"
+              >
+
+                <h2
+                  class="panel-title"
+                >
+                  Status Details
+                </h2>
+
+                <p
+                  class="panel-description"
+                >
+                  Relative booking distribution.
+                </p>
+
+              </div>
+
+            </div>
+
+            <div
+              class="detail-table-wrap"
+            >
+
+              <table
+                class="detail-table"
+              >
+
+                <thead>
+
+                  <tr>
+
+                    <th>
+                      Status
+                    </th>
+
+                    <th>
+                      Count
+                    </th>
+
+                    <th>
+                      Share
+                    </th>
+
+                  </tr>
+
+                </thead>
+
+                <tbody>
+
+                  <% statusRows.forEach(
+                    (row) => {
+
+                      const percentage =
+                        analyticsTotalBookings > 0
+                          ? (
+                              safeNumber(
+                                row.value
+                              ) /
+                              analyticsTotalBookings
+                            ) *
+                            100
+                          : 0;
+
+                  %>
+
+                    <tr>
+
+                      <td
+                        class="strong"
+                      >
+                        <%= row.label %>
+                      </td>
+
+                      <td
+                        class="strong"
+                      >
+                        <%= whole(
+                          row.value
+                        ) %>
+                      </td>
+
+                      <td
+                        class="percentage-value"
+                      >
+                        <%= percentage.toFixed(
+                          1
+                        ) %>%
+                      </td>
+
+                    </tr>
+
+                  <% }); %>
+
+                </tbody>
+
+              </table>
+
+            </div>
+
+          </section>
+
+          <!-- =============================================
+               OPERATIONS SNAPSHOT
+          ============================================== -->
+
+          <section
+            class="panel"
+          >
+
+            <div
+              class="panel-header"
+            >
+
+              <div
+                class="panel-heading"
+              >
+
+                <h2
+                  class="panel-title"
+                >
+                  Operations Snapshot
+                </h2>
+
+                <p
+                  class="panel-description"
+                >
+                  Current booking workflow distribution.
+                </p>
+
+              </div>
+
+            </div>
+
+            <div
+              class="operation-list"
+            >
+
+              <div
+                class="operation-item pending"
+              >
+
+                <div
+                  class="operation-info"
+                >
+
+                  <span
+                    class="operation-dot"
+                    aria-hidden="true"
+                  ></span>
+
+                  <span
+                    class="operation-name"
+                  >
+                    Pending
+                  </span>
+
+                </div>
+
+                <strong
+                  class="operation-count"
+                >
+                  <%= whole(
+                    analyticsPending
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="operation-item accepted"
+              >
+
+                <div
+                  class="operation-info"
+                >
+
+                  <span
+                    class="operation-dot"
+                    aria-hidden="true"
+                  ></span>
+
+                  <span
+                    class="operation-name"
+                  >
+                    Accepted
+                  </span>
+
+                </div>
+
+                <strong
+                  class="operation-count"
+                >
+                  <%= whole(
+                    analyticsAccepted
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="operation-item confirmed"
+              >
+
+                <div
+                  class="operation-info"
+                >
+
+                  <span
+                    class="operation-dot"
+                    aria-hidden="true"
+                  ></span>
+
+                  <span
+                    class="operation-name"
+                  >
+                    Confirmed
+                  </span>
+
+                </div>
+
+                <strong
+                  class="operation-count"
+                >
+                  <%= whole(
+                    analyticsConfirmed
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="operation-item checked-in"
+              >
+
+                <div
+                  class="operation-info"
+                >
+
+                  <span
+                    class="operation-dot"
+                    aria-hidden="true"
+                  ></span>
+
+                  <span
+                    class="operation-name"
+                  >
+                    Checked In
+                  </span>
+
+                </div>
+
+                <strong
+                  class="operation-count"
+                >
+                  <%= whole(
+                    analyticsCheckedIn
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="operation-item completed"
+              >
+
+                <div
+                  class="operation-info"
+                >
+
+                  <span
+                    class="operation-dot"
+                    aria-hidden="true"
+                  ></span>
+
+                  <span
+                    class="operation-name"
+                  >
+                    Completed
+                  </span>
+
+                </div>
+
+                <strong
+                  class="operation-count"
+                >
+                  <%= whole(
+                    analyticsCompleted
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="operation-item cancelled"
+              >
+
+                <div
+                  class="operation-info"
+                >
+
+                  <span
+                    class="operation-dot"
+                    aria-hidden="true"
+                  ></span>
+
+                  <span
+                    class="operation-name"
+                  >
+                    Cancelled
+                  </span>
+
+                </div>
+
+                <strong
+                  class="operation-count"
+                >
+                  <%= whole(
+                    analyticsCancelled
+                  ) %>
+                </strong>
+
+              </div>
+
+              <div
+                class="operation-item declined"
+              >
+
+                <div
+                  class="operation-info"
+                >
+
+                  <span
+                    class="operation-dot"
+                    aria-hidden="true"
+                  ></span>
+
+                  <span
+                    class="operation-name"
+                  >
+                    Declined
+                  </span>
+
+                </div>
+
+                <strong
+                  class="operation-count"
+                >
+                  <%= whole(
+                    analyticsDeclined
+                  ) %>
+                </strong>
+
+              </div>
+
+            </div>
+
+          </section>
+
+        </div>
+
+      </aside>
+
+    </section>
+
+    <!-- =====================================================
+         DATA NOTE
+    ====================================================== -->
+
+    <div
+      class="data-note-card"
+    >
+
+      <div
+        class="data-note-icon"
+        aria-hidden="true"
+      >
+
+        <i
+          class="fas fa-database"
+        ></i>
+
+      </div>
+
+      <div>
+
+        <strong>
+          Analytics data note:
+        </strong>
+
+        IsleRMS analytics reflects the current
+        MongoDB appointment and user records
+        available to this administrative session.
+
+        Booking value is calculated from stored
+        appointment totals. A dedicated payment
+        ledger can later support collected cash,
+        outstanding balances, refunds, net revenue,
+        expenses, and profitability reporting.
+
+      </div>
+
+    </div>
+
+  </main>
+
+  <!-- =======================================================
+       SERVER-GENERATED JSON
+       -------------------------------------------------------
+       Kept separate from executable JS so VS Code does not
+       attempt to parse EJS as JavaScript.
+  ======================================================== -->
+
+  <script
+    type="application/json"
+    id="analyticsStatusData"
+  ><%- JSON.stringify(
+    analyticsStatusData
+  ).replace(
+    /</g,
+    "\\u003c"
+  ) %></script>
+
+  <!-- =======================================================
+       CLIENT JAVASCRIPT
+  ======================================================== -->
+
+  <script>
+
+    (() => {
+
+      "use strict";
+
+      /* ======================================================
+         LOAD SERVER DATA
+      ====================================================== */
+
+      const dataElement =
+        document.getElementById(
+          "analyticsStatusData"
+        );
+
+      let analyticsData = {
+        statusRows: [],
+        total: 0,
+      };
+
+      if (dataElement) {
+
+        try {
+
+          const parsed =
+            JSON.parse(
+              dataElement.textContent ||
+              "{}"
+            );
+
+          if (
+            parsed &&
+            typeof parsed ===
+              "object"
+          ) {
+
+            analyticsData = {
+
+              statusRows:
+                Array.isArray(
+                  parsed.statusRows
+                )
+                  ? parsed.statusRows
+                  : [],
+
+              total:
+                Number.isFinite(
+                  Number(
+                    parsed.total
+                  )
+                )
+                  ? Number(
+                      parsed.total
+                    )
+                  : 0,
+
+            };
+
+          }
+
+        } catch (error) {
+
+          console.error(
+            "Analytics data parsing error:",
+            error
+          );
+
+        }
+
+      }
+
+      const statusRows =
+        analyticsData.statusRows;
+
+      const total =
+        analyticsData.total;
+
+      /* ======================================================
+         COLOR PALETTE
+      ====================================================== */
+
+      const palette = {
+
+        pending:
+          "#f1c40f",
+
+        accepted:
+          "#2ecc71",
+
+        confirmed:
+          "#2ecc71",
+
+        "checked-in":
+          "#3498db",
+
+        "checked-out":
+          "#9da8ad",
+
+        completed:
+          "#2ecc71",
+
+        cancelled:
+          "#bdc3c7",
+
+        declined:
+          "#e74c3c",
+
+        rejected:
+          "#e74c3c",
+
+      };
+
+      /* ======================================================
+         DONUT CHART
+      ====================================================== */
+
+      const donut =
+        document.getElementById(
+          "analyticsStatusDonut"
+        );
+
+      if (
+        donut &&
+        Number.isFinite(
+          total
+        ) &&
+        total > 0
+      ) {
+
+        let cursor =
+          0;
+
+        const segments =
+          statusRows
+            .filter(
+              (row) =>
+                Number(
+                  row.value
+                ) > 0
+            )
+            .map(
+              (row) => {
+
+                const value =
+                  Number(
+                    row.value
+                  );
+
+                const start =
+                  cursor;
+
+                const end =
+                  cursor +
+                  (
+                    value /
+                    total
+                  ) *
+                  360;
+
+                cursor =
+                  end;
+
+                const color =
+                  palette[
+                    row.key
+                  ] ||
+                  "#6e797d";
+
+                return (
+                  `${color} ` +
+                  `${start}deg ` +
+                  `${end}deg`
+                );
+
+              }
+            );
+
+        if (
+          segments.length > 0
+        ) {
+
+          donut.style.background =
+            `conic-gradient(` +
+            `${segments.join(
+              ", "
+            )})`;
+
+        }
+
+      }
+
+      /* ======================================================
+         STATUS PROGRESS BARS
+      ====================================================== */
+
+      document
+        .querySelectorAll(
+          "[data-status-key]"
+        )
+        .forEach(
+          (bar) => {
+
+            const key =
+              bar.getAttribute(
+                "data-status-key"
+              );
+
+            const matchingRow =
+              statusRows.find(
+                (row) =>
+                  row.key ===
+                  key
+              );
+
+            const value =
+              matchingRow
+                ? Number(
+                    matchingRow.value
+                  )
+                : 0;
+
+            const percentage =
+              total > 0
+                ? (
+                    value /
+                    total
+                  ) *
+                  100
+                : 0;
+
+            const safe =
+              Number.isFinite(
+                percentage
+              )
+                ? Math.max(
+                    0,
+                    Math.min(
+                      100,
+                      percentage
+                    )
+                  )
+                : 0;
+
+            bar.style.background =
+              palette[key] ||
+              "#008080";
+
+            requestAnimationFrame(
+              () => {
+
+                bar.style.width =
+                  `${safe}%`;
+
+              }
+            );
+
+          }
+        );
+
+      /* ======================================================
+         STATUS DOTS
+      ====================================================== */
+
+      document
+        .querySelectorAll(
+          ".status-dot[data-status]"
+        )
+        .forEach(
+          (dot) => {
+
+            const key =
+              dot.getAttribute(
+                "data-status"
+              );
+
+            const color =
+              palette[key] ||
+              "#9fa8ad";
+
+            dot.style.background =
+              color;
+
+            dot.style.color =
+              color;
+
+          }
+        );
+
+      /* ======================================================
+         ROOM PERFORMANCE BARS
+      ====================================================== */
+
+      document
+        .querySelectorAll(
+          "[data-width]"
+        )
+        .forEach(
+          (bar) => {
+
+            const raw =
+              Number(
+                bar.getAttribute(
+                  "data-width"
+                )
+              );
+
+            const safe =
+              Number.isFinite(
+                raw
+              )
+                ? Math.max(
+                    0,
+                    Math.min(
+                      100,
+                      raw
+                    )
+                  )
+                : 0;
+
+            requestAnimationFrame(
+              () => {
+
+                bar.style.width =
+                  `${safe}%`;
+
+              }
+            );
+
+          }
+        );
+
+      /* ======================================================
+         LOCAL TIME
+      ====================================================== */
+
+      function updateLocalTime() {
+
+        const clock =
+          document.getElementById(
+            "analyticsLocalTime"
+          );
+
+        if (!clock) {
+          return;
+        }
+
+        const now =
+          new Date();
+
+        clock.textContent =
+          now.toLocaleString(
+            "en-PH",
+            {
+              weekday:
+                "short",
+
+              month:
+                "short",
+
+              day:
+                "numeric",
+
+              hour:
+                "2-digit",
+
+              minute:
+                "2-digit",
+
+              second:
+                "2-digit",
+
+              hour12:
+                true,
+            }
+          );
+
+      }
+
+      /* ======================================================
+         REFRESH
+      ====================================================== */
+
+      const refreshButton =
+        document.getElementById(
+          "refreshAnalytics"
+        );
+
+      if (
+        refreshButton
+      ) {
+
+        refreshButton.addEventListener(
+          "click",
+          () => {
+
+            const icon =
+              refreshButton.querySelector(
+                "i"
+              );
+
+            if (icon) {
+
+              icon.classList.add(
+                "fa-spin"
+              );
+
+            }
+
+            refreshButton.disabled =
+              true;
+
+            window.setTimeout(
+              () => {
+
+                window.location.reload();
+
+              },
+              250
+            );
+
+          }
+        );
+
+      }
+
+      /* ======================================================
+         INITIAL CLOCK
+      ====================================================== */
+
+      updateLocalTime();
+
+      window.setInterval(
+        updateLocalTime,
+        1000
+      );
+
+    })();
+
+  </script>
+
+</body>
+
+</html>

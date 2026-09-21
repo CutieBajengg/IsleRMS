@@ -1,175 +1,642 @@
 <!DOCTYPE html>
-
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Add-on Management | IsleRMS</title>
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="robots"
+    content="noindex,nofollow,noarchive"
+  >
+
+  <meta
+    name="referrer"
+    content="same-origin"
+  >
+
+  <title>
+    <%= title || "Add-on Management | IsleRMS" %>
+  </title>
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/islelogo.png"
+  >
+
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  >
 
   <style>
+    :root {
+      --teal: #008080;
+      --teal-dark: #005c5c;
+      --teal-deep: #003f3f;
+      --teal-light: #12a9a9;
+
+      --gold: #ffd700;
+      --gold-dark: #d4b400;
+
+      --background: #070a0c;
+      --background-soft: #0c1113;
+
+      --surface: rgba(255, 255, 255, 0.035);
+      --surface-strong: rgba(255, 255, 255, 0.055);
+      --surface-hover: rgba(255, 255, 255, 0.075);
+
+      --border: rgba(255, 255, 255, 0.08);
+      --border-strong: rgba(255, 255, 255, 0.14);
+
+      --text: #ffffff;
+      --text-soft: #dce2e4;
+      --muted: #929ca1;
+
+      --success: #2ecc71;
+      --danger: #e74c3c;
+      --warning: #f1c40f;
+      --info: #3498db;
+
+      --shadow-sm: 0 10px 30px rgba(0, 0, 0, 0.18);
+      --shadow-md: 0 18px 50px rgba(0, 0, 0, 0.25);
+      --shadow-lg: 0 28px 80px rgba(0, 0, 0, 0.35);
+
+      --radius-xl: 28px;
+      --radius-lg: 21px;
+      --radius-md: 16px;
+      --radius-sm: 11px;
+    }
+
     * {
+      margin: 0;
+      padding: 0;
       box-sizing: border-box;
     }
 
+    html {
+      scroll-behavior: smooth;
+    }
+
     body {
-      margin: 0;
-      font-family: Arial, Helvetica, sans-serif;
-      background: #f5f7fb;
-      color: #1f2937;
+      min-height: 100vh;
+      overflow-x: hidden;
+
+      font-family: "Poppins", sans-serif;
+      color: var(--text);
+
+      background:
+        radial-gradient(
+          circle at 8% 8%,
+          rgba(0, 128, 128, 0.13),
+          transparent 27%
+        ),
+        radial-gradient(
+          circle at 92% 85%,
+          rgba(255, 215, 0, 0.045),
+          transparent 25%
+        ),
+        linear-gradient(
+          145deg,
+          #070a0c 0%,
+          #0a0e10 55%,
+          #080b0d 100%
+        );
+
+      -webkit-font-smoothing: antialiased;
     }
 
-    .container {
-      width: min(1200px, 92%);
-      margin: 30px auto;
+    body::before {
+      content: "";
+
+      position: fixed;
+      inset: 0;
+
+      pointer-events: none;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(255, 255, 255, 0.012) 1px,
+          transparent 1px
+        ),
+        linear-gradient(
+          rgba(255, 255, 255, 0.012) 1px,
+          transparent 1px
+        );
+
+      background-size: 48px 48px;
+
+      mask-image:
+        linear-gradient(
+          to bottom,
+          black,
+          transparent 75%
+        );
+
+      opacity: 0.25;
+      z-index: 0;
     }
 
-    .header {
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 20px;
-      margin-bottom: 25px;
+    body,
+    button,
+    input,
+    textarea,
+    select {
+      font-family: "Poppins", sans-serif;
     }
 
-    .header h1 {
-      margin: 0 0 6px;
-      font-size: 30px;
+    button,
+    input,
+    textarea,
+    select,
+    a {
+      font: inherit;
     }
 
-    .header p {
-      margin: 0;
-      color: #6b7280;
-    }
-
-    .btn {
+    button {
       border: 0;
-      border-radius: 8px;
-      padding: 11px 16px;
-      cursor: pointer;
-      font-weight: 600;
-      transition: opacity 0.2s ease;
+      -webkit-tap-highlight-color: transparent;
     }
 
-    .btn:hover {
-      opacity: 0.9;
+    a {
+      color: inherit;
     }
 
-    .btn-primary {
-      background: #2563eb;
-      color: #fff;
+    ::selection {
+      color: #071011;
+      background: var(--gold);
     }
 
-    .btn-secondary {
-      background: #e5e7eb;
-      color: #111827;
+    ::-webkit-scrollbar {
+      width: 8px;
+      height: 8px;
     }
 
-    .btn-danger {
-      background: #dc2626;
-      color: #fff;
+    ::-webkit-scrollbar-track {
+      background: var(--background);
     }
 
-    .btn-warning {
-      background: #f59e0b;
-      color: #fff;
+    ::-webkit-scrollbar-thumb {
+      background: var(--teal);
+      border-radius: 999px;
     }
 
-    .btn-success {
-      background: #16a34a;
-      color: #fff;
+    ::-webkit-scrollbar-thumb:hover {
+      background: var(--teal-light);
     }
 
-    .card {
-      background: #fff;
-      border-radius: 14px;
-      box-shadow: 0 4px 18px rgba(15, 23, 42, 0.06);
-      padding: 22px;
+    .page-shell {
+      position: relative;
+      z-index: 1;
+
+      width: min(
+        1600px,
+        calc(100% - 48px)
+      );
+
+      margin: 0 auto;
+
+      padding: 40px 0 78px;
+    }
+
+    /* =========================================================
+       PAGE HEADER
+    ========================================================= */
+
+    .hero {
+      position: relative;
+
+      overflow: hidden;
+
+      padding: 0;
+
+      border: 0;
+      border-radius: 0;
+
+      background: transparent;
+
+      box-shadow: none;
+    }
+
+    .hero::after {
+      display: none;
+    }
+
+    .hero-top {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+
+      gap: 28px;
       margin-bottom: 24px;
     }
 
-    .table-wrapper {
-      overflow-x: auto;
+    .hero-top > div:first-child {
+      min-width: 0;
     }
 
-    table {
-      width: 100%;
-      border-collapse: collapse;
-    }
-
-    th,
-    td {
-      text-align: left;
-      padding: 14px 12px;
-      border-bottom: 1px solid #e5e7eb;
-      vertical-align: middle;
-    }
-
-    th {
-      font-size: 13px;
-      text-transform: uppercase;
-      color: #6b7280;
-      letter-spacing: 0.04em;
-    }
-
-    td {
-      font-size: 14px;
-    }
-
-    .status {
-      display: inline-block;
-      padding: 5px 9px;
-      border-radius: 999px;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .status-active {
-      background: #dcfce7;
-      color: #166534;
-    }
-
-    .status-inactive {
-      background: #fee2e2;
-      color: #991b1b;
-    }
-
-    .pricing-type {
-      display: inline-block;
-      padding: 5px 9px;
-      border-radius: 7px;
-      background: #eff6ff;
-      color: #1d4ed8;
-      font-size: 12px;
-      font-weight: 700;
-    }
-
-    .actions {
+    .eyebrow {
       display: flex;
-      flex-wrap: wrap;
-      gap: 7px;
-    }
+      align-items: center;
 
-    .actions .btn {
-      padding: 7px 10px;
-      font-size: 12px;
-    }
+      gap: 9px;
 
-    .empty {
-      text-align: center;
-      padding: 35px;
-      color: #6b7280;
-    }
+      color: var(--teal-light);
 
-    .price {
+      font-size: 0.68rem;
       font-weight: 700;
+
+      letter-spacing: 2.2px;
+      line-height: 1;
+
+      text-transform: uppercase;
+
+      margin-bottom: 11px;
     }
+
+    .eyebrow::before {
+      content: "";
+
+      width: 24px;
+      height: 1px;
+
+      background: var(--teal-light);
+
+      opacity: 0.8;
+    }
+
+    .eyebrow-dot {
+      display: none;
+    }
+
+    .hero h1 {
+      color: var(--text);
+
+      font-family:
+        "Playfair Display",
+        serif;
+
+      font-size: clamp(
+        2.3rem,
+        4vw,
+        3.55rem
+      );
+
+      line-height: 1.04;
+
+      letter-spacing: -1.5px;
+    }
+
+    .hero h1::first-letter {
+      color: white;
+    }
+
+    .hero-copy {
+      max-width: 760px;
+
+      margin-top: 10px;
+
+      color: var(--muted);
+
+      font-size: 0.88rem;
+      line-height: 1.72;
+    }
+
+    .hero-badge {
+      position: relative;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      flex: 0 0 auto;
+
+      min-width: 255px;
+      min-height: 68px;
+
+      padding: 12px 16px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.055),
+          rgba(255, 255, 255, 0.02)
+        );
+
+      border: 1px solid var(--border);
+      border-radius: var(--radius-md);
+
+      box-shadow: var(--shadow-sm);
+
+      backdrop-filter: blur(18px);
+    }
+
+    .hero-badge-label {
+      display: block;
+
+      color: var(--muted);
+
+      font-size: 0.61rem;
+      font-weight: 600;
+
+      letter-spacing: 1.1px;
+
+      text-transform: uppercase;
+    }
+
+    .hero-badge-value {
+      display: flex;
+      align-items: center;
+
+      gap: 10px;
+
+      margin-top: 4px;
+
+      color: var(--text);
+
+      font-size: 0.82rem;
+      font-weight: 600;
+    }
+
+    .hero-badge-value span {
+      position: relative;
+
+      width: 10px;
+      height: 10px;
+
+      flex: 0 0 10px;
+
+      border-radius: 50%;
+
+      background: var(--success);
+
+      box-shadow:
+        0 0 0 5px rgba(46, 204, 113, 0.09),
+        0 0 20px rgba(46, 204, 113, 0.55);
+    }
+
+    .hero-badge-value span::after {
+      content: "";
+
+      position: absolute;
+      inset: -5px;
+
+      border: 1px solid
+        rgba(46, 204, 113, 0.28);
+
+      border-radius: 50%;
+
+      animation:
+        pulseStatus 2.2s
+        ease-out infinite;
+    }
+
+    .hero-badge-note {
+      margin-top: 3px;
+
+      color: var(--teal-light);
+
+      font-size: 0.64rem;
+      font-weight: 500;
+
+      line-height: 1.45;
+    }
+
+    @keyframes pulseStatus {
+      0% {
+        opacity: 0.8;
+        transform: scale(0.8);
+      }
+
+      70%,
+      100% {
+        opacity: 0;
+        transform: scale(1.45);
+      }
+    }
+
+    /* =========================================================
+       STATS
+    ========================================================= */
+
+    .stats-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(4, minmax(0, 1fr));
+
+      gap: 16px;
+
+      margin-bottom: 22px;
+    }
+
+    .stat-card {
+      position: relative;
+
+      min-height: 150px;
+
+      padding: 22px;
+
+      overflow: hidden;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.055),
+          rgba(255, 255, 255, 0.018)
+        );
+
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+
+      box-shadow: var(--shadow-sm);
+
+      transition:
+        transform 0.25s ease,
+        border-color 0.25s ease,
+        background 0.25s ease,
+        box-shadow 0.25s ease;
+    }
+
+    .stat-card::before {
+      content: "";
+
+      position: absolute;
+
+      left: 22px;
+      right: 22px;
+      top: 0;
+
+      height: 1px;
+
+      background:
+        linear-gradient(
+          90deg,
+          transparent,
+          rgba(255, 255, 255, 0.13),
+          transparent
+        );
+    }
+
+    .stat-card:hover {
+      transform: translateY(-4px);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.075),
+          rgba(255, 255, 255, 0.025)
+        );
+
+      border-color: rgba(0, 128, 128, 0.52);
+
+      box-shadow: var(--shadow-md);
+    }
+
+    .stat-card:nth-child(1):hover {
+      border-color: rgba(255, 215, 0, 0.35);
+    }
+
+    .stat-card:nth-child(2):hover {
+      border-color: rgba(46, 204, 113, 0.38);
+    }
+
+    .stat-card:nth-child(3):hover {
+      border-color: rgba(52, 152, 219, 0.38);
+    }
+
+    .stat-card:nth-child(4):hover {
+      border-color: rgba(0, 128, 128, 0.48);
+    }
+
+    .stat-icon {
+      width: 44px;
+      height: 44px;
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      margin-bottom: 15px;
+
+      border-radius: 12px;
+
+      color: var(--teal-light);
+
+      background: rgba(0, 128, 128, 0.11);
+
+      font-size: 0.9rem;
+    }
+
+    .stat-card:nth-child(1) .stat-icon {
+      color: var(--gold);
+      background:
+        rgba(255, 215, 0, 0.09);
+    }
+
+    .stat-card:nth-child(2) .stat-icon {
+      color: var(--success);
+      background:
+        rgba(46, 204, 113, 0.09);
+    }
+
+    .stat-card:nth-child(3) .stat-icon {
+      color: var(--info);
+      background:
+        rgba(52, 152, 219, 0.09);
+    }
+
+    .stat-card:nth-child(4) .stat-icon {
+      color: var(--teal-light);
+    }
+
+    .stat-label {
+      display: block;
+
+      color: var(--muted);
+
+      font-size: 0.64rem;
+      font-weight: 600;
+
+      letter-spacing: 1.1px;
+
+      text-transform: uppercase;
+    }
+
+    .stat-value {
+      display: block;
+
+      margin-top: 3px;
+
+      color: var(--text);
+
+      font-size: 1.8rem;
+      line-height: 1.2;
+
+      font-weight: 700;
+
+      letter-spacing: -0.5px;
+    }
+
+    .stat-meta {
+      margin-top: 5px;
+
+      color: var(--muted);
+
+      font-size: 0.66rem;
+      line-height: 1.48;
+    }
+
+    .stat-background-icon {
+      position: absolute;
+
+      right: -12px;
+      bottom: -25px;
+
+      color: rgba(255, 255, 255, 0.025);
+
+      font-size: 6rem;
+
+      pointer-events: none;
+    }
+
+    /* =========================================================
+       MESSAGE
+    ========================================================= */
 
     .message {
       display: none;
-      margin-bottom: 20px;
-      padding: 12px 15px;
-      border-radius: 8px;
-      font-size: 14px;
+
+      margin: 0 0 18px;
+
+      padding: 14px 16px;
+
+      color: var(--text-soft);
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.055),
+          rgba(255, 255, 255, 0.02)
+        );
+
+      border: 1px solid var(--border);
+      border-radius: 15px;
+
+      font-size: 0.7rem;
+      line-height: 1.5;
+
+      box-shadow: var(--shadow-sm);
     }
 
     .message.show {
@@ -177,974 +644,3679 @@
     }
 
     .message.success {
-      background: #dcfce7;
-      color: #166534;
+      color: var(--success);
+
+      background:
+        rgba(46, 204, 113, 0.07);
+
+      border-color:
+        rgba(46, 204, 113, 0.19);
     }
 
     .message.error {
-      background: #fee2e2;
-      color: #991b1b;
+      color: var(--danger);
+
+      background:
+        rgba(231, 76, 60, 0.07);
+
+      border-color:
+        rgba(231, 76, 60, 0.19);
     }
 
-    .modal {
-      display: none;
-      position: fixed;
-      inset: 0;
-      background: rgba(0, 0, 0, 0.5);
+    .message.info {
+      color: var(--teal-light);
+
+      background:
+        rgba(0, 128, 128, 0.07);
+
+      border-color:
+        rgba(0, 128, 128, 0.19);
+    }
+
+    /* =========================================================
+       TOOLBAR
+    ========================================================= */
+
+    .toolbar-card {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+
+      gap: 16px;
+
+      margin-bottom: 18px;
+
+      padding: 15px;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.04),
+          rgba(255, 255, 255, 0.018)
+        );
+
+      border: 1px solid var(--border);
+      border-radius: var(--radius-lg);
+
+      box-shadow: var(--shadow-md);
+
+      backdrop-filter: blur(18px);
+    }
+
+    .toolbar-left {
+      display: grid;
+
+      grid-template-columns:
+        minmax(220px, 1fr)
+        170px;
+
+      gap: 10px;
+
+      width: min(650px, 100%);
+    }
+
+    .control {
+      width: 100%;
+
+      min-height: 42px;
+
+      padding: 10px 12px;
+
+      color: var(--text-soft);
+
+      background:
+        rgba(255, 255, 255, 0.035);
+
+      border: 1px solid var(--border);
+
+      border-radius: 12px;
+
+      outline: none;
+
+      transition:
+        border-color 0.2s ease,
+        background 0.2s ease,
+        box-shadow 0.2s ease;
+    }
+
+    .control::placeholder {
+      color: #707b80;
+    }
+
+    .control:hover {
+      background:
+        rgba(255, 255, 255, 0.05);
+    }
+
+    .control:focus {
+      border-color:
+        rgba(0, 128, 128, 0.55);
+
+      background:
+        rgba(255, 255, 255, 0.055);
+
+      box-shadow:
+        0 0 0 4px
+        rgba(0, 128, 128, 0.09);
+    }
+
+    select.control option {
+      color: white;
+      background: #101618;
+    }
+
+    /* =========================================================
+       BUTTONS
+    ========================================================= */
+
+    .btn {
+      min-height: 40px;
+
+      display: inline-flex;
       align-items: center;
       justify-content: center;
-      padding: 20px;
-      z-index: 1000;
+
+      gap: 7px;
+
+      padding: 9px 14px;
+
+      border-radius: 11px;
+
+      cursor: pointer;
+
+      color: white;
+
+      font-size: 0.68rem;
+      font-weight: 700;
+
+      transition:
+        transform 0.18s ease,
+        box-shadow 0.18s ease,
+        background 0.18s ease,
+        border-color 0.18s ease,
+        color 0.18s ease,
+        opacity 0.18s ease;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+    }
+
+    .btn:disabled {
+      cursor: not-allowed;
+      opacity: 0.6;
+      transform: none;
+    }
+
+    .btn-primary {
+      color: #071011;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--gold),
+          var(--gold-dark)
+        );
+
+      border: 1px solid
+        rgba(255, 215, 0, 0.24);
+
+      box-shadow:
+        0 8px 20px
+        rgba(255, 215, 0, 0.12);
+    }
+
+    .btn-primary:hover {
+      box-shadow:
+        0 10px 26px
+        rgba(255, 215, 0, 0.18);
+    }
+
+    .btn-secondary {
+      color: var(--text-soft);
+
+      background:
+        rgba(255, 255, 255, 0.045);
+
+      border: 1px solid var(--border);
+    }
+
+    .btn-secondary:hover {
+      color: white;
+
+      background:
+        rgba(255, 255, 255, 0.075);
+
+      border-color:
+        rgba(255, 255, 255, 0.14);
+    }
+
+    .btn-warning {
+      color: var(--warning);
+
+      background:
+        rgba(241, 196, 15, 0.08);
+
+      border: 1px solid
+        rgba(241, 196, 15, 0.16);
+    }
+
+    .btn-warning:hover {
+      color: #071011;
+
+      background: var(--warning);
+
+      border-color: var(--warning);
+
+      box-shadow:
+        0 7px 18px
+        rgba(241, 196, 15, 0.16);
+    }
+
+    .btn-success {
+      color: var(--success);
+
+      background:
+        rgba(46, 204, 113, 0.08);
+
+      border: 1px solid
+        rgba(46, 204, 113, 0.16);
+    }
+
+    .btn-success:hover {
+      color: #071011;
+
+      background: var(--success);
+
+      border-color: var(--success);
+
+      box-shadow:
+        0 7px 18px
+        rgba(46, 204, 113, 0.18);
+    }
+
+    .btn-danger {
+      color: var(--danger);
+
+      background:
+        rgba(231, 76, 60, 0.08);
+
+      border: 1px solid
+        rgba(231, 76, 60, 0.16);
+    }
+
+    .btn-danger:hover {
+      color: white;
+
+      background: var(--danger);
+
+      border-color: var(--danger);
+
+      box-shadow:
+        0 7px 18px
+        rgba(231, 76, 60, 0.18);
+    }
+
+    /* =========================================================
+       TABLE PANEL
+    ========================================================= */
+
+    .table-card {
+      overflow: hidden;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(255, 255, 255, 0.04),
+          rgba(255, 255, 255, 0.018)
+        );
+
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+
+      box-shadow: var(--shadow-lg);
+
+      backdrop-filter: blur(18px);
+    }
+
+    .table-topline {
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+
+      gap: 18px;
+
+      padding: 25px;
+
+      border-bottom:
+        1px solid var(--border);
+    }
+
+    .table-title {
+      color: var(--text);
+
+      font-family:
+        "Playfair Display",
+        serif;
+
+      font-size: 1.38rem;
+      line-height: 1.2;
+    }
+
+    .table-subtitle {
+      margin-top: 5px;
+
+      color: var(--muted);
+
+      font-size: 0.71rem;
+      line-height: 1.55;
+    }
+
+    .result-count {
+      display: inline-flex;
+      align-items: center;
+
+      min-height: 30px;
+
+      padding: 6px 10px;
+
+      color: var(--teal-light);
+
+      background:
+        rgba(0, 128, 128, 0.08);
+
+      border: 1px solid
+        rgba(0, 128, 128, 0.15);
+
+      border-radius: 999px;
+
+      font-size: 0.59rem;
+      font-weight: 600;
+
+      white-space: nowrap;
+    }
+
+    .table-wrap {
+      width: 100%;
+
+      overflow-x: auto;
+
+      scrollbar-width: thin;
+    }
+
+    table {
+      width: 100%;
+
+      min-width: 1120px;
+
+      border-collapse: separate;
+      border-spacing: 0 8px;
+
+      padding: 0 14px 14px;
+    }
+
+    th,
+    td {
+      padding: 13px 11px;
+
+      text-align: left;
+
+      vertical-align: middle;
+    }
+
+    th {
+      padding-top: 8px;
+      padding-bottom: 7px;
+
+      color: var(--muted);
+
+      font-size: 0.59rem;
+      font-weight: 600;
+
+      letter-spacing: 1px;
+
+      text-transform: uppercase;
+
+      white-space: nowrap;
+    }
+
+    td {
+      background:
+        rgba(255, 255, 255, 0.023);
+
+      border-top:
+        1px solid var(--border);
+
+      border-bottom:
+        1px solid var(--border);
+
+      color: var(--text-soft);
+
+      font-size: 0.69rem;
+    }
+
+    tbody tr {
+      transition:
+        transform 0.2s ease,
+        background 0.25s ease;
+    }
+
+    tbody tr:hover {
+      transform: translateX(3px);
+    }
+
+    tbody tr td:first-child {
+      border-left:
+        1px solid var(--border);
+
+      border-radius: 13px 0 0 13px;
+    }
+
+    tbody tr td:last-child {
+      border-right:
+        1px solid var(--border);
+
+      border-radius: 0 13px 13px 0;
+    }
+
+    .addon-cell {
+      display: flex;
+      align-items: center;
+
+      gap: 11px;
+
+      min-width: 300px;
+    }
+
+    .addon-image {
+      width: 82px;
+      height: 60px;
+
+      flex: 0 0 82px;
+
+      object-fit: cover;
+
+      border-radius: 12px;
+
+      border: 1px solid var(--border);
+
+      background:
+        rgba(255, 255, 255, 0.04);
+
+      box-shadow:
+        0 8px 18px
+        rgba(0, 0, 0, 0.14);
+    }
+
+    .image-placeholder {
+      display: grid;
+      place-items: center;
+
+      color: var(--muted);
+
+      font-size: 0.54rem;
+      font-weight: 700;
+
+      letter-spacing: 0.8px;
+
+      text-transform: uppercase;
+
+      background:
+        linear-gradient(
+          145deg,
+          rgba(0, 128, 128, 0.09),
+          rgba(255, 255, 255, 0.02)
+        );
+    }
+
+    .addon-name {
+      color: white;
+
+      font-size: 0.74rem;
+      font-weight: 700;
+    }
+
+    .addon-desc {
+      max-width: 370px;
+
+      margin-top: 3px;
+
+      color: var(--muted);
+
+      overflow: hidden;
+
+      text-overflow: ellipsis;
+
+      white-space: nowrap;
+
+      font-size: 0.59rem;
+      line-height: 1.45;
+    }
+
+    .pricing-badge,
+    .status-badge,
+    .sort-badge {
+      display: inline-flex;
+      align-items: center;
+
+      gap: 5px;
+
+      min-height: 24px;
+
+      padding: 5px 9px;
+
+      border-radius: 999px;
+
+      border: 1px solid transparent;
+
+      font-size: 0.55rem;
+      font-weight: 700;
+
+      letter-spacing: 0.35px;
+
+      text-transform: uppercase;
+
+      white-space: nowrap;
+    }
+
+    .pricing-badge {
+      color: var(--teal-light);
+
+      background:
+        rgba(0, 128, 128, 0.08);
+
+      border-color:
+        rgba(0, 128, 128, 0.15);
+    }
+
+    .pricing-badge.nightly {
+      color: var(--gold);
+
+      background:
+        rgba(255, 215, 0, 0.08);
+
+      border-color:
+        rgba(255, 215, 0, 0.15);
+    }
+
+    .status-active {
+      color: var(--success);
+
+      background:
+        rgba(46, 204, 113, 0.08);
+
+      border-color:
+        rgba(46, 204, 113, 0.16);
+    }
+
+    .status-inactive {
+      color: #b8c0c4;
+
+      background:
+        rgba(189, 195, 199, 0.07);
+
+      border-color:
+        rgba(189, 195, 199, 0.14);
+    }
+
+    .sort-badge {
+      color: var(--muted);
+
+      background:
+        rgba(255, 255, 255, 0.04);
+
+      border-color: var(--border);
+
+      text-transform: none;
+    }
+
+    .price {
+      color: var(--gold);
+
+      font-size: 0.72rem;
+      font-weight: 700;
+
+      white-space: nowrap;
+    }
+
+    .muted-value {
+      color: var(--muted);
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+
+      gap: 6px;
+
+      min-width: 275px;
+    }
+
+    .actions .btn {
+      min-height: 32px;
+
+      padding: 7px 10px;
+
+      border-radius: 9px;
+
+      font-size: 0.55rem;
+    }
+
+    .empty {
+      padding: 58px 20px;
+
+      text-align: center;
+
+      color: var(--muted);
+
+      font-size: 0.68rem;
+    }
+
+    .empty::before {
+      content: "\f49e";
+
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      width: 58px;
+      height: 58px;
+
+      margin: 0 auto 15px;
+
+      color: var(--teal-light);
+
+      background:
+        rgba(0, 128, 128, 0.08);
+
+      border-radius: 16px;
+
+      font-family:
+        "Font Awesome 6 Free";
+
+      font-weight: 900;
+
+      font-size: 1rem;
+    }
+
+    .hidden {
+      display: none !important;
+    }
+
+    .no-results {
+      display: none;
+
+      padding: 42px 20px;
+
+      color: var(--muted);
+
+      text-align: center;
+
+      font-size: 0.66rem;
+    }
+
+    /* =========================================================
+       MODAL
+    ========================================================= */
+
+    .modal {
+      position: fixed;
+
+      inset: 0;
+
+      z-index: 1500;
+
+      display: none;
+
+      align-items: center;
+      justify-content: center;
+
+      padding: 18px;
+
+      background:
+        rgba(0, 0, 0, 0.68);
+
+      backdrop-filter: blur(9px);
     }
 
     .modal.show {
       display: flex;
     }
 
-    .modal-content {
-      width: min(600px, 100%);
-      max-height: 90vh;
-      overflow-y: auto;
-      background: #fff;
-      border-radius: 14px;
-      padding: 25px;
+    .modal-card {
+      width: min(820px, 100%);
+
+      max-height: 94vh;
+
+      overflow: auto;
+
+      background:
+        linear-gradient(
+          145deg,
+          #101618 0%,
+          #0b1012 100%
+        );
+
+      border: 1px solid
+        var(--border-strong);
+
+      border-radius: 22px;
+
+      box-shadow:
+        0 30px 90px
+        rgba(0, 0, 0, 0.58);
+
+      backdrop-filter: blur(20px);
     }
 
-    .modal-header {
+    .modal-head {
       display: flex;
+      align-items: flex-start;
       justify-content: space-between;
-      align-items: center;
-      margin-bottom: 20px;
+
+      gap: 16px;
+
+      padding: 21px 22px 17px;
+
+      border-bottom:
+        1px solid var(--border);
     }
 
-    .modal-header h2 {
-      margin: 0;
+    .modal-title {
+      color: white;
+
+      font-family:
+        "Playfair Display",
+        serif;
+
+      font-size: 1.35rem;
+
+      line-height: 1.2;
     }
 
-    .close {
-      border: 0;
-      background: transparent;
-      font-size: 28px;
+    .modal-copy {
+      max-width: 650px;
+
+      margin-top: 5px;
+
+      color: var(--muted);
+
+      font-size: 0.63rem;
+
+      line-height: 1.55;
+    }
+
+    .close-btn {
+      width: 36px;
+      height: 36px;
+
+      display: grid;
+      place-items: center;
+
+      flex: 0 0 36px;
+
+      color: var(--muted);
+
+      background:
+        rgba(255, 255, 255, 0.045);
+
+      border: 1px solid var(--border);
+
+      border-radius: 10px;
+
       cursor: pointer;
-      color: #6b7280;
+
+      font-size: 21px;
+
+      line-height: 1;
+
+      transition:
+        color 0.18s ease,
+        background 0.18s ease,
+        border-color 0.18s ease,
+        transform 0.18s ease;
     }
 
-    .form-group {
-      margin-bottom: 16px;
+    .close-btn:hover {
+      color: white;
+
+      background:
+        rgba(231, 76, 60, 0.09);
+
+      border-color:
+        rgba(231, 76, 60, 0.25);
+
+      transform: rotate(2deg);
     }
 
-    label {
+    .form-body {
+      padding: 21px 22px 22px;
+    }
+
+    .form-grid {
+      display: grid;
+
+      grid-template-columns:
+        repeat(2, minmax(0, 1fr));
+
+      gap: 14px;
+    }
+
+    .field.full {
+      grid-column: 1 / -1;
+    }
+
+    .field label {
       display: block;
+
       margin-bottom: 7px;
+
+      color: var(--text-soft);
+
+      font-size: 0.64rem;
       font-weight: 600;
-      font-size: 14px;
+
+      letter-spacing: 0.2px;
     }
 
-    input,
-    textarea,
-    select {
-      width: 100%;
-      padding: 11px 12px;
-      border: 1px solid #d1d5db;
-      border-radius: 8px;
-      font: inherit;
-      background: #fff;
+    .required {
+      color: var(--danger);
     }
 
-    input:focus,
-    textarea:focus,
-    select:focus {
-      outline: none;
-      border-color: #2563eb;
+    .field-help {
+      margin-top: 6px;
+
+      color: var(--muted);
+
+      font-size: 0.55rem;
+
+      line-height: 1.45;
     }
 
-    textarea {
-      min-height: 100px;
+    textarea.control {
+      min-height: 108px;
+
       resize: vertical;
     }
 
-    .form-row {
+    /* =========================================================
+       PHOTO PANEL
+    ========================================================= */
+
+    .photo-panel {
       display: grid;
-      grid-template-columns: 1fr 1fr;
-      gap: 15px;
+
+      grid-template-columns:
+        190px minmax(0, 1fr);
+
+      gap: 16px;
+
+      padding: 15px;
+
+      background:
+        rgba(255, 255, 255, 0.025);
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 16px;
     }
 
-    .checkbox-group {
+    .photo-preview {
+      width: 190px;
+      height: 136px;
+
+      overflow: hidden;
+
+      border-radius: 14px;
+
+      border:
+        1px solid var(--border);
+
+      background:
+        rgba(255, 255, 255, 0.03);
+    }
+
+    .photo-preview img {
+      display: block;
+
+      width: 100%;
+      height: 100%;
+
+      object-fit: cover;
+    }
+
+    .photo-placeholder {
+      width: 100%;
+      height: 100%;
+
+      display: grid;
+      place-items: center;
+
+      padding: 12px;
+
+      color: var(--muted);
+
+      text-align: center;
+
+      font-size: 0.58rem;
+      font-weight: 700;
+
+      letter-spacing: 0.2px;
+
+      line-height: 1.5;
+    }
+
+    .upload-zone {
+      min-height: 136px;
+
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+
+      padding: 18px;
+
+      background:
+        rgba(255, 255, 255, 0.025);
+
+      border:
+        1.5px dashed
+        rgba(255, 255, 255, 0.14);
+
+      border-radius: 14px;
+
+      transition:
+        border-color 0.18s ease,
+        background 0.18s ease;
+    }
+
+    .upload-zone.dragover {
+      border-color: var(--teal);
+
+      background:
+        rgba(0, 128, 128, 0.07);
+    }
+
+    .upload-title {
+      color: var(--text-soft);
+
+      font-size: 0.68rem;
+      font-weight: 700;
+    }
+
+    .upload-copy {
+      margin-top: 4px;
+
+      color: var(--muted);
+
+      font-size: 0.57rem;
+
+      line-height: 1.5;
+    }
+
+    .upload-actions {
+      display: flex;
+      flex-wrap: wrap;
+
+      gap: 7px;
+
+      margin-top: 12px;
+    }
+
+    .selected-file {
+      margin-top: 9px;
+
+      color: var(--teal-light);
+
+      font-size: 0.55rem;
+      font-weight: 600;
+
+      overflow-wrap: anywhere;
+    }
+
+    /* =========================================================
+       CHECKBOX
+    ========================================================= */
+
+    .checkbox-row {
       display: flex;
       align-items: center;
-      gap: 8px;
+
+      gap: 10px;
+
+      padding: 12px 13px;
+
+      background:
+        rgba(255, 255, 255, 0.025);
+
+      border:
+        1px solid var(--border);
+
+      border-radius: 12px;
+
+      cursor: pointer;
+
+      transition:
+        background 0.18s ease,
+        border-color 0.18s ease;
     }
 
-    .checkbox-group input {
-      width: auto;
+    .checkbox-row:hover {
+      background:
+        rgba(255, 255, 255, 0.04);
+
+      border-color:
+        rgba(0, 128, 128, 0.25);
     }
 
-    .checkbox-group label {
-      margin: 0;
+    .checkbox-row input {
+      width: 17px;
+      height: 17px;
+
+      accent-color: var(--teal);
+
+      cursor: pointer;
     }
+
+    .checkbox-copy strong {
+      display: block;
+
+      color: var(--text-soft);
+
+      font-size: 0.65rem;
+    }
+
+    .checkbox-copy span {
+      display: block;
+
+      margin-top: 2px;
+
+      color: var(--muted);
+
+      font-size: 0.55rem;
+
+      line-height: 1.45;
+    }
+
+    /* =========================================================
+       FORM ACTIONS
+    ========================================================= */
 
     .form-actions {
       display: flex;
+      align-items: center;
       justify-content: flex-end;
-      gap: 10px;
+
+      gap: 8px;
+
       margin-top: 20px;
+      padding-top: 16px;
+
+      border-top:
+        1px solid var(--border);
     }
 
-    @media (max-width: 700px) {
-      .header {
+    .save-status {
+      display: flex;
+      align-items: center;
+
+      gap: 8px;
+
+      margin-right: auto;
+
+      color: var(--muted);
+
+      font-size: 0.58rem;
+    }
+
+    .spinner {
+      width: 13px;
+      height: 13px;
+
+      display: inline-block;
+
+      border:
+        2px solid
+        rgba(7, 16, 17, 0.28);
+
+      border-top-color:
+        #071011;
+
+      border-radius: 50%;
+
+      animation:
+        spin 0.8s linear infinite;
+    }
+
+    .btn-secondary .spinner,
+    .btn-danger .spinner,
+    .btn-warning .spinner,
+    .btn-success .spinner {
+      border-color:
+        rgba(255, 255, 255, 0.18);
+
+      border-top-color: white;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+    /* =========================================================
+       ACCESSIBILITY
+    ========================================================= */
+
+    .btn:focus-visible,
+    .control:focus-visible,
+    .close-btn:focus-visible,
+    .upload-zone:focus-visible,
+    .checkbox-row:focus-within {
+      outline: 2px solid var(--gold);
+      outline-offset: 3px;
+    }
+
+    /* =========================================================
+       RESPONSIVE
+    ========================================================= */
+
+    @media (max-width: 1280px) {
+      .stats-grid {
+        grid-template-columns:
+          repeat(2, minmax(0, 1fr));
+      }
+    }
+
+    @media (max-width: 980px) {
+      .hero-top {
+        align-items: stretch;
+
         flex-direction: column;
-        align-items: flex-start;
       }
 
-      .form-row {
+      .hero-badge {
+        width: 100%;
+      }
+    }
+
+    @media (max-width: 850px) {
+      .page-shell {
+        width:
+          min(100% - 30px, 1600px);
+
+        padding-top: 28px;
+      }
+
+      .toolbar-card {
+        align-items: stretch;
+
+        flex-direction: column;
+      }
+
+      .toolbar-left {
+        width: 100%;
+      }
+
+      .toolbar-card .btn-primary {
+        width: 100%;
+      }
+
+      .table-card {
+        border-radius: 21px;
+      }
+
+      .table-topline {
+        padding: 21px;
+      }
+
+      .modal-card {
+        max-height: 95vh;
+      }
+    }
+
+    @media (max-width: 640px) {
+      .page-shell {
+        width:
+          min(100% - 22px, 1600px);
+
+        padding-bottom: 50px;
+      }
+
+      .hero h1 {
+        font-size: 2.15rem;
+      }
+
+      .hero-copy {
+        font-size: 0.77rem;
+      }
+
+      .stats-grid {
         grid-template-columns: 1fr;
+
+        gap: 11px;
+      }
+
+      .stat-card {
+        min-height: 145px;
+      }
+
+      .toolbar-left {
+        grid-template-columns: 1fr;
+      }
+
+      .table-topline {
+        align-items: flex-start;
+
+        flex-direction: column;
+
+        gap: 9px;
+      }
+
+      .form-grid {
+        grid-template-columns: 1fr;
+      }
+
+      .field.full {
+        grid-column: auto;
+      }
+
+      .photo-panel {
+        grid-template-columns: 1fr;
+      }
+
+      .photo-preview {
+        width: 100%;
+        height: 210px;
+      }
+
+      .modal {
+        padding: 9px;
+      }
+
+      .modal-card {
+        max-height: 98vh;
+
+        border-radius: 18px;
+      }
+
+      .modal-head {
+        padding: 17px 16px 14px;
+      }
+
+      .form-body {
+        padding: 16px;
+      }
+
+      .form-actions {
+        flex-wrap: wrap;
+      }
+
+      .save-status {
+        width: 100%;
+        margin-right: 0;
+      }
+
+      .form-actions .btn {
+        flex: 1;
+      }
+    }
+
+    @media (max-width: 520px) {
+      .hero-badge {
+        min-width: 0;
+      }
+
+      .stat-value {
+        font-size: 1.65rem;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      html {
+        scroll-behavior: auto;
+      }
+
+      *,
+      *::before,
+      *::after {
+        animation-duration: 0.01ms !important;
+        animation-iteration-count: 1 !important;
+        transition-duration: 0.01ms !important;
       }
     }
   </style>
-
 </head>
 
 <body>
-  <div class="container">
 
-```
-<!-- PAGE HEADER -->
-<div class="header">
-  <div>
-    <h1>Add-on Management</h1>
-    <p>Manage additional resort services and their pricing.</p>
-  </div>
+  <%- include('../partials/navadmin') %>
 
-  <button
-    type="button"
-    class="btn btn-primary"
-    id="addAddOnButton"
-  >
-    + Add Add-on
-  </button>
-</div>
+  <main class="page-shell">
 
+    <!-- =======================================================
+         HEADER
+    ======================================================== -->
 
-<!-- MESSAGE -->
-<div id="message" class="message"></div>
+    <section class="hero">
 
+      <div class="hero-top">
 
-<!-- ADD-ON TABLE -->
-<div class="card">
-  <div class="table-wrapper">
+        <div>
 
-    <table>
-      <thead>
-        <tr>
-          <th>Name</th>
-          <th>Price</th>
-          <th>Pricing Type</th>
-          <th>Status</th>
-          <th>Actions</th>
-        </tr>
-      </thead>
+          <div class="eyebrow">
+            Service Catalog
+          </div>
 
-      <tbody>
+          <h1>
+            Add-on <span style="color: var(--gold);">Management</span>
+          </h1>
 
-        <% if (addOns && addOns.length > 0) { %>
+          <p class="hero-copy">
+            Manage additional resort services, pricing,
+            descriptions, visibility, ordering, and photography
+            used throughout the Puffer Isle Resort customer experience.
+          </p>
 
-          <% addOns.forEach(addOn => { %>
+        </div>
+
+        <aside class="hero-badge">
+
+          <span class="hero-badge-label">
+            Catalog Status
+          </span>
+
+          <div class="hero-badge-value">
+
+            <span></span>
+
+            <span
+              style="
+                width:auto;
+                height:auto;
+                background:none;
+                box-shadow:none;
+              "
+            >
+              Connected to live catalog
+            </span>
+
+          </div>
+
+          <div class="hero-badge-note">
+            Active add-ons can be presented to customers
+            as optional resort services during booking.
+          </div>
+
+        </aside>
+
+      </div>
+
+    </section>
+
+    <!-- =======================================================
+         STATS
+    ======================================================== -->
+
+    <section
+      class="stats-grid"
+      aria-label="Add-on catalog summary"
+    >
+
+      <article class="stat-card">
+
+        <div class="stat-icon">
+          <i
+            class="fas fa-puzzle-piece"
+            aria-hidden="true"
+          ></i>
+        </div>
+
+        <div class="stat-label">
+          Total Add-ons
+        </div>
+
+        <div
+          class="stat-value"
+          id="statTotalAddOns"
+        >
+          0
+        </div>
+
+        <div class="stat-meta">
+          Services in the catalog
+        </div>
+
+        <i
+          class="fas fa-puzzle-piece stat-background-icon"
+          aria-hidden="true"
+        ></i>
+
+      </article>
+
+      <article class="stat-card">
+
+        <div class="stat-icon">
+          <i
+            class="fas fa-circle-check"
+            aria-hidden="true"
+          ></i>
+        </div>
+
+        <div class="stat-label">
+          Active
+        </div>
+
+        <div
+          class="stat-value"
+          id="statActiveAddOns"
+        >
+          0
+        </div>
+
+        <div class="stat-meta">
+          Currently available to customers
+        </div>
+
+        <i
+          class="fas fa-circle-check stat-background-icon"
+          aria-hidden="true"
+        ></i>
+
+      </article>
+
+      <article class="stat-card">
+
+        <div class="stat-icon">
+          <i
+            class="fas fa-moon"
+            aria-hidden="true"
+          ></i>
+        </div>
+
+        <div class="stat-label">
+          Per Night
+        </div>
+
+        <div
+          class="stat-value"
+          id="statPerNightAddOns"
+        >
+          0
+        </div>
+
+        <div class="stat-meta">
+          Recurring nightly services
+        </div>
+
+        <i
+          class="fas fa-moon stat-background-icon"
+          aria-hidden="true"
+        ></i>
+
+      </article>
+
+      <article class="stat-card">
+
+        <div class="stat-icon">
+          <i
+            class="fas fa-tag"
+            aria-hidden="true"
+          ></i>
+        </div>
+
+        <div class="stat-label">
+          Once per Stay
+        </div>
+
+        <div
+          class="stat-value"
+          id="statOnceAddOns"
+        >
+          0
+        </div>
+
+        <div class="stat-meta">
+          One-time service charges
+        </div>
+
+        <i
+          class="fas fa-tag stat-background-icon"
+          aria-hidden="true"
+        ></i>
+
+      </article>
+
+    </section>
+
+    <!-- =======================================================
+         MESSAGE
+    ======================================================== -->
+
+    <div
+      id="message"
+      class="message"
+      role="status"
+      aria-live="polite"
+    ></div>
+
+    <!-- =======================================================
+         TOOLBAR
+    ======================================================== -->
+
+    <section
+      class="toolbar-card"
+      aria-label="Add-on filters and actions"
+    >
+
+      <div class="toolbar-left">
+
+        <input
+          id="addOnSearch"
+          class="control"
+          type="search"
+          placeholder="Search add-ons, descriptions, or pricing…"
+          autocomplete="off"
+        >
+
+        <select
+          id="addOnStatusFilter"
+          class="control"
+          aria-label="Filter add-ons by status"
+        >
+
+          <option value="all">
+            All statuses
+          </option>
+
+          <option value="active">
+            Active
+          </option>
+
+          <option value="inactive">
+            Inactive
+          </option>
+
+        </select>
+
+      </div>
+
+      <button
+        type="button"
+        class="btn btn-primary"
+        id="addAddOnButton"
+      >
+        <i
+          class="fas fa-plus"
+          aria-hidden="true"
+        ></i>
+
+        Add Add-on
+      </button>
+
+    </section>
+
+    <!-- =======================================================
+         TABLE
+    ======================================================== -->
+
+    <section class="table-card">
+
+      <div class="table-topline">
+
+        <div>
+
+          <h2 class="table-title">
+            Add-on Catalog
+          </h2>
+
+          <p class="table-subtitle">
+            Services and pricing settings used by IsleRMS.
+          </p>
+
+        </div>
+
+        <div
+          class="result-count"
+          id="resultCount"
+        >
+          0 add-ons
+        </div>
+
+      </div>
+
+      <div class="table-wrap">
+
+        <table>
+
+          <thead>
 
             <tr>
 
-              <!-- NAME -->
-              <td>
-                <strong>
-                  <%= addOn.name %>
-                </strong>
+              <th>
+                Add-on
+              </th>
 
-                <% if (addOn.description) { %>
-                  <div style="color: #6b7280; margin-top: 4px;">
-                    <%= addOn.description %>
-                  </div>
-                <% } %>
-              </td>
+              <th>
+                Price
+              </th>
 
+              <th>
+                Pricing Type
+              </th>
 
-              <!-- PRICE -->
-              <td class="price">
-                ₱<%= Number(addOn.price || 0).toLocaleString() %>
-              </td>
+              <th>
+                Order
+              </th>
 
+              <th>
+                Status
+              </th>
 
-              <!-- PRICING TYPE -->
-              <td>
-                <span class="pricing-type">
-                  <%= addOn.pricingType === "perNight"
-                    ? "Per Night"
-                    : "Once per Stay"
-                  %>
-                </span>
-              </td>
-
-
-              <!-- STATUS -->
-              <td>
-                <% if (addOn.active) { %>
-
-                  <span class="status status-active">
-                    Active
-                  </span>
-
-                <% } else { %>
-
-                  <span class="status status-inactive">
-                    Inactive
-                  </span>
-
-                <% } %>
-              </td>
-
-
-              <!-- ACTIONS -->
-              <td>
-                <div class="actions">
-
-                  <!-- EDIT -->
-                  <button
-                    type="button"
-                    class="btn btn-primary edit-add-on-btn"
-                    data-id="<%= addOn._id %>"
-                    data-name="<%= addOn.name || '' %>"
-                    data-price="<%= addOn.price ?? '' %>"
-                    data-pricing-type="<%= addOn.pricingType || 'once' %>"
-                    data-sort-order="<%= addOn.sortOrder ?? 0 %>"
-                    data-image="<%= addOn.image || '' %>"
-                    data-description="<%= addOn.description || '' %>"
-                    data-active="<%= addOn.active !== false %>"
-                  >
-                    Edit
-                  </button>
-
-
-                  <!-- ACTIVATE / DEACTIVATE -->
-                  <button
-                    type="button"
-                    class="btn <%= addOn.active ? 'btn-warning' : 'btn-success' %> toggle-add-on-btn"
-                    data-id="<%= addOn._id %>"
-                    data-active="<%= addOn.active === true %>"
-                  >
-                    <%= addOn.active ? "Deactivate" : "Activate" %>
-                  </button>
-
-
-                  <!-- DELETE -->
-                  <button
-                    type="button"
-                    class="btn btn-danger delete-add-on-btn"
-                    data-id="<%= addOn._id %>"
-                    data-name="<%= addOn.name || '' %>"
-                  >
-                    Delete
-                  </button>
-
-                </div>
-              </td>
+              <th>
+                Actions
+              </th>
 
             </tr>
 
-          <% }) %>
+          </thead>
 
-        <% } else { %>
+          <tbody id="addOnsTableBody">
 
-          <tr>
-            <td colspan="5" class="empty">
-              No add-ons have been added yet.
-            </td>
-          </tr>
+            <% if (addOns && addOns.length) { %>
 
-        <% } %>
+              <% addOns.forEach(function (addOn) { %>
 
-      </tbody>
-    </table>
+                <tr
+                  class="add-on-row"
+                  data-id="<%= addOn._id || addOn.id %>"
+                  data-search="<%= [
+                    addOn.name,
+                    addOn.displayName,
+                    addOn.description,
+                    addOn.pricingType
+                  ].filter(Boolean).join(' ').toLowerCase() %>"
+                  data-status="<%= addOn.active !== false ? 'active' : 'inactive' %>"
+                >
 
-  </div>
-</div>
-```
+                  <!-- ADD-ON -->
 
-  </div>
+                  <td>
 
-  <!-- ADD / EDIT ADD-ON MODAL -->
+                    <div class="addon-cell">
+
+                      <% if (addOn.image) { %>
+
+                        <img
+                          class="addon-image"
+                          src="<%= addOn.image %>"
+                          alt="<%= addOn.name || 'Add-on' %>"
+                          loading="lazy"
+                          onerror="
+                            this.style.display='none';
+                            this.nextElementSibling.classList.remove('hidden');
+                          "
+                        >
+
+                        <div
+                          class="addon-image image-placeholder hidden"
+                        >
+                          No image
+                        </div>
+
+                      <% } else { %>
+
+                        <div
+                          class="addon-image image-placeholder"
+                        >
+                          No image
+                        </div>
+
+                      <% } %>
+
+                      <div>
+
+                        <div class="addon-name">
+                          <%= addOn.name || "Unnamed add-on" %>
+                        </div>
+
+                        <% if (addOn.description) { %>
+
+                          <div class="addon-desc">
+                            <%= addOn.description %>
+                          </div>
+
+                        <% } %>
+
+                      </div>
+
+                    </div>
+
+                  </td>
+
+                  <!-- PRICE -->
+
+                  <td class="price">
+                    ₱<%= Number(addOn.price || 0).toLocaleString(
+                      "en-PH",
+                      {
+                        minimumFractionDigits: 0,
+                        maximumFractionDigits: 2
+                      }
+                    ) %>
+                  </td>
+
+                  <!-- PRICING TYPE -->
+
+                  <td>
+
+                    <%
+                      const pricingType =
+                        String(
+                          addOn.pricingType || "once"
+                        ).toLowerCase();
+                    %>
+
+                    <span
+                      class="pricing-badge <%= pricingType === 'pernight' ? 'nightly' : '' %>"
+                    >
+
+                      <i
+                        class="fas <%= pricingType === 'pernight' ? 'fa-moon' : 'fa-tag' %>"
+                        aria-hidden="true"
+                      ></i>
+
+                      <%= pricingType === "pernight"
+                        ? "Per Night"
+                        : "Once per Stay"
+                      %>
+
+                    </span>
+
+                  </td>
+
+                  <!-- SORT ORDER -->
+
+                  <td>
+
+                    <span class="sort-badge">
+                      #<%= Number(addOn.sortOrder || 0) %>
+                    </span>
+
+                  </td>
+
+                  <!-- STATUS -->
+
+                  <td>
+
+                    <% if (addOn.active !== false) { %>
+
+                      <span class="status-badge status-active">
+
+                        <i
+                          class="fas fa-circle-check"
+                          aria-hidden="true"
+                        ></i>
+
+                        Active
+
+                      </span>
+
+                    <% } else { %>
+
+                      <span class="status-badge status-inactive">
+
+                        <i
+                          class="fas fa-circle"
+                          aria-hidden="true"
+                        ></i>
+
+                        Inactive
+
+                      </span>
+
+                    <% } %>
+
+                  </td>
+
+                  <!-- ACTIONS -->
+
+                  <td>
+
+                    <div class="actions">
+
+                      <button
+                        type="button"
+                        class="btn btn-primary edit-add-on-btn"
+                        data-id="<%= addOn._id || addOn.id %>"
+                      >
+
+                        <i
+                          class="fas fa-pen"
+                          aria-hidden="true"
+                        ></i>
+
+                        Edit
+
+                      </button>
+
+                      <button
+                        type="button"
+                        class="btn <%= addOn.active !== false ? 'btn-warning' : 'btn-success' %> toggle-add-on-btn"
+                        data-id="<%= addOn._id || addOn.id %>"
+                        data-active="<%= addOn.active !== false ? 'true' : 'false' %>"
+                      >
+
+                        <i
+                          class="fas <%= addOn.active !== false ? 'fa-toggle-off' : 'fa-toggle-on' %>"
+                          aria-hidden="true"
+                        ></i>
+
+                        <%= addOn.active !== false
+                          ? "Deactivate"
+                          : "Activate"
+                        %>
+
+                      </button>
+
+                      <button
+                        type="button"
+                        class="btn btn-danger remove-add-on-btn"
+                        data-id="<%= addOn._id || addOn.id %>"
+                        data-name="<%= addOn.name || 'this add-on' %>"
+                      >
+
+                        <i
+                          class="fas fa-trash-can"
+                          aria-hidden="true"
+                        ></i>
+
+                        Remove
+
+                      </button>
+
+                    </div>
+
+                  </td>
+
+                </tr>
+
+              <% }) %>
+
+            <% } else { %>
+
+              <tr id="emptyRow">
+
+                <td
+                  colspan="6"
+                  class="empty"
+                >
+                  No add-ons have been added yet.
+                </td>
+
+              </tr>
+
+            <% } %>
+
+          </tbody>
+
+        </table>
+
+      </div>
+
+      <div
+        id="noResults"
+        class="no-results"
+      >
+        No add-ons match the current search or status filter.
+      </div>
+
+    </section>
+
+  </main>
+
+  <!-- =========================================================
+       ADD / EDIT MODAL
+  ========================================================= -->
 
   <div
     id="addOnModal"
     class="modal"
+    aria-hidden="true"
   >
-    <div class="modal-content">
 
-```
-  <div class="modal-header">
-    <h2 id="modalTitle">
-      Add Add-on
-    </h2>
-
-    <button
-      type="button"
-      class="close"
-      id="closeModalButton"
-    >
-      &times;
-    </button>
-  </div>
-
-
-  <form id="addOnForm">
-
-    <input
-      type="hidden"
-      id="addOnId"
+    <div
+      class="modal-card"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="modalTitle"
     >
 
+      <div class="modal-head">
 
-    <!-- ADD-ON NAME -->
-    <div class="form-group">
-      <label for="name">
-        Add-on Name
-      </label>
+        <div>
 
-      <input
-        type="text"
-        id="name"
-        required
-        maxlength="100"
-        placeholder="e.g. Seaside Cottage"
+          <h2
+            id="modalTitle"
+            class="modal-title"
+          >
+            Add Add-on
+          </h2>
+
+          <p class="modal-copy">
+            Keep the service catalog accurate so pricing,
+            descriptions, and customer-facing information
+            remain consistent throughout IsleRMS.
+          </p>
+
+        </div>
+
+        <button
+          type="button"
+          class="close-btn"
+          id="closeModalButton"
+          aria-label="Close"
+        >
+          &times;
+        </button>
+
+      </div>
+
+      <form
+        id="addOnForm"
+        novalidate
       >
-    </div>
-
-
-    <!-- PRICE / PRICING TYPE -->
-    <div class="form-row">
-
-      <div class="form-group">
-        <label for="price">
-          Price
-        </label>
 
         <input
-          type="number"
-          id="price"
-          min="0"
-          step="0.01"
-          required
-          placeholder="1200"
+          type="hidden"
+          id="addOnId"
+          value=""
         >
-      </div>
 
+        <div class="form-body">
 
-      <div class="form-group">
-        <label for="pricingType">
-          Pricing Type
-        </label>
+          <div class="form-grid">
 
-        <select
-          id="pricingType"
-          required
-        >
-          <option value="once">
-            Once per Stay
-          </option>
+            <!-- NAME -->
 
-          <option value="perNight">
-            Per Night
-          </option>
-        </select>
-      </div>
+            <div class="field full">
+
+              <label for="name">
+
+                Add-on Name
+
+                <span class="required">*</span>
+
+              </label>
+
+              <input
+                id="name"
+                class="control"
+                type="text"
+                required
+                maxlength="150"
+                placeholder="e.g. Extra Breakfast"
+              >
+
+            </div>
+
+            <!-- PRICE -->
+
+            <div class="field">
+
+              <label for="price">
+
+                Price
+
+                <span class="required">*</span>
+
+              </label>
+
+              <input
+                id="price"
+                class="control"
+                type="number"
+                min="0"
+                step="0.01"
+                required
+                placeholder="1200"
+              >
+
+              <p class="field-help">
+                Enter the customer-facing price in Philippine pesos.
+              </p>
+
+            </div>
+
+            <!-- PRICING TYPE -->
+
+            <div class="field">
+
+              <label for="pricingType">
+                Pricing Type
+              </label>
+
+              <select
+                id="pricingType"
+                class="control"
+              >
+
+                <option value="once">
+                  Once per Stay
+                </option>
+
+                <option value="perNight">
+                  Per Night
+                </option>
+
+              </select>
+
+              <p class="field-help">
+                Determines how the service should be priced during a stay.
+              </p>
+
+            </div>
+
+            <!-- SORT ORDER -->
+
+            <div class="field">
+
+              <label for="sortOrder">
+                Catalog Sort Order
+              </label>
+
+              <input
+                id="sortOrder"
+                class="control"
+                type="number"
+                min="0"
+                step="1"
+                value="0"
+              >
+
+              <p class="field-help">
+                Lower numbers are intended to appear earlier in the catalog.
+              </p>
+
+            </div>
+
+            <!-- IMAGE URL -->
+
+            <div class="field">
+
+              <label for="image">
+                Image Path / URL
+              </label>
+
+              <input
+                id="image"
+                class="control"
+                type="text"
+                maxlength="500"
+                placeholder="/uploads/addons/addon.jpg"
+              >
+
+              <p class="field-help">
+                Use this for an existing image path or external image URL.
+              </p>
+
+            </div>
+
+            <!-- DESCRIPTION -->
+
+            <div class="field full">
+
+              <label for="description">
+                Description
+              </label>
+
+              <textarea
+                id="description"
+                class="control"
+                maxlength="2000"
+                placeholder="Describe the add-on and what the guest receives..."
+              ></textarea>
+
+            </div>
+
+            <!-- IMAGE UPLOAD -->
+
+            <div class="field full">
+
+              <label>
+                Add-on Photo
+              </label>
+
+              <div class="photo-panel">
+
+                <div
+                  class="photo-preview"
+                  id="photoPreview"
+                >
+
+                  <div
+                    class="photo-placeholder"
+                    id="photoPlaceholder"
+                  >
+                    No photo selected
+                  </div>
+
+                  <img
+                    id="photoPreviewImage"
+                    class="hidden"
+                    src=""
+                    alt="Add-on preview"
+                  >
+
+                </div>
+
+                <div
+                  class="upload-zone"
+                  id="uploadZone"
+                  tabindex="0"
+                  role="button"
+                  aria-label="Choose add-on photo"
+                >
+
+                  <div class="upload-title">
+                    Add or replace the add-on photo
+                  </div>
+
+                  <div class="upload-copy">
+                    Choose a JPG, PNG, or WEBP image.
+                    Maximum 8 MB.
+                    The selected image will be uploaded to
+                    the server after the add-on record is saved.
+                  </div>
+
+                  <div class="upload-actions">
+
+                    <button
+                      type="button"
+                      class="btn btn-secondary"
+                      id="chooseImageButton"
+                    >
+
+                      <i
+                        class="fas fa-image"
+                        aria-hidden="true"
+                      ></i>
+
+                      Choose Image
+
+                    </button>
+
+                    <button
+                      type="button"
+                      class="btn btn-secondary hidden"
+                      id="clearImageButton"
+                    >
+
+                      <i
+                        class="fas fa-xmark"
+                        aria-hidden="true"
+                      ></i>
+
+                      Clear Selection
+
+                    </button>
+
+                  </div>
+
+                  <input
+                    id="imageFile"
+                    type="file"
+                    accept="image/jpeg,image/png,image/webp"
+                    class="hidden"
+                  >
+
+                  <div
+                    id="selectedFile"
+                    class="selected-file"
+                    aria-live="polite"
+                  ></div>
+
+                </div>
+
+              </div>
+
+              <p class="field-help">
+                Uploaded images are intended to become the image
+                displayed on the customer-facing add-on catalog.
+              </p>
+
+            </div>
+
+            <!-- ACTIVE -->
+
+            <div class="field full">
+
+              <label>
+                Booking Visibility
+              </label>
+
+              <label
+                class="checkbox-row"
+                for="active"
+              >
+
+                <input
+                  type="checkbox"
+                  id="active"
+                  checked
+                >
+
+                <span class="checkbox-copy">
+
+                  <strong>
+                    Add-on is active
+                  </strong>
+
+                  <span>
+                    Active add-ons can be shown to customers
+                    and used by the booking experience.
+                  </span>
+
+                </span>
+
+              </label>
+
+            </div>
+
+          </div>
+
+          <!-- FORM ACTIONS -->
+
+          <div class="form-actions">
+
+            <div
+              class="save-status"
+              id="saveStatus"
+              aria-live="polite"
+            ></div>
+
+            <button
+              type="button"
+              class="btn btn-secondary"
+              id="cancelModalButton"
+            >
+
+              <i
+                class="fas fa-xmark"
+                aria-hidden="true"
+              ></i>
+
+              Cancel
+
+            </button>
+
+            <button
+              type="submit"
+              class="btn btn-primary"
+              id="saveAddOnButton"
+            >
+
+              <i
+                class="fas fa-floppy-disk"
+                aria-hidden="true"
+              ></i>
+
+              Save Add-on
+
+            </button>
+
+          </div>
+
+        </div>
+
+      </form>
 
     </div>
-
-
-    <!-- SORT ORDER -->
-    <div class="form-group">
-      <label for="sortOrder">
-        Sort Order
-      </label>
-
-      <input
-        type="number"
-        id="sortOrder"
-        min="0"
-        step="1"
-        value="0"
-      >
-    </div>
-
-
-    <!-- IMAGE -->
-    <div class="form-group">
-      <label for="image">
-        Image Path / URL
-      </label>
-
-      <input
-        type="text"
-        id="image"
-        maxlength="500"
-        placeholder="/images/addon1.jpg"
-      >
-    </div>
-
-
-    <!-- DESCRIPTION -->
-    <div class="form-group">
-      <label for="description">
-        Description
-      </label>
-
-      <textarea
-        id="description"
-        maxlength="2000"
-        placeholder="Describe this add-on..."
-      ></textarea>
-    </div>
-
-
-    <!-- ACTIVE -->
-    <div class="form-group checkbox-group">
-
-      <input
-        type="checkbox"
-        id="active"
-        checked
-      >
-
-      <label for="active">
-        Add-on is active and available for booking
-      </label>
-
-    </div>
-
-
-    <!-- FORM ACTIONS -->
-    <div class="form-actions">
-
-      <button
-        type="button"
-        class="btn btn-secondary"
-        id="cancelModalButton"
-      >
-        Cancel
-      </button>
-
-      <button
-        type="submit"
-        class="btn btn-primary"
-      >
-        Save Add-on
-      </button>
-
-    </div>
-
-  </form>
-</div>
-```
 
   </div>
 
+  <!-- =========================================================
+       JAVASCRIPT
+  ========================================================= -->
+
   <script>
-    // ==========================================
-    // DOM ELEMENTS
-    // ==========================================
+    (() => {
+      "use strict";
 
-    const modal = document.getElementById("addOnModal");
-    const form = document.getElementById("addOnForm");
-    const message = document.getElementById("message");
+      const addOns =
+        <%- JSON.stringify(addOns || []).replace(/</g, "\\u003c") %>;
 
-    const addAddOnButton =
-      document.getElementById("addAddOnButton");
+      const modal =
+        document.getElementById("addOnModal");
 
-    const closeModalButton =
-      document.getElementById("closeModalButton");
+      const form =
+        document.getElementById("addOnForm");
 
-    const cancelModalButton =
-      document.getElementById("cancelModalButton");
+      const message =
+        document.getElementById("message");
 
+      const addAddOnButton =
+        document.getElementById("addAddOnButton");
 
-    // ==========================================
-    // MESSAGE
-    // ==========================================
+      const closeModalButton =
+        document.getElementById("closeModalButton");
 
-    function showMessage(text, type = "success") {
-      message.textContent = text;
-      message.className = `message show ${type}`;
+      const cancelModalButton =
+        document.getElementById("cancelModalButton");
 
-      setTimeout(() => {
-        message.className = "message";
-      }, 4000);
-    }
+      const saveAddOnButton =
+        document.getElementById("saveAddOnButton");
 
+      const saveStatus =
+        document.getElementById("saveStatus");
 
-    // ==========================================
-    // MODAL
-    // ==========================================
+      const addOnSearch =
+        document.getElementById("addOnSearch");
 
-    function openAddModal() {
-      document.getElementById("modalTitle").textContent =
-        "Add Add-on";
+      const addOnStatusFilter =
+        document.getElementById("addOnStatusFilter");
 
-      form.reset();
+      const resultCount =
+        document.getElementById("resultCount");
 
-      document.getElementById("addOnId").value = "";
-      document.getElementById("pricingType").value = "once";
-      document.getElementById("sortOrder").value = "0";
-      document.getElementById("active").checked = true;
+      const noResults =
+        document.getElementById("noResults");
 
-      modal.classList.add("show");
-    }
+      const imageFile =
+        document.getElementById("imageFile");
 
+      const chooseImageButton =
+        document.getElementById("chooseImageButton");
 
-    function openEditModal(button) {
-      const addOnId =
-        button.dataset.id || "";
+      const clearImageButton =
+        document.getElementById("clearImageButton");
 
-      const addOnName =
-        button.dataset.name || "";
+      const uploadZone =
+        document.getElementById("uploadZone");
 
-      const addOnPrice =
-        button.dataset.price || "";
+      const selectedFile =
+        document.getElementById("selectedFile");
 
-      const pricingType =
-        button.dataset.pricingType || "once";
+      const photoPreviewImage =
+        document.getElementById("photoPreviewImage");
 
-      const sortOrder =
-        button.dataset.sortOrder || "0";
+      const photoPlaceholder =
+        document.getElementById("photoPlaceholder");
 
-      const image =
-        button.dataset.image || "";
-
-      const description =
-        button.dataset.description || "";
-
-      const active =
-        button.dataset.active === "true";
-
-
-      document.getElementById("modalTitle").textContent =
-        "Edit Add-on";
-
-      document.getElementById("addOnId").value =
-        addOnId;
-
-      document.getElementById("name").value =
-        addOnName;
-
-      document.getElementById("price").value =
-        addOnPrice;
-
-      document.getElementById("pricingType").value =
-        pricingType;
-
-      document.getElementById("sortOrder").value =
-        sortOrder;
-
-      document.getElementById("image").value =
-        image;
-
-      document.getElementById("description").value =
-        description;
-
-      document.getElementById("active").checked =
-        active;
-
-      modal.classList.add("show");
-    }
-
-
-    function closeModal() {
-      modal.classList.remove("show");
-    }
-
-
-    // ==========================================
-    // ADD / UPDATE ADD-ON
-    // ==========================================
-
-    async function saveAddOn(event) {
-      event.preventDefault();
-
-      const id =
-        document.getElementById("addOnId")
-          .value
-          .trim();
-
-
-      const data = {
-        name:
-          document.getElementById("name")
-            .value
-            .trim(),
-
-        price:
-          Number(
-            document.getElementById("price")
-              .value
-          ),
-
-        pricingType:
-          document.getElementById("pricingType")
-            .value,
-
-        sortOrder:
-          Number(
-            document.getElementById("sortOrder")
-              .value || 0
-          ),
-
-        image:
-          document.getElementById("image")
-            .value
-            .trim(),
-
-        description:
-          document.getElementById("description")
-            .value
-            .trim(),
-
-        active:
-          document.getElementById("active")
-            .checked
-      };
-
-
-      try {
-
-        const response = await fetch(
-          id
-            ? `/admin/api/add-ons/${id}`
-            : "/admin/api/add-ons",
-          {
-            method: id ? "PUT" : "POST",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body:
-              JSON.stringify(data)
-          }
+      const addOnMap =
+        new Map(
+          addOns.map((addOn) => [
+            String(
+              addOn._id ||
+              addOn.id
+            ),
+            addOn
+          ])
         );
 
+      let selectedImageFile = null;
+      let currentImageUrl = "";
+      let activeObjectUrl = null;
 
-        let result = {};
+      /* =======================================================
+         CSRF
+      ======================================================= */
 
-        try {
-          result = await response.json();
-        } catch {
-          result = {};
-        }
+      function getAdminCsrfToken() {
 
-
-        if (!response.ok) {
-          throw new Error(
-            result.error ||
-            result.message ||
-            "Unable to save add-on."
+        const hiddenToken =
+          document.getElementById(
+            "adminCsrfToken"
           );
+
+        if (
+          hiddenToken &&
+          hiddenToken.value
+        ) {
+          return hiddenToken.value;
         }
 
+        if (
+          window.IsleRMS &&
+          typeof window.IsleRMS.getCsrfToken ===
+            "function"
+        ) {
+          return window.IsleRMS.getCsrfToken();
+        }
 
-        showMessage(
-          id
-            ? "Add-on updated successfully."
-            : "Add-on added successfully."
-        );
+        const fallback =
+          document.querySelector(
+            "input[name='_csrf']"
+          );
 
-
-        closeModal();
-
-
-        setTimeout(() => {
-          window.location.reload();
-        }, 700);
-
-      } catch (error) {
-
-        showMessage(
-          error.message ||
-          "Unable to save add-on.",
-          "error"
-        );
-
+        return fallback
+          ? fallback.value
+          : "";
       }
-    }
 
+      /* =======================================================
+         MESSAGE
+      ======================================================= */
 
-    // ==========================================
-    // ACTIVATE / DEACTIVATE ADD-ON
-    // ==========================================
+      let messageTimer = null;
 
-    async function toggleAddOn(
-      id,
-      currentlyActive
-    ) {
-      const action =
-        currentlyActive
-          ? "deactivate"
-          : "activate";
-
-
-      if (
-        !confirm(
-          `Are you sure you want to ${action} this add-on?`
-        )
+      function showMessage(
+        text,
+        type = "success"
       ) {
-        return;
-      }
 
-
-      try {
-
-        const response = await fetch(
-          `/admin/api/add-ons/${id}/status`,
-          {
-            method: "PATCH",
-
-            headers: {
-              "Content-Type":
-                "application/json"
-            },
-
-            body:
-              JSON.stringify({
-                active: !currentlyActive
-              })
-          }
+        window.clearTimeout(
+          messageTimer
         );
 
+        message.textContent =
+          text;
 
-        let result = {};
+        message.className =
+          `message show ${type}`;
+
+        messageTimer =
+          window.setTimeout(() => {
+
+            message.className =
+              "message";
+
+          }, 5500);
+      }
+
+      function clearMessage() {
+
+        window.clearTimeout(
+          messageTimer
+        );
+
+        message.className =
+          "message";
+
+        message.textContent =
+          "";
+      }
+
+      /* =======================================================
+         RESPONSE HANDLING
+      ======================================================= */
+
+      async function parseJsonResponse(
+        response,
+        fallbackMessage
+      ) {
+
+        const text =
+          await response.text();
+
+        let data = {};
 
         try {
-          result = await response.json();
-        } catch {
-          result = {};
+
+          data =
+            text
+              ? JSON.parse(text)
+              : {};
+
+        } catch (_) {
+
+          data = {};
+
         }
 
-
         if (!response.ok) {
+
+          if (response.status === 401) {
+
+            throw new Error(
+              "Your administrator session has expired. Please sign in again."
+            );
+
+          }
+
+          if (response.status === 403) {
+
+            throw new Error(
+              data.message ||
+              "This action was blocked by security protection. Refresh the page and try again."
+            );
+
+          }
+
+          if (response.status === 413) {
+
+            throw new Error(
+              data.message ||
+              "The selected image is too large."
+            );
+
+          }
+
           throw new Error(
-            result.error ||
-            result.message ||
-            "Unable to change add-on status."
+            data.message ||
+            data.error ||
+            fallbackMessage
           );
         }
 
+        return data;
+      }
 
-        window.location.reload();
+      /* =======================================================
+         SAVE STATE
+      ======================================================= */
 
-      } catch (error) {
+      function setSavingState(
+        isSaving,
+        text = ""
+      ) {
 
-        showMessage(
-          error.message ||
-          "Unable to change add-on status.",
-          "error"
+        saveAddOnButton.disabled =
+          isSaving;
+
+        addAddOnButton.disabled =
+          isSaving;
+
+        saveAddOnButton.innerHTML =
+          isSaving
+            ? `
+              <span
+                style="
+                  display:inline-flex;
+                  align-items:center;
+                  gap:8px;
+                "
+              >
+                <span class="spinner"></span>
+                Saving…
+              </span>
+            `
+            : `
+              <i
+                class="fas fa-floppy-disk"
+                aria-hidden="true"
+              ></i>
+              Save Add-on
+            `;
+
+        saveStatus.textContent =
+          text;
+      }
+
+      /* =======================================================
+         IMAGE PREVIEW
+      ======================================================= */
+
+      function resetPhotoSelection() {
+
+        selectedImageFile =
+          null;
+
+        if (activeObjectUrl) {
+
+          URL.revokeObjectURL(
+            activeObjectUrl
+          );
+
+          activeObjectUrl =
+            null;
+        }
+
+        imageFile.value =
+          "";
+
+        selectedFile.textContent =
+          "";
+
+        clearImageButton.classList.add(
+          "hidden"
         );
 
+        if (currentImageUrl) {
+
+          photoPreviewImage.src =
+            currentImageUrl;
+
+          photoPreviewImage.classList.remove(
+            "hidden"
+          );
+
+          photoPlaceholder.classList.add(
+            "hidden"
+          );
+
+        } else {
+
+          photoPreviewImage.removeAttribute(
+            "src"
+          );
+
+          photoPreviewImage.classList.add(
+            "hidden"
+          );
+
+          photoPlaceholder.textContent =
+            "No photo selected";
+
+          photoPlaceholder.classList.remove(
+            "hidden"
+          );
+        }
       }
-    }
 
+      function setPhotoPreview(file) {
 
-    // ==========================================
-    // DELETE ADD-ON
-    // ==========================================
+        if (!file) {
 
-    async function deleteAddOn(
-      id,
-      name
-    ) {
+          resetPhotoSelection();
 
-      const confirmed = confirm(
-        `Delete "${name}"?\n\n` +
-        `If this add-on has been used in booking history, ` +
-        `the system may require you to deactivate it instead.`
+          return;
+        }
+
+        const allowedTypes = [
+          "image/jpeg",
+          "image/png",
+          "image/webp"
+        ];
+
+        if (
+          file.size >
+          8 * 1024 * 1024
+        ) {
+
+          showMessage(
+            "The selected image is larger than 8 MB. Please choose a smaller image.",
+            "error"
+          );
+
+          imageFile.value =
+            "";
+
+          return;
+        }
+
+        if (
+          !allowedTypes.includes(
+            file.type
+          )
+        ) {
+
+          showMessage(
+            "Please choose a JPG, PNG, or WEBP image.",
+            "error"
+          );
+
+          imageFile.value =
+            "";
+
+          return;
+        }
+
+        selectedImageFile =
+          file;
+
+        if (activeObjectUrl) {
+
+          URL.revokeObjectURL(
+            activeObjectUrl
+          );
+        }
+
+        activeObjectUrl =
+          URL.createObjectURL(
+            file
+          );
+
+        photoPreviewImage.src =
+          activeObjectUrl;
+
+        photoPreviewImage.classList.remove(
+          "hidden"
+        );
+
+        photoPlaceholder.classList.add(
+          "hidden"
+        );
+
+        clearImageButton.classList.remove(
+          "hidden"
+        );
+
+        selectedFile.textContent =
+          `${file.name} · ${(file.size / 1024 / 1024).toFixed(2)} MB`;
+
+        clearMessage();
+      }
+
+      /* =======================================================
+         MODAL
+      ======================================================= */
+
+      function openAddModal() {
+
+        form.reset();
+
+        document.getElementById(
+          "modalTitle"
+        ).textContent =
+          "Add Add-on";
+
+        document.getElementById(
+          "addOnId"
+        ).value =
+          "";
+
+        document.getElementById(
+          "pricingType"
+        ).value =
+          "once";
+
+        document.getElementById(
+          "sortOrder"
+        ).value =
+          "0";
+
+        document.getElementById(
+          "active"
+        ).checked =
+          true;
+
+        currentImageUrl =
+          "";
+
+        resetPhotoSelection();
+
+        clearMessage();
+
+        saveStatus.textContent =
+          "";
+
+        modal.classList.add(
+          "show"
+        );
+
+        modal.setAttribute(
+          "aria-hidden",
+          "false"
+        );
+
+        window.setTimeout(() => {
+
+          document
+            .getElementById("name")
+            .focus();
+
+        }, 50);
+      }
+
+      function openEditModal(addOn) {
+
+        if (!addOn) {
+          return;
+        }
+
+        document.getElementById(
+          "modalTitle"
+        ).textContent =
+          "Edit Add-on";
+
+        document.getElementById(
+          "addOnId"
+        ).value =
+          String(
+            addOn._id ||
+            addOn.id ||
+            ""
+          );
+
+        document.getElementById(
+          "name"
+        ).value =
+          addOn.name ||
+          addOn.displayName ||
+          "";
+
+        document.getElementById(
+          "price"
+        ).value =
+          addOn.price ??
+          addOn.amount ??
+          "";
+
+        document.getElementById(
+          "pricingType"
+        ).value =
+          String(
+            addOn.pricingType ||
+            "once"
+          );
+
+        document.getElementById(
+          "sortOrder"
+        ).value =
+          addOn.sortOrder ??
+          "0";
+
+        document.getElementById(
+          "image"
+        ).value =
+          addOn.image ||
+          "";
+
+        document.getElementById(
+          "description"
+        ).value =
+          addOn.description ||
+          "";
+
+        document.getElementById(
+          "active"
+        ).checked =
+          addOn.active !== false;
+
+        currentImageUrl =
+          addOn.image ||
+          "";
+
+        resetPhotoSelection();
+
+        clearMessage();
+
+        saveStatus.textContent =
+          "";
+
+        modal.classList.add(
+          "show"
+        );
+
+        modal.setAttribute(
+          "aria-hidden",
+          "false"
+        );
+      }
+
+      function closeModal() {
+
+        if (
+          saveAddOnButton.disabled
+        ) {
+          return;
+        }
+
+        modal.classList.remove(
+          "show"
+        );
+
+        modal.setAttribute(
+          "aria-hidden",
+          "true"
+        );
+
+        resetPhotoSelection();
+      }
+
+      /* =======================================================
+         STATS
+      ======================================================= */
+
+      function refreshStats() {
+
+        const total =
+          addOns.length;
+
+        const active =
+          addOns.filter(
+            (addOn) =>
+              addOn.active !== false
+          ).length;
+
+        const perNight =
+          addOns.filter(
+            (addOn) =>
+              String(
+                addOn.pricingType ||
+                "once"
+              ).toLowerCase() ===
+              "pernight"
+          ).length;
+
+        const oncePerStay =
+          total -
+          perNight;
+
+        document.getElementById(
+          "statTotalAddOns"
+        ).textContent =
+          total.toLocaleString();
+
+        document.getElementById(
+          "statActiveAddOns"
+        ).textContent =
+          active.toLocaleString();
+
+        document.getElementById(
+          "statPerNightAddOns"
+        ).textContent =
+          perNight.toLocaleString();
+
+        document.getElementById(
+          "statOnceAddOns"
+        ).textContent =
+          oncePerStay.toLocaleString();
+      }
+
+      /* =======================================================
+         SEARCH / FILTER
+      ======================================================= */
+
+      function applyFilters() {
+
+        const query =
+          addOnSearch.value
+            .trim()
+            .toLowerCase();
+
+        const status =
+          addOnStatusFilter.value;
+
+        const rows =
+          Array.from(
+            document.querySelectorAll(
+              ".add-on-row"
+            )
+          );
+
+        let visible =
+          0;
+
+        rows.forEach((row) => {
+
+          const matchesText =
+            !query ||
+            String(
+              row.dataset.search ||
+              ""
+            ).includes(query);
+
+          const matchesStatus =
+            status === "all" ||
+            row.dataset.status === status;
+
+          const show =
+            matchesText &&
+            matchesStatus;
+
+          row.style.display =
+            show
+              ? ""
+              : "none";
+
+          if (show) {
+            visible += 1;
+          }
+        });
+
+        resultCount.textContent =
+          `${visible.toLocaleString()} add-on${visible === 1 ? "" : "s"}`;
+
+        noResults.style.display =
+          rows.length > 0 &&
+          visible === 0
+            ? "block"
+            : "none";
+      }
+
+      /* =======================================================
+         SAVE ADD-ON
+      ======================================================= */
+
+      async function saveAddOn(event) {
+
+        event.preventDefault();
+
+        clearMessage();
+
+        const id =
+          document
+            .getElementById("addOnId")
+            .value
+            .trim();
+
+        const name =
+          document
+            .getElementById("name")
+            .value
+            .trim();
+
+        const price =
+          Number(
+            document
+              .getElementById("price")
+              .value
+          );
+
+        const pricingType =
+          document
+            .getElementById("pricingType")
+            .value;
+
+        const sortOrder =
+          Number(
+            document
+              .getElementById("sortOrder")
+              .value ||
+            0
+          );
+
+        const image =
+          document
+            .getElementById("image")
+            .value
+            .trim();
+
+        const description =
+          document
+            .getElementById("description")
+            .value
+            .trim();
+
+        const active =
+          document
+            .getElementById("active")
+            .checked;
+
+        /* -------------------------------------------------------
+           CLIENT-SIDE VALIDATION
+        ------------------------------------------------------- */
+
+        if (!name) {
+
+          showMessage(
+            "Add-on name is required.",
+            "error"
+          );
+
+          document
+            .getElementById("name")
+            .focus();
+
+          return;
+        }
+
+        if (
+          !Number.isFinite(price) ||
+          price < 0
+        ) {
+
+          showMessage(
+            "Please enter a valid non-negative price.",
+            "error"
+          );
+
+          return;
+        }
+
+        if (
+          !Number.isInteger(
+            sortOrder
+          ) ||
+          sortOrder < 0
+        ) {
+
+          showMessage(
+            "Sort order must be a whole number of 0 or higher.",
+            "error"
+          );
+
+          return;
+        }
+
+        setSavingState(
+          true,
+          id
+            ? "Saving add-on changes…"
+            : "Creating add-on…"
+        );
+
+        const payload = {
+          name,
+          price,
+          pricingType,
+          sortOrder,
+          image,
+          description,
+          active
+        };
+
+        try {
+
+          const endpoint =
+            id
+              ? `/admin/add-ons/update/${encodeURIComponent(id)}`
+              : "/admin/add-ons/create";
+
+          const response =
+            await fetch(
+              endpoint,
+              {
+                method: "POST",
+
+                credentials:
+                  "same-origin",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+
+                  "Accept":
+                    "application/json",
+
+                  "X-CSRF-Token":
+                    getAdminCsrfToken()
+                },
+
+                body:
+                  JSON.stringify(
+                    payload
+                  )
+              }
+            );
+
+          const result =
+            await parseJsonResponse(
+              response,
+              "Unable to save add-on."
+            );
+
+          const savedAddOnId =
+            String(
+              result?.addOn?._id ||
+              result?.addOn?.id ||
+              id ||
+              ""
+            );
+
+          /* -----------------------------------------------------
+             IMAGE UPLOAD
+          ----------------------------------------------------- */
+
+          if (
+            selectedImageFile &&
+            savedAddOnId
+          ) {
+
+            setSavingState(
+              true,
+              "Uploading add-on photo…"
+            );
+
+            const uploadResponse =
+              await fetch(
+                `/admin/add-ons/${encodeURIComponent(savedAddOnId)}/image`,
+                {
+                  method: "POST",
+
+                  credentials:
+                    "same-origin",
+
+                  headers: {
+                    "Content-Type":
+                      selectedImageFile.type,
+
+                    "Accept":
+                      "application/json",
+
+                    "X-CSRF-Token":
+                      getAdminCsrfToken()
+                  },
+
+                  body:
+                    selectedImageFile
+                }
+              );
+
+            await parseJsonResponse(
+              uploadResponse,
+              "Add-on was saved, but the photo could not be uploaded."
+            );
+          }
+
+          showMessage(
+            id
+              ? "Add-on updated successfully."
+              : "Add-on created successfully.",
+            "success"
+          );
+
+          closeModal();
+
+          window.setTimeout(
+            () => {
+              window.location.reload();
+            },
+            650
+          );
+
+        } catch (error) {
+
+          showMessage(
+            error.message ||
+              "An unexpected error occurred while saving the add-on.",
+            "error"
+          );
+
+          setSavingState(
+            false
+          );
+        }
+      }
+
+      /* =======================================================
+         ACTIVATE / DEACTIVATE
+      ======================================================= */
+
+      async function toggleAddOn(
+        id,
+        currentlyActive
+      ) {
+
+        const action =
+          currentlyActive
+            ? "deactivate"
+            : "activate";
+
+        const confirmed =
+          window.confirm(
+            currentlyActive
+              ? "Deactivate this add-on? It will no longer be available for new bookings, but the catalog record will remain."
+              : "Activate this add-on so customers can use it?"
+          );
+
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+
+          const response =
+            await fetch(
+              `/admin/add-ons/update/${encodeURIComponent(id)}`,
+              {
+                method: "POST",
+
+                credentials:
+                  "same-origin",
+
+                headers: {
+                  "Content-Type":
+                    "application/json",
+
+                  "Accept":
+                    "application/json",
+
+                  "X-CSRF-Token":
+                    getAdminCsrfToken()
+                },
+
+                body:
+                  JSON.stringify({
+                    active:
+                      !currentlyActive
+                  })
+              }
+            );
+
+          await parseJsonResponse(
+            response,
+            `Unable to ${action} add-on.`
+          );
+
+          window.location.reload();
+
+        } catch (error) {
+
+          showMessage(
+            error.message ||
+              `Unable to ${action} add-on.`,
+            "error"
+          );
+        }
+      }
+
+      /* =======================================================
+         REMOVE ADD-ON
+      ======================================================= */
+
+      async function removeAddOn(
+        id,
+        name
+      ) {
+
+        const confirmed =
+          window.confirm(
+            `Remove "${name}"?\n\n` +
+            `The current IsleRMS admin route removes an add-on from active inventory rather than permanently deleting its record.`
+          );
+
+        if (!confirmed) {
+          return;
+        }
+
+        try {
+
+          const response =
+            await fetch(
+              `/admin/add-ons/delete/${encodeURIComponent(id)}`,
+              {
+                method: "POST",
+
+                credentials:
+                  "same-origin",
+
+                headers: {
+                  "Accept":
+                    "application/json",
+
+                  "X-CSRF-Token":
+                    getAdminCsrfToken()
+                }
+              }
+            );
+
+          await parseJsonResponse(
+            response,
+            "Unable to remove add-on."
+          );
+
+          showMessage(
+            "Add-on removed from active inventory.",
+            "success"
+          );
+
+          window.setTimeout(
+            () => {
+              window.location.reload();
+            },
+            550
+          );
+
+        } catch (error) {
+
+          showMessage(
+            error.message ||
+              "Unable to remove add-on.",
+            "error"
+          );
+        }
+      }
+
+      /* =======================================================
+         EVENT LISTENERS
+      ======================================================= */
+
+      addAddOnButton.addEventListener(
+        "click",
+        openAddModal
       );
 
+      closeModalButton.addEventListener(
+        "click",
+        closeModal
+      );
 
-      if (!confirmed) {
-        return;
-      }
+      cancelModalButton.addEventListener(
+        "click",
+        closeModal
+      );
 
+      form.addEventListener(
+        "submit",
+        saveAddOn
+      );
 
-      try {
+      /* -------------------------------------------------------
+         IMAGE SELECT
+      ------------------------------------------------------- */
 
-        const response = await fetch(
-          `/admin/api/add-ons/${id}`,
-          {
-            method: "DELETE"
-          }
-        );
-
-
-        let result = {};
-
-        try {
-          result = await response.json();
-        } catch {
-          result = {};
+      chooseImageButton.addEventListener(
+        "click",
+        () => {
+          imageFile.click();
         }
+      );
 
+      clearImageButton.addEventListener(
+        "click",
+        () => {
+          resetPhotoSelection();
+        }
+      );
 
-        if (!response.ok) {
-          throw new Error(
-            result.error ||
-            result.message ||
-            "Unable to delete add-on."
+      imageFile.addEventListener(
+        "change",
+        () => {
+
+          const file =
+            imageFile.files?.[0] ||
+            null;
+
+          setPhotoPreview(file);
+        }
+      );
+
+      /* -------------------------------------------------------
+         DRAG & DROP
+      ------------------------------------------------------- */
+
+      uploadZone.addEventListener(
+        "keydown",
+        (event) => {
+
+          if (
+            event.key === "Enter" ||
+            event.key === " "
+          ) {
+
+            event.preventDefault();
+
+            imageFile.click();
+          }
+        }
+      );
+
+      [
+        "dragenter",
+        "dragover"
+      ].forEach(
+        (eventName) => {
+
+          uploadZone.addEventListener(
+            eventName,
+            (event) => {
+
+              event.preventDefault();
+
+              uploadZone.classList.add(
+                "dragover"
+              );
+            }
           );
         }
+      );
 
+      [
+        "dragleave",
+        "drop"
+      ].forEach(
+        (eventName) => {
 
-        showMessage(
-          "Add-on deleted successfully."
-        );
+          uploadZone.addEventListener(
+            eventName,
+            (event) => {
 
+              event.preventDefault();
 
-        setTimeout(() => {
-          window.location.reload();
-        }, 700);
+              uploadZone.classList.remove(
+                "dragover"
+              );
+            }
+          );
+        }
+      );
 
-      } catch (error) {
+      uploadZone.addEventListener(
+        "drop",
+        (event) => {
 
-        showMessage(
-          error.message ||
-          "Unable to delete add-on.",
-          "error"
-        );
+          const file =
+            event.dataTransfer?.files?.[0] ||
+            null;
 
-      }
-    }
-
-
-    // ==========================================
-    // BUTTON EVENT LISTENERS
-    // ==========================================
-
-    addAddOnButton.addEventListener(
-      "click",
-      openAddModal
-    );
-
-
-    closeModalButton.addEventListener(
-      "click",
-      closeModal
-    );
-
-
-    cancelModalButton.addEventListener(
-      "click",
-      closeModal
-    );
-
-
-    form.addEventListener(
-      "submit",
-      saveAddOn
-    );
-
-
-    // EDIT BUTTONS
-    document
-      .querySelectorAll(".edit-add-on-btn")
-      .forEach(button => {
-
-        button.addEventListener(
-          "click",
-          () => {
-            openEditModal(button);
+          if (!file) {
+            return;
           }
-        );
 
-      });
+          try {
 
+            const dataTransfer =
+              new DataTransfer();
 
-    // ACTIVATE / DEACTIVATE BUTTONS
-    document
-      .querySelectorAll(".toggle-add-on-btn")
-      .forEach(button => {
-
-        button.addEventListener(
-          "click",
-          () => {
-
-            const id =
-              button.dataset.id;
-
-            const currentlyActive =
-              button.dataset.active === "true";
-
-            toggleAddOn(
-              id,
-              currentlyActive
+            dataTransfer.items.add(
+              file
             );
 
+            imageFile.files =
+              dataTransfer.files;
+
+          } catch (_) {
+            /*
+             * Some browsers do not permit
+             * programmatically setting
+             * input.files.
+             */
           }
-        );
 
-      });
+          setPhotoPreview(file);
+        }
+      );
 
+      /* -------------------------------------------------------
+         FILTERS
+      ------------------------------------------------------- */
 
-    // DELETE BUTTONS
-    document
-      .querySelectorAll(".delete-add-on-btn")
-      .forEach(button => {
+      addOnSearch.addEventListener(
+        "input",
+        applyFilters
+      );
 
-        button.addEventListener(
-          "click",
-          () => {
+      addOnStatusFilter.addEventListener(
+        "change",
+        applyFilters
+      );
 
-            const id =
-              button.dataset.id;
+      /* -------------------------------------------------------
+         EDIT BUTTONS
+      ------------------------------------------------------- */
 
-            const name =
-              button.dataset.name ||
-              "this add-on";
+      document
+        .querySelectorAll(
+          ".edit-add-on-btn"
+        )
+        .forEach(
+          (button) => {
 
-            deleteAddOn(
-              id,
-              name
+            button.addEventListener(
+              "click",
+              () => {
+
+                const addOn =
+                  addOnMap.get(
+                    String(
+                      button.dataset.id
+                    )
+                  );
+
+                openEditModal(
+                  addOn
+                );
+              }
             );
-
           }
         );
 
-      });
+      /* -------------------------------------------------------
+         TOGGLE BUTTONS
+      ------------------------------------------------------- */
 
+      document
+        .querySelectorAll(
+          ".toggle-add-on-btn"
+        )
+        .forEach(
+          (button) => {
 
-    // ==========================================
-    // CLOSE MODAL WHEN CLICKING OUTSIDE
-    // ==========================================
+            button.addEventListener(
+              "click",
+              () => {
 
-    window.addEventListener(
-      "click",
-      event => {
+                const id =
+                  button.dataset.id;
 
-        if (event.target === modal) {
-          closeModal();
+                const currentlyActive =
+                  button.dataset.active ===
+                  "true";
+
+                toggleAddOn(
+                  id,
+                  currentlyActive
+                );
+              }
+            );
+          }
+        );
+
+      /* -------------------------------------------------------
+         REMOVE BUTTONS
+      ------------------------------------------------------- */
+
+      document
+        .querySelectorAll(
+          ".remove-add-on-btn"
+        )
+        .forEach(
+          (button) => {
+
+            button.addEventListener(
+              "click",
+              () => {
+
+                removeAddOn(
+                  button.dataset.id,
+                  button.dataset.name ||
+                    "this add-on"
+                );
+              }
+            );
+          }
+        );
+
+      /* =======================================================
+         CLOSE MODAL OUTSIDE
+      ======================================================= */
+
+      window.addEventListener(
+        "click",
+        (event) => {
+
+          if (
+            event.target === modal
+          ) {
+            closeModal();
+          }
         }
+      );
 
-      }
-    );
+      /* =======================================================
+         ESCAPE
+      ======================================================= */
 
+      window.addEventListener(
+        "keydown",
+        (event) => {
 
-    // ==========================================
-    // CLOSE MODAL WITH ESCAPE
-    // ==========================================
-
-    window.addEventListener(
-      "keydown",
-      event => {
-
-        if (event.key === "Escape") {
-          closeModal();
+          if (
+            event.key === "Escape"
+          ) {
+            closeModal();
+          }
         }
+      );
 
-      }
-    );
+      /* =======================================================
+         CLEANUP OBJECT URL
+      ======================================================= */
+
+      window.addEventListener(
+        "beforeunload",
+        () => {
+
+          if (activeObjectUrl) {
+
+            URL.revokeObjectURL(
+              activeObjectUrl
+            );
+          }
+        }
+      );
+
+      /* =======================================================
+         INITIALIZE
+      ======================================================= */
+
+      refreshStats();
+      applyFilters();
+
+    })();
   </script>
 
 </body>

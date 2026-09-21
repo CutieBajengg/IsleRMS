@@ -1,30 +1,85 @@
 <!-- =========================================================
-     PUFFER ISLE RESORT - NAVBAR
+     PUFFER ISLE RESORT | IsleRMS
      File: views/partials/navbar.ejs
+
+     AUTHENTICATION / UI UPGRADE
+
+     Current capabilities:
+     - Secure POST logout
+     - CSRF token fields prepared
+     - Unified login/signup modal
+     - Strong client-side validation
+     - Server error/success feedback
+     - Password strength feedback
+     - Password visibility controls
+     - Accessible dialogs
+     - Focus management
+     - Keyboard navigation
+     - Escape-key support
+     - Mobile navigation
+     - Accessible dropdowns
+     - Double-submit prevention
+     - bfcache/page restoration handling
+     - Responsive production styling
+
+     Backend CSRF verification is intentionally NOT enabled yet.
 ========================================================= -->
 
-<header class="site-header">
+<%
+  const displayUser =
+    user ||
+    currentUser ||
+    null;
 
+  const fullName =
+    String(
+      displayUser?.fullname ||
+      "Island Guest"
+    ).trim();
+
+  const firstName =
+    fullName.split(/\s+/)[0] ||
+    "Guest";
+
+  const avatarLetter =
+    firstName.charAt(0).toUpperCase() ||
+    "G";
+
+  const activePath =
+    String(
+      currentPath || ""
+    ).trim();
+
+  const safeCsrfToken =
+    typeof csrfToken !== "undefined"
+      ? String(csrfToken || "")
+      : "";
+%>
+
+<header class="site-header">
   <div class="navbar-container">
 
     <!-- =====================================================
          BRAND
     ====================================================== -->
 
-    <a href="/" class="brand">
-
+    <a
+      href="/"
+      class="brand"
+      aria-label="Puffer Isle Resort home"
+    >
       <div class="logo-container">
-
         <img
           src="/images/islelogo.png"
           alt="Puffer Isle Resort"
           class="logo"
+          width="46"
+          height="46"
+          decoding="async"
         >
-
       </div>
 
       <div class="brand-text">
-
         <span class="brand-name">
           Puffer Isle
         </span>
@@ -32,11 +87,8 @@
         <span class="brand-subtitle">
           Resort
         </span>
-
       </div>
-
     </a>
-
 
     <!-- =====================================================
          MOBILE MENU BUTTON
@@ -47,15 +99,13 @@
       id="mobileMenuBtn"
       type="button"
       aria-label="Open navigation menu"
+      aria-controls="mainNavigation"
       aria-expanded="false"
     >
-
       <span></span>
       <span></span>
       <span></span>
-
     </button>
-
 
     <!-- =====================================================
          NAVIGATION
@@ -64,63 +114,82 @@
     <nav
       id="mainNavigation"
       class="main-navigation"
+      aria-label="Main navigation"
     >
 
       <!-- HOME -->
 
       <a
         href="/"
-        class="nav-link"
+        class="nav-link <%= activePath === '/' ? 'active' : '' %>"
+        <%= activePath === '/' ? 'aria-current="page"' : '' %>
       >
         Home
       </a>
-
 
       <!-- EXPLORE -->
 
       <a
         href="/gallery"
-        class="nav-link"
+        class="nav-link <%= activePath === '/gallery' ? 'active' : '' %>"
+        <%= activePath === '/gallery' ? 'aria-current="page"' : '' %>
       >
         Explore
 
-        <span class="nav-badge">
+        <span
+          class="nav-badge"
+          aria-label="360 degree experience"
+        >
           360°
         </span>
-
       </a>
 
-
-      <!-- =================================================
+      <!-- ===================================================
            DISCOVER DROPDOWN
-      ================================================== -->
+      ==================================================== -->
 
       <div class="dropdown nav-dropdown">
 
         <button
           type="button"
-          class="dropbtn"
+          class="dropbtn dropdown-trigger"
+          aria-haspopup="true"
+          aria-expanded="false"
+          aria-controls="discoverMenu"
         >
-
-          Discover
-
-          <span class="dropdown-arrow">
-            ▾
+          <span>
+            Discover
           </span>
 
+          <span
+            class="dropdown-arrow"
+            aria-hidden="true"
+          >
+            ▾
+          </span>
         </button>
 
+        <div
+          id="discoverMenu"
+          class="dropdown-content"
+          role="menu"
+        >
 
-        <div class="dropdown-content">
-
-          <div class="dropdown-heading">
+          <div
+            class="dropdown-heading"
+            role="presentation"
+          >
             Discover Puffer Isle
           </div>
 
-
-          <a href="/#about">
-
-            <span class="menu-icon">
+          <a
+            href="/#about"
+            role="menuitem"
+          >
+            <span
+              class="menu-icon"
+              aria-hidden="true"
+            >
               ◈
             </span>
 
@@ -133,13 +202,16 @@
                 Learn about the resort
               </small>
             </span>
-
           </a>
 
-
-          <a href="/#contact">
-
-            <span class="menu-icon">
+          <a
+            href="/#contact"
+            role="menuitem"
+          >
+            <span
+              class="menu-icon"
+              aria-hidden="true"
+            >
               ✦
             </span>
 
@@ -152,13 +224,16 @@
                 We're here to help
               </small>
             </span>
-
           </a>
 
-
-          <a href="/rules">
-
-            <span class="menu-icon">
+          <a
+            href="/rules"
+            role="menuitem"
+          >
+            <span
+              class="menu-icon"
+              aria-hidden="true"
+            >
               ✓
             </span>
 
@@ -171,123 +246,135 @@
                 Resort information
               </small>
             </span>
-
           </a>
 
         </div>
-
       </div>
 
-
-      <!-- =================================================
+      <!-- ===================================================
            BOOK NOW
-      ================================================== -->
+      ==================================================== -->
 
-      <% if (user) { %>
+      <% if (displayUser) { %>
 
         <a
           href="/booking"
           class="booking-nav-btn"
         >
-
           <span>
             Book Now
           </span>
 
-          <span class="booking-arrow">
+          <span
+            class="booking-arrow"
+            aria-hidden="true"
+          >
             →
           </span>
-
         </a>
 
       <% } else { %>
 
-        <a
-          href="#"
+        <button
+          type="button"
           id="bookingBtn"
-          class="booking-nav-btn"
+          class="booking-nav-btn booking-auth-trigger"
+          data-auth-mode="login"
+          aria-label="Sign in to book your stay"
         >
-
           <span>
             Book Now
           </span>
 
-          <span class="booking-arrow">
+          <span
+            class="booking-arrow"
+            aria-hidden="true"
+          >
             →
           </span>
-
-        </a>
+        </button>
 
       <% } %>
 
-
-      <!-- =================================================
+      <!-- ===================================================
            USER ACCOUNT
-      ================================================== -->
+      ==================================================== -->
 
-      <% if (user) { %>
+      <% if (displayUser) { %>
 
         <div class="dropdown profile-wrapper">
 
           <button
             type="button"
-            class="profile-pill"
+            class="profile-pill dropdown-trigger"
+            aria-haspopup="true"
+            aria-expanded="false"
+            aria-controls="profileMenu"
           >
-
-            <span class="avatar-icon">
-              <%= user.fullname.charAt(0).toUpperCase() %>
+            <span
+              class="avatar-icon"
+              aria-hidden="true"
+            >
+              <%= avatarLetter %>
             </span>
-
 
             <span class="user-name">
-              <%= user.fullname.split(' ')[0] %>
+              <%= firstName %>
             </span>
 
-
-            <span class="profile-arrow">
+            <span
+              class="profile-arrow"
+              aria-hidden="true"
+            >
               ▾
             </span>
-
           </button>
 
+          <div
+            id="profileMenu"
+            class="dropdown-content profile-dropdown"
+            role="menu"
+          >
 
-          <div class="dropdown-content profile-dropdown">
-
-            <div class="profile-header">
-
-              <div class="profile-avatar">
-
-                <%= user.fullname.charAt(0).toUpperCase() %>
-
+            <div
+              class="profile-header"
+              role="presentation"
+            >
+              <div
+                class="profile-avatar"
+                aria-hidden="true"
+              >
+                <%= avatarLetter %>
               </div>
 
-
-              <div>
-
+              <div class="profile-identity">
                 <strong>
-                  <%= user.fullname %>
+                  <%= fullName %>
                 </strong>
 
                 <small>
                   Guest Account
                 </small>
-
               </div>
-
             </div>
 
+            <div
+              class="profile-divider"
+              role="separator"
+            ></div>
 
-            <div class="profile-divider"></div>
-
-
-            <a href="/profile">
-
-              <span class="menu-icon">
+            <a
+              href="/profile"
+              role="menuitem"
+            >
+              <span
+                class="menu-icon"
+                aria-hidden="true"
+              >
                 ◎
               </span>
 
               <span>
-
                 <strong>
                   My Dashboard
                 </strong>
@@ -295,24 +382,23 @@
                 <small>
                   Manage your stay
                 </small>
-
               </span>
-
             </a>
 
-
-            <a
-              href="/logout"
+            <button
+              type="button"
               id="logoutTrigger"
-              class="logout-link"
+              class="dropdown-action logout-link"
+              role="menuitem"
             >
-
-              <span class="menu-icon">
+              <span
+                class="menu-icon"
+                aria-hidden="true"
+              >
                 ↪
               </span>
 
               <span>
-
                 <strong>
                   Logout
                 </strong>
@@ -320,18 +406,13 @@
                 <small>
                   Sign out of your account
                 </small>
-
               </span>
-
-            </a>
+            </button>
 
           </div>
-
         </div>
 
-
       <% } else { %>
-
 
         <!-- SIGN IN -->
 
@@ -339,3557 +420,3121 @@
           id="loginBtn"
           class="login-btn"
           type="button"
+          data-auth-mode="login"
         >
           Sign In
         </button>
 
-
       <% } %>
 
     </nav>
-
   </div>
-
 </header>
 
-
 <!-- =========================================================
-     AUTHENTICATION MODAL
+     CUSTOMER AUTHENTICATION MODAL
 ========================================================= -->
 
-<% if (!user) { %>
-
-<div
-  id="authModal"
-  class="modal"
-  aria-hidden="true"
->
+<% if (!displayUser) { %>
 
   <div
-    class="modal-content auth-modal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="authTitle"
+    id="authModal"
+    class="modal"
+    aria-hidden="true"
+    role="presentation"
   >
 
-
-    <!-- CLOSE BUTTON -->
-
-    <button
-      class="close"
-      type="button"
-      aria-label="Close authentication window"
-    >
-      &times;
-    </button>
-
-
-    <!-- =====================================================
-         AUTH LOGO
-    ====================================================== -->
-
-    <div class="auth-logo">
-
-      <img
-        src="/images/islelogo.png"
-        alt="Puffer Isle Resort"
-      >
-
-    </div>
-
-
-    <!-- =====================================================
-         LOGIN FORM
-    ====================================================== -->
-
     <div
-      id="loginForm"
-      class="auth-box"
+      class="modal-content auth-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="authTitle"
+      aria-describedby="authDescription"
+      tabindex="-1"
     >
 
-      <div class="auth-header">
+      <!-- CLOSE -->
 
-        <span class="auth-eyebrow">
-          Welcome Back
+      <button
+        class="close"
+        id="authCloseBtn"
+        type="button"
+        aria-label="Close authentication window"
+      >
+        <span aria-hidden="true">
+          &times;
         </span>
+      </button>
 
+      <!-- BRAND LOGO -->
 
-        <h2 id="authTitle">
-          Sign in to your account
-        </h2>
-
-
-        <p>
-          Continue planning your island escape.
-        </p>
-
+      <div class="auth-logo">
+        <img
+          src="/images/islelogo.png"
+          alt="Puffer Isle Resort"
+          width="78"
+          height="78"
+          decoding="async"
+        >
       </div>
 
+      <!-- ===================================================
+           AUTH MESSAGE
+      ==================================================== -->
 
-      <form
-        method="POST"
-        action="/login"
+      <div
+        id="authMessage"
+        class="auth-message"
+        aria-live="assertive"
+        aria-atomic="true"
+        role="alert"
+      ></div>
+
+      <!-- ===================================================
+           LOGIN
+      ==================================================== -->
+
+      <section
+        id="loginForm"
+        class="auth-box"
+        aria-labelledby="authTitle"
       >
 
+        <div class="auth-header">
 
-        <!-- EMAIL -->
+          <span class="auth-eyebrow">
+            Welcome Back
+          </span>
 
-        <div class="input-group">
+          <h2 id="authTitle">
+            Sign in to your account
+          </h2>
 
-          <label for="loginEmail">
-            Email Address
-          </label>
-
-          <input
-            id="loginEmail"
-            type="email"
-            name="username"
-            placeholder="you@example.com"
-            autocomplete="email"
-            required
-          >
+          <p id="authDescription">
+            Continue planning your island escape.
+          </p>
 
         </div>
 
+        <form
+          method="POST"
+          action="/login"
+          id="loginFormElem"
+          autocomplete="on"
+        >
 
-        <!-- PASSWORD -->
+          <!-- CSRF -->
 
-        <div class="input-group">
+          <input
+            type="hidden"
+            name="_csrf"
+            value="<%= safeCsrfToken %>"
+          >
 
-          <label for="loginPassword">
-            Password
-          </label>
+          <!-- EMAIL -->
 
+          <div class="input-group">
 
-          <div class="password-wrapper">
+            <label for="loginEmail">
+              Email Address
+            </label>
 
             <input
-              id="loginPassword"
-              type="password"
-              name="password"
-              placeholder="Enter your password"
-              autocomplete="current-password"
+              id="loginEmail"
+              type="email"
+              name="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              inputmode="email"
+              maxlength="254"
+              spellcheck="false"
+              autocapitalize="none"
               required
+              aria-required="true"
             >
 
-
-            <button
-              type="button"
-              class="password-toggle"
-              data-target="loginPassword"
-              aria-label="Show password"
-              title="Show password"
+            <small
+              id="loginEmailHelp"
+              class="input-help"
             >
-              👁
-            </button>
+              Use the email associated with your IsleRMS account.
+            </small>
 
           </div>
 
-        </div>
+          <!-- PASSWORD -->
 
+          <div class="input-group">
 
-        <!-- LOGIN -->
+            <label for="loginPassword">
+              Password
+            </label>
 
-        <button
-          type="submit"
-          class="auth-submit"
-        >
+            <div class="password-wrapper">
 
-          <span>
-            Sign In
-          </span>
+              <input
+                id="loginPassword"
+                type="password"
+                name="password"
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                maxlength="128"
+                required
+                aria-required="true"
+              >
 
-          <span class="submit-arrow">
-            →
-          </span>
+              <button
+                type="button"
+                class="password-toggle"
+                data-target="loginPassword"
+                aria-label="Show password"
+                aria-pressed="false"
+                title="Show password"
+              >
+                👁
+              </button>
 
-        </button>
+            </div>
 
-      </form>
+          </div>
 
+          <!-- SUBMIT -->
 
-      <p class="auth-footer">
+          <button
+            type="submit"
+            class="auth-submit"
+            id="loginSubmit"
+          >
+            <span class="submit-label">
+              Sign In
+            </span>
 
-        New to Puffer Isle?
+            <span
+              class="submit-spinner"
+              aria-hidden="true"
+            ></span>
 
-        <a
-          href="#"
-          id="showSignup"
-        >
-          Create an account
-        </a>
+            <span
+              class="submit-arrow"
+              aria-hidden="true"
+            >
+              →
+            </span>
+          </button>
 
-      </p>
+        </form>
 
-    </div>
+        <p class="auth-footer">
+          New to Puffer Isle?
 
-
-    <!-- =====================================================
-         SIGN UP FORM
-    ====================================================== -->
-
-    <div
-      id="signupForm"
-      class="auth-box hidden"
-    >
-
-      <div class="auth-header">
-
-        <span class="auth-eyebrow">
-          Begin Your Journey
-        </span>
-
-
-        <h2>
-          Join Puffer Isle
-        </h2>
-
-
-        <p>
-          Create your account and start planning
-          your perfect escape.
+          <a
+            href="#"
+            id="showSignup"
+          >
+            Create an account
+          </a>
         </p>
 
-      </div>
+      </section>
 
+      <!-- ===================================================
+           SIGN UP
+      ==================================================== -->
 
-      <form
-        id="signupFormElem"
-        method="POST"
-        action="/signup"
+      <section
+        id="signupForm"
+        class="auth-box hidden"
+        aria-labelledby="signupTitle"
       >
 
+        <div class="auth-header">
 
-        <!-- FULL NAME -->
+          <span class="auth-eyebrow">
+            Begin Your Journey
+          </span>
 
-        <div class="input-group">
+          <h2 id="signupTitle">
+            Join Puffer Isle
+          </h2>
 
-          <label for="fullname">
-            Full Name
-          </label>
-
-          <input
-            id="fullname"
-            type="text"
-            name="fullname"
-            placeholder="Your full name"
-            autocomplete="name"
-            required
-          >
+          <p>
+            Create your account and start planning
+            your perfect escape.
+          </p>
 
         </div>
 
+        <form
+          id="signupFormElem"
+          method="POST"
+          action="/signup"
+          autocomplete="on"
+          novalidate
+        >
 
-        <!-- EMAIL -->
-
-        <div class="input-group">
-
-          <label for="signupEmail">
-            Email Address
-          </label>
+          <!-- CSRF -->
 
           <input
-            id="signupEmail"
-            type="email"
-            name="email"
-            placeholder="you@example.com"
-            autocomplete="email"
-            required
+            type="hidden"
+            name="_csrf"
+            value="<%= safeCsrfToken %>"
           >
 
-        </div>
+          <!-- FULL NAME -->
 
+          <div class="input-group">
 
-        <!-- PASSWORD -->
-
-        <div class="input-group">
-
-          <label for="signupPassword">
-            Password
-          </label>
-
-
-          <div class="password-wrapper">
+            <label for="fullname">
+              Full Name
+            </label>
 
             <input
-              id="signupPassword"
-              type="password"
-              name="password"
-              placeholder="Create a password"
-              autocomplete="new-password"
+              id="fullname"
+              type="text"
+              name="fullname"
+              placeholder="Your full name"
+              autocomplete="name"
+              maxlength="50"
               required
+              aria-required="true"
+              aria-describedby="fullnameHelp"
             >
 
-
-            <button
-              type="button"
-              class="password-toggle"
-              data-target="signupPassword"
-              aria-label="Show password"
-              title="Show password"
+            <small
+              id="fullnameHelp"
+              class="input-help"
             >
-              👁
-            </button>
+              Enter your name as it should appear on your booking.
+            </small>
 
           </div>
 
-        </div>
+          <!-- EMAIL -->
 
+          <div class="input-group">
 
-        <!-- CONFIRM PASSWORD -->
-
-        <div class="input-group">
-
-          <label for="confirmPassword">
-            Confirm Password
-          </label>
-
-
-          <div class="password-wrapper">
+            <label for="signupEmail">
+              Email Address
+            </label>
 
             <input
-              id="confirmPassword"
-              type="password"
-              name="confirmPassword"
-              placeholder="Re-enter your password"
-              autocomplete="new-password"
+              id="signupEmail"
+              type="email"
+              name="email"
+              placeholder="you@example.com"
+              autocomplete="email"
+              inputmode="email"
+              maxlength="254"
+              spellcheck="false"
+              autocapitalize="none"
               required
+              aria-required="true"
+              aria-describedby="signupEmailHelp"
             >
 
-
-            <button
-              type="button"
-              class="password-toggle"
-              data-target="confirmPassword"
-              aria-label="Show password"
-              title="Show password"
+            <small
+              id="signupEmailHelp"
+              class="input-help"
             >
-              👁
-            </button>
+              Use an email address you actively check.
+            </small>
 
           </div>
 
+          <!-- OPTIONAL USERNAME -->
 
-          <small
-            id="passwordMatchError"
-            class="error-msg"
+          <div class="input-group">
+
+            <label for="signupUsername">
+              Username
+
+              <span class="optional-label">
+                Optional
+              </span>
+            </label>
+
+            <input
+              id="signupUsername"
+              type="text"
+              name="username"
+              placeholder="e.g. islandguest"
+              autocomplete="username"
+              maxlength="50"
+              spellcheck="false"
+              autocapitalize="none"
+              pattern="[A-Za-z0-9._-]+"
+              aria-describedby="usernameHelp"
+            >
+
+            <small
+              id="usernameHelp"
+              class="input-help"
+            >
+              Letters, numbers, dots, underscores, and hyphens only.
+            </small>
+
+          </div>
+
+          <!-- PASSWORD -->
+
+          <div class="input-group">
+
+            <div class="field-label-row">
+
+              <label for="signupPassword">
+                Password
+              </label>
+
+              <span
+                id="passwordStrengthLabel"
+                class="password-strength-label"
+                aria-live="polite"
+              ></span>
+
+            </div>
+
+            <div class="password-wrapper">
+
+              <input
+                id="signupPassword"
+                type="password"
+                name="password"
+                placeholder="Create a password"
+                autocomplete="new-password"
+                minlength="10"
+                maxlength="128"
+                required
+                aria-required="true"
+                aria-describedby="passwordRequirement passwordStrengthLabel"
+              >
+
+              <button
+                type="button"
+                class="password-toggle"
+                data-target="signupPassword"
+                aria-label="Show password"
+                aria-pressed="false"
+                title="Show password"
+              >
+                👁
+              </button>
+
+            </div>
+
+            <div
+              class="password-strength"
+              aria-hidden="true"
+            >
+              <span></span>
+              <span></span>
+              <span></span>
+              <span></span>
+            </div>
+
+            <small
+              id="passwordRequirement"
+              class="input-help"
+            >
+              Use at least 10 characters. Avoid common or easily guessed passwords.
+            </small>
+
+          </div>
+
+          <!-- CONFIRM PASSWORD -->
+
+          <div class="input-group">
+
+            <label for="confirmPassword">
+              Confirm Password
+            </label>
+
+            <div class="password-wrapper">
+
+              <input
+                id="confirmPassword"
+                type="password"
+                name="confirmPassword"
+                placeholder="Re-enter your password"
+                autocomplete="new-password"
+                minlength="10"
+                maxlength="128"
+                required
+                aria-required="true"
+                aria-describedby="passwordMatchError passwordMatchSuccess"
+              >
+
+              <button
+                type="button"
+                class="password-toggle"
+                data-target="confirmPassword"
+                aria-label="Show password"
+                aria-pressed="false"
+                title="Show password"
+              >
+                👁
+              </button>
+
+            </div>
+
+            <small
+              id="passwordMatchError"
+              class="error-msg"
+              aria-live="polite"
+            >
+              Passwords do not match.
+            </small>
+
+            <small
+              id="passwordMatchSuccess"
+              class="success-msg"
+              aria-live="polite"
+            >
+              Passwords match.
+            </small>
+
+          </div>
+
+          <!-- PHONE -->
+
+          <div class="input-group">
+
+            <label for="phoneInput">
+              Contact Number
+            </label>
+
+            <input
+              type="tel"
+              name="phone"
+              id="phoneInput"
+              placeholder="09xxxxxxxxx"
+              maxlength="11"
+              minlength="11"
+              inputmode="numeric"
+              autocomplete="tel"
+              pattern="09[0-9]{9}"
+              required
+              aria-required="true"
+              aria-describedby="phoneHelp phoneError"
+            >
+
+            <small
+              id="phoneHelp"
+              class="input-help"
+            >
+              Enter your 11-digit Philippine mobile number.
+            </small>
+
+            <small
+              id="phoneError"
+              class="error-msg"
+              aria-live="polite"
+            >
+              Please enter a valid Philippine mobile number.
+            </small>
+
+          </div>
+
+          <!-- SUBMIT -->
+
+          <button
+            type="submit"
+            class="auth-submit"
+            id="signupSubmit"
           >
-            Passwords do not match.
-          </small>
+            <span class="submit-label">
+              Create Account
+            </span>
 
+            <span
+              class="submit-spinner"
+              aria-hidden="true"
+            ></span>
 
-          <small
-            id="passwordMatchSuccess"
-            class="success-msg"
+            <span
+              class="submit-arrow"
+              aria-hidden="true"
+            >
+              →
+            </span>
+          </button>
+
+        </form>
+
+        <p class="auth-footer">
+          Already have an account?
+
+          <a
+            href="#"
+            id="showLogin"
           >
-            Passwords match.
-          </small>
+            Sign in
+          </a>
+        </p>
 
-        </div>
-
-
-        <!-- PHONE -->
-
-        <div class="input-group">
-
-          <label for="phoneInput">
-            Contact Number
-          </label>
-
-
-          <input
-            type="text"
-            name="phone"
-            id="phoneInput"
-            placeholder="09xxxxxxxxx"
-            maxlength="11"
-            inputmode="numeric"
-            autocomplete="tel"
-            required
-          >
-
-
-          <small
-            id="phoneError"
-            class="error-msg"
-          >
-            Please enter exactly 11 digits.
-          </small>
-
-        </div>
-
-
-        <!-- SIGN UP -->
-
-        <button
-          type="submit"
-          class="auth-submit"
-        >
-
-          <span>
-            Create Account
-          </span>
-
-          <span class="submit-arrow">
-            →
-          </span>
-
-        </button>
-
-      </form>
-
-
-      <p class="auth-footer">
-
-        Already have an account?
-
-        <a
-          href="#"
-          id="showLogin"
-        >
-          Sign in
-        </a>
-
-      </p>
+      </section>
 
     </div>
-
   </div>
 
-</div>
-
 <% } %>
-
 
 <!-- =========================================================
      LOGOUT CONFIRMATION MODAL
 ========================================================= -->
 
-<div
-  id="logoutModal"
-  class="modal"
-  aria-hidden="true"
->
+<% if (displayUser) { %>
 
   <div
-    class="modal-content logout-modal"
-    role="dialog"
-    aria-modal="true"
+    id="logoutModal"
+    class="modal"
+    aria-hidden="true"
+    role="presentation"
   >
 
-    <div class="logout-icon">
-      🏝️
-    </div>
+    <div
+      class="modal-content logout-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="logoutTitle"
+      aria-describedby="logoutDescription"
+      tabindex="-1"
+    >
 
-
-    <span class="auth-eyebrow">
-      Before You Go
-    </span>
-
-
-    <h2>
-      Leaving the Isle?
-    </h2>
-
-
-    <p>
-      Are you sure you want to sign out?
-      Any unsaved booking progress may be lost.
-    </p>
-
-
-    <div class="logout-actions">
-
-      <button
-        id="cancelLogout"
-        type="button"
-        class="stay-btn"
+      <div
+        class="logout-icon"
+        aria-hidden="true"
       >
-        Stay
-      </button>
+        🏝️
+      </div>
 
+      <span class="auth-eyebrow">
+        Before You Go
+      </span>
 
-      <a
-        href="/logout"
-        class="logout-confirm-btn"
-      >
-        Logout
-      </a>
+      <h2 id="logoutTitle">
+        Leaving the Isle?
+      </h2>
+
+      <p id="logoutDescription">
+        Are you sure you want to sign out?
+        Any unsaved booking progress may be lost.
+      </p>
+
+      <div class="logout-actions">
+
+        <button
+          id="cancelLogout"
+          type="button"
+          class="stay-btn"
+        >
+          Stay
+        </button>
+
+        <form
+          method="POST"
+          action="/logout"
+          id="logoutForm"
+        >
+
+          <!-- CSRF -->
+
+          <input
+            type="hidden"
+            name="_csrf"
+            value="<%= safeCsrfToken %>"
+          >
+
+          <button
+            type="submit"
+            class="logout-confirm-btn"
+            id="logoutSubmit"
+          >
+            <span class="submit-label">
+              Logout
+            </span>
+
+            <span
+              class="submit-spinner"
+              aria-hidden="true"
+            ></span>
+          </button>
+
+        </form>
+
+      </div>
 
     </div>
-
   </div>
 
-</div>
-
+<% } %>
 
 <!-- =========================================================
      EMBEDDED CSS
 ========================================================= -->
 
 <style>
+  :root {
+    --brand-yellow: #FFD700;
+    --brand-yellow-dark: #e6c200;
 
-/* =========================================================
-   VARIABLES
-========================================================= */
+    --dark: #151515;
+    --dark-soft: #202020;
 
-:root {
+    --text-light: #ffffff;
+    --text-muted: #9d9d9d;
 
-  --brand-yellow:
-    #FFD700;
+    --teal: #008080;
 
-  --brand-yellow-dark:
-    #e6c200;
+    --danger: #e04444;
+    --danger-soft: rgba(224, 68, 68, 0.10);
 
-  --dark:
-    #151515;
+    --success: #45d88a;
+    --success-soft: rgba(69, 216, 138, 0.10);
 
-  --dark-soft:
-    #202020;
+    --border-light: rgba(255,255,255,0.10);
 
-  --text-light:
-    #ffffff;
+    --shadow-heavy:
+      0 35px 100px rgba(0,0,0,0.65);
 
-  --text-muted:
-    #9d9d9d;
+    --radius-lg: 28px;
+    --radius-md: 16px;
+    --radius-sm: 11px;
 
-  --teal:
-    #008080;
-
-}
-
-
-/* =========================================================
-   GLOBAL
-========================================================= */
-
-.site-header,
-.site-header *,
-.modal,
-.modal * {
-
-  box-sizing:
-    border-box;
-
-}
-
-
-/* =========================================================
-   HEADER
-========================================================= */
-
-.site-header {
-
-  position:
-    fixed;
-
-  top:
-    0;
-
-  left:
-    0;
-
-  width:
-    100%;
-
-  height:
-    76px;
-
-  background:
-    rgba(18,18,18,0.97);
-
-  border-bottom:
-    1px solid
-    rgba(255,255,255,0.07);
-
-  box-shadow:
-    0 8px 35px
-    rgba(0,0,0,0.25);
-
-  z-index:
-    1000;
-
-}
-
-
-.navbar-container {
-
-  height:
-    100%;
-
-  max-width:
-    1500px;
-
-  margin:
-    0 auto;
-
-  padding:
-    0 45px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    space-between;
-
-  gap:
-    30px;
-
-}
-
-
-/* =========================================================
-   BRAND
-========================================================= */
-
-.brand {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    12px;
-
-  min-width:
-    max-content;
-
-  color:
-    white;
-
-  text-decoration:
-    none;
-
-}
-
-
-.logo-container {
-
-  width:
-    46px;
-
-  height:
-    46px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-}
-
-
-.logo {
-
-  width:
-    46px;
-
-  height:
-    46px;
-
-  object-fit:
-    contain;
-
-  filter:
-    drop-shadow(
-      0 0 8px
-      rgba(255,215,0,0.3)
-    );
-
-}
-
-
-.brand-text {
-
-  display:
-    flex;
-
-  align-items:
-    baseline;
-
-  gap:
-    5px;
-
-}
-
-
-.brand-name {
-
-  color:
-    white;
-
-  font-size:
-    19px;
-
-  font-weight:
-    700;
-
-}
-
-
-.brand-subtitle {
-
-  color:
-    var(--brand-yellow);
-
-  font-size:
-    19px;
-
-  font-weight:
-    700;
-
-}
-
-
-/* =========================================================
-   NAVIGATION
-========================================================= */
-
-.main-navigation {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    flex-end;
-
-  gap:
-    8px;
-
-}
-
-
-/*
-   HOME / EXPLORE / DISCOVER
-   Increased from 13px to 18px.
-*/
-
-.nav-link,
-.dropbtn {
-
-  position:
-    relative;
-
-  padding:
-    11px 13px;
-
-  border:
-    none;
-
-  background:
-    transparent;
-
-  color:
-    rgba(255,255,255,0.78);
-
-  font-family:
-    inherit;
-
-  font-size:
-    18px;
-
-  font-weight:
-    500;
-
-  letter-spacing:
-    0.2px;
-
-  cursor:
-    pointer;
-
-  text-decoration:
-    none;
-
-  transition:
-    color 0.25s ease;
-
-}
-
-
-.nav-link::after {
-
-  content:
-    "";
-
-  position:
-    absolute;
-
-  left:
-    13px;
-
-  right:
-    13px;
-
-  bottom:
-    3px;
-
-  height:
-    2px;
-
-  background:
-    var(--brand-yellow);
-
-  transform:
-    scaleX(0);
-
-  transform-origin:
-    center;
-
-  transition:
-    transform 0.25s ease;
-
-}
-
-
-.nav-link:hover,
-.dropbtn:hover {
-
-  color:
-    white;
-
-}
-
-
-.nav-link:hover::after {
-
-  transform:
-    scaleX(1);
-
-}
-
-
-.nav-badge {
-
-  font-size:
-    9px;
-
-  color:
-    var(--brand-yellow);
-
-  margin-left:
-    2px;
-
-}
-
-
-/* =========================================================
-   DROPDOWNS
-========================================================= */
-
-.dropdown {
-
-  position:
-    relative;
-
-}
-
-
-.dropdown-content {
-
-  position:
-    absolute;
-
-  top:
-    calc(100% + 13px);
-
-  right:
-    0;
-
-  width:
-    280px;
-
-  padding:
-    8px;
-
-  background:
-    white;
-
-  border:
-    1px solid
-    rgba(0,0,0,0.08);
-
-  border-radius:
-    16px;
-
-  box-shadow:
-    0 25px 60px
-    rgba(0,0,0,0.25);
-
-  opacity:
-    0;
-
-  visibility:
-    hidden;
-
-  transform:
-    translateY(8px);
-
-  transition:
-    all 0.25s ease;
-
-  z-index:
-    20;
-
-}
-
-
-.dropdown-content::before {
-
-  content:
-    "";
-
-  position:
-    absolute;
-
-  top:
-    -6px;
-
-  right:
-    25px;
-
-  width:
-    12px;
-
-  height:
-    12px;
-
-  background:
-    white;
-
-  transform:
-    rotate(45deg);
-
-}
-
-
-.dropdown:hover .dropdown-content {
-
-  opacity:
-    1;
-
-  visibility:
-    visible;
-
-  transform:
-    translateY(0);
-
-}
-
-
-.dropdown-heading {
-
-  padding:
-    12px 14px 8px;
-
-  color:
-    #999;
-
-  font-size:
-    10px;
-
-  font-weight:
-    700;
-
-  text-transform:
-    uppercase;
-
-  letter-spacing:
-    1.4px;
-
-}
-
-
-.dropdown-content a {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    12px;
-
-  padding:
-    12px;
-
-  border-radius:
-    10px;
-
-  color:
-    var(--dark);
-
-  text-decoration:
-    none;
-
-  transition:
-    background 0.2s ease;
-
-}
-
-
-.dropdown-content a:hover {
-
-  background:
-    #f7f7f7;
-
-}
-
-
-.dropdown-content a strong {
-
-  display:
-    block;
-
-  font-size:
-    13px;
-
-  font-weight:
-    600;
-
-}
-
-
-.dropdown-content a small {
-
-  display:
-    block;
-
-  margin-top:
-    2px;
-
-  color:
-    #999;
-
-  font-size:
-    10px;
-
-}
-
-
-.menu-icon {
-
-  width:
-    36px;
-
-  height:
-    36px;
-
-  flex:
-    0 0 36px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border-radius:
-    10px;
-
-  background:
-    #f3f3f3;
-
-  color:
-    var(--dark);
-
-  font-size:
-    15px;
-
-  transition:
-    all 0.2s ease;
-
-}
-
-
-.dropdown-content a:hover .menu-icon {
-
-  background:
-    var(--brand-yellow);
-
-}
-
-
-.dropdown-arrow,
-.profile-arrow {
-
-  margin-left:
-    4px;
-
-  font-size:
-    11px;
-
-  color:
-    rgba(255,255,255,0.5);
-
-}
-
-
-/* =========================================================
-   BOOK NOW
-========================================================= */
-
-.booking-nav-btn {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    9px;
-
-  margin-left:
-    8px;
-
-  padding:
-    11px 18px;
-
-  border-radius:
-    50px;
-
-  background:
-    var(--brand-yellow);
-
-  color:
-    var(--dark) !important;
-
-  font-size:
-    12px;
-
-  font-weight:
-    800;
-
-  letter-spacing:
-    0.4px;
-
-  text-transform:
-    uppercase;
-
-  text-decoration:
-    none;
-
-  box-shadow:
-    0 5px 20px
-    rgba(255,215,0,0.15);
-
-  transition:
-    all 0.25s ease;
-
-}
-
-
-.booking-nav-btn:hover {
-
-  background:
-    white;
-
-  transform:
-    translateY(-2px);
-
-}
-
-
-.booking-arrow {
-
-  font-size:
-    15px;
-
-  transition:
-    transform 0.25s ease;
-
-}
-
-
-.booking-nav-btn:hover .booking-arrow {
-
-  transform:
-    translateX(3px);
-
-}
-
-
-/* =========================================================
-   SIGN IN BUTTON
-========================================================= */
-
-.login-btn {
-
-  margin-left:
-    4px;
-
-  padding:
-    11px 18px;
-
-  background:
-    transparent;
-
-  color:
-    rgba(255,255,255,0.85);
-
-  border:
-    1px solid
-    rgba(255,255,255,0.18);
-
-  border-radius:
-    50px;
-
-  font-family:
-    inherit;
-
-  font-size:
-    12px;
-
-  font-weight:
-    600;
-
-  cursor:
-    pointer;
-
-  transition:
-    all 0.25s ease;
-
-}
-
-
-.login-btn:hover {
-
-  color:
-    var(--dark);
-
-  background:
-    white;
-
-  border-color:
-    white;
-
-}
-
-
-/* =========================================================
-   PROFILE
-========================================================= */
-
-.profile-pill {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    8px;
-
-  padding:
-    6px 11px 6px 6px;
-
-  background:
-    rgba(255,255,255,0.07);
-
-  border:
-    1px solid
-    rgba(255,255,255,0.1);
-
-  border-radius:
-    50px;
-
-  color:
-    white;
-
-  font-family:
-    inherit;
-
-  cursor:
-    pointer;
-
-  transition:
-    all 0.25s ease;
-
-}
-
-
-.profile-pill:hover {
-
-  background:
-    rgba(255,255,255,0.12);
-
-}
-
-
-.avatar-icon {
-
-  width:
-    31px;
-
-  height:
-    31px;
-
-  border-radius:
-    50%;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  background:
-    var(--brand-yellow);
-
-  color:
-    var(--dark);
-
-  font-size:
-    13px;
-
-  font-weight:
-    800;
-
-}
-
-
-.user-name {
-
-  font-size:
-    12px;
-
-  font-weight:
-    600;
-
-}
-
-
-.profile-dropdown {
-
-  width:
-    280px;
-
-}
-
-
-.profile-header {
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  gap:
-    12px;
-
-  padding:
-    12px;
-
-}
-
-
-.profile-avatar {
-
-  width:
-    43px;
-
-  height:
-    43px;
-
-  border-radius:
-    50%;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  background:
-    var(--brand-yellow);
-
-  color:
-    var(--dark);
-
-  font-weight:
-    800;
-
-}
-
-
-.profile-header strong {
-
-  display:
-    block;
-
-  color:
-    var(--dark);
-
-  font-size:
-    13px;
-
-}
-
-
-.profile-header small {
-
-  display:
-    block;
-
-  margin-top:
-    2px;
-
-  color:
-    #999;
-
-  font-size:
-    10px;
-
-}
-
-
-.profile-divider {
-
-  height:
-    1px;
-
-  background:
-    #eee;
-
-  margin:
-    3px 8px 8px;
-
-}
-
-
-.logout-link:hover {
-
-  background:
-    #fff3f3 !important;
-
-}
-
-
-.logout-link:hover strong {
-
-  color:
-    #d93030;
-
-}
-
-
-/* =========================================================
-   MOBILE MENU BUTTON
-========================================================= */
-
-.mobile-menu-btn {
-
-  display:
-    none;
-
-  width:
-    42px;
-
-  height:
-    42px;
-
-  padding:
-    8px;
-
-  background:
-    transparent;
-
-  border:
-    1px solid
-    rgba(255,255,255,0.15);
-
-  border-radius:
-    10px;
-
-  cursor:
-    pointer;
-
-}
-
-
-.mobile-menu-btn span {
-
-  display:
-    block;
-
-  height:
-    2px;
-
-  margin:
-    5px 0;
-
-  background:
-    white;
-
-  border-radius:
-    10px;
-
-  transition:
-    all 0.25s ease;
-
-}
-
-
-/* =========================================================
-   MODAL BACKGROUND
-========================================================= */
-
-.modal {
-
-  display:
-    none;
-
-  position:
-    fixed;
-
-  inset:
-    0;
-
-  padding:
-    20px;
-
-  background:
-    rgba(0,0,0,0.76);
-
-  backdrop-filter:
-    blur(10px);
-
-  -webkit-backdrop-filter:
-    blur(10px);
-
-  justify-content:
-    center;
-
-  align-items:
-    center;
-
-  z-index:
-    2000;
-
-}
-
-
-/* =========================================================
-   MODAL CONTENT
-========================================================= */
-
-.modal-content {
-
-  position:
-    relative;
-
-  width:
-    100%;
-
-  max-height:
-    calc(100vh - 40px);
-
-  overflow-y:
-    auto;
-
-  color:
-    white;
-
-  box-shadow:
-    0 35px 100px
-    rgba(0,0,0,0.65);
-
-}
-
-
-.modal.active {
-
-  animation:
-    modalFade 0.25s ease;
-
-}
-
-
-@keyframes modalFade {
-
-  from {
-    opacity:
-      0;
+    --transition:
+      0.22s ease;
   }
 
-  to {
-    opacity:
-      1;
+  .site-header,
+  .site-header *,
+  .modal,
+  .modal * {
+    box-sizing: border-box;
   }
 
-}
-
-
-@keyframes modalSlide {
-
-  from {
-
-    opacity:
-      0;
-
-    transform:
-      translateY(25px)
-      scale(0.97);
-
-  }
-
-  to {
-
-    opacity:
-      1;
-
-    transform:
-      translateY(0)
-      scale(1);
-
-  }
-
-}
-
-
-/* =========================================================
-   AUTH MODAL
-========================================================= */
-
-.auth-modal {
-
-  max-width:
-    560px;
-
-  padding:
-    48px 50px;
-
-  border-radius:
-    28px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #292929,
-      #151515
-    );
-
-  border:
-    1px solid
-    rgba(255,255,255,0.12);
-
-  animation:
-    modalSlide 0.3s ease;
-
-}
-
-
-/* =========================================================
-   CLOSE BUTTON
-========================================================= */
-
-.close {
-
-  position:
-    absolute;
-
-  top:
-    17px;
-
-  right:
-    20px;
-
-  width:
-    36px;
-
-  height:
-    36px;
-
-  border:
-    none;
-
-  background:
-    rgba(255,255,255,0.06);
-
-  border-radius:
-    50%;
-
-  color:
-    rgba(255,255,255,0.55);
-
-  font-size:
-    24px;
-
-  line-height:
-    1;
-
-  cursor:
-    pointer;
-
-  transition:
-    all 0.2s ease;
-
-}
-
-
-.close:hover {
-
-  background:
-    rgba(255,255,255,0.12);
-
-  color:
-    white;
-
-  transform:
-    rotate(90deg);
-
-}
-
-
-/* =========================================================
-   AUTH LOGO
-========================================================= */
-
-.auth-logo {
-
-  text-align:
-    center;
-
-  margin-bottom:
-    20px;
-
-}
-
-
-.auth-logo img {
-
-  width:
-    78px;
-
-  height:
-    78px;
-
-  object-fit:
-    contain;
-
-  filter:
-    drop-shadow(
-      0 0 12px
-      rgba(255,215,0,0.3)
-    );
-
-}
-
-
-/* =========================================================
-   AUTH HEADER
-========================================================= */
-
-.auth-header {
-
-  text-align:
-    center;
-
-}
-
-
-.auth-eyebrow {
-
-  display:
-    block;
-
-  margin-bottom:
-    8px;
-
-  color:
-    var(--brand-yellow);
-
-  font-size:
-    10px;
-
-  font-weight:
-    700;
-
-  letter-spacing:
-    2px;
-
-  text-transform:
-    uppercase;
-
-}
-
-
-.auth-header h2,
-.logout-modal h2 {
-
-  margin:
-    0 0 10px;
-
-  color:
-    white;
-
-  font-size:
-    2rem;
-
-  line-height:
-    1.2;
-
-  font-weight:
-    700;
-
-}
-
-
-.auth-header p,
-.logout-modal > p {
-
-  margin:
-    0 0 28px;
-
-  color:
-    rgba(255,255,255,0.55);
-
-  font-size:
-    0.88rem;
-
-  line-height:
-    1.6;
-
-}
-
-
-/* =========================================================
-   INPUT GROUP
-========================================================= */
-
-.input-group {
-
-  margin-bottom:
-    18px;
-
-}
-
-
-.input-group label {
-
-  display:
-    block;
-
-  margin-bottom:
-    8px;
-
-  color:
-    rgba(255,255,255,0.78);
-
-  font-size:
-    12px;
-
-  font-weight:
-    600;
-
-}
-
-
-/* =========================================================
-   INPUTS
-========================================================= */
-
-.modal input {
-
-  width:
-    100%;
-
-  height:
-    50px;
-
-  padding:
-    14px 15px;
-
-  border:
-    1px solid
-    rgba(255,255,255,0.1);
-
-  border-radius:
-    11px;
-
-  outline:
-    none;
-
-  background:
-    rgba(255,255,255,0.96);
-
-  color:
-    #222;
-
-  font-family:
-    inherit;
-
-  font-size:
-    0.9rem;
-
-  transition:
-    all 0.2s ease;
-
-}
-
-
-.modal input::placeholder {
-
-  color:
-    #aaa;
-
-}
-
-
-.modal input:focus {
-
-  border-color:
-    var(--brand-yellow);
-
-  box-shadow:
-    0 0 0 3px
-    rgba(255,215,0,0.12);
-
-}
-
-
-/* =========================================================
-   PASSWORD WRAPPER
-========================================================= */
-
-.password-wrapper {
-
-  position:
-    relative;
-
-  width:
-    100%;
-
-}
-
-
-.password-wrapper input {
-
-  padding-right:
-    55px;
-
-}
-
-
-.password-toggle {
-
-  position:
-    absolute;
-
-  top:
-    50%;
-
-  right:
-    7px;
-
-  transform:
-    translateY(-50%);
-
-  width:
-    38px;
-
-  height:
-    38px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border:
-    none;
-
-  border-radius:
-    8px;
-
-  background:
-    transparent;
-
-  color:
-    #777;
-
-  font-size:
-    16px;
-
-  cursor:
-    pointer;
-
-  transition:
-    all 0.2s ease;
-
-}
-
-
-.password-toggle:hover {
-
-  background:
-    #eeeeee;
-
-  color:
-    #222;
-
-}
-
-
-.password-toggle:focus {
-
-  outline:
-    2px solid
-    var(--brand-yellow);
-
-  outline-offset:
-    1px;
-
-}
-
-
-/* =========================================================
-   ERROR / SUCCESS
-========================================================= */
-
-.error-msg {
-
-  display:
-    none;
-
-  margin-top:
-    6px;
-
-  color:
-    #ff7272;
-
-  font-size:
-    10px;
-
-}
-
-
-.success-msg {
-
-  display:
-    none;
-
-  margin-top:
-    6px;
-
-  color:
-    #45d88a;
-
-  font-size:
-    10px;
-
-}
-
-
-/* =========================================================
-   AUTH SUBMIT
-========================================================= */
-
-.auth-submit {
-
-  width:
-    100%;
-
-  height:
-    52px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  gap:
-    10px;
-
-  margin-top:
-    8px;
-
-  padding:
-    15px;
-
-  border:
-    none;
-
-  border-radius:
-    11px;
-
-  background:
-    var(--brand-yellow);
-
-  color:
-    var(--dark);
-
-  font-family:
-    inherit;
-
-  font-size:
-    0.82rem;
-
-  font-weight:
-    800;
-
-  letter-spacing:
-    0.7px;
-
-  text-transform:
-    uppercase;
-
-  cursor:
-    pointer;
-
-  transition:
-    all 0.25s ease;
-
-}
-
-
-.auth-submit:hover {
-
-  background:
-    white;
-
-  transform:
-    translateY(-2px);
-
-  box-shadow:
-    0 8px 25px
-    rgba(255,215,0,0.15);
-
-}
-
-
-.submit-arrow {
-
-  font-size:
-    17px;
-
-  transition:
-    transform 0.25s ease;
-
-}
-
-
-.auth-submit:hover .submit-arrow {
-
-  transform:
-    translateX(4px);
-
-}
-
-
-/* =========================================================
-   AUTH FOOTER
-========================================================= */
-
-.auth-footer {
-
-  margin:
-    22px 0 0;
-
-  text-align:
-    center;
-
-  color:
-    rgba(255,255,255,0.45);
-
-  font-size:
-    0.8rem;
-
-}
-
-
-.auth-footer a {
-
-  color:
-    var(--brand-yellow);
-
-  font-weight:
-    600;
-
-  text-decoration:
-    none;
-
-}
-
-
-.auth-footer a:hover {
-
-  text-decoration:
-    underline;
-
-}
-
-
-.hidden {
-
-  display:
-    none !important;
-
-}
-
-
-/* =========================================================
-   LOGOUT MODAL
-========================================================= */
-
-.logout-modal {
-
-  max-width:
-    430px;
-
-  padding:
-    45px 40px;
-
-  border-radius:
-    24px;
-
-  background:
-    linear-gradient(
-      145deg,
-      #242424,
-      #151515
-    );
-
-  border:
-    1px solid
-    rgba(255,255,255,0.1);
-
-  text-align:
-    center;
-
-  animation:
-    modalSlide 0.3s ease;
-
-}
-
-
-.logout-icon {
-
-  width:
-    70px;
-
-  height:
-    70px;
-
-  margin:
-    0 auto 20px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  border-radius:
-    50%;
-
-  background:
-    rgba(255,215,0,0.09);
-
-  border:
-    1px solid
-    rgba(255,215,0,0.15);
-
-  font-size:
-    30px;
-
-}
-
-
-.logout-actions {
-
-  display:
-    grid;
-
-  grid-template-columns:
-    1fr 1fr;
-
-  gap:
-    12px;
-
-  margin-top:
-    25px;
-
-}
-
-
-.stay-btn,
-.logout-confirm-btn {
-
-  width:
-    100%;
-
-  min-height:
-    46px;
-
-  display:
-    flex;
-
-  align-items:
-    center;
-
-  justify-content:
-    center;
-
-  padding:
-    13px;
-
-  border-radius:
-    10px;
-
-  font-family:
-    inherit;
-
-  font-size:
-    0.8rem;
-
-  font-weight:
-    700;
-
-  cursor:
-    pointer;
-
-  text-align:
-    center;
-
-  text-decoration:
-    none;
-
-}
-
-
-.stay-btn {
-
-  background:
-    rgba(255,255,255,0.07);
-
-  color:
-    white;
-
-  border:
-    1px solid
-    rgba(255,255,255,0.12);
-
-}
-
-
-.stay-btn:hover {
-
-  background:
-    rgba(255,255,255,0.12);
-
-}
-
-
-.logout-confirm-btn {
-
-  background:
-    #e04444;
-
-  color:
-    white;
-
-}
-
-
-.logout-confirm-btn:hover {
-
-  background:
-    #f05252;
-
-}
-
-
-/* =========================================================
-   RESPONSIVE - TABLET
-========================================================= */
-
-@media (max-width: 1100px) {
-
-  .navbar-container {
-
-    padding:
-      0 25px;
-
-  }
-
-
-  .nav-link,
-  .dropbtn {
-
-    padding:
-      10px 8px;
-
-    font-size:
-      16px;
-
-  }
-
-
-  .booking-nav-btn {
-
-    padding:
-      10px 14px;
-
-  }
-
-}
-
-
-/* =========================================================
-   RESPONSIVE - MOBILE
-========================================================= */
-
-@media (max-width: 850px) {
+  /* ========================================================
+     HEADER
+  ======================================================== */
 
   .site-header {
+    position: fixed;
 
-    height:
-      68px;
+    top: 0;
+    left: 0;
 
-  }
-
-
-  .navbar-container {
-
-    padding:
-      0 18px;
-
-  }
-
-
-  .brand-subtitle {
-
-    display:
-      none;
-
-  }
-
-
-  .brand-name {
-
-    font-size:
-      17px;
-
-  }
-
-
-  .mobile-menu-btn {
-
-    display:
-      block;
-
-    margin-left:
-      auto;
-
-  }
-
-
-  .main-navigation {
-
-    position:
-      absolute;
-
-    top:
-      100%;
-
-    left:
-      0;
-
-    width:
-      100%;
-
-    padding:
-      15px 18px 20px;
+    width: 100%;
+    height: 76px;
 
     background:
-      #171717;
+      rgba(18, 18, 18, 0.97);
 
-    border-top:
-      1px solid
-      rgba(255,255,255,0.06);
+    border-bottom:
+      1px solid rgba(255,255,255,0.07);
 
     box-shadow:
-      0 20px 35px
-      rgba(0,0,0,0.35);
+      0 8px 35px rgba(0,0,0,0.25);
 
-    display:
+    z-index: 1000;
+
+    -webkit-backdrop-filter:
+      blur(14px);
+
+    backdrop-filter:
+      blur(14px);
+  }
+
+  .navbar-container {
+    height: 100%;
+
+    max-width: 1500px;
+
+    margin: 0 auto;
+
+    padding:
+      0 45px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+      space-between;
+
+    gap: 30px;
+  }
+
+  /* ========================================================
+     BRAND
+  ======================================================== */
+
+  .brand {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    min-width: max-content;
+
+    color: white;
+
+    text-decoration:
       none;
-
-    flex-direction:
-      column;
-
-    align-items:
-      stretch;
-
-    gap:
-      4px;
-
   }
 
+  .logo-container {
+    width: 46px;
+    height: 46px;
 
-  .main-navigation.mobile-open {
+    display: flex;
 
-    display:
-      flex;
-
-    animation:
-      mobileMenuIn 0.25s ease;
-
+    align-items: center;
+    justify-content: center;
   }
 
+  .logo {
+    width: 46px;
+    height: 46px;
 
-  @keyframes mobileMenuIn {
+    object-fit: contain;
 
-    from {
-
-      opacity:
-        0;
-
-      transform:
-        translateY(-8px);
-
-    }
-
-    to {
-
-      opacity:
-        1;
-
-      transform:
-        translateY(0);
-
-    }
-
+    filter:
+      drop-shadow(
+        0 0 8px rgba(255,215,0,0.3)
+      );
   }
 
+  .brand-text {
+    display: flex;
+
+    align-items: baseline;
+
+    gap: 5px;
+  }
+
+  .brand-name {
+    color: white;
+
+    font-size: 19px;
+
+    font-weight: 700;
+  }
+
+  .brand-subtitle {
+    color:
+      var(--brand-yellow);
+
+    font-size: 19px;
+
+    font-weight: 700;
+  }
+
+  /* ========================================================
+     NAVIGATION
+  ======================================================== */
+
+  .main-navigation {
+    display: flex;
+
+    align-items: center;
+
+    justify-content:
+      flex-end;
+
+    gap: 8px;
+  }
 
   .nav-link,
   .dropbtn {
-
-    width:
-      100%;
+    position: relative;
 
     padding:
-      13px 15px;
+      11px 13px;
+
+    border: none;
+
+    background:
+      transparent;
+
+    color:
+      rgba(255,255,255,0.78);
+
+    font-family:
+      inherit;
+
+    font-size: 18px;
+
+    font-weight: 500;
+
+    letter-spacing:
+      0.2px;
+
+    cursor: pointer;
+
+    text-decoration:
+      none;
+
+    transition:
+      color var(--transition);
+  }
+
+  .nav-link::after {
+    content: "";
+
+    position: absolute;
+
+    left: 13px;
+    right: 13px;
+
+    bottom: 3px;
+
+    height: 2px;
+
+    background:
+      var(--brand-yellow);
+
+    transform:
+      scaleX(0);
+
+    transform-origin:
+      center;
+
+    transition:
+      transform var(--transition);
+  }
+
+  .nav-link:hover,
+  .nav-link:focus-visible,
+  .dropbtn:hover,
+  .dropbtn:focus-visible {
+    color: white;
+  }
+
+  .nav-link:hover::after,
+  .nav-link.active::after {
+    transform:
+      scaleX(1);
+  }
+
+  .nav-link:focus-visible,
+  .dropbtn:focus-visible,
+  .booking-nav-btn:focus-visible,
+  .login-btn:focus-visible,
+  .profile-pill:focus-visible,
+  .mobile-menu-btn:focus-visible {
+    outline:
+      2px solid var(--brand-yellow);
+
+    outline-offset:
+      3px;
+  }
+
+  .nav-badge {
+    font-size: 9px;
+
+    color:
+      var(--brand-yellow);
+
+    margin-left: 2px;
+  }
+
+  /* ========================================================
+     DROPDOWNS
+  ======================================================== */
+
+  .dropdown {
+    position: relative;
+  }
+
+  .dropdown-content {
+    position: absolute;
+
+    top:
+      calc(100% + 13px);
+
+    right: 0;
+
+    width: 280px;
+
+    padding: 8px;
+
+    background:
+      white;
+
+    border:
+      1px solid rgba(0,0,0,0.08);
+
+    border-radius:
+      var(--radius-md);
+
+    box-shadow:
+      0 25px 60px
+      rgba(0,0,0,0.25);
+
+    opacity: 0;
+
+    visibility: hidden;
+
+    pointer-events: none;
+
+    transform:
+      translateY(8px);
+
+    transition:
+      opacity var(--transition),
+      visibility var(--transition),
+      transform var(--transition);
+
+    z-index: 20;
+  }
+
+  .dropdown.is-open
+  .dropdown-content {
+    opacity: 1;
+
+    visibility: visible;
+
+    pointer-events: auto;
+
+    transform:
+      translateY(0);
+  }
+
+  .dropdown-content::before {
+    content: "";
+
+    position: absolute;
+
+    top: -6px;
+
+    right: 25px;
+
+    width: 12px;
+    height: 12px;
+
+    background: white;
+
+    transform:
+      rotate(45deg);
+  }
+
+  .dropdown-heading {
+    padding:
+      12px 14px 8px;
+
+    color:
+      #999;
+
+    font-size: 10px;
+
+    font-weight: 700;
+
+    text-transform:
+      uppercase;
+
+    letter-spacing:
+      1.4px;
+  }
+
+  .dropdown-content a,
+  .dropdown-action {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    width: 100%;
+
+    padding: 12px;
+
+    border: 0;
+
+    border-radius:
+      10px;
+
+    color:
+      var(--dark);
+
+    background:
+      transparent;
+
+    text-decoration:
+      none;
+
+    font-family:
+      inherit;
 
     text-align:
       left;
 
-    font-size:
-      17px;
+    cursor: pointer;
 
+    transition:
+      background var(--transition);
   }
 
+  .dropdown-content a:hover,
+  .dropdown-content a:focus-visible,
+  .dropdown-action:hover,
+  .dropdown-action:focus-visible {
+    background:
+      #f7f7f7;
+  }
 
-  .nav-link::after {
+  .dropdown-content a:focus-visible,
+  .dropdown-action:focus-visible {
+    outline:
+      2px solid
+      var(--brand-yellow);
 
-    display:
+    outline-offset:
+      -2px;
+  }
+
+  .dropdown-content a strong,
+  .dropdown-action strong {
+    display: block;
+
+    font-size: 13px;
+
+    font-weight: 600;
+  }
+
+  .dropdown-content a small,
+  .dropdown-action small {
+    display: block;
+
+    margin-top: 2px;
+
+    color:
+      #999;
+
+    font-size: 10px;
+  }
+
+  .menu-icon {
+    width: 36px;
+    height: 36px;
+
+    flex:
+      0 0 36px;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    border-radius:
+      10px;
+
+    background:
+      #f3f3f3;
+
+    color:
+      var(--dark);
+
+    font-size: 15px;
+
+    transition:
+      all var(--transition);
+  }
+
+  .dropdown-content a:hover .menu-icon,
+  .dropdown-content a:focus-visible .menu-icon,
+  .dropdown-action:hover .menu-icon,
+  .dropdown-action:focus-visible .menu-icon {
+    background:
+      var(--brand-yellow);
+  }
+
+  .dropdown-arrow,
+  .profile-arrow {
+    margin-left: 4px;
+
+    font-size: 11px;
+
+    color:
+      rgba(255,255,255,0.5);
+
+    transition:
+      transform var(--transition);
+  }
+
+  .dropdown.is-open .dropdown-arrow,
+  .dropdown.is-open .profile-arrow {
+    transform:
+      rotate(180deg);
+  }
+
+  /* ========================================================
+     BOOK NOW
+  ======================================================== */
+
+  .booking-nav-btn {
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    gap: 9px;
+
+    margin-left: 8px;
+
+    padding:
+      11px 18px;
+
+    border: 0;
+
+    border-radius:
+      50px;
+
+    background:
+      var(--brand-yellow);
+
+    color:
+      var(--dark) !important;
+
+    font-family:
+      inherit;
+
+    font-size: 12px;
+
+    font-weight: 800;
+
+    letter-spacing:
+      0.4px;
+
+    text-transform:
+      uppercase;
+
+    text-decoration:
       none;
 
+    box-shadow:
+      0 5px 20px
+      rgba(255,215,0,0.15);
+
+    transition:
+      all var(--transition);
+
+    cursor: pointer;
   }
 
+  .booking-nav-btn:hover {
+    background:
+      white;
 
-  .nav-dropdown {
+    transform:
+      translateY(-2px);
 
-    width:
-      100%;
-
+    box-shadow:
+      0 10px 30px
+      rgba(255,255,255,0.08);
   }
 
+  .booking-arrow {
+    font-size: 15px;
 
-  .dropdown-content {
+    transition:
+      transform var(--transition);
+  }
 
-    position:
-      static;
+  .booking-nav-btn:hover
+  .booking-arrow {
+    transform:
+      translateX(3px);
+  }
 
-    width:
-      100%;
+  /* ========================================================
+     SIGN IN
+  ======================================================== */
+
+  .login-btn {
+    margin-left: 4px;
+
+    padding:
+      11px 18px;
+
+    background:
+      transparent;
+
+    color:
+      rgba(255,255,255,0.85);
+
+    border:
+      1px solid
+      rgba(255,255,255,0.18);
+
+    border-radius:
+      50px;
+
+    font-family:
+      inherit;
+
+    font-size: 12px;
+
+    font-weight: 600;
+
+    cursor: pointer;
+
+    transition:
+      all var(--transition);
+  }
+
+  .login-btn:hover {
+    color:
+      var(--dark);
+
+    background:
+      white;
+
+    border-color:
+      white;
+  }
+
+  /* ========================================================
+     PROFILE
+  ======================================================== */
+
+  .profile-pill {
+    display: flex;
+
+    align-items: center;
+
+    gap: 8px;
+
+    padding:
+      6px 11px 6px 6px;
+
+    background:
+      rgba(255,255,255,0.07);
+
+    border:
+      1px solid
+      rgba(255,255,255,0.10);
+
+    border-radius:
+      50px;
+
+    color: white;
+
+    font-family:
+      inherit;
+
+    cursor: pointer;
+
+    transition:
+      all var(--transition);
+  }
+
+  .profile-pill:hover {
+    background:
+      rgba(255,255,255,0.12);
+  }
+
+  .avatar-icon {
+    width: 31px;
+    height: 31px;
+
+    border-radius:
+      50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+      var(--brand-yellow);
+
+    color:
+      var(--dark);
+
+    font-size: 13px;
+
+    font-weight: 800;
+  }
+
+  .user-name {
+    font-size: 12px;
+
+    font-weight: 600;
+
+    max-width: 120px;
+
+    overflow: hidden;
+
+    text-overflow: ellipsis;
+
+    white-space: nowrap;
+  }
+
+  .profile-dropdown {
+    width: 280px;
+  }
+
+  .profile-header {
+    display: flex;
+
+    align-items: center;
+
+    gap: 12px;
+
+    padding: 12px;
+  }
+
+  .profile-avatar {
+    width: 43px;
+    height: 43px;
+
+    flex: 0 0 43px;
+
+    border-radius:
+      50%;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: center;
+
+    background:
+      var(--brand-yellow);
+
+    color:
+      var(--dark);
+
+    font-weight: 800;
+  }
+
+  .profile-identity {
+    min-width: 0;
+  }
+
+  .profile-header strong {
+    display: block;
+
+    color:
+      var(--dark);
+
+    font-size: 13px;
+
+    overflow:
+      hidden;
+
+    text-overflow:
+      ellipsis;
+
+    white-space:
+      nowrap;
+  }
+
+  .profile-header small {
+    display: block;
+
+    margin-top: 2px;
+
+    color:
+      #999;
+
+    font-size: 10px;
+  }
+
+  .profile-divider {
+    height: 1px;
+
+    background:
+      #eee;
 
     margin:
-      4px 0;
+      3px 8px 8px;
+  }
 
+  .logout-link:hover,
+  .logout-link:focus-visible {
+    background:
+      #fff3f3 !important;
+  }
+
+  .logout-link:hover strong,
+  .logout-link:focus-visible strong {
+    color:
+      #d93030;
+  }
+
+  /* ========================================================
+     MOBILE MENU BUTTON
+  ======================================================== */
+
+  .mobile-menu-btn {
+    display: none;
+
+    width: 42px;
+    height: 42px;
+
+    padding: 8px;
+
+    background:
+      transparent;
+
+    border:
+      1px solid
+      rgba(255,255,255,0.15);
+
+    border-radius:
+      10px;
+
+    cursor: pointer;
+  }
+
+  .mobile-menu-btn span {
+    display: block;
+
+    height: 2px;
+
+    margin: 5px 0;
+
+    background:
+      white;
+
+    border-radius:
+      10px;
+
+    transition:
+      all var(--transition);
+  }
+
+  /* ========================================================
+     MODALS
+  ======================================================== */
+
+  .modal {
+    display: none;
+
+    position: fixed;
+
+    inset: 0;
+
+    padding: 20px;
+
+    background:
+      rgba(0,0,0,0.76);
+
+    backdrop-filter:
+      blur(10px);
+
+    -webkit-backdrop-filter:
+      blur(10px);
+
+    justify-content:
+      center;
+
+    align-items:
+      center;
+
+    overflow-y:
+      auto;
+
+    z-index: 2000;
+  }
+
+  .modal.is-open {
+    display: flex;
+  }
+
+  .modal-content {
+    position: relative;
+
+    width: 100%;
+
+    max-height:
+      calc(100vh - 40px);
+
+    overflow-y:
+      auto;
+
+    color:
+      white;
+
+    box-shadow:
+      var(--shadow-heavy);
+
+    overscroll-behavior:
+      contain;
+  }
+
+  .modal-content:focus {
+    outline:
+      none;
+  }
+
+  @keyframes modalFade {
+    from {
+      opacity: 0;
+    }
+
+    to {
+      opacity: 1;
+    }
+  }
+
+  @keyframes modalSlide {
+    from {
+      opacity: 0;
+
+      transform:
+        translateY(25px)
+        scale(0.97);
+    }
+
+    to {
+      opacity: 1;
+
+      transform:
+        translateY(0)
+        scale(1);
+    }
+  }
+
+  .modal.is-open {
+    animation:
+      modalFade 0.25s ease;
+  }
+
+  /* ========================================================
+     AUTH MODAL
+  ======================================================== */
+
+  .auth-modal {
+    max-width: 560px;
+
+    padding:
+      48px 50px;
+
+    border-radius:
+      var(--radius-lg);
+
+    background:
+      linear-gradient(
+        145deg,
+        #292929,
+        #151515
+      );
+
+    border:
+      1px solid
+      rgba(255,255,255,0.12);
+
+    animation:
+      modalSlide 0.3s ease;
+  }
+
+  .close {
+    position: absolute;
+
+    top: 17px;
+    right: 20px;
+
+    width: 36px;
+    height: 36px;
+
+    border: none;
+
+    background:
+      rgba(255,255,255,0.06);
+
+    border-radius:
+      50%;
+
+    color:
+      rgba(255,255,255,0.55);
+
+    font-size: 24px;
+
+    line-height: 1;
+
+    cursor: pointer;
+
+    transition:
+      all var(--transition);
+  }
+
+  .close:hover,
+  .close:focus-visible {
+    background:
+      rgba(255,255,255,0.12);
+
+    color:
+      white;
+
+    transform:
+      rotate(90deg);
+  }
+
+  .close:focus-visible {
+    outline:
+      2px solid
+      var(--brand-yellow);
+
+    outline-offset:
+      2px;
+  }
+
+  .auth-logo {
+    text-align:
+      center;
+
+    margin-bottom:
+      20px;
+  }
+
+  .auth-logo img {
+    width: 78px;
+    height: 78px;
+
+    object-fit:
+      contain;
+
+    filter:
+      drop-shadow(
+        0 0 12px
+        rgba(255,215,0,0.30)
+      );
+  }
+
+  .auth-header {
+    text-align:
+      center;
+  }
+
+  .auth-eyebrow {
+    display:
+      block;
+
+    margin-bottom:
+      8px;
+
+    color:
+      var(--brand-yellow);
+
+    font-size:
+      10px;
+
+    font-weight:
+      700;
+
+    letter-spacing:
+      2px;
+
+    text-transform:
+      uppercase;
+  }
+
+  .auth-header h2,
+  .logout-modal h2 {
+    margin:
+      0 0 10px;
+
+    color:
+      white;
+
+    font-size:
+      2rem;
+
+    line-height:
+      1.2;
+
+    font-weight:
+      700;
+  }
+
+  .auth-header p,
+  .logout-modal > p {
+    margin:
+      0 0 28px;
+
+    color:
+      rgba(255,255,255,0.55);
+
+    font-size:
+      0.88rem;
+
+    line-height:
+      1.6;
+  }
+
+  /* ========================================================
+     AUTH MESSAGE
+  ======================================================== */
+
+  .auth-message {
     display:
       none;
 
-    opacity:
-      1;
+    margin:
+      0 0 20px;
 
-    visibility:
-      visible;
+    padding:
+      13px 14px;
+
+    border-radius:
+      10px;
+
+    font-size:
+      0.80rem;
+
+    line-height:
+      1.5;
+
+    border:
+      1px solid
+      transparent;
+  }
+
+  .auth-message.is-visible {
+    display:
+      block;
+  }
+
+  .auth-message.error {
+    background:
+      var(--danger-soft);
+
+    color:
+      #ff9b9b;
+
+    border-color:
+      rgba(224,68,68,0.22);
+  }
+
+  .auth-message.success {
+    background:
+      var(--success-soft);
+
+    color:
+      #78e8a9;
+
+    border-color:
+      rgba(69,216,138,0.20);
+  }
+
+  /* ========================================================
+     INPUT GROUP
+  ======================================================== */
+
+  .input-group {
+    margin-bottom:
+      18px;
+  }
+
+  .input-group label {
+    display:
+      block;
+
+    margin-bottom:
+      8px;
+
+    color:
+      rgba(255,255,255,0.78);
+
+    font-size:
+      12px;
+
+    font-weight:
+      600;
+  }
+
+  .field-label-row {
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      space-between;
+
+    gap:
+      12px;
+
+    margin-bottom:
+      8px;
+  }
+
+  .field-label-row label {
+    margin-bottom:
+      0;
+  }
+
+  .optional-label {
+    color:
+      rgba(255,255,255,0.35);
+
+    font-size:
+      10px;
+
+    font-weight:
+      500;
+
+    margin-left:
+      5px;
+  }
+
+  .input-help {
+    display:
+      block;
+
+    margin-top:
+      6px;
+
+    color:
+      rgba(255,255,255,0.40);
+
+    font-size:
+      10px;
+
+    line-height:
+      1.5;
+  }
+
+  /* ========================================================
+     INPUTS
+  ======================================================== */
+
+  .modal input {
+    width:
+      100%;
+
+    height:
+      50px;
+
+    padding:
+      14px 15px;
+
+    border:
+      1px solid
+      rgba(255,255,255,0.10);
+
+    border-radius:
+      var(--radius-sm);
+
+    outline:
+      none;
+
+    background:
+      rgba(255,255,255,0.96);
+
+    color:
+      #222;
+
+    font-family:
+      inherit;
+
+    font-size:
+      0.90rem;
+
+    transition:
+      border-color var(--transition),
+      box-shadow var(--transition),
+      background var(--transition);
+  }
+
+  .modal input::placeholder {
+    color:
+      #aaa;
+  }
+
+  .modal input:hover {
+    background:
+      white;
+  }
+
+  .modal input:focus {
+    border-color:
+      var(--brand-yellow);
+
+    box-shadow:
+      0 0 0 3px
+      rgba(255,215,0,0.12);
+
+    background:
+      white;
+  }
+
+  .modal input.is-invalid {
+    border-color:
+      #ff5b5b;
+
+    box-shadow:
+      0 0 0 3px
+      rgba(255,91,91,0.08);
+  }
+
+  .modal input.is-valid {
+    border-color:
+      var(--success);
+
+    box-shadow:
+      0 0 0 3px
+      rgba(69,216,138,0.08);
+  }
+
+  .modal input:disabled {
+    opacity:
+      0.65;
+
+    cursor:
+      not-allowed;
+  }
+
+  /* ========================================================
+     PASSWORD
+  ======================================================== */
+
+  .password-wrapper {
+    position:
+      relative;
+
+    width:
+      100%;
+  }
+
+  .password-wrapper input {
+    padding-right:
+      55px;
+  }
+
+  .password-toggle {
+    position:
+      absolute;
+
+    top:
+      50%;
+
+    right:
+      7px;
+
+    transform:
+      translateY(-50%);
+
+    width:
+      38px;
+
+    height:
+      38px;
+
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      center;
+
+    border:
+      none;
+
+    border-radius:
+      8px;
+
+    background:
+      transparent;
+
+    color:
+      #777;
+
+    font-size:
+      16px;
+
+    cursor:
+      pointer;
+
+    transition:
+      all var(--transition);
+  }
+
+  .password-toggle:hover {
+    background:
+      #eeeeee;
+
+    color:
+      #222;
+  }
+
+  .password-toggle:focus-visible {
+    outline:
+      2px solid
+      var(--brand-yellow);
+
+    outline-offset:
+      1px;
+  }
+
+  .password-strength {
+    display:
+      grid;
+
+    grid-template-columns:
+      repeat(4, 1fr);
+
+    gap:
+      4px;
+
+    margin-top:
+      7px;
+
+    height:
+      3px;
+  }
+
+  .password-strength span {
+    display:
+      block;
+
+    height:
+      3px;
+
+    border-radius:
+      999px;
+
+    background:
+      rgba(255,255,255,0.10);
+
+    transition:
+      background var(--transition);
+  }
+
+  .password-strength.weak
+  span:nth-child(-n+1) {
+    background:
+      #e04444;
+  }
+
+  .password-strength.fair
+  span:nth-child(-n+2) {
+    background:
+      #e8a43b;
+  }
+
+  .password-strength.good
+  span:nth-child(-n+3) {
+    background:
+      #68bb70;
+  }
+
+  .password-strength.strong
+  span {
+    background:
+      var(--success);
+  }
+
+  .password-strength-label {
+    color:
+      rgba(255,255,255,0.40);
+
+    font-size:
+      10px;
+
+    font-weight:
+      600;
+
+    min-height:
+      14px;
+  }
+
+  /* ========================================================
+     ERROR / SUCCESS
+  ======================================================== */
+
+  .error-msg,
+  .success-msg {
+    display:
+      none;
+
+    margin-top:
+      6px;
+
+    font-size:
+      10px;
+
+    line-height:
+      1.5;
+  }
+
+  .error-msg {
+    color:
+      #ff7272;
+  }
+
+  .success-msg {
+    color:
+      var(--success);
+  }
+
+  .error-msg.is-visible,
+  .success-msg.is-visible {
+    display:
+      block;
+  }
+
+  /* ========================================================
+     SUBMIT
+  ======================================================== */
+
+  .auth-submit {
+    width:
+      100%;
+
+    min-height:
+      52px;
+
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      center;
+
+    gap:
+      10px;
+
+    margin-top:
+      8px;
+
+    padding:
+      15px;
+
+    border:
+      none;
+
+    border-radius:
+      var(--radius-sm);
+
+    background:
+      var(--brand-yellow);
+
+    color:
+      var(--dark);
+
+    font-family:
+      inherit;
+
+    font-size:
+      0.82rem;
+
+    font-weight:
+      800;
+
+    letter-spacing:
+      0.7px;
+
+    text-transform:
+      uppercase;
+
+    cursor:
+      pointer;
+
+    transition:
+      all var(--transition);
+  }
+
+  .auth-submit:hover {
+    background:
+      white;
+
+    transform:
+      translateY(-2px);
+
+    box-shadow:
+      0 8px 25px
+      rgba(255,215,0,0.15);
+  }
+
+  .auth-submit:disabled {
+    opacity:
+      0.68;
+
+    cursor:
+      wait;
 
     transform:
       none;
 
     box-shadow:
       none;
-
   }
 
+  .submit-arrow {
+    font-size:
+      17px;
 
-  .dropdown:hover .dropdown-content {
-
-    display:
-      block;
-
+    transition:
+      transform var(--transition);
   }
 
+  .auth-submit:hover
+  .submit-arrow {
+    transform:
+      translateX(4px);
+  }
 
-  .dropdown-content::before {
-
+  .submit-spinner {
     display:
       none;
 
+    width:
+      14px;
+
+    height:
+      14px;
+
+    border:
+      2px solid
+      currentColor;
+
+    border-right-color:
+      transparent;
+
+    border-radius:
+      50%;
+
+    animation:
+      submitSpin 0.70s linear infinite;
   }
 
+  .is-loading
+  .submit-spinner {
+    display:
+      inline-block;
+  }
 
-  .booking-nav-btn {
+  .is-loading
+  .submit-arrow {
+    display:
+      none;
+  }
+
+  @keyframes submitSpin {
+    to {
+      transform:
+        rotate(360deg);
+    }
+  }
+
+  /* ========================================================
+     AUTH FOOTER
+  ======================================================== */
+
+  .auth-footer {
+    margin:
+      22px 0 0;
+
+    text-align:
+      center;
+
+    color:
+      rgba(255,255,255,0.45);
+
+    font-size:
+      0.80rem;
+  }
+
+  .auth-footer a {
+    color:
+      var(--brand-yellow);
+
+    font-weight:
+      600;
+
+    text-decoration:
+      none;
+  }
+
+  .auth-footer a:hover,
+  .auth-footer a:focus-visible {
+    text-decoration:
+      underline;
+  }
+
+  .auth-footer a:focus-visible {
+    outline:
+      2px solid
+      var(--brand-yellow);
+
+    outline-offset:
+      3px;
+  }
+
+  .hidden {
+    display:
+      none !important;
+  }
+
+  /* ========================================================
+     LOGOUT
+  ======================================================== */
+
+  .logout-modal {
+    max-width:
+      430px;
+
+    padding:
+      45px 40px;
+
+    border-radius:
+      24px;
+
+    background:
+      linear-gradient(
+        145deg,
+        #242424,
+        #151515
+      );
+
+    border:
+      1px solid
+      rgba(255,255,255,0.10);
+
+    text-align:
+      center;
+
+    animation:
+      modalSlide 0.3s ease;
+  }
+
+  .logout-icon {
+    width:
+      70px;
+
+    height:
+      70px;
+
+    margin:
+      0 auto 20px;
+
+    display:
+      flex;
+
+    align-items:
+      center;
 
     justify-content:
       center;
 
-    margin:
-      8px 0;
-
-    padding:
-      13px;
-
-  }
-
-
-  .profile-wrapper {
-
-    width:
-      100%;
-
-  }
-
-
-  .profile-pill {
-
-    width:
-      100%;
-
-    justify-content:
-      flex-start;
-
-  }
-
-
-  .profile-dropdown {
-
-    width:
-      100%;
-
-  }
-
-
-  .login-btn {
-
-    width:
-      100%;
-
-    padding:
-      13px;
-
-    margin:
-      8px 0 0;
-
-  }
-
-}
-
-
-/* =========================================================
-   RESPONSIVE - AUTH MODAL
-========================================================= */
-
-@media (max-width: 600px) {
-
-  .modal {
-
-    padding:
-      12px;
-
-  }
-
-
-  .auth-modal {
-
-    max-width:
-      100%;
-
-    padding:
-      38px 24px;
-
     border-radius:
-      22px;
+      50%;
 
-  }
+    background:
+      rgba(255,215,0,0.09);
 
-
-  .auth-logo img {
-
-    width:
-      65px;
-
-    height:
-      65px;
-
-  }
-
-
-  .auth-header h2 {
+    border:
+      1px solid
+      rgba(255,215,0,0.15);
 
     font-size:
-      1.65rem;
-
+      30px;
   }
-
-}
-
-
-/* =========================================================
-   RESPONSIVE - SMALL PHONES
-========================================================= */
-
-@media (max-width: 400px) {
-
-  .brand-text {
-
-    display:
-      none;
-
-  }
-
-
-  .auth-modal {
-
-    padding:
-      32px 18px;
-
-  }
-
-
-  .auth-header h2 {
-
-    font-size:
-      1.5rem;
-
-  }
-
-
-  .logout-modal {
-
-    padding:
-      35px 22px;
-
-  }
-
 
   .logout-actions {
+    display:
+      grid;
 
     grid-template-columns:
-      1fr;
+      1fr 1fr;
 
+    gap:
+      12px;
+
+    margin-top:
+      25px;
   }
 
-}
+  .logout-actions form {
+    margin:
+      0;
+  }
 
+  .stay-btn,
+  .logout-confirm-btn {
+    width:
+      100%;
+
+    min-height:
+      46px;
+
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      center;
+
+    gap:
+      8px;
+
+    padding:
+      13px;
+
+    border-radius:
+      10px;
+
+    font-family:
+      inherit;
+
+    font-size:
+      0.80rem;
+
+    font-weight:
+      700;
+
+    cursor:
+      pointer;
+
+    text-align:
+      center;
+
+    transition:
+      all var(--transition);
+  }
+
+  .stay-btn {
+    background:
+      rgba(255,255,255,0.07);
+
+    color:
+      white;
+
+    border:
+      1px solid
+      rgba(255,255,255,0.12);
+  }
+
+  .stay-btn:hover {
+    background:
+      rgba(255,255,255,0.12);
+  }
+
+  .logout-confirm-btn {
+    border:
+      none;
+
+    background:
+      var(--danger);
+
+    color:
+      white;
+  }
+
+  .logout-confirm-btn:hover {
+    background:
+      #f05252;
+  }
+
+  .logout-confirm-btn:disabled,
+  .stay-btn:disabled {
+    opacity:
+      0.60;
+
+    cursor:
+      not-allowed;
+  }
+
+  .stay-btn:focus-visible,
+  .logout-confirm-btn:focus-visible {
+    outline:
+      2px solid
+      var(--brand-yellow);
+
+    outline-offset:
+      3px;
+  }
+
+  /* ========================================================
+     RESPONSIVE - TABLET
+  ======================================================== */
+
+  @media (max-width: 1100px) {
+    .navbar-container {
+      padding:
+        0 25px;
+    }
+
+    .nav-link,
+    .dropbtn {
+      padding:
+        10px 8px;
+
+      font-size:
+        16px;
+    }
+
+    .booking-nav-btn {
+      padding:
+        10px 14px;
+    }
+
+    .user-name {
+      max-width:
+        90px;
+    }
+  }
+
+  /* ========================================================
+     RESPONSIVE - MOBILE
+  ======================================================== */
+
+  @media (max-width: 850px) {
+    .site-header {
+      height:
+        68px;
+    }
+
+    .navbar-container {
+      padding:
+        0 18px;
+    }
+
+    .brand-subtitle {
+      display:
+        none;
+    }
+
+    .brand-name {
+      font-size:
+        17px;
+    }
+
+    .mobile-menu-btn {
+      display:
+        block;
+
+      margin-left:
+        auto;
+    }
+
+    .main-navigation {
+      position:
+        absolute;
+
+      top:
+        100%;
+
+      left:
+        0;
+
+      width:
+        100%;
+
+      padding:
+        15px 18px 20px;
+
+      background:
+        #171717;
+
+      border-top:
+        1px solid
+        rgba(255,255,255,0.06);
+
+      box-shadow:
+        0 20px 35px
+        rgba(0,0,0,0.35);
+
+      display:
+        none;
+
+      flex-direction:
+        column;
+
+      align-items:
+        stretch;
+
+      gap:
+        4px;
+
+      max-height:
+        calc(100vh - 68px);
+
+      overflow-y:
+        auto;
+    }
+
+    .main-navigation.mobile-open {
+      display:
+        flex;
+
+      animation:
+        mobileMenuIn 0.25s ease;
+    }
+
+    @keyframes mobileMenuIn {
+      from {
+        opacity:
+          0;
+
+        transform:
+          translateY(-8px);
+      }
+
+      to {
+        opacity:
+          1;
+
+        transform:
+          translateY(0);
+      }
+    }
+
+    .nav-link,
+    .dropbtn {
+      width:
+        100%;
+
+      padding:
+        13px 15px;
+
+      text-align:
+        left;
+
+      font-size:
+        17px;
+    }
+
+    .nav-link::after {
+      display:
+        none;
+    }
+
+    .nav-dropdown,
+    .profile-wrapper {
+      width:
+        100%;
+    }
+
+    .dropdown-content {
+      position:
+        static;
+
+      width:
+        100%;
+
+      margin:
+        4px 0;
+
+      display:
+        none;
+
+      opacity:
+        1;
+
+      visibility:
+        visible;
+
+      pointer-events:
+        none;
+
+      transform:
+        none;
+
+      box-shadow:
+        none;
+    }
+
+    .dropdown.is-open
+    .dropdown-content {
+      display:
+        block;
+
+      pointer-events:
+        auto;
+    }
+
+    .dropdown-content::before {
+      display:
+        none;
+    }
+
+    .booking-nav-btn {
+      justify-content:
+        center;
+
+      width:
+        100%;
+
+      margin:
+        8px 0;
+
+      padding:
+        13px;
+    }
+
+    .profile-pill {
+      width:
+        100%;
+
+      justify-content:
+        flex-start;
+    }
+
+    .profile-dropdown {
+      width:
+        100%;
+    }
+
+    .login-btn {
+      width:
+        100%;
+
+      padding:
+        13px;
+
+      margin:
+        8px 0 0;
+    }
+  }
+
+  /* ========================================================
+     RESPONSIVE - AUTH MODAL
+  ======================================================== */
+
+  @media (max-width: 600px) {
+    .modal {
+      padding:
+        12px;
+    }
+
+    .auth-modal {
+      max-width:
+        100%;
+
+      padding:
+        38px 24px;
+
+      border-radius:
+        22px;
+    }
+
+    .auth-logo img {
+      width:
+        65px;
+
+      height:
+        65px;
+    }
+
+    .auth-header h2 {
+      font-size:
+        1.65rem;
+    }
+  }
+
+  /* ========================================================
+     RESPONSIVE - SMALL PHONES
+  ======================================================== */
+
+  @media (max-width: 400px) {
+    .brand-text {
+      display:
+        none;
+    }
+
+    .auth-modal {
+      padding:
+        32px 18px;
+    }
+
+    .auth-header h2 {
+      font-size:
+        1.5rem;
+    }
+
+    .logout-modal {
+      padding:
+        35px 22px;
+    }
+
+    .logout-actions {
+      grid-template-columns:
+        1fr;
+    }
+
+    .field-label-row {
+      align-items:
+        flex-start;
+
+      flex-direction:
+        column;
+
+      gap:
+        3px;
+    }
+  }
+
+  /* ========================================================
+     REDUCED MOTION
+  ======================================================== */
+
+  @media (prefers-reduced-motion: reduce) {
+    .site-header *,
+    .modal * {
+      animation-duration:
+        0.01ms !important;
+
+      animation-iteration-count:
+        1 !important;
+
+      transition-duration:
+        0.01ms !important;
+
+      scroll-behavior:
+        auto !important;
+    }
+  }
 </style>
-
 
 <!-- =========================================================
      JAVASCRIPT
 ========================================================= -->
 
 <script>
+  document.addEventListener(
+    "DOMContentLoaded",
+    () => {
+      "use strict";
 
-document.addEventListener(
-  "DOMContentLoaded",
-  () => {
+      /* ======================================================
+         ELEMENTS
+      ====================================================== */
 
-
-    /* =====================================================
-       ELEMENTS
-    ====================================================== */
-
-    const authModal =
-      document.getElementById("authModal");
-
-    const logoutModal =
-      document.getElementById("logoutModal");
-
-    const loginBtn =
-      document.getElementById("loginBtn");
-
-    const bookingBtn =
-      document.getElementById("bookingBtn");
-
-    const logoutTrigger =
-      document.getElementById("logoutTrigger");
-
-    const closeBtn =
-      document.querySelector(".close");
-
-    const cancelLogout =
-      document.getElementById("cancelLogout");
-
-    const showSignup =
-      document.getElementById("showSignup");
-
-    const showLogin =
-      document.getElementById("showLogin");
-
-    const loginForm =
-      document.getElementById("loginForm");
-
-    const signupForm =
-      document.getElementById("signupForm");
-
-    const signupFormElem =
-      document.getElementById("signupFormElem");
-
-    const mobileMenuBtn =
-      document.getElementById("mobileMenuBtn");
-
-    const mainNavigation =
-      document.getElementById("mainNavigation");
-
-    const phoneInput =
-      document.getElementById("phoneInput");
-
-    const phoneError =
-      document.getElementById("phoneError");
-
-    const signupPassword =
-      document.getElementById("signupPassword");
-
-    const confirmPassword =
-      document.getElementById("confirmPassword");
-
-    const passwordMatchError =
-      document.getElementById(
-        "passwordMatchError"
-      );
-
-    const passwordMatchSuccess =
-      document.getElementById(
-        "passwordMatchSuccess"
-      );
-
-
-    /* =====================================================
-       OPEN AUTH MODAL FROM URL PARAMETER
-    ====================================================== */
-
-    const params =
-      new URLSearchParams(
-        window.location.search
-      );
-
-    const requestedAuth =
-      params.get("auth");
-
-    if (
-      requestedAuth === "login"
-    ) {
-      loginForm?.classList.remove(
-        "hidden"
-      );
-
-      signupForm?.classList.add(
-        "hidden"
-      );
-
-      openAuth();
-    }
-
-    if (
-      requestedAuth === "signup"
-    ) {
-      loginForm?.classList.add(
-        "hidden"
-      );
-
-      signupForm?.classList.remove(
-        "hidden"
-      );
-
-      openAuth();
-    }
-
-
-    /* =====================================================
-       OPEN AUTH MODAL
-    ====================================================== */
-
-    function openAuth() {
-
-      if (!authModal) return;
-
-      authModal.style.display =
-        "flex";
-
-      authModal.setAttribute(
-        "aria-hidden",
-        "false"
-      );
-
-      document.body.style.overflow =
-        "hidden";
-
-    }
-
-
-    /* =====================================================
-       CLOSE AUTH MODAL
-    ====================================================== */
-
-    function closeAuth() {
-
-      if (!authModal) return;
-
-      authModal.style.display =
-        "none";
-
-      authModal.setAttribute(
-        "aria-hidden",
-        "true"
-      );
-
-      document.body.style.overflow =
-        "";
-
-    }
-
-
-    /* =====================================================
-       LOGIN BUTTON
-    ====================================================== */
-
-    loginBtn?.addEventListener(
-      "click",
-      () => {
-
-        loginForm?.classList.remove(
-          "hidden"
+      const authModal =
+        document.getElementById(
+          "authModal"
         );
 
-        signupForm?.classList.add(
-          "hidden"
+      const logoutModal =
+        document.getElementById(
+          "logoutModal"
         );
 
-        openAuth();
-
-      }
-    );
-
-
-    /* =====================================================
-       BOOKING BUTTON
-    ====================================================== */
-
-    bookingBtn?.addEventListener(
-      "click",
-      (event) => {
-
-        if (
-          bookingBtn.getAttribute("href") === "#"
-        ) {
-
-          event.preventDefault();
-
-          loginForm?.classList.remove(
-            "hidden"
-          );
-
-          signupForm?.classList.add(
-            "hidden"
-          );
-
-          openAuth();
-
-        }
-
-      }
-    );
-
-
-    /* =====================================================
-       CLOSE BUTTON
-    ====================================================== */
-
-    closeBtn?.addEventListener(
-      "click",
-      closeAuth
-    );
-
-
-    /* =====================================================
-       BACKDROP CLICK
-    ====================================================== */
-
-    window.addEventListener(
-      "click",
-      (event) => {
-
-        if (
-          event.target === authModal
-        ) {
-
-          closeAuth();
-
-        }
-
-
-        if (
-          event.target === logoutModal
-        ) {
-
-          logoutModal.style.display =
-            "none";
-
-          logoutModal.setAttribute(
-            "aria-hidden",
-            "true"
-          );
-
-          document.body.style.overflow =
-            "";
-
-        }
-
-      }
-    );
-
-
-    /* =====================================================
-       ESCAPE KEY
-    ====================================================== */
-
-    document.addEventListener(
-      "keydown",
-      (event) => {
-
-        if (
-          event.key !== "Escape"
-        ) {
-          return;
-        }
-
-
-        if (
-          authModal &&
-          authModal.style.display === "flex"
-        ) {
-
-          closeAuth();
-
-        }
-
-
-        if (
-          logoutModal &&
-          logoutModal.style.display === "flex"
-        ) {
-
-          logoutModal.style.display =
-            "none";
-
-          logoutModal.setAttribute(
-            "aria-hidden",
-            "true"
-          );
-
-          document.body.style.overflow =
-            "";
-
-        }
-
-      }
-    );
-
-
-    /* =====================================================
-       SHOW SIGNUP
-    ====================================================== */
-
-    showSignup?.addEventListener(
-      "click",
-      (event) => {
-
-        event.preventDefault();
-
-        loginForm?.classList.add(
-          "hidden"
+      const authModalContent =
+        authModal?.querySelector(
+          ".auth-modal"
         );
 
-        signupForm?.classList.remove(
-          "hidden"
+      const logoutModalContent =
+        logoutModal?.querySelector(
+          ".logout-modal"
         );
 
-      }
-    );
-
-
-    /* =====================================================
-       SHOW LOGIN
-    ====================================================== */
-
-    showLogin?.addEventListener(
-      "click",
-      (event) => {
-
-        event.preventDefault();
-
-        signupForm?.classList.add(
-          "hidden"
+      const authCloseBtn =
+        document.getElementById(
+          "authCloseBtn"
         );
 
-        loginForm?.classList.remove(
-          "hidden"
+      const loginBtn =
+        document.getElementById(
+          "loginBtn"
         );
 
-      }
-    );
+      const bookingBtn =
+        document.getElementById(
+          "bookingBtn"
+        );
 
+      const logoutTrigger =
+        document.getElementById(
+          "logoutTrigger"
+        );
 
-    /* =====================================================
-       PASSWORD VISIBILITY TOGGLE
-    ====================================================== */
+      const cancelLogout =
+        document.getElementById(
+          "cancelLogout"
+        );
 
-    document
-      .querySelectorAll(
-        ".password-toggle"
-      )
-      .forEach(
-        (button) => {
+      const showSignup =
+        document.getElementById(
+          "showSignup"
+        );
 
-          button.addEventListener(
-            "click",
-            () => {
+      const showLogin =
+        document.getElementById(
+          "showLogin"
+        );
 
-              const targetId =
-                button.getAttribute(
-                  "data-target"
-                );
+      const loginForm =
+        document.getElementById(
+          "loginForm"
+        );
 
-              const passwordInput =
-                document.getElementById(
-                  targetId
-                );
+      const signupForm =
+        document.getElementById(
+          "signupForm"
+        );
 
+      const loginFormElem =
+        document.getElementById(
+          "loginFormElem"
+        );
 
-              if (!passwordInput) {
-                return;
-              }
+      const signupFormElem =
+        document.getElementById(
+          "signupFormElem"
+        );
 
+      const logoutForm =
+        document.getElementById(
+          "logoutForm"
+        );
 
-              if (
-                passwordInput.type ===
-                "password"
-              ) {
+      const loginSubmit =
+        document.getElementById(
+          "loginSubmit"
+        );
 
-                passwordInput.type =
-                  "text";
+      const signupSubmit =
+        document.getElementById(
+          "signupSubmit"
+        );
 
-                button.textContent =
-                  "🙈";
+      const logoutSubmit =
+        document.getElementById(
+          "logoutSubmit"
+        );
 
-                button.setAttribute(
-                  "aria-label",
-                  "Hide password"
-                );
+      const mobileMenuBtn =
+        document.getElementById(
+          "mobileMenuBtn"
+        );
 
-                button.setAttribute(
-                  "title",
-                  "Hide password"
-                );
+      const mainNavigation =
+        document.getElementById(
+          "mainNavigation"
+        );
 
-              } else {
+      const authMessage =
+        document.getElementById(
+          "authMessage"
+        );
 
-                passwordInput.type =
-                  "password";
+      const phoneInput =
+        document.getElementById(
+          "phoneInput"
+        );
 
-                button.textContent =
-                  "👁";
+      const phoneError =
+        document.getElementById(
+          "phoneError"
+        );
 
-                button.setAttribute(
-                  "aria-label",
-                  "Show password"
-                );
+      const signupPassword =
+        document.getElementById(
+          "signupPassword"
+        );
 
-                button.setAttribute(
-                  "title",
-                  "Show password"
-                );
+      const confirmPassword =
+        document.getElementById(
+          "confirmPassword"
+        );
 
-              }
+      const passwordMatchError =
+        document.getElementById(
+          "passwordMatchError"
+        );
 
-            }
-          );
+      const passwordMatchSuccess =
+        document.getElementById(
+          "passwordMatchSuccess"
+        );
 
-        }
-      );
+      const passwordStrength =
+        document.querySelector(
+          ".password-strength"
+        );
 
+      const passwordStrengthLabel =
+        document.getElementById(
+          "passwordStrengthLabel"
+        );
 
-    /* =====================================================
-       PASSWORD MATCH CHECK
-    ====================================================== */
+      const signupUsername =
+        document.getElementById(
+          "signupUsername"
+        );
 
-    function checkPasswordMatch() {
+      const fullnameInput =
+        document.getElementById(
+          "fullname"
+        );
 
-      if (
-        !signupPassword ||
-        !confirmPassword
+      const signupEmail =
+        document.getElementById(
+          "signupEmail"
+        );
+
+      /* ======================================================
+         STATE
+      ====================================================== */
+
+      let activeModal = null;
+
+      let lastFocusedElement =
+        null;
+
+      /* ======================================================
+         BODY SCROLL
+      ====================================================== */
+
+      function setBodyLocked(
+        locked
       ) {
-
-        return true;
-
-      }
-
-
-      /*
-       * Don't display anything
-       * until the confirmation field
-       * has been used.
-       */
-
-      if (
-        confirmPassword.value.length === 0
-      ) {
-
-        passwordMatchError.style.display =
-          "none";
-
-        passwordMatchSuccess.style.display =
-          "none";
-
-        confirmPassword.style.borderColor =
-          "";
-
-        return false;
-
-      }
-
-
-      if (
-        signupPassword.value ===
-        confirmPassword.value
-      ) {
-
-        passwordMatchError.style.display =
-          "none";
-
-        passwordMatchSuccess.style.display =
-          "block";
-
-        confirmPassword.style.borderColor =
-          "#45d88a";
-
-        return true;
-
-      }
-
-
-      passwordMatchError.style.display =
-        "block";
-
-      passwordMatchSuccess.style.display =
-        "none";
-
-      confirmPassword.style.borderColor =
-        "#ff5b5b";
-
-      return false;
-
-    }
-
-
-    /* =====================================================
-       PASSWORD LIVE VALIDATION
-    ====================================================== */
-
-    signupPassword?.addEventListener(
-      "input",
-      checkPasswordMatch
-    );
-
-
-    confirmPassword?.addEventListener(
-      "input",
-      checkPasswordMatch
-    );
-
-
-    /* =====================================================
-       PHONE NUMBER VALIDATION
-    ====================================================== */
-
-    phoneInput?.addEventListener(
-      "input",
-      () => {
-
-        /*
-         * Allow numbers only.
-         */
-
-        phoneInput.value =
-          phoneInput.value.replace(
-            /[^0-9]/g,
-            ""
-          );
-
-
-        /*
-         * Limit to 11 digits.
-         */
-
-        if (
-          phoneInput.value.length > 11
-        ) {
-
-          phoneInput.value =
-            phoneInput.value.slice(
-              0,
-              11
-            );
-
-        }
-
-
-        if (
-          phoneInput.value.length === 0
-        ) {
-
-          phoneError.style.display =
-            "none";
-
-          phoneInput.style.borderColor =
-            "";
-
-          return;
-
-        }
-
-
-        if (
-          phoneInput.value.length === 11
-        ) {
-
-          phoneError.style.display =
-            "none";
-
-          phoneInput.style.borderColor =
-            "#45d88a";
-
-        } else {
-
-          phoneError.style.display =
-            "block";
-
-          phoneInput.style.borderColor =
-            "#ff5b5b";
-
-        }
-
-      }
-    );
-
-
-    /* =====================================================
-       SIGNUP SUBMIT VALIDATION
-    ====================================================== */
-
-    signupFormElem?.addEventListener(
-      "submit",
-      (event) => {
-
-        let valid = true;
-
-
-        /*
-         * Password confirmation
-         */
-
-        if (
-          !checkPasswordMatch()
-        ) {
-
-          event.preventDefault();
-
-          valid = false;
-
-          confirmPassword?.focus();
-
-        }
-
-
-        /*
-         * Phone number
-         */
-
-        if (
-          phoneInput &&
-          phoneInput.value.length !== 11
-        ) {
-
-          event.preventDefault();
-
-          valid = false;
-
-          phoneError.style.display =
-            "block";
-
-          phoneInput.style.borderColor =
-            "#ff5b5b";
-
-          if (
-            !confirmPassword ||
-            confirmPassword.value.length ===
-              signupPassword?.value.length
-          ) {
-
-            phoneInput.focus();
-
-          }
-
-        }
-
-
-        return valid;
-
-      }
-    );
-
-
-    /* =====================================================
-       LOGOUT
-    ====================================================== */
-
-    logoutTrigger?.addEventListener(
-      "click",
-      (event) => {
-
-        event.preventDefault();
-
-        if (!logoutModal) {
-          return;
-        }
-
-
-        logoutModal.style.display =
-          "flex";
-
-        logoutModal.setAttribute(
-          "aria-hidden",
-          "false"
-        );
-
         document.body.style.overflow =
-          "hidden";
-
+          locked
+            ? "hidden"
+            : "";
       }
-    );
 
+      /* ======================================================
+         MOBILE MENU
+      ====================================================== */
 
-    /* =====================================================
-       CANCEL LOGOUT
-    ====================================================== */
-
-    cancelLogout?.addEventListener(
-      "click",
-      () => {
-
-        if (!logoutModal) {
+      function setMobileButtonState(
+        isOpen
+      ) {
+        if (!mobileMenuBtn) {
           return;
         }
-
-
-        logoutModal.style.display =
-          "none";
-
-        logoutModal.setAttribute(
-          "aria-hidden",
-          "true"
-        );
-
-        document.body.style.overflow =
-          "";
-
-      }
-    );
-
-
-    /* =====================================================
-       MOBILE MENU
-    ====================================================== */
-
-    mobileMenuBtn?.addEventListener(
-      "click",
-      () => {
-
-        if (!mainNavigation) {
-          return;
-        }
-
-
-        const isOpen =
-          mainNavigation.classList.toggle(
-            "mobile-open"
-          );
-
 
         mobileMenuBtn.setAttribute(
           "aria-expanded",
           String(isOpen)
         );
 
+        mobileMenuBtn.setAttribute(
+          "aria-label",
+          isOpen
+            ? "Close navigation menu"
+            : "Open navigation menu"
+        );
 
         const spans =
           mobileMenuBtn.querySelectorAll(
             "span"
           );
 
+        if (
+          spans.length < 3
+        ) {
+          return;
+        }
 
         if (isOpen) {
-
           spans[0].style.transform =
             "translateY(7px) rotate(45deg)";
 
@@ -3898,88 +3543,1766 @@ document.addEventListener(
 
           spans[2].style.transform =
             "translateY(-7px) rotate(-45deg)";
-
         } else {
+          spans.forEach(
+            (span) => {
+              span.style.transform =
+                "";
 
-          spans[0].style.transform =
-            "";
+              span.style.opacity =
+                "";
+            }
+          );
+        }
+      }
 
-          spans[1].style.opacity =
-            "";
-
-          spans[2].style.transform =
-            "";
-
+      function closeMobileMenu() {
+        if (!mainNavigation) {
+          return;
         }
 
+        mainNavigation.classList.remove(
+          "mobile-open"
+        );
+
+        setMobileButtonState(
+          false
+        );
       }
-    );
 
+      function toggleMobileMenu() {
+        if (!mainNavigation) {
+          return;
+        }
 
-    /* =====================================================
-       CLOSE MOBILE MENU AFTER NAVIGATION
-    ====================================================== */
+        const isOpen =
+          mainNavigation.classList.toggle(
+            "mobile-open"
+          );
 
-    document
-      .querySelectorAll(
-        ".main-navigation .nav-link"
-      )
-      .forEach(
-        (link) => {
+        if (isOpen) {
+          closeAllDropdowns();
+        }
 
-          link.addEventListener(
-            "click",
-            () => {
+        setMobileButtonState(
+          isOpen
+        );
+      }
 
-              mainNavigation?.classList.remove(
-                "mobile-open"
+      /* ======================================================
+         AUTH MESSAGE
+      ====================================================== */
+
+      function setAuthMessage(
+        message,
+        type = "error"
+      ) {
+        if (!authMessage) {
+          return;
+        }
+
+        const text =
+          String(
+            message || ""
+          ).trim();
+
+        if (!text) {
+          authMessage.textContent =
+            "";
+
+          authMessage.className =
+            "auth-message";
+
+          return;
+        }
+
+        authMessage.textContent =
+          text;
+
+        authMessage.className =
+          `auth-message is-visible ${type}`;
+
+        window.setTimeout(
+          () => {
+            authMessage.scrollIntoView({
+              behavior:
+                "smooth",
+
+              block:
+                "nearest",
+            });
+          },
+          0
+        );
+      }
+
+      function clearAuthMessage() {
+        setAuthMessage(
+          "",
+          "error"
+        );
+      }
+
+      /* ======================================================
+         FIELD STATE
+      ====================================================== */
+
+      function setFieldState(
+        field,
+        state
+      ) {
+        if (!field) {
+          return;
+        }
+
+        field.classList.remove(
+          "is-invalid",
+          "is-valid"
+        );
+
+        if (state === "invalid") {
+          field.classList.add(
+            "is-invalid"
+          );
+
+          field.setAttribute(
+            "aria-invalid",
+            "true"
+          );
+
+          return;
+        }
+
+        if (state === "valid") {
+          field.classList.add(
+            "is-valid"
+          );
+
+          field.setAttribute(
+            "aria-invalid",
+            "false"
+          );
+
+          return;
+        }
+
+        field.removeAttribute(
+          "aria-invalid"
+        );
+      }
+
+      function clearAuthFieldStates() {
+        document
+          .querySelectorAll(
+            ".modal input"
+          )
+          .forEach(
+            (input) => {
+              input.classList.remove(
+                "is-invalid",
+                "is-valid"
               );
 
-              mobileMenuBtn?.setAttribute(
-                "aria-expanded",
-                "false"
+              input.removeAttribute(
+                "aria-invalid"
               );
-
             }
           );
 
+        phoneError?.classList.remove(
+          "is-visible"
+        );
+
+        passwordMatchError?.classList.remove(
+          "is-visible"
+        );
+
+        passwordMatchSuccess?.classList.remove(
+          "is-visible"
+        );
+
+        if (passwordStrength) {
+          passwordStrength.className =
+            "password-strength";
+        }
+
+        if (
+          passwordStrengthLabel
+        ) {
+          passwordStrengthLabel.textContent =
+            "";
+        }
+      }
+
+      /* ======================================================
+         FORM BUTTON STATES
+      ====================================================== */
+
+      function setLoading(
+        button,
+        label
+      ) {
+        if (!button) {
+          return;
+        }
+
+        button.disabled =
+          true;
+
+        button.classList.add(
+          "is-loading"
+        );
+
+        const labelElement =
+          button.querySelector(
+            ".submit-label"
+          );
+
+        if (labelElement) {
+          labelElement.textContent =
+            label;
+        }
+      }
+
+      function resetSubmitButtons() {
+        [
+          loginSubmit,
+          signupSubmit,
+          logoutSubmit,
+        ].forEach(
+          (button) => {
+            if (!button) {
+              return;
+            }
+
+            button.disabled =
+              false;
+
+            button.classList.remove(
+              "is-loading"
+            );
+          }
+        );
+
+        if (loginSubmit) {
+          const label =
+            loginSubmit.querySelector(
+              ".submit-label"
+            );
+
+          if (label) {
+            label.textContent =
+              "Sign In";
+          }
+        }
+
+        if (signupSubmit) {
+          const label =
+            signupSubmit.querySelector(
+              ".submit-label"
+            );
+
+          if (label) {
+            label.textContent =
+              "Create Account";
+          }
+        }
+
+        if (logoutSubmit) {
+          const label =
+            logoutSubmit.querySelector(
+              ".submit-label"
+            );
+
+          if (label) {
+            label.textContent =
+              "Logout";
+          }
+        }
+      }
+
+      /* ======================================================
+         AUTH FORM SWITCHING
+      ====================================================== */
+
+      function showLoginForm() {
+        loginForm?.classList.remove(
+          "hidden"
+        );
+
+        signupForm?.classList.add(
+          "hidden"
+        );
+
+        clearAuthFieldStates();
+
+        document
+          .querySelectorAll(
+            "#loginFormElem input"
+          )
+          .forEach(
+            (input) => {
+              input.disabled =
+                false;
+            }
+          );
+
+        resetSubmitButtons();
+      }
+
+      function showSignupForm() {
+        loginForm?.classList.add(
+          "hidden"
+        );
+
+        signupForm?.classList.remove(
+          "hidden"
+        );
+
+        clearAuthFieldStates();
+
+        resetSubmitButtons();
+      }
+
+      /* ======================================================
+         FOCUSABLE ELEMENTS
+      ====================================================== */
+
+      function getFocusableElements(
+        container
+      ) {
+        if (!container) {
+          return [];
+        }
+
+        return Array.from(
+          container.querySelectorAll(
+            [
+              "a[href]",
+              "button:not([disabled])",
+              "input:not([disabled])",
+              "select:not([disabled])",
+              "textarea:not([disabled])",
+              "[tabindex]:not([tabindex='-1'])",
+            ].join(",")
+          )
+        ).filter(
+          (element) => {
+            return (
+              element.offsetParent !==
+              null
+            );
+          }
+        );
+      }
+
+      /* ======================================================
+         OPEN MODAL
+      ====================================================== */
+
+      function openModal(
+        modal,
+        initialFocus,
+        opener = null
+      ) {
+        if (!modal) {
+          return;
+        }
+
+        lastFocusedElement =
+          opener ||
+          document.activeElement;
+
+        activeModal =
+          modal;
+
+        modal.classList.add(
+          "is-open"
+        );
+
+        modal.setAttribute(
+          "aria-hidden",
+          "false"
+        );
+
+        setBodyLocked(
+          true
+        );
+
+        window.setTimeout(
+          () => {
+            const target =
+              initialFocus ||
+              modal.querySelector(
+                "input, button"
+              );
+
+            target?.focus();
+          },
+          50
+        );
+      }
+
+      /* ======================================================
+         CLOSE MODAL
+      ====================================================== */
+
+      function clearSensitiveFields() {
+        [
+          document.getElementById(
+            "loginPassword"
+          ),
+          signupPassword,
+          confirmPassword,
+        ].forEach(
+          (input) => {
+            if (input) {
+              input.value =
+                "";
+            }
+          }
+        );
+
+        clearAuthFieldStates();
+
+        resetSubmitButtons();
+      }
+
+      function closeModal(
+        modal,
+        restoreFocus = true
+      ) {
+        if (!modal) {
+          return;
+        }
+
+        modal.classList.remove(
+          "is-open"
+        );
+
+        modal.setAttribute(
+          "aria-hidden",
+          "true"
+        );
+
+        if (
+          activeModal ===
+          modal
+        ) {
+          activeModal =
+            null;
+        }
+
+        setBodyLocked(
+          false
+        );
+
+        clearSensitiveFields();
+
+        if (
+          restoreFocus &&
+          lastFocusedElement &&
+          typeof
+            lastFocusedElement.focus ===
+              "function"
+        ) {
+          window.setTimeout(
+            () => {
+              try {
+                lastFocusedElement.focus();
+              } catch (_) {
+                /* Ignore focus restoration errors. */
+              }
+
+              lastFocusedElement =
+                null;
+            },
+            0
+          );
+        }
+      }
+
+      /* ======================================================
+         AUTH OPENING
+      ====================================================== */
+
+      function openAuth(
+        mode = "login",
+        opener = null
+      ) {
+        if (!authModal) {
+          return;
+        }
+
+        closeMobileMenu();
+
+        clearAuthMessage();
+
+        if (
+          mode === "signup"
+        ) {
+          showSignupForm();
+        } else {
+          showLoginForm();
+        }
+
+        const initialFocus =
+          mode === "signup"
+            ? fullnameInput
+            : document.getElementById(
+                "loginEmail"
+              );
+
+        openModal(
+          authModal,
+          initialFocus,
+          opener
+        );
+      }
+
+      /* ======================================================
+         GLOBAL AUTH API
+      ====================================================== */
+
+      window.IsleRMSAuth = {
+        open: (
+          mode = "login",
+          opener = null
+        ) => {
+          openAuth(
+            mode,
+            opener
+          );
+        },
+
+        close: () => {
+          closeModal(
+            authModal
+          );
+        },
+
+        showLogin: () => {
+          showLoginForm();
+        },
+
+        showSignup: () => {
+          showSignupForm();
+        },
+      };
+
+      /* ======================================================
+         URL AUTH STATE
+      ====================================================== */
+
+      const params =
+        new URLSearchParams(
+          window.location.search
+        );
+
+      const requestedAuth =
+        params.get("auth");
+
+      const urlError =
+        params.get("error");
+
+      const urlSuccess =
+        params.get("success");
+
+      if (
+        urlError &&
+        authModal
+      ) {
+        setAuthMessage(
+          urlError,
+          "error"
+        );
+      }
+
+      if (
+        urlSuccess &&
+        authModal
+      ) {
+        setAuthMessage(
+          urlSuccess,
+          "success"
+        );
+      }
+
+      if (
+        requestedAuth ===
+        "signup"
+      ) {
+        openAuth(
+          "signup"
+        );
+      } else if (
+        requestedAuth ===
+          "login" ||
+        urlError ||
+        urlSuccess
+      ) {
+        openAuth(
+          "login"
+        );
+      }
+
+      /* ======================================================
+         LOGIN BUTTON
+      ====================================================== */
+
+      loginBtn?.addEventListener(
+        "click",
+        () => {
+          openAuth(
+            "login",
+            loginBtn
+          );
         }
       );
 
+      /* ======================================================
+         BOOKING BUTTON
+      ====================================================== */
 
-    /* =====================================================
-       PREVENT MODAL SCROLL ISSUES
-    ====================================================== */
-
-    if (authModal) {
-
-      authModal.addEventListener(
-        "wheel",
+      bookingBtn?.addEventListener(
+        "click",
         (event) => {
+          event.preventDefault();
 
-          /*
-           * Allow the modal itself to scroll
-           * when its content becomes taller
-           * than the screen.
-           */
+          openAuth(
+            "login",
+            bookingBtn
+          );
+        }
+      );
+
+      /* ======================================================
+         CLOSE AUTH
+      ====================================================== */
+
+      authCloseBtn?.addEventListener(
+        "click",
+        () => {
+          closeModal(
+            authModal
+          );
+        }
+      );
+
+      /* ======================================================
+         AUTH SWITCHING
+      ====================================================== */
+
+      showSignup?.addEventListener(
+        "click",
+        (event) => {
+          event.preventDefault();
+
+          showSignupForm();
+
+          fullnameInput?.focus();
+        }
+      );
+
+      showLogin?.addEventListener(
+        "click",
+        (event) => {
+          event.preventDefault();
+
+          showLoginForm();
+
+          document
+            .getElementById(
+              "loginEmail"
+            )
+            ?.focus();
+        }
+      );
+
+      /* ======================================================
+         PASSWORD VISIBILITY
+      ====================================================== */
+
+      document
+        .querySelectorAll(
+          ".password-toggle"
+        )
+        .forEach(
+          (button) => {
+            button.addEventListener(
+              "click",
+              () => {
+                const targetId =
+                  button.getAttribute(
+                    "data-target"
+                  );
+
+                const passwordInput =
+                  document.getElementById(
+                    targetId
+                  );
+
+                if (
+                  !passwordInput
+                ) {
+                  return;
+                }
+
+                const isPassword =
+                  passwordInput.type ===
+                  "password";
+
+                passwordInput.type =
+                  isPassword
+                    ? "text"
+                    : "password";
+
+                button.textContent =
+                  isPassword
+                    ? "🙈"
+                    : "👁";
+
+                button.setAttribute(
+                  "aria-label",
+                  isPassword
+                    ? "Hide password"
+                    : "Show password"
+                );
+
+                button.setAttribute(
+                  "aria-pressed",
+                  String(
+                    isPassword
+                  )
+                );
+
+                button.setAttribute(
+                  "title",
+                  isPassword
+                    ? "Hide password"
+                    : "Show password"
+                );
+              }
+            );
+          }
+        );
+
+      /* ======================================================
+         PASSWORD STRENGTH
+      ====================================================== */
+
+      function calculatePasswordStrength(
+        password
+      ) {
+        if (!password) {
+          return {
+            level: "",
+            label: "",
+          };
+        }
+
+        let score = 0;
+
+        if (
+          password.length >= 10
+        ) {
+          score++;
+        }
+
+        if (
+          password.length >= 14
+        ) {
+          score++;
+        }
+
+        if (
+          /[A-Z]/.test(password)
+        ) {
+          score++;
+        }
+
+        if (
+          /[a-z]/.test(password) &&
+          /\d/.test(password)
+        ) {
+          score++;
+        }
+
+        if (
+          /[^A-Za-z0-9]/.test(
+            password
+          )
+        ) {
+          score++;
+        }
+
+        if (
+          password.length >= 16 &&
+          /[A-Z]/.test(password) &&
+          /[a-z]/.test(password) &&
+          /\d/.test(password) &&
+          /[^A-Za-z0-9]/.test(password)
+        ) {
+          return {
+            level: "strong",
+            label: "Strong",
+          };
+        }
+
+        if (
+          score >= 4
+        ) {
+          return {
+            level: "good",
+            label: "Good",
+          };
+        }
+
+        if (
+          score >= 2
+        ) {
+          return {
+            level: "fair",
+            label: "Fair",
+          };
+        }
+
+        return {
+          level: "weak",
+          label: "Weak",
+        };
+      }
+
+      function updatePasswordStrength() {
+        if (
+          !signupPassword ||
+          !passwordStrength
+        ) {
+          return;
+        }
+
+        const result =
+          calculatePasswordStrength(
+            signupPassword.value
+          );
+
+        passwordStrength.className =
+          "password-strength";
+
+        if (
+          result.level
+        ) {
+          passwordStrength.classList.add(
+            result.level
+          );
+        }
+
+        if (
+          passwordStrengthLabel
+        ) {
+          passwordStrengthLabel.textContent =
+            result.label;
+        }
+      }
+
+      /* ======================================================
+         PASSWORD MATCH
+      ====================================================== */
+
+      function checkPasswordMatch() {
+        if (
+          !signupPassword ||
+          !confirmPassword
+        ) {
+          return false;
+        }
+
+        const password =
+          signupPassword.value;
+
+        const confirmation =
+          confirmPassword.value;
+
+        if (
+          confirmation.length ===
+          0
+        ) {
+          passwordMatchError?.classList.remove(
+            "is-visible"
+          );
+
+          passwordMatchSuccess?.classList.remove(
+            "is-visible"
+          );
+
+          setFieldState(
+            confirmPassword,
+            null
+          );
+
+          return false;
+        }
+
+        if (
+          password ===
+            confirmation
+        ) {
+          passwordMatchError?.classList.remove(
+            "is-visible"
+          );
+
+          passwordMatchSuccess?.classList.add(
+            "is-visible"
+          );
+
+          setFieldState(
+            confirmPassword,
+            "valid"
+          );
+
+          return true;
+        }
+
+        passwordMatchError?.classList.add(
+          "is-visible"
+        );
+
+        passwordMatchSuccess?.classList.remove(
+          "is-visible"
+        );
+
+        setFieldState(
+          confirmPassword,
+          "invalid"
+        );
+
+        return false;
+      }
+
+      signupPassword?.addEventListener(
+        "input",
+        () => {
+          updatePasswordStrength();
 
           if (
-            event.target.closest(
-              ".auth-modal"
-            )
+            signupPassword.value.length >=
+            10
           ) {
-
-            return;
-
+            setFieldState(
+              signupPassword,
+              "valid"
+            );
+          } else if (
+            signupPassword.value.length > 0
+          ) {
+            setFieldState(
+              signupPassword,
+              "invalid"
+            );
+          } else {
+            setFieldState(
+              signupPassword,
+              null
+            );
           }
 
+          checkPasswordMatch();
         }
       );
 
+      confirmPassword?.addEventListener(
+        "input",
+        checkPasswordMatch
+      );
+
+      /* ======================================================
+         EMAIL VALIDATION
+      ====================================================== */
+
+      function isValidEmail(
+        email
+      ) {
+        return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+          email
+        );
+      }
+
+      signupEmail?.addEventListener(
+        "blur",
+        () => {
+          const value =
+            signupEmail.value.trim();
+
+          if (!value) {
+            setFieldState(
+              signupEmail,
+              null
+            );
+
+            return;
+          }
+
+          setFieldState(
+            signupEmail,
+            isValidEmail(value)
+              ? "valid"
+              : "invalid"
+          );
+        }
+      );
+
+      /* ======================================================
+         FULL NAME VALIDATION
+      ====================================================== */
+
+      fullnameInput?.addEventListener(
+        "blur",
+        () => {
+          const value =
+            fullnameInput.value.trim();
+
+          if (
+            value.length >= 2 &&
+            value.length <= 50
+          ) {
+            setFieldState(
+              fullnameInput,
+              "valid"
+            );
+          } else if (value) {
+            setFieldState(
+              fullnameInput,
+              "invalid"
+            );
+          } else {
+            setFieldState(
+              fullnameInput,
+              null
+            );
+          }
+        }
+      );
+
+      /* ======================================================
+         PHONE VALIDATION
+      ====================================================== */
+
+      function validatePhone() {
+        if (!phoneInput) {
+          return true;
+        }
+
+        const value =
+          phoneInput.value.trim();
+
+        if (
+          /^09\d{9}$/.test(
+            value
+          )
+        ) {
+          setFieldState(
+            phoneInput,
+            "valid"
+          );
+
+          phoneError?.classList.remove(
+            "is-visible"
+          );
+
+          return true;
+        }
+
+        setFieldState(
+          phoneInput,
+          "invalid"
+        );
+
+        phoneError?.classList.add(
+          "is-visible"
+        );
+
+        return false;
+      }
+
+      phoneInput?.addEventListener(
+        "input",
+        () => {
+          phoneInput.value =
+            phoneInput.value
+              .replace(
+                /[^0-9]/g,
+                ""
+              )
+              .slice(
+                0,
+                11
+              );
+
+          phoneError?.classList.remove(
+            "is-visible"
+          );
+
+          if (
+            phoneInput.value.length ===
+            11
+          ) {
+            validatePhone();
+          } else {
+            setFieldState(
+              phoneInput,
+              null
+            );
+          }
+        }
+      );
+
+      phoneInput?.addEventListener(
+        "blur",
+        () => {
+          if (
+            phoneInput.value.length > 0
+          ) {
+            validatePhone();
+          }
+        }
+      );
+
+      /* ======================================================
+         USERNAME VALIDATION
+      ====================================================== */
+
+      signupUsername?.addEventListener(
+        "input",
+        () => {
+          signupUsername.value =
+            signupUsername.value
+              .replace(
+                /[^A-Za-z0-9._-]/g,
+                ""
+              )
+              .slice(
+                0,
+                50
+              );
+
+          if (
+            signupUsername.value.length ===
+            0
+          ) {
+            setFieldState(
+              signupUsername,
+              null
+            );
+
+            return;
+          }
+
+          if (
+            signupUsername.value.length >= 3 &&
+            signupUsername.value.length <= 50 &&
+            /^[A-Za-z0-9._-]+$/.test(
+              signupUsername.value
+            )
+          ) {
+            setFieldState(
+              signupUsername,
+              "valid"
+            );
+
+            return;
+          }
+
+          setFieldState(
+            signupUsername,
+            "invalid"
+          );
+        }
+      );
+
+      /* ======================================================
+         SIGNUP VALIDATION
+      ====================================================== */
+
+      signupFormElem?.addEventListener(
+        "submit",
+        (event) => {
+          let valid = true;
+
+          clearAuthMessage();
+
+          const fullname =
+            fullnameInput?.value.trim() ||
+            "";
+
+          const email =
+            signupEmail?.value.trim() ||
+            "";
+
+          const password =
+            signupPassword?.value ||
+            "";
+
+          const confirmation =
+            confirmPassword?.value ||
+            "";
+
+          const username =
+            signupUsername?.value.trim() ||
+            "";
+
+          /* -----------------------------------------------
+             FULL NAME
+          ----------------------------------------------- */
+
+          if (
+            fullname.length < 2 ||
+            fullname.length > 50
+          ) {
+            valid = false;
+
+            setFieldState(
+              fullnameInput,
+              "invalid"
+            );
+          } else {
+            setFieldState(
+              fullnameInput,
+              "valid"
+            );
+          }
+
+          /* -----------------------------------------------
+             EMAIL
+          ----------------------------------------------- */
+
+          if (
+            !isValidEmail(email)
+          ) {
+            valid = false;
+
+            setFieldState(
+              signupEmail,
+              "invalid"
+            );
+          } else {
+            setFieldState(
+              signupEmail,
+              "valid"
+            );
+          }
+
+          /* -----------------------------------------------
+             PASSWORD
+          ----------------------------------------------- */
+
+          if (
+            password.length < 10
+          ) {
+            valid = false;
+
+            setFieldState(
+              signupPassword,
+              "invalid"
+            );
+          } else {
+            setFieldState(
+              signupPassword,
+              "valid"
+            );
+          }
+
+          /* -----------------------------------------------
+             CONFIRM PASSWORD
+          ----------------------------------------------- */
+
+          if (
+            !checkPasswordMatch()
+          ) {
+            valid = false;
+          }
+
+          /* -----------------------------------------------
+             USERNAME
+          ----------------------------------------------- */
+
+          if (
+            username &&
+            (
+              username.length < 3 ||
+              username.length > 50 ||
+              !/^[A-Za-z0-9._-]+$/.test(
+                username
+              )
+            )
+          ) {
+            valid = false;
+
+            setFieldState(
+              signupUsername,
+              "invalid"
+            );
+          }
+
+          /* -----------------------------------------------
+             PHONE
+          ----------------------------------------------- */
+
+          if (
+            !validatePhone()
+          ) {
+            valid = false;
+          }
+
+          /* -----------------------------------------------
+             RESULT
+          ----------------------------------------------- */
+
+          if (!valid) {
+            event.preventDefault();
+
+            setAuthMessage(
+              "Please review the highlighted fields and correct any errors.",
+              "error"
+            );
+
+            const firstInvalid =
+              signupFormElem.querySelector(
+                ".is-invalid"
+              );
+
+            firstInvalid?.focus();
+
+            return;
+          }
+
+          setLoading(
+            signupSubmit,
+            "Creating Account..."
+          );
+        }
+      );
+
+      /* ======================================================
+         LOGIN SUBMIT
+      ====================================================== */
+
+      loginFormElem?.addEventListener(
+        "submit",
+        (event) => {
+          const emailInput =
+            document.getElementById(
+              "loginEmail"
+            );
+
+          const passwordInput =
+            document.getElementById(
+              "loginPassword"
+            );
+
+          if (
+            !emailInput?.value.trim() ||
+            !passwordInput?.value
+          ) {
+            event.preventDefault();
+
+            setAuthMessage(
+              "Please enter your email address and password.",
+              "error"
+            );
+
+            if (
+              !emailInput?.value.trim()
+            ) {
+              emailInput?.focus();
+            } else {
+              passwordInput?.focus();
+            }
+
+            return;
+          }
+
+          clearAuthMessage();
+
+          setLoading(
+            loginSubmit,
+            "Signing In..."
+          );
+        }
+      );
+
+      /* ======================================================
+         LOGOUT SUBMIT
+      ====================================================== */
+
+      logoutForm?.addEventListener(
+        "submit",
+        () => {
+          setLoading(
+            logoutSubmit,
+            "Signing Out..."
+          );
+
+          if (cancelLogout) {
+            cancelLogout.disabled =
+              true;
+          }
+        }
+      );
+
+      /* ======================================================
+         MODAL BACKDROP
+      ====================================================== */
+
+      authModal?.addEventListener(
+        "click",
+        (event) => {
+          if (
+            event.target ===
+            authModal
+          ) {
+            closeModal(
+              authModal
+            );
+          }
+        }
+      );
+
+      logoutModal?.addEventListener(
+        "click",
+        (event) => {
+          if (
+            event.target ===
+            logoutModal
+          ) {
+            closeModal(
+              logoutModal
+            );
+          }
+        }
+      );
+
+      /* ======================================================
+         LOGOUT
+      ====================================================== */
+
+      logoutTrigger?.addEventListener(
+        "click",
+        () => {
+          closeAllDropdowns();
+
+          openModal(
+            logoutModal,
+            cancelLogout,
+            logoutTrigger
+          );
+        }
+      );
+
+      cancelLogout?.addEventListener(
+        "click",
+        () => {
+          closeModal(
+            logoutModal
+          );
+        }
+      );
+
+      /* ======================================================
+         DROPDOWNS
+      ====================================================== */
+
+      const dropdownTriggers =
+        document.querySelectorAll(
+          ".dropdown-trigger"
+        );
+
+      function closeAllDropdowns(
+        except = null
+      ) {
+        document
+          .querySelectorAll(
+            ".dropdown.is-open"
+          )
+          .forEach(
+            (dropdown) => {
+              if (
+                dropdown ===
+                except
+              ) {
+                return;
+              }
+
+              dropdown.classList.remove(
+                "is-open"
+              );
+
+              dropdown
+                .querySelector(
+                  ".dropdown-trigger"
+                )
+                ?.setAttribute(
+                  "aria-expanded",
+                  "false"
+                );
+            }
+          );
+      }
+
+      dropdownTriggers.forEach(
+        (trigger) => {
+          trigger.addEventListener(
+            "click",
+            (event) => {
+              event.preventDefault();
+              event.stopPropagation();
+
+              const dropdown =
+                trigger.closest(
+                  ".dropdown"
+                );
+
+              if (
+                !dropdown
+              ) {
+                return;
+              }
+
+              const shouldOpen =
+                !dropdown.classList.contains(
+                  "is-open"
+                );
+
+              closeAllDropdowns(
+                shouldOpen
+                  ? dropdown
+                  : null
+              );
+
+              dropdown.classList.toggle(
+                "is-open",
+                shouldOpen
+              );
+
+              trigger.setAttribute(
+                "aria-expanded",
+                String(
+                  shouldOpen
+                )
+              );
+            }
+          );
+
+          trigger.addEventListener(
+            "keydown",
+            (event) => {
+              if (
+                event.key ===
+                  "Escape"
+              ) {
+                const dropdown =
+                  trigger.closest(
+                    ".dropdown"
+                  );
+
+                dropdown?.classList.remove(
+                  "is-open"
+                );
+
+                trigger.setAttribute(
+                  "aria-expanded",
+                  "false"
+                );
+
+                trigger.focus();
+              }
+            }
+          );
+        }
+      );
+
+      /* ======================================================
+         OUTSIDE CLICK
+      ====================================================== */
+
+      document.addEventListener(
+        "click",
+        (event) => {
+          const target =
+            event.target;
+
+          if (
+            !target.closest(
+              ".dropdown"
+            )
+          ) {
+            closeAllDropdowns();
+          }
+        }
+      );
+
+      /* ======================================================
+         MOBILE MENU
+      ====================================================== */
+
+      mobileMenuBtn?.addEventListener(
+        "click",
+        (event) => {
+          event.stopPropagation();
+
+          toggleMobileMenu();
+        }
+      );
+
+      /* ======================================================
+         CLOSE MOBILE MENU AFTER NAVIGATION
+      ====================================================== */
+
+      mainNavigation
+        ?.querySelectorAll(
+          "a"
+        )
+        .forEach(
+          (link) => {
+            link.addEventListener(
+              "click",
+              () => {
+                closeMobileMenu();
+              }
+            );
+          }
+        );
+
+      /* ======================================================
+         MODAL KEYBOARD ACCESSIBILITY
+      ====================================================== */
+
+      document.addEventListener(
+        "keydown",
+        (event) => {
+          if (!activeModal) {
+            return;
+          }
+
+          /* -----------------------------------------------
+             ESCAPE
+          ----------------------------------------------- */
+
+          if (
+            event.key ===
+            "Escape"
+          ) {
+            event.preventDefault();
+
+            closeModal(
+              activeModal
+            );
+
+            return;
+          }
+
+          /* -----------------------------------------------
+             TAB FOCUS TRAP
+          ----------------------------------------------- */
+
+          if (
+            event.key !==
+            "Tab"
+          ) {
+            return;
+          }
+
+          const focusable =
+            getFocusableElements(
+              activeModal
+            );
+
+          if (
+            focusable.length ===
+            0
+          ) {
+            return;
+          }
+
+          const first =
+            focusable[0];
+
+          const last =
+            focusable[
+              focusable.length - 1
+            ];
+
+          if (
+            event.shiftKey
+          ) {
+            if (
+              document.activeElement ===
+              first
+            ) {
+              event.preventDefault();
+
+              last.focus();
+            }
+
+            return;
+          }
+
+          if (
+            document.activeElement ===
+            last
+          ) {
+            event.preventDefault();
+
+            first.focus();
+          }
+        }
+      );
+
+      /* ======================================================
+         CLICKING MODAL CONTENT DOES NOT CLOSE IT
+      ====================================================== */
+
+      authModalContent?.addEventListener(
+        "click",
+        (event) => {
+          event.stopPropagation();
+        }
+      );
+
+      logoutModalContent?.addEventListener(
+        "click",
+        (event) => {
+          event.stopPropagation();
+        }
+      );
+
+      /* ======================================================
+         FORM RESTORATION
+      ====================================================== */
+
+      window.addEventListener(
+        "pageshow",
+        () => {
+          resetSubmitButtons();
+
+          if (cancelLogout) {
+            cancelLogout.disabled =
+              false;
+          }
+        }
+      );
+
+      /* ======================================================
+         CLEAN BODY STATE ON PAGE EXIT
+      ====================================================== */
+
+      window.addEventListener(
+        "beforeunload",
+        () => {
+          setBodyLocked(
+            false
+          );
+        }
+      );
     }
-
-
-  }
-);
-
+  );
 </script>

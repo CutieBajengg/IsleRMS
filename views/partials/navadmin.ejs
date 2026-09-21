@@ -3,7 +3,9 @@
      ADMIN NAVIGATION PARTIAL
 
      IMPORTANT:
+
      This file is intentionally ONLY the navigation.
+
      Do not place <html>, <head>, <body>, dashboard content,
      statistics, booking tables, or page-specific JS here.
 ============================================================ -->
@@ -32,7 +34,10 @@
       return current === path;
     }
 
-    return current === path || current.startsWith(path + "/");
+    return (
+      current === path ||
+      current.startsWith(path + "/")
+    );
   }
 
   const adminUsername =
@@ -47,6 +52,11 @@
     String(adminUsername)
       .charAt(0)
       .toUpperCase() || "A";
+
+  const adminCsrfToken =
+    typeof csrfToken !== "undefined"
+      ? String(csrfToken || "")
+      : "";
 %>
 
 <style>
@@ -58,20 +68,16 @@
     --admin-nav-bg: #071012;
     --admin-nav-surface: #0d1719;
     --admin-nav-surface-hover: #122124;
-    --admin-nav-border: rgba(255,255,255,0.08);
-
+    --admin-nav-border: rgba(255, 255, 255, 0.08);
     --admin-nav-text: #ffffff;
     --admin-nav-muted: #91a0a4;
-
     --admin-nav-teal: #12b7b7;
     --admin-nav-teal-dark: #006c6c;
-
     --admin-nav-gold: #ffd700;
-
     --admin-nav-success: #35d07f;
 
     --admin-nav-shadow:
-      0 18px 50px rgba(0,0,0,0.28);
+      0 18px 50px rgba(0, 0, 0, 0.28);
 
     --admin-nav-width: 255px;
     --admin-nav-header-height: 72px;
@@ -100,7 +106,7 @@
       0 22px;
 
     background:
-      rgba(7,16,18,0.94);
+      rgba(7, 16, 18, 0.94);
 
     border-bottom:
       1px solid var(--admin-nav-border);
@@ -112,7 +118,7 @@
       blur(18px);
 
     box-shadow:
-      0 8px 30px rgba(0,0,0,0.20);
+      0 8px 30px rgba(0, 0, 0, 0.20);
   }
 
   /* ============================================================
@@ -122,6 +128,7 @@
   .admin-brand {
     display: inline-flex;
     align-items: center;
+
     gap: 11px;
 
     min-width: 0;
@@ -142,20 +149,22 @@
 
     border-radius: 11px;
 
-    background: rgba(255,255,255,0.95);
+    background:
+      rgba(255, 255, 255, 0.95);
 
     border:
-      1px solid rgba(255,255,255,0.18);
+      1px solid rgba(255, 255, 255, 0.18);
 
     overflow: hidden;
 
     box-shadow:
-      0 8px 24px rgba(0,0,0,0.24);
+      0 8px 24px rgba(0, 0, 0, 0.24);
   }
 
   .admin-brand-logo img {
     width: 32px;
     height: 32px;
+
     object-fit: contain;
   }
 
@@ -178,7 +187,8 @@
   }
 
   .admin-brand-name span {
-    color: var(--admin-nav-gold);
+    color:
+      var(--admin-nav-gold);
   }
 
   .admin-brand-subtitle {
@@ -186,9 +196,11 @@
 
     margin-top: 4px;
 
-    color: var(--admin-nav-muted);
+    color:
+      var(--admin-nav-muted);
 
     font-size: 0.53rem;
+
     font-weight: 600;
 
     letter-spacing: 1.5px;
@@ -217,16 +229,38 @@
     border-radius: 11px;
 
     background:
-      rgba(255,255,255,0.035);
+      rgba(255, 255, 255, 0.035);
 
     color: white;
 
     cursor: pointer;
+
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease;
   }
 
   .admin-menu-toggle:hover {
     background:
-      rgba(255,255,255,0.08);
+      rgba(255, 255, 255, 0.08);
+  }
+
+  /* ============================================================
+     FOCUS STATES
+  ============================================================ */
+
+  .admin-menu-toggle:focus-visible,
+  .admin-account-button:focus-visible,
+  .admin-account-menu a:focus-visible,
+  .admin-account-menu button:focus-visible,
+  .admin-brand:focus-visible,
+  .admin-view-site:focus-visible,
+  .admin-nav-item a:focus-visible {
+    outline:
+      2px solid var(--admin-nav-teal);
+
+    outline-offset:
+      2px;
   }
 
   /* ============================================================
@@ -235,13 +269,17 @@
 
   .admin-topbar-right {
     display: flex;
+
     align-items: center;
+
     gap: 12px;
   }
 
   .admin-view-site {
     display: inline-flex;
+
     align-items: center;
+
     gap: 7px;
 
     padding:
@@ -250,42 +288,58 @@
     border:
       1px solid var(--admin-nav-border);
 
-    border-radius: 10px;
+    border-radius:
+      10px;
 
     color:
       var(--admin-nav-muted);
 
-    text-decoration: none;
+    text-decoration:
+      none;
 
-    font-size: 0.7rem;
-    font-weight: 600;
+    font-size:
+      0.7rem;
+
+    font-weight:
+      600;
 
     transition:
-      background .2s ease,
-      color .2s ease,
-      border-color .2s ease;
+      background 0.2s ease,
+      color 0.2s ease,
+      border-color 0.2s ease;
   }
 
   .admin-view-site:hover {
     color: white;
 
     background:
-      rgba(255,255,255,0.05);
+      rgba(255, 255, 255, 0.05);
 
     border-color:
-      rgba(255,255,255,0.15);
+      rgba(255, 255, 255, 0.15);
   }
 
+  /* ============================================================
+     ADMIN ACCOUNT
+  ============================================================ */
+
   .admin-account {
-    position: relative;
+    position:
+      relative;
   }
 
   .admin-account-button {
-    display: flex;
-    align-items: center;
-    gap: 9px;
+    display:
+      flex;
 
-    min-height: 44px;
+    align-items:
+      center;
+
+    gap:
+      9px;
+
+    min-height:
+      44px;
 
     padding:
       5px 10px 5px 5px;
@@ -293,30 +347,46 @@
     border:
       1px solid var(--admin-nav-border);
 
-    border-radius: 999px;
+    border-radius:
+      999px;
 
     background:
-      rgba(255,255,255,0.035);
+      rgba(255, 255, 255, 0.035);
 
-    color: white;
+    color:
+      white;
 
-    cursor: pointer;
+    cursor:
+      pointer;
+
+    transition:
+      background 0.18s ease,
+      border-color 0.18s ease;
   }
 
   .admin-account-button:hover {
     background:
-      rgba(255,255,255,0.065);
+      rgba(255, 255, 255, 0.065);
   }
 
   .admin-avatar {
-    width: 33px;
-    height: 33px;
+    width:
+      33px;
 
-    display: flex;
-    align-items: center;
-    justify-content: center;
+    height:
+      33px;
 
-    border-radius: 50%;
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      center;
+
+    border-radius:
+      50%;
 
     background:
       linear-gradient(
@@ -325,46 +395,70 @@
         var(--admin-nav-teal-dark)
       );
 
-    color: white;
+    color:
+      white;
 
-    font-size: 0.75rem;
-    font-weight: 800;
+    font-size:
+      0.75rem;
+
+    font-weight:
+      800;
   }
 
   .admin-account-copy {
-    display: flex;
-    flex-direction: column;
-    align-items: flex-start;
+    display:
+      flex;
 
-    min-width: 0;
+    flex-direction:
+      column;
+
+    align-items:
+      flex-start;
+
+    min-width:
+      0;
   }
 
   .admin-account-name {
-    max-width: 130px;
+    max-width:
+      130px;
 
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow:
+      hidden;
 
-    font-size: 0.68rem;
-    font-weight: 600;
+    text-overflow:
+      ellipsis;
+
+    white-space:
+      nowrap;
+
+    font-size:
+      0.68rem;
+
+    font-weight:
+      600;
   }
 
   .admin-account-role {
     color:
       var(--admin-nav-muted);
 
-    font-size: 0.53rem;
+    font-size:
+      0.53rem;
 
-    text-transform: uppercase;
-    letter-spacing: 0.7px;
+    text-transform:
+      uppercase;
+
+    letter-spacing:
+      0.7px;
   }
 
   .admin-account-chevron {
     color:
       var(--admin-nav-muted);
 
-    font-size: 0.6rem;
+    font-size:
+      0.6rem;
   }
 
   /* ============================================================
@@ -372,44 +466,55 @@
   ============================================================ */
 
   .admin-account-menu {
-    position: absolute;
+    position:
+      absolute;
 
     top:
       calc(100% + 9px);
 
-    right: 0;
+    right:
+      0;
 
-    width: 220px;
+    width:
+      220px;
 
-    padding: 7px;
+    padding:
+      7px;
 
     border:
       1px solid var(--admin-nav-border);
 
-    border-radius: 14px;
+    border-radius:
+      14px;
 
     background:
       #101b1d;
 
     box-shadow:
-      0 22px 60px rgba(0,0,0,0.38);
+      0 22px 60px rgba(0, 0, 0, 0.38);
 
-    opacity: 0;
-    visibility: hidden;
+    opacity:
+      0;
+
+    visibility:
+      hidden;
 
     transform:
       translateY(-5px);
 
     transition:
-      opacity .18s ease,
-      visibility .18s ease,
-      transform .18s ease;
+      opacity 0.18s ease,
+      visibility 0.18s ease,
+      transform 0.18s ease;
   }
 
   .admin-account.open
   .admin-account-menu {
-    opacity: 1;
-    visibility: visible;
+    opacity:
+      1;
+
+    visibility:
+      visible;
 
     transform:
       translateY(0);
@@ -421,26 +526,33 @@
   }
 
   .admin-account-summary strong {
-    display: block;
+    display:
+      block;
 
-    color: white;
+    color:
+      white;
 
-    font-size: 0.72rem;
+    font-size:
+      0.72rem;
   }
 
   .admin-account-summary span {
-    display: block;
+    display:
+      block;
 
-    margin-top: 3px;
+    margin-top:
+      3px;
 
     color:
       var(--admin-nav-muted);
 
-    font-size: 0.6rem;
+    font-size:
+      0.6rem;
   }
 
   .admin-account-divider {
-    height: 1px;
+    height:
+      1px;
 
     margin:
       3px 5px 7px;
@@ -450,43 +562,117 @@
   }
 
   .admin-account-menu a {
-    display: flex;
-    align-items: center;
-    gap: 9px;
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    gap:
+      9px;
 
     padding:
       10px 11px;
 
-    border-radius: 9px;
+    border-radius:
+      9px;
 
     color:
       var(--admin-nav-muted);
 
-    text-decoration: none;
+    text-decoration:
+      none;
 
-    font-size: 0.68rem;
-    font-weight: 500;
+    font-size:
+      0.68rem;
+
+    font-weight:
+      500;
 
     transition:
-      background .18s ease,
-      color .18s ease;
+      background 0.18s ease,
+      color 0.18s ease;
   }
 
   .admin-account-menu a:hover {
-    color: white;
+    color:
+      white;
 
     background:
-      rgba(255,255,255,0.06);
+      rgba(255, 255, 255, 0.06);
   }
 
-  .admin-account-menu a.logout {
+  /* ============================================================
+     LOGOUT
+  ============================================================ */
+
+  .admin-account-menu .logout-form {
+    margin:
+      0;
+
+    padding:
+      0;
+  }
+
+  .admin-account-menu .logout-button {
+    width:
+      100%;
+
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    gap:
+      9px;
+
+    padding:
+      10px 11px;
+
+    border:
+      0;
+
+    border-radius:
+      9px;
+
+    background:
+      transparent;
+
     color:
       #ff8178;
+
+    text-align:
+      left;
+
+    font:
+      inherit;
+
+    font-size:
+      0.68rem;
+
+    font-weight:
+      500;
+
+    cursor:
+      pointer;
+
+    transition:
+      background 0.18s ease,
+      color 0.18s ease;
   }
 
-  .admin-account-menu a.logout:hover {
+  .admin-account-menu .logout-button:hover {
     background:
-      rgba(239,91,80,0.08);
+      rgba(239, 91, 80, 0.08);
+  }
+
+  .admin-account-menu .logout-button:focus-visible {
+    outline:
+      2px solid #ff8178;
+
+    outline-offset:
+      2px;
   }
 
   /* ============================================================
@@ -494,18 +680,29 @@
   ============================================================ */
 
   .admin-sidebar {
-    position: fixed;
+    position:
+      fixed;
 
     top:
       var(--admin-nav-header-height);
 
-    left: 0;
-    bottom: 0;
+    left:
+      0;
+
+    bottom:
+      0;
 
     width:
       var(--admin-nav-width);
 
-    z-index: 4500;
+    z-index:
+      4500;
+
+    display:
+      flex;
+
+    flex-direction:
+      column;
 
     padding:
       20px 13px;
@@ -520,13 +717,14 @@
     border-right:
       1px solid var(--admin-nav-border);
 
-    overflow-y: auto;
+    overflow-y:
+      auto;
 
     box-shadow:
-      12px 0 40px rgba(0,0,0,0.12);
+      12px 0 40px rgba(0, 0, 0, 0.12);
 
     transition:
-      transform .25s ease;
+      transform 0.25s ease;
   }
 
   .admin-sidebar-label {
@@ -536,31 +734,51 @@
     color:
       #667478;
 
-    font-size: 0.55rem;
-    font-weight: 700;
+    font-size:
+      0.55rem;
 
-    letter-spacing: 1.7px;
+    font-weight:
+      700;
 
-    text-transform: uppercase;
+    letter-spacing:
+      1.7px;
+
+    text-transform:
+      uppercase;
   }
 
   .admin-nav-list {
-    list-style: none;
+    list-style:
+      none;
 
-    display: grid;
+    display:
+      grid;
 
-    gap: 4px;
+    gap:
+      4px;
+
+    margin:
+      0;
+
+    padding:
+      0;
   }
 
   .admin-nav-item a {
-    position: relative;
+    position:
+      relative;
 
-    display: flex;
-    align-items: center;
+    display:
+      flex;
 
-    gap: 11px;
+    align-items:
+      center;
 
-    min-height: 46px;
+    gap:
+      11px;
+
+    min-height:
+      46px;
 
     padding:
       0 12px;
@@ -568,108 +786,141 @@
     border:
       1px solid transparent;
 
-    border-radius: 11px;
+    border-radius:
+      11px;
 
     color:
       var(--admin-nav-muted);
 
-    text-decoration: none;
+    text-decoration:
+      none;
 
-    font-size: 0.72rem;
-    font-weight: 500;
+    font-size:
+      0.72rem;
+
+    font-weight:
+      500;
 
     transition:
-      background .18s ease,
-      color .18s ease,
-      border-color .18s ease,
-      transform .18s ease;
+      background 0.18s ease,
+      color 0.18s ease,
+      border-color 0.18s ease,
+      transform 0.18s ease;
   }
 
   .admin-nav-item a:hover {
-    color: white;
+    color:
+      white;
 
     background:
-      rgba(255,255,255,0.035);
+      rgba(255, 255, 255, 0.035);
 
     border-color:
-      rgba(255,255,255,0.045);
+      rgba(255, 255, 255, 0.045);
 
     transform:
       translateX(2px);
   }
 
   .admin-nav-item.active a {
-    color: white;
+    color:
+      white;
 
     background:
       linear-gradient(
         90deg,
-        rgba(0,128,128,0.19),
-        rgba(0,128,128,0.055)
+        rgba(0, 128, 128, 0.19),
+        rgba(0, 128, 128, 0.055)
       );
 
     border-color:
-      rgba(18,183,183,0.22);
+      rgba(18, 183, 183, 0.22);
 
     box-shadow:
-      inset 0 0 0 1px rgba(18,183,183,0.035);
+      inset 0 0 0 1px
+      rgba(18, 183, 183, 0.035);
   }
 
   .admin-nav-item.active a::before {
-    content: "";
+    content:
+      "";
 
-    position: absolute;
+    position:
+      absolute;
 
-    left: -1px;
-    top: 8px;
-    bottom: 8px;
+    left:
+      -1px;
 
-    width: 3px;
+    top:
+      8px;
 
-    border-radius: 0 4px 4px 0;
+    bottom:
+      8px;
+
+    width:
+      3px;
+
+    border-radius:
+      0 4px 4px 0;
 
     background:
       var(--admin-nav-teal);
   }
 
   .admin-nav-icon {
-    width: 20px;
+    width:
+      20px;
 
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
+    display:
+      inline-flex;
+
+    align-items:
+      center;
+
+    justify-content:
+      center;
 
     color:
       currentColor;
 
-    font-size: 0.78rem;
+    font-size:
+      0.78rem;
   }
 
   .admin-nav-label {
-    flex: 1;
+    flex:
+      1;
   }
 
   .admin-nav-badge {
     padding:
       3px 6px;
 
-    border-radius: 999px;
+    border-radius:
+      999px;
 
     background:
-      rgba(255,215,0,0.08);
+      rgba(255, 215, 0, 0.08);
 
     color:
       var(--admin-nav-gold);
 
-    font-size: 0.46rem;
-    font-weight: 700;
+    font-size:
+      0.46rem;
 
-    letter-spacing: 0.5px;
-    text-transform: uppercase;
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.5px;
+
+    text-transform:
+      uppercase;
   }
 
   .admin-sidebar-divider {
-    height: 1px;
+    height:
+      1px;
 
     margin:
       17px 9px;
@@ -679,51 +930,71 @@
   }
 
   .admin-sidebar-footer {
-    margin-top: auto;
+    margin-top:
+      auto;
   }
 
   .admin-security-card {
-    margin-top: 16px;
+    margin-top:
+      16px;
 
     padding:
       13px;
 
     border:
-      1px solid rgba(18,183,183,0.12);
+      1px solid
+      rgba(18, 183, 183, 0.12);
 
-    border-radius: 13px;
+    border-radius:
+      13px;
 
     background:
-      rgba(0,128,128,0.045);
+      rgba(0, 128, 128, 0.045);
   }
 
   .admin-security-title {
-    display: flex;
-    align-items: center;
-    gap: 7px;
+    display:
+      flex;
+
+    align-items:
+      center;
+
+    gap:
+      7px;
 
     color:
       var(--admin-nav-teal);
 
-    font-size: 0.58rem;
-    font-weight: 700;
+    font-size:
+      0.58rem;
 
-    letter-spacing: 0.8px;
-    text-transform: uppercase;
+    font-weight:
+      700;
+
+    letter-spacing:
+      0.8px;
+
+    text-transform:
+      uppercase;
   }
 
   .admin-security-title i {
-    font-size: 0.65rem;
+    font-size:
+      0.65rem;
   }
 
   .admin-security-text {
-    margin-top: 7px;
+    margin-top:
+      7px;
 
     color:
       #748287;
 
-    font-size: 0.55rem;
-    line-height: 1.5;
+    font-size:
+      0.55rem;
+
+    line-height:
+      1.5;
   }
 
   /* ============================================================
@@ -731,33 +1002,37 @@
   ============================================================ */
 
   .admin-sidebar-overlay {
-    position: fixed;
+    position:
+      fixed;
 
-    inset: 0;
+    inset:
+      0;
 
-    z-index: 4400;
+    z-index:
+      4400;
 
     background:
-      rgba(0,0,0,0.55);
+      rgba(0, 0, 0, 0.55);
 
-    opacity: 0;
-    visibility: hidden;
+    opacity:
+      0;
+
+    visibility:
+      hidden;
 
     transition:
-      opacity .25s ease,
-      visibility .25s ease;
+      opacity 0.25s ease,
+      visibility 0.25s ease;
   }
 
   /* ============================================================
      PAGE OFFSET
-
-     Since this partial creates fixed navigation, admin pages
-     receive a top + left offset automatically.
   ============================================================ */
 
   body {
     padding-top:
       var(--admin-nav-header-height);
+
     padding-left:
       var(--admin-nav-width);
   }
@@ -769,18 +1044,21 @@
   @media (max-width: 900px) {
 
     .admin-menu-toggle {
-      display: inline-flex;
+      display:
+        inline-flex;
     }
 
     .admin-brand-subtitle,
     .admin-view-site,
     .admin-account-copy,
     .admin-account-chevron {
-      display: none;
+      display:
+        none;
     }
 
     .admin-brand-name {
-      font-size: 0.95rem;
+      font-size:
+        0.95rem;
     }
 
     .admin-topbar {
@@ -794,7 +1072,8 @@
     }
 
     body {
-      padding-left: 0;
+      padding-left:
+        0;
     }
 
     body.admin-sidebar-open
@@ -805,44 +1084,67 @@
 
     body.admin-sidebar-open
     .admin-sidebar-overlay {
-      opacity: 1;
-      visibility: visible;
+      opacity:
+        1;
+
+      visibility:
+        visible;
     }
   }
 
   @media (max-width: 520px) {
 
     .admin-topbar {
-      height: 66px;
+      height:
+        66px;
     }
 
     .admin-sidebar {
-      top: 66px;
+      top:
+        66px;
     }
 
     body {
-      padding-top: 66px;
+      padding-top:
+        66px;
     }
 
     .admin-brand-logo {
-      width: 36px;
-      height: 36px;
-      flex-basis: 36px;
+      width:
+        36px;
+
+      height:
+        36px;
+
+      flex-basis:
+        36px;
     }
 
     .admin-brand-logo img {
-      width: 29px;
-      height: 29px;
+      width:
+        29px;
+
+      height:
+        29px;
     }
   }
+
+  /* ============================================================
+     REDUCED MOTION
+  ============================================================ */
 
   @media (prefers-reduced-motion: reduce) {
 
     .admin-sidebar,
     .admin-account-menu,
     .admin-sidebar-overlay,
-    .admin-nav-item a {
-      transition: none !important;
+    .admin-nav-item a,
+    .admin-view-site,
+    .admin-account-menu .logout-button,
+    .admin-menu-toggle,
+    .admin-account-button {
+      transition:
+        none !important;
     }
   }
 </style>
@@ -855,9 +1157,9 @@
 
   <div
     style="
-      display:flex;
-      align-items:center;
-      gap:12px;
+      display: flex;
+      align-items: center;
+      gap: 12px;
     "
   >
 
@@ -869,11 +1171,14 @@
       id="adminMenuToggle"
       aria-label="Open administrator navigation"
       aria-expanded="false"
+      aria-controls="adminSidebar"
     >
+
       <i
         class="fas fa-bars"
         aria-hidden="true"
       ></i>
+
     </button>
 
     <!-- BRAND -->
@@ -881,6 +1186,7 @@
     <a
       href="/admin/dashboard"
       class="admin-brand"
+      aria-label="Puffer Isle IsleRMS Command Center"
     >
 
       <span class="admin-brand-logo">
@@ -888,6 +1194,8 @@
         <img
           src="/images/islelogo.png"
           alt="Puffer Isle Resort"
+          width="32"
+          height="32"
         >
 
       </span>
@@ -895,12 +1203,17 @@
       <span class="admin-brand-copy">
 
         <span class="admin-brand-name">
+
           Puffer Isle
+
           <span>IsleRMS</span>
+
         </span>
 
         <span class="admin-brand-subtitle">
+
           Resort Management System
+
         </span>
 
       </span>
@@ -909,7 +1222,9 @@
 
   </div>
 
-  <!-- TOP RIGHT -->
+  <!-- ==========================================================
+       TOP RIGHT
+  =========================================================== -->
 
   <div class="admin-topbar-right">
 
@@ -918,12 +1233,14 @@
       class="admin-view-site"
       title="Open public resort website"
     >
+
       <i
         class="fas fa-arrow-up-right-from-square"
         aria-hidden="true"
       ></i>
 
       View Site
+
     </a>
 
     <div
@@ -937,9 +1254,13 @@
         id="adminAccountButton"
         aria-expanded="false"
         aria-haspopup="true"
+        aria-controls="adminAccountMenu"
       >
 
-        <span class="admin-avatar">
+        <span
+          class="admin-avatar"
+          aria-hidden="true"
+        >
           <%= adminInitial %>
         </span>
 
@@ -962,9 +1283,12 @@
 
       </button>
 
+      <!-- ACCOUNT MENU -->
+
       <div
         class="admin-account-menu"
         id="adminAccountMenu"
+        role="menu"
       >
 
         <div class="admin-account-summary">
@@ -983,38 +1307,66 @@
 
         <a
           href="/admin/dashboard"
+          role="menuitem"
         >
+
           <i
             class="fas fa-gauge-high"
             aria-hidden="true"
           ></i>
 
           Command Center
+
         </a>
 
         <a
           href="/"
-          target="_self"
+          role="menuitem"
         >
+
           <i
             class="fas fa-globe"
             aria-hidden="true"
           ></i>
 
           Public Website
+
         </a>
 
-        <a
-          href="/admin/logout"
-          class="logout"
+        <!-- ======================================================
+             CANONICAL ADMIN LOGOUT
+        ======================================================= -->
+
+        <form
+          method="POST"
+          action="/admin/logout"
+          class="logout-form"
         >
-          <i
-            class="fas fa-right-from-bracket"
-            aria-hidden="true"
-          ></i>
 
-          Sign Out
-        </a>
+          <input
+            type="hidden"
+            name="_csrf"
+            id="adminCsrfToken"
+            value="<%= adminCsrfToken %>"
+            autocomplete="off"
+          >
+
+          <button
+            type="submit"
+            class="logout-button"
+            role="menuitem"
+          >
+
+            <i
+              class="fas fa-right-from-bracket"
+              aria-hidden="true"
+            ></i>
+
+            Sign Out
+
+          </button>
+
+        </form>
 
       </div>
 
@@ -1031,6 +1383,7 @@
 <div
   class="admin-sidebar-overlay"
   id="adminSidebarOverlay"
+  aria-hidden="true"
 ></div>
 
 <!-- ============================================================
@@ -1043,11 +1396,16 @@
   aria-label="Administrator navigation"
 >
 
+  <!-- ==========================================================
+       OPERATIONS
+  =========================================================== -->
+
   <div class="admin-sidebar-label">
     Operations
   </div>
 
-  <nav>
+  <nav aria-label="Operations">
+
     <ul class="admin-nav-list">
 
       <!-- DASHBOARD -->
@@ -1059,10 +1417,12 @@
         <a href="/admin/dashboard">
 
           <span class="admin-nav-icon">
+
             <i
               class="fas fa-gauge-high"
               aria-hidden="true"
             ></i>
+
           </span>
 
           <span class="admin-nav-label">
@@ -1073,7 +1433,7 @@
 
       </li>
 
-      <!-- HISTORY / RESERVATIONS -->
+      <!-- HISTORY -->
 
       <li
         class="admin-nav-item <%= isActive('/admin/history') ? 'active' : '' %>"
@@ -1082,10 +1442,12 @@
         <a href="/admin/history">
 
           <span class="admin-nav-icon">
+
             <i
               class="fas fa-calendar-check"
               aria-hidden="true"
             ></i>
+
           </span>
 
           <span class="admin-nav-label">
@@ -1105,10 +1467,12 @@
         <a href="/admin/checkin-manager">
 
           <span class="admin-nav-icon">
+
             <i
               class="fas fa-concierge-bell"
               aria-hidden="true"
             ></i>
+
           </span>
 
           <span class="admin-nav-label">
@@ -1124,15 +1488,21 @@
       </li>
 
     </ul>
+
   </nav>
 
   <div class="admin-sidebar-divider"></div>
+
+  <!-- ==========================================================
+       RESORT CATALOG
+  =========================================================== -->
 
   <div class="admin-sidebar-label">
     Resort Catalog
   </div>
 
-  <nav>
+  <nav aria-label="Resort Catalog">
+
     <ul class="admin-nav-list">
 
       <!-- ROOMS -->
@@ -1144,10 +1514,12 @@
         <a href="/admin/rooms">
 
           <span class="admin-nav-icon">
+
             <i
               class="fas fa-bed"
               aria-hidden="true"
             ></i>
+
           </span>
 
           <span class="admin-nav-label">
@@ -1167,10 +1539,12 @@
         <a href="/admin/add-ons">
 
           <span class="admin-nav-icon">
+
             <i
               class="fas fa-puzzle-piece"
               aria-hidden="true"
             ></i>
+
           </span>
 
           <span class="admin-nav-label">
@@ -1190,10 +1564,12 @@
         <a href="/admin/users">
 
           <span class="admin-nav-icon">
+
             <i
               class="fas fa-users"
               aria-hidden="true"
             ></i>
+
           </span>
 
           <span class="admin-nav-label">
@@ -1205,15 +1581,21 @@
       </li>
 
     </ul>
+
   </nav>
 
   <div class="admin-sidebar-divider"></div>
+
+  <!-- ==========================================================
+       INSIGHTS
+  =========================================================== -->
 
   <div class="admin-sidebar-label">
     Insights
   </div>
 
-  <nav>
+  <nav aria-label="Insights">
+
     <ul class="admin-nav-list">
 
       <!-- ANALYTICS -->
@@ -1225,10 +1607,12 @@
         <a href="/admin/analytics">
 
           <span class="admin-nav-icon">
+
             <i
               class="fas fa-chart-line"
               aria-hidden="true"
             ></i>
+
           </span>
 
           <span class="admin-nav-label">
@@ -1240,7 +1624,12 @@
       </li>
 
     </ul>
+
   </nav>
+
+  <!-- ==========================================================
+       SECURITY CARD
+  =========================================================== -->
 
   <div class="admin-security-card">
 
@@ -1256,17 +1645,27 @@
     </div>
 
     <div class="admin-security-text">
-      Administrator access is protected by the IsleRMS
-      session system and server-side route protection.
+
+      Administrator access is protected by authenticated
+      sessions and server-side route authorization.
+
     </div>
 
   </div>
 
 </aside>
 
+<!-- ============================================================
+     ADMIN NAVIGATION CLIENT LOGIC
+============================================================ -->
+
 <script>
   (() => {
     "use strict";
+
+    /* ==========================================================
+       ELEMENTS
+    =========================================================== */
 
     const body =
       document.body;
@@ -1296,26 +1695,83 @@
         "adminAccountButton"
       );
 
-    function setSidebar(open) {
+    const accountMenu =
+      document.getElementById(
+        "adminAccountMenu"
+      );
 
+    const csrfTokenElement =
+      document.getElementById(
+        "adminCsrfToken"
+      );
+
+    /* ==========================================================
+       CSRF TOKEN
+
+       IMPORTANT:
+       Do NOT place EJS directly inside this <script>.
+
+       The token is rendered into the HTML form above,
+       then safely read from the DOM.
+
+       Future admin pages can use:
+
+       window.IsleRMS.csrfToken
+
+       for fetch() requests.
+    =========================================================== */
+
+    window.IsleRMS =
+      window.IsleRMS || {};
+
+    window.IsleRMS.csrfToken =
+      csrfTokenElement
+        ? csrfTokenElement.value
+        : "";
+
+    window.IsleRMS.getCsrfToken =
+      function getCsrfToken() {
+        const element =
+          document.getElementById(
+            "adminCsrfToken"
+          );
+
+        return element
+          ? element.value
+          : "";
+      };
+
+    /* ==========================================================
+       SIDEBAR
+    =========================================================== */
+
+    function setSidebar(open) {
       if (!body) {
         return;
       }
 
       body.classList.toggle(
         "admin-sidebar-open",
-        open
+        Boolean(open)
       );
 
       if (menuToggle) {
-
         menuToggle.setAttribute(
           "aria-expanded",
-          String(open)
+          String(Boolean(open))
+        );
+
+        menuToggle.setAttribute(
+          "aria-label",
+          open
+            ? "Close administrator navigation"
+            : "Open administrator navigation"
         );
 
         const icon =
-          menuToggle.querySelector("i");
+          menuToggle.querySelector(
+            "i"
+          );
 
         if (icon) {
           icon.className =
@@ -1326,67 +1782,100 @@
       }
     }
 
-    function setAccount(open) {
+    /* ==========================================================
+       ACCOUNT MENU
+    =========================================================== */
 
+    function setAccount(open) {
       if (!account) {
         return;
       }
 
       account.classList.toggle(
         "open",
-        open
+        Boolean(open)
       );
 
       if (accountButton) {
-
         accountButton.setAttribute(
           "aria-expanded",
-          String(open)
+          String(Boolean(open))
         );
       }
     }
 
-    menuToggle?.addEventListener(
-      "click",
-      () => {
-        const isOpen =
-          body.classList.contains(
-            "admin-sidebar-open"
+    /* ==========================================================
+       MOBILE MENU
+    =========================================================== */
+
+    if (menuToggle) {
+      menuToggle.addEventListener(
+        "click",
+        () => {
+
+          const isOpen =
+            body &&
+            body.classList.contains(
+              "admin-sidebar-open"
+            );
+
+          setSidebar(
+            !isOpen
           );
+        }
+      );
+    }
 
-        setSidebar(!isOpen);
-      }
-    );
+    if (overlay) {
+      overlay.addEventListener(
+        "click",
+        () => {
+          setSidebar(false);
+        }
+      );
+    }
 
-    overlay?.addEventListener(
-      "click",
-      () => {
-        setSidebar(false);
-      }
-    );
+    /* ==========================================================
+       ACCOUNT MENU BUTTON
+    =========================================================== */
 
-    accountButton?.addEventListener(
-      "click",
-      (event) => {
+    if (accountButton) {
+      accountButton.addEventListener(
+        "click",
+        (event) => {
 
-        event.stopPropagation();
+          event.stopPropagation();
 
-        const isOpen =
-          account?.classList.contains(
-            "open"
+          const isOpen =
+            account &&
+            account.classList.contains(
+              "open"
+            );
+
+          setAccount(
+            !isOpen
           );
+        }
+      );
+    }
 
-        setAccount(!isOpen);
-      }
-    );
+    /* ==========================================================
+       OUTSIDE CLICK
+    =========================================================== */
 
     document.addEventListener(
       "click",
       (event) => {
 
+        const target =
+          event.target;
+
         if (
           account &&
-          !account.contains(event.target)
+          target instanceof Node &&
+          !account.contains(
+            target
+          )
         ) {
           setAccount(false);
         }
@@ -1394,48 +1883,104 @@
         if (
           window.innerWidth <= 900 &&
           sidebar &&
-          !sidebar.contains(event.target) &&
+          target instanceof Node &&
+          !sidebar.contains(
+            target
+          ) &&
           menuToggle &&
-          !menuToggle.contains(event.target)
+          !menuToggle.contains(
+            target
+          )
         ) {
           setSidebar(false);
         }
+
       }
     );
+
+    /* ==========================================================
+       ESCAPE KEY
+    =========================================================== */
 
     document.addEventListener(
       "keydown",
       (event) => {
 
         if (
-          event.key === "Escape"
+          event.key ===
+          "Escape"
         ) {
+
           setAccount(false);
+
           setSidebar(false);
+
         }
+
       }
     );
 
-    sidebar?.querySelectorAll(
-      "a"
-    ).forEach(
-      (link) => {
+    /* ==========================================================
+       CLOSE MOBILE MENU AFTER NAVIGATION
+    =========================================================== */
 
-        link.addEventListener(
-          "click",
-          () => {
+    if (sidebar) {
 
-            if (
-              window.innerWidth <= 900
-            ) {
-              setSidebar(false);
-            }
-
-          }
+      const sidebarLinks =
+        sidebar.querySelectorAll(
+          "a"
         );
 
-      }
-    );
+      sidebarLinks.forEach(
+        (link) => {
+
+          link.addEventListener(
+            "click",
+            () => {
+
+              if (
+                window.innerWidth <= 900
+              ) {
+                setSidebar(false);
+              }
+
+            }
+          );
+
+        }
+      );
+
+    }
+
+    /* ==========================================================
+       CLOSE ACCOUNT MENU AFTER ACTION
+    =========================================================== */
+
+    if (accountMenu) {
+
+      const accountItems =
+        accountMenu.querySelectorAll(
+          "a, button"
+        );
+
+      accountItems.forEach(
+        (item) => {
+
+          item.addEventListener(
+            "click",
+            () => {
+              setAccount(false);
+            }
+          );
+
+        }
+      );
+
+    }
+
+    /* ==========================================================
+       RESPONSIVE RESET
+    =========================================================== */
 
     window.addEventListener(
       "resize",
@@ -1449,6 +1994,36 @@
 
       }
     );
+
+    /* ==========================================================
+       ADMIN LOGOUT
+
+       The logout form remains a normal HTML POST.
+
+       This is intentional:
+       - works without JavaScript
+       - submits CSRF token normally
+       - server remains authoritative
+       - avoids unnecessary AJAX authentication logic
+    =========================================================== */
+
+    const logoutForm =
+      document.querySelector(
+        ".admin-account-menu .logout-form"
+      );
+
+    if (logoutForm) {
+
+      logoutForm.addEventListener(
+        "submit",
+        () => {
+
+          setAccount(false);
+
+        }
+      );
+
+    }
 
   })();
 </script>

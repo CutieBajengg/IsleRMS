@@ -714,8 +714,8 @@ appointmentSchema.statics.findConflictingBooking =
      */
     if (room) {
       const escapedRoom = String(room)
-        .trim()
-        .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+  .trim()
+  .replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
 
       roomConditions.push({
         $or: [

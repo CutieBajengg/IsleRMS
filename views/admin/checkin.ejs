@@ -13,7 +13,24 @@
     content="Puffer Isle Resort Front Desk Operations"
   >
 
-  <title>Front Desk Operations | Puffer Isle Resort</title>
+  <meta
+    name="theme-color"
+    content="#070a0c"
+  >
+
+  <meta
+    name="robots"
+    content="noindex, nofollow, noarchive"
+  >
+
+  <meta
+    name="referrer"
+    content="same-origin"
+  >
+
+  <title>
+    Front Desk Operations | Puffer Isle Resort
+  </title>
 
   <link
     rel="icon"
@@ -46,6 +63,7 @@
     :root {
       --fd-bg: #070a0c;
       --fd-bg-soft: #0c1113;
+
       --fd-panel: rgba(255, 255, 255, 0.045);
       --fd-panel-strong: rgba(255, 255, 255, 0.065);
       --fd-panel-hover: rgba(255, 255, 255, 0.085);
@@ -69,9 +87,14 @@
       --fd-warning: #f2bd35;
       --fd-info: #4da3ff;
 
-      --fd-shadow-sm: 0 12px 35px rgba(0, 0, 0, 0.18);
-      --fd-shadow-md: 0 20px 60px rgba(0, 0, 0, 0.28);
-      --fd-shadow-lg: 0 30px 90px rgba(0, 0, 0, 0.35);
+      --fd-shadow-sm:
+        0 12px 35px rgba(0, 0, 0, 0.18);
+
+      --fd-shadow-md:
+        0 20px 60px rgba(0, 0, 0, 0.28);
+
+      --fd-shadow-lg:
+        0 30px 90px rgba(0, 0, 0, 0.35);
 
       --fd-radius-xl: 28px;
       --fd-radius-lg: 20px;
@@ -79,7 +102,13 @@
       --fd-radius-sm: 10px;
     }
 
-    * {
+    /* =========================================================
+       RESET
+    ========================================================= */
+
+    *,
+    *::before,
+    *::after {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
@@ -91,10 +120,15 @@
 
     body {
       min-height: 100vh;
+
       overflow-x: hidden;
 
-      font-family: "Poppins", sans-serif;
-      color: var(--fd-text);
+      font-family:
+        "Poppins",
+        sans-serif;
+
+      color:
+        var(--fd-text);
 
       background:
         radial-gradient(
@@ -117,6 +151,7 @@
 
     body::before {
       content: "";
+
       position: fixed;
       inset: 0;
 
@@ -133,13 +168,15 @@
           transparent 1px
         );
 
-      background-size: 48px 48px;
+      background-size:
+        48px 48px;
 
-      mask-image: linear-gradient(
-        to bottom,
-        black,
-        transparent 78%
-      );
+      mask-image:
+        linear-gradient(
+          to bottom,
+          black,
+          transparent 78%
+        );
 
       opacity: 0.24;
     }
@@ -164,102 +201,183 @@
       background: var(--fd-gold);
     }
 
+    :focus-visible {
+      outline:
+        2px solid var(--fd-gold);
+
+      outline-offset:
+        3px;
+    }
+
+    /* =========================================================
+       LAYOUT
+    ========================================================= */
+
     .frontdesk-shell {
       position: relative;
       z-index: 1;
 
-      width: min(1580px, calc(100% - 48px));
-      margin: 0 auto;
+      width:
+        min(
+          1580px,
+          calc(100% - 48px)
+        );
 
-      padding: 42px 0 80px;
+      margin:
+        0 auto;
+
+      padding:
+        42px 0 80px;
     }
 
-    /* ---------------------------------------------------------
+    /* =========================================================
        HEADER
-    --------------------------------------------------------- */
+    ========================================================= */
 
     .frontdesk-header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
+      display:
+        flex;
 
-      gap: 28px;
-      margin-bottom: 27px;
+      align-items:
+        flex-end;
+
+      justify-content:
+        space-between;
+
+      gap:
+        28px;
+
+      margin-bottom:
+        27px;
     }
 
     .frontdesk-copy {
-      min-width: 0;
+      min-width:
+        0;
     }
 
     .eyebrow {
-      display: flex;
-      align-items: center;
-      gap: 9px;
+      display:
+        flex;
 
-      margin-bottom: 11px;
+      align-items:
+        center;
 
-      color: var(--fd-teal-light);
+      gap:
+        9px;
 
-      font-size: 0.68rem;
-      font-weight: 700;
+      margin-bottom:
+        11px;
 
-      letter-spacing: 2.1px;
-      line-height: 1;
+      color:
+        var(--fd-teal-light);
 
-      text-transform: uppercase;
+      font-size:
+        0.68rem;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        2.1px;
+
+      line-height:
+        1;
+
+      text-transform:
+        uppercase;
     }
 
     .eyebrow::before {
-      content: "";
+      content:
+        "";
 
-      width: 24px;
-      height: 1px;
+      width:
+        24px;
 
-      background: var(--fd-teal-light);
-      opacity: 0.85;
+      height:
+        1px;
+
+      background:
+        var(--fd-teal-light);
+
+      opacity:
+        0.85;
     }
 
     .page-title {
-      font-family: "Playfair Display", serif;
+      font-family:
+        "Playfair Display",
+        serif;
 
-      font-size: clamp(2.25rem, 4vw, 3.45rem);
-      line-height: 1.04;
+      font-size:
+        clamp(
+          2.25rem,
+          4vw,
+          3.45rem
+        );
 
-      letter-spacing: -1.3px;
+      line-height:
+        1.04;
+
+      letter-spacing:
+        -1.3px;
     }
 
     .page-title span {
-      color: var(--fd-teal-light);
+      color:
+        var(--fd-teal-light);
     }
 
     .page-subtitle {
-      max-width: 740px;
+      max-width:
+        740px;
 
-      margin-top: 9px;
+      margin-top:
+        9px;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.82rem;
-      line-height: 1.7;
+      font-size:
+        0.82rem;
+
+      line-height:
+        1.7;
     }
 
     .header-right {
-      display: flex;
-      align-items: stretch;
-      gap: 10px;
+      display:
+        flex;
 
-      flex-shrink: 0;
+      align-items:
+        stretch;
+
+      gap:
+        10px;
+
+      flex-shrink:
+        0;
     }
 
     .clock-card {
-      display: flex;
-      align-items: center;
-      gap: 12px;
+      display:
+        flex;
 
-      min-width: 235px;
-      min-height: 68px;
+      align-items:
+        center;
 
-      padding: 12px 16px;
+      gap:
+        12px;
+
+      min-width:
+        235px;
+
+      min-height:
+        68px;
+
+      padding:
+        12px 16px;
 
       background:
         linear-gradient(
@@ -268,78 +386,132 @@
           rgba(255, 255, 255, 0.018)
         );
 
-      border: 1px solid var(--fd-border);
-      border-radius: var(--fd-radius-md);
+      border:
+        1px solid var(--fd-border);
 
-      box-shadow: var(--fd-shadow-sm);
+      border-radius:
+        var(--fd-radius-md);
 
-      backdrop-filter: blur(18px);
+      box-shadow:
+        var(--fd-shadow-sm);
+
+      backdrop-filter:
+        blur(18px);
+
+      -webkit-backdrop-filter:
+        blur(18px);
     }
 
     .clock-icon {
-      width: 38px;
-      height: 38px;
+      width:
+        38px;
 
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height:
+        38px;
 
-      flex: 0 0 38px;
+      display:
+        flex;
 
-      border-radius: 11px;
+      align-items:
+        center;
 
-      color: var(--fd-gold);
-      background: rgba(255, 215, 0, 0.085);
+      justify-content:
+        center;
+
+      flex:
+        0 0 38px;
+
+      border-radius:
+        11px;
+
+      color:
+        var(--fd-gold);
+
+      background:
+        rgba(255, 215, 0, 0.085);
     }
 
     .clock-copy small {
-      display: block;
+      display:
+        block;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.57rem;
-      font-weight: 700;
+      font-size:
+        0.57rem;
 
-      letter-spacing: 1.05px;
-      text-transform: uppercase;
+      font-weight:
+        700;
+
+      letter-spacing:
+        1.05px;
+
+      text-transform:
+        uppercase;
     }
 
     .clock-copy strong {
-      display: block;
+      display:
+        block;
 
-      margin-top: 2px;
+      margin-top:
+        2px;
 
-      font-size: 0.77rem;
-      font-weight: 600;
+      font-size:
+        0.77rem;
+
+      font-weight:
+        600;
     }
 
     .clock-copy span {
-      display: block;
+      display:
+        block;
 
-      margin-top: 1px;
+      margin-top:
+        1px;
 
-      color: var(--fd-teal-light);
+      color:
+        var(--fd-teal-light);
 
-      font-size: 0.61rem;
+      font-size:
+        0.61rem;
     }
 
     .refresh-btn {
-      min-height: 68px;
+      min-height:
+        68px;
 
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 8px;
+      display:
+        inline-flex;
 
-      padding: 0 17px;
+      align-items:
+        center;
 
-      color: var(--fd-text-soft);
+      justify-content:
+        center;
 
-      background: var(--fd-panel);
-      border: 1px solid var(--fd-border);
-      border-radius: var(--fd-radius-md);
+      gap:
+        8px;
 
-      cursor: pointer;
+      padding:
+        0 17px;
+
+      color:
+        var(--fd-text-soft);
+
+      background:
+        var(--fd-panel);
+
+      border:
+        1px solid var(--fd-border);
+
+      border-radius:
+        var(--fd-radius-md);
+
+      cursor:
+        pointer;
 
       transition:
         transform 0.2s ease,
@@ -349,31 +521,49 @@
     }
 
     .refresh-btn:hover {
-      transform: translateY(-2px);
+      transform:
+        translateY(-2px);
 
-      color: #fff;
-      background: var(--fd-panel-hover);
-      border-color: rgba(0, 166, 166, 0.45);
+      color:
+        #ffffff;
+
+      background:
+        var(--fd-panel-hover);
+
+      border-color:
+        rgba(0, 166, 166, 0.45);
     }
 
     .refresh-btn:disabled {
-      opacity: 0.55;
-      cursor: wait;
+      opacity:
+        0.55;
+
+      cursor:
+        wait;
     }
 
-    /* ---------------------------------------------------------
+    /* =========================================================
        LIVE STRIP
-    --------------------------------------------------------- */
+    ========================================================= */
 
     .live-strip {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display:
+        flex;
 
-      gap: 15px;
+      align-items:
+        center;
 
-      margin-bottom: 19px;
-      padding: 13px 16px;
+      justify-content:
+        space-between;
+
+      gap:
+        15px;
+
+      margin-bottom:
+        19px;
+
+      padding:
+        13px 16px;
 
       background:
         linear-gradient(
@@ -382,90 +572,142 @@
           rgba(0, 166, 166, 0.025)
         );
 
-      border: 1px solid rgba(0, 166, 166, 0.20);
-      border-radius: var(--fd-radius-md);
+      border:
+        1px solid rgba(0, 166, 166, 0.20);
+
+      border-radius:
+        var(--fd-radius-md);
     }
 
     .live-indicator {
-      display: inline-flex;
-      align-items: center;
-      gap: 9px;
+      display:
+        inline-flex;
 
-      color: var(--fd-teal-light);
+      align-items:
+        center;
 
-      font-size: 0.67rem;
-      font-weight: 700;
+      gap:
+        9px;
 
-      letter-spacing: 0.9px;
-      text-transform: uppercase;
+      color:
+        var(--fd-teal-light);
+
+      font-size:
+        0.67rem;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        0.9px;
+
+      text-transform:
+        uppercase;
     }
 
     .live-dot {
-      position: relative;
+      position:
+        relative;
 
-      width: 8px;
-      height: 8px;
+      width:
+        8px;
 
-      border-radius: 50%;
+      height:
+        8px;
 
-      background: var(--fd-success);
+      border-radius:
+        50%;
 
-      box-shadow: 0 0 13px rgba(46, 204, 113, 0.75);
+      background:
+        var(--fd-success);
+
+      box-shadow:
+        0 0 13px rgba(46, 204, 113, 0.75);
     }
 
     .live-dot::after {
-      content: "";
+      content:
+        "";
 
-      position: absolute;
-      inset: -4px;
+      position:
+        absolute;
 
-      border: 1px solid rgba(46, 204, 113, 0.28);
-      border-radius: 50%;
+      inset:
+        -4px;
 
-      animation: livePulse 2.3s ease-out infinite;
+      border:
+        1px solid rgba(46, 204, 113, 0.28);
+
+      border-radius:
+        50%;
+
+      animation:
+        livePulse 2.3s ease-out infinite;
     }
 
     @keyframes livePulse {
       0% {
-        opacity: 0.8;
-        transform: scale(0.85);
+        opacity:
+          0.8;
+
+        transform:
+          scale(0.85);
       }
 
       70%,
       100% {
-        opacity: 0;
-        transform: scale(1.45);
+        opacity:
+          0;
+
+        transform:
+          scale(1.45);
       }
     }
 
     .live-help {
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.62rem;
-      text-align: right;
+      font-size:
+        0.62rem;
+
+      text-align:
+        right;
     }
 
-    /* ---------------------------------------------------------
+    /* =========================================================
        METRICS
-    --------------------------------------------------------- */
+    ========================================================= */
 
     .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
+      display:
+        grid;
 
-      gap: 14px;
+      grid-template-columns:
+        repeat(
+          4,
+          minmax(0, 1fr)
+        );
 
-      margin-bottom: 22px;
+      gap:
+        14px;
+
+      margin-bottom:
+        22px;
     }
 
     .metric-card {
-      position: relative;
+      position:
+        relative;
 
-      min-height: 122px;
+      min-height:
+        122px;
 
-      padding: 19px;
+      padding:
+        19px;
 
-      overflow: hidden;
+      overflow:
+        hidden;
 
       background:
         linear-gradient(
@@ -474,117 +716,182 @@
           rgba(255, 255, 255, 0.018)
         );
 
-      border: 1px solid var(--fd-border);
-      border-radius: var(--fd-radius-lg);
+      border:
+        1px solid var(--fd-border);
 
-      box-shadow: var(--fd-shadow-sm);
+      border-radius:
+        var(--fd-radius-lg);
+
+      box-shadow:
+        var(--fd-shadow-sm);
     }
 
     .metric-card::after {
-      content: "";
+      content:
+        "";
 
-      position: absolute;
-      right: -14px;
-      bottom: -28px;
+      position:
+        absolute;
 
-      width: 100px;
-      height: 100px;
+      right:
+        -14px;
 
-      border-radius: 50%;
+      bottom:
+        -28px;
 
-      background: rgba(0, 166, 166, 0.06);
-      filter: blur(2px);
+      width:
+        100px;
+
+      height:
+        100px;
+
+      border-radius:
+        50%;
+
+      background:
+        rgba(0, 166, 166, 0.06);
     }
 
     .metric-head {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
+      display:
+        flex;
 
-      gap: 10px;
+      align-items:
+        center;
+
+      justify-content:
+        space-between;
+
+      gap:
+        10px;
     }
 
     .metric-icon {
-      width: 38px;
-      height: 38px;
+      width:
+        38px;
 
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height:
+        38px;
 
-      border-radius: 11px;
+      display:
+        flex;
 
-      color: var(--fd-teal-light);
-      background: rgba(0, 166, 166, 0.10);
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border-radius:
+        11px;
+
+      color:
+        var(--fd-teal-light);
+
+      background:
+        rgba(0, 166, 166, 0.10);
     }
 
     .metric-card.gold .metric-icon {
-      color: var(--fd-gold);
-      background: rgba(255, 215, 0, 0.09);
+      color:
+        var(--fd-gold);
+
+      background:
+        rgba(255, 215, 0, 0.09);
     }
 
     .metric-card.green .metric-icon {
-      color: var(--fd-success);
-      background: rgba(46, 204, 113, 0.09);
+      color:
+        var(--fd-success);
+
+      background:
+        rgba(46, 204, 113, 0.09);
     }
 
     .metric-card.blue .metric-icon {
-      color: var(--fd-info);
-      background: rgba(77, 163, 255, 0.09);
+      color:
+        var(--fd-info);
+
+      background:
+        rgba(77, 163, 255, 0.09);
     }
 
     .metric-label {
-      display: block;
+      display:
+        block;
 
-      margin-top: 13px;
+      margin-top:
+        13px;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.60rem;
-      font-weight: 700;
+      font-size:
+        0.60rem;
 
-      letter-spacing: 1px;
-      text-transform: uppercase;
+      font-weight:
+        700;
+
+      letter-spacing:
+        1px;
+
+      text-transform:
+        uppercase;
     }
 
     .metric-value {
-      display: block;
+      display:
+        block;
 
-      margin-top: 2px;
+      margin-top:
+        2px;
 
-      font-size: 1.75rem;
-      line-height: 1.1;
-      font-weight: 700;
+      font-size:
+        1.75rem;
+
+      line-height:
+        1.1;
+
+      font-weight:
+        700;
     }
 
     .metric-note {
-      margin-top: 5px;
+      margin-top:
+        5px;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.61rem;
+      font-size:
+        0.61rem;
     }
 
-    /* ---------------------------------------------------------
+    /* =========================================================
        OPERATIONS GRID
-    --------------------------------------------------------- */
+    ========================================================= */
 
     .operations-grid {
-      display: grid;
+      display:
+        grid;
 
       grid-template-columns:
         minmax(0, 1.12fr)
         minmax(0, 1fr);
 
-      gap: 20px;
+      gap:
+        20px;
 
-      align-items: start;
+      align-items:
+        start;
     }
 
     .operation-panel {
-      min-width: 0;
+      min-width:
+        0;
 
-      padding: 24px;
+      padding:
+        24px;
 
       background:
         linear-gradient(
@@ -593,153 +900,247 @@
           rgba(255, 255, 255, 0.017)
         );
 
-      border: 1px solid var(--fd-border);
-      border-radius: var(--fd-radius-xl);
+      border:
+        1px solid var(--fd-border);
 
-      box-shadow: var(--fd-shadow-lg);
+      border-radius:
+        var(--fd-radius-xl);
 
-      backdrop-filter: blur(18px);
+      box-shadow:
+        var(--fd-shadow-lg);
+
+      backdrop-filter:
+        blur(18px);
+
+      -webkit-backdrop-filter:
+        blur(18px);
     }
 
     .operation-panel.arrivals {
-      border-top: 2px solid rgba(255, 215, 0, 0.55);
+      border-top:
+        2px solid rgba(255, 215, 0, 0.55);
     }
 
     .operation-panel.inhouse {
-      border-top: 2px solid rgba(46, 204, 113, 0.55);
+      border-top:
+        2px solid rgba(46, 204, 113, 0.55);
     }
 
     .panel-heading {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
+      display:
+        flex;
 
-      gap: 18px;
+      align-items:
+        flex-start;
 
-      margin-bottom: 18px;
+      justify-content:
+        space-between;
+
+      gap:
+        18px;
+
+      margin-bottom:
+        18px;
     }
 
     .panel-heading-copy {
-      min-width: 0;
+      min-width:
+        0;
     }
 
     .panel-title-row {
-      display: flex;
-      align-items: center;
-      gap: 10px;
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      gap:
+        10px;
     }
 
     .panel-title {
-      font-family: "Playfair Display", serif;
+      font-family:
+        "Playfair Display",
+        serif;
 
-      font-size: 1.37rem;
-      line-height: 1.2;
+      font-size:
+        1.37rem;
+
+      line-height:
+        1.2;
     }
 
     .panel-title-icon {
-      width: 35px;
-      height: 35px;
+      width:
+        35px;
 
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height:
+        35px;
 
-      border-radius: 10px;
+      display:
+        flex;
 
-      color: var(--fd-gold);
-      background: rgba(255, 215, 0, 0.085);
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border-radius:
+        10px;
+
+      color:
+        var(--fd-gold);
+
+      background:
+        rgba(255, 215, 0, 0.085);
     }
 
     .inhouse .panel-title-icon {
-      color: var(--fd-success);
-      background: rgba(46, 204, 113, 0.085);
+      color:
+        var(--fd-success);
+
+      background:
+        rgba(46, 204, 113, 0.085);
     }
 
     .panel-description {
-      margin-top: 5px;
+      margin-top:
+        5px;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.65rem;
-      line-height: 1.55;
+      font-size:
+        0.65rem;
+
+      line-height:
+        1.55;
     }
 
     .count-pill {
-      flex: 0 0 auto;
+      flex:
+        0 0 auto;
 
-      padding: 5px 9px;
+      padding:
+        5px 9px;
 
-      border: 1px solid var(--fd-border);
-      border-radius: 999px;
+      border:
+        1px solid var(--fd-border);
 
-      color: var(--fd-text-soft);
+      border-radius:
+        999px;
 
-      background: rgba(255, 255, 255, 0.035);
+      color:
+        var(--fd-text-soft);
 
-      font-size: 0.60rem;
-      font-weight: 700;
+      background:
+        rgba(255, 255, 255, 0.035);
+
+      font-size:
+        0.60rem;
+
+      font-weight:
+        700;
     }
 
     .arrivals .count-pill {
-      color: var(--fd-gold);
-      border-color: rgba(255, 215, 0, 0.18);
-      background: rgba(255, 215, 0, 0.055);
+      color:
+        var(--fd-gold);
+
+      border-color:
+        rgba(255, 215, 0, 0.18);
+
+      background:
+        rgba(255, 215, 0, 0.055);
     }
 
     .inhouse .count-pill {
-      color: var(--fd-success);
-      border-color: rgba(46, 204, 113, 0.18);
-      background: rgba(46, 204, 113, 0.055);
+      color:
+        var(--fd-success);
+
+      border-color:
+        rgba(46, 204, 113, 0.18);
+
+      background:
+        rgba(46, 204, 113, 0.055);
     }
 
-    /* ---------------------------------------------------------
+    /* =========================================================
        TOOLBAR
-    --------------------------------------------------------- */
+    ========================================================= */
 
     .panel-toolbar {
-      display: grid;
-      grid-template-columns: 1fr auto;
-      gap: 9px;
+      display:
+        grid;
 
-      margin-bottom: 15px;
+      grid-template-columns:
+        1fr auto;
+
+      gap:
+        9px;
+
+      margin-bottom:
+        15px;
     }
 
     .search-box {
-      position: relative;
+      position:
+        relative;
     }
 
     .search-box i {
-      position: absolute;
-      top: 50%;
-      left: 13px;
+      position:
+        absolute;
 
-      color: var(--fd-muted);
+      top:
+        50%;
 
-      font-size: 0.72rem;
+      left:
+        13px;
 
-      transform: translateY(-50%);
+      color:
+        var(--fd-muted);
 
-      pointer-events: none;
+      font-size:
+        0.72rem;
+
+      transform:
+        translateY(-50%);
+
+      pointer-events:
+        none;
     }
 
     .search-box input,
     .status-filter {
-      width: 100%;
+      width:
+        100%;
 
-      min-height: 42px;
+      min-height:
+        42px;
 
-      padding: 0 13px 0 35px;
+      padding:
+        0 13px 0 35px;
 
-      color: var(--fd-text);
+      color:
+        var(--fd-text);
 
-      background: rgba(255, 255, 255, 0.028);
+      background:
+        rgba(255, 255, 255, 0.028);
 
-      border: 1px solid var(--fd-border);
-      border-radius: 11px;
+      border:
+        1px solid var(--fd-border);
 
-      outline: none;
+      border-radius:
+        11px;
 
-      font-size: 0.67rem;
+      outline:
+        none;
+
+      font-size:
+        0.67rem;
 
       transition:
         border-color 0.2s ease,
@@ -747,47 +1148,64 @@
     }
 
     .status-filter {
-      width: 130px;
-      padding: 0 12px;
+      width:
+        130px;
+
+      padding:
+        0 12px;
     }
 
     .search-box input::placeholder {
-      color: #6f7a7f;
+      color:
+        #6f7a7f;
     }
 
     .search-box input:focus,
     .status-filter:focus {
-      border-color: rgba(0, 166, 166, 0.5);
-      background: rgba(0, 166, 166, 0.035);
+      border-color:
+        rgba(0, 166, 166, 0.5);
+
+      background:
+        rgba(0, 166, 166, 0.035);
     }
 
-    /* ---------------------------------------------------------
+    /* =========================================================
        BOOKING CARD
-    --------------------------------------------------------- */
+    ========================================================= */
 
     .booking-list {
-      display: grid;
+      display:
+        grid;
 
-      gap: 10px;
+      gap:
+        10px;
     }
 
     .booking-item {
-      position: relative;
+      position:
+        relative;
 
-      display: grid;
+      display:
+        grid;
 
       grid-template-columns:
         minmax(0, 1fr)
         auto;
 
-      gap: 14px;
+      gap:
+        14px;
 
-      padding: 15px;
+      padding:
+        15px;
 
-      background: rgba(255, 255, 255, 0.023);
+      background:
+        rgba(255, 255, 255, 0.023);
 
-      border: 1px solid var(--fd-border);
-      border-radius: 16px;
+      border:
+        1px solid var(--fd-border);
+
+      border-radius:
+        16px;
 
       transition:
         transform 0.22s ease,
@@ -797,45 +1215,72 @@
     }
 
     .booking-item:hover {
-      transform: translateY(-2px);
+      transform:
+        translateY(-2px);
 
-      background: rgba(255, 255, 255, 0.043);
-      border-color: rgba(0, 166, 166, 0.32);
+      background:
+        rgba(255, 255, 255, 0.043);
+
+      border-color:
+        rgba(0, 166, 166, 0.32);
     }
 
     .booking-item.action-success {
-      background: rgba(46, 204, 113, 0.07);
-      border-color: rgba(46, 204, 113, 0.28);
+      background:
+        rgba(46, 204, 113, 0.07);
+
+      border-color:
+        rgba(46, 204, 113, 0.28);
     }
 
     .booking-item.action-info {
-      background: rgba(77, 163, 255, 0.065);
-      border-color: rgba(77, 163, 255, 0.26);
+      background:
+        rgba(77, 163, 255, 0.065);
+
+      border-color:
+        rgba(77, 163, 255, 0.26);
     }
 
     .booking-main {
-      min-width: 0;
+      min-width:
+        0;
     }
 
     .booking-topline {
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
+      display:
+        flex;
+
+      align-items:
+        flex-start;
+
+      gap:
+        10px;
     }
 
     .guest-avatar {
-      width: 40px;
-      height: 40px;
+      width:
+        40px;
 
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height:
+        40px;
 
-      flex: 0 0 40px;
+      display:
+        flex;
 
-      border-radius: 12px;
+      align-items:
+        center;
 
-      color: white;
+      justify-content:
+        center;
+
+      flex:
+        0 0 40px;
+
+      border-radius:
+        12px;
+
+      color:
+        white;
 
       background:
         linear-gradient(
@@ -848,210 +1293,340 @@
         inset 0 1px 0 rgba(255, 255, 255, 0.11),
         0 7px 16px rgba(0, 166, 166, 0.15);
 
-      font-size: 0.72rem;
-      font-weight: 700;
+      font-size:
+        0.72rem;
+
+      font-weight:
+        700;
     }
 
     .guest-copy {
-      min-width: 0;
+      min-width:
+        0;
     }
 
     .guest-name {
-      overflow: hidden;
+      overflow:
+        hidden;
 
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      text-overflow:
+        ellipsis;
 
-      font-size: 0.79rem;
-      font-weight: 700;
+      white-space:
+        nowrap;
+
+      font-size:
+        0.79rem;
+
+      font-weight:
+        700;
     }
 
     .guest-email {
-      margin-top: 2px;
+      margin-top:
+        2px;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow:
+        hidden;
 
-      font-size: 0.58rem;
+      text-overflow:
+        ellipsis;
+
+      white-space:
+        nowrap;
+
+      font-size:
+        0.58rem;
     }
 
     .booking-badges {
-      display: flex;
-      flex-wrap: wrap;
+      display:
+        flex;
 
-      gap: 5px;
+      flex-wrap:
+        wrap;
 
-      margin-top: 8px;
+      gap:
+        5px;
+
+      margin-top:
+        8px;
     }
 
     .badge {
-      display: inline-flex;
-      align-items: center;
-      gap: 5px;
+      display:
+        inline-flex;
 
-      padding: 4px 7px;
+      align-items:
+        center;
 
-      border-radius: 999px;
+      gap:
+        5px;
 
-      font-size: 0.53rem;
-      font-weight: 700;
+      padding:
+        4px 7px;
 
-      letter-spacing: 0.35px;
+      border-radius:
+        999px;
 
-      text-transform: uppercase;
+      font-size:
+        0.53rem;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        0.35px;
+
+      text-transform:
+        uppercase;
     }
 
     .badge.accepted {
-      color: var(--fd-success);
+      color:
+        var(--fd-success);
 
-      background: rgba(46, 204, 113, 0.08);
+      background:
+        rgba(46, 204, 113, 0.08);
 
-      border: 1px solid rgba(46, 204, 113, 0.17);
+      border:
+        1px solid rgba(46, 204, 113, 0.17);
     }
 
     .badge.checked {
-      color: var(--fd-info);
+      color:
+        var(--fd-info);
 
-      background: rgba(77, 163, 255, 0.08);
+      background:
+        rgba(77, 163, 255, 0.08);
 
-      border: 1px solid rgba(77, 163, 255, 0.17);
+      border:
+        1px solid rgba(77, 163, 255, 0.17);
     }
 
     .badge.addon {
-      color: var(--fd-gold);
+      color:
+        var(--fd-gold);
 
-      background: rgba(255, 215, 0, 0.07);
+      background:
+        rgba(255, 215, 0, 0.07);
 
-      border: 1px solid rgba(255, 215, 0, 0.15);
+      border:
+        1px solid rgba(255, 215, 0, 0.15);
     }
 
     .booking-details {
-      display: grid;
+      display:
+        grid;
 
       grid-template-columns:
-        repeat(2, minmax(0, 1fr));
+        repeat(
+          2,
+          minmax(0, 1fr)
+        );
 
-      gap: 7px 12px;
+      gap:
+        7px 12px;
 
-      margin-top: 11px;
+      margin-top:
+        11px;
     }
 
     .detail-item {
-      min-width: 0;
+      min-width:
+        0;
     }
 
     .detail-item span {
-      display: block;
+      display:
+        block;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.53rem;
-      line-height: 1.3;
+      font-size:
+        0.53rem;
+
+      line-height:
+        1.3;
     }
 
     .detail-item strong {
-      display: block;
+      display:
+        block;
 
-      margin-top: 1px;
+      margin-top:
+        1px;
 
-      color: var(--fd-text-soft);
+      color:
+        var(--fd-text-soft);
 
-      overflow: hidden;
-      text-overflow: ellipsis;
-      white-space: nowrap;
+      overflow:
+        hidden;
 
-      font-size: 0.62rem;
-      font-weight: 600;
+      text-overflow:
+        ellipsis;
+
+      white-space:
+        nowrap;
+
+      font-size:
+        0.62rem;
+
+      font-weight:
+        600;
     }
 
     .request-note {
-      display: flex;
-      align-items: flex-start;
-      gap: 7px;
+      display:
+        flex;
 
-      margin-top: 10px;
-      padding: 8px 9px;
+      align-items:
+        flex-start;
 
-      color: #c4ced1;
+      gap:
+        7px;
 
-      background: rgba(255, 255, 255, 0.025);
+      margin-top:
+        10px;
 
-      border: 1px solid rgba(255, 255, 255, 0.055);
-      border-radius: 9px;
+      padding:
+        8px 9px;
 
-      font-size: 0.56rem;
-      line-height: 1.5;
+      color:
+        #c4ced1;
+
+      background:
+        rgba(255, 255, 255, 0.025);
+
+      border:
+        1px solid rgba(255, 255, 255, 0.055);
+
+      border-radius:
+        9px;
+
+      font-size:
+        0.56rem;
+
+      line-height:
+        1.5;
     }
 
     .request-note i {
-      margin-top: 1px;
+      margin-top:
+        1px;
 
-      color: var(--fd-gold);
+      color:
+        var(--fd-gold);
 
-      flex: 0 0 auto;
+      flex:
+        0 0 auto;
     }
 
     .booking-side {
-      display: flex;
-      flex-direction: column;
-      align-items: flex-end;
-      justify-content: space-between;
+      display:
+        flex;
 
-      gap: 10px;
+      flex-direction:
+        column;
 
-      min-width: 124px;
+      align-items:
+        flex-end;
+
+      justify-content:
+        space-between;
+
+      gap:
+        10px;
+
+      min-width:
+        124px;
     }
 
     .amount {
-      color: var(--fd-text-soft);
+      color:
+        var(--fd-text-soft);
 
-      font-size: 0.78rem;
-      font-weight: 700;
+      font-size:
+        0.78rem;
 
-      white-space: nowrap;
+      font-weight:
+        700;
+
+      white-space:
+        nowrap;
     }
 
     .amount small {
-      display: block;
+      display:
+        block;
 
-      margin-bottom: 1px;
+      margin-bottom:
+        1px;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.48rem;
-      font-weight: 500;
+      font-size:
+        0.48rem;
 
-      text-align: right;
-      text-transform: uppercase;
+      font-weight:
+        500;
+
+      text-align:
+        right;
+
+      text-transform:
+        uppercase;
     }
 
     .action-stack {
-      display: flex;
-      flex-direction: column;
+      display:
+        flex;
 
-      gap: 6px;
+      flex-direction:
+        column;
+
+      gap:
+        6px;
     }
 
     .action-btn {
-      min-width: 108px;
-      min-height: 37px;
+      min-width:
+        108px;
 
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 7px;
+      min-height:
+        37px;
 
-      padding: 0 12px;
+      display:
+        inline-flex;
 
-      border-radius: 10px;
+      align-items:
+        center;
 
-      cursor: pointer;
+      justify-content:
+        center;
 
-      font-size: 0.61rem;
-      font-weight: 700;
+      gap:
+        7px;
+
+      padding:
+        0 12px;
+
+      border-radius:
+        10px;
+
+      cursor:
+        pointer;
+
+      font-size:
+        0.61rem;
+
+      font-weight:
+        700;
 
       transition:
         transform 0.2s ease,
@@ -1061,17 +1636,24 @@
     }
 
     .action-btn:hover:not(:disabled) {
-      transform: translateY(-1px);
-      filter: brightness(1.06);
+      transform:
+        translateY(-1px);
+
+      filter:
+        brightness(1.06);
     }
 
     .action-btn:disabled {
-      opacity: 0.55;
-      cursor: wait;
+      opacity:
+        0.55;
+
+      cursor:
+        wait;
     }
 
     .action-btn.checkin {
-      color: #061011;
+      color:
+        #061011;
 
       background:
         linear-gradient(
@@ -1085,7 +1667,8 @@
     }
 
     .action-btn.checkout {
-      color: #fff;
+      color:
+        #ffffff;
 
       background:
         linear-gradient(
@@ -1099,79 +1682,115 @@
     }
 
     .action-btn.details {
-      color: var(--fd-text-soft);
+      color:
+        var(--fd-text-soft);
 
-      background: rgba(255, 255, 255, 0.035);
+      background:
+        rgba(255, 255, 255, 0.035);
 
-      border: 1px solid var(--fd-border);
+      border:
+        1px solid var(--fd-border);
     }
 
-    /* ---------------------------------------------------------
-       EMPTY
-    --------------------------------------------------------- */
+    /* =========================================================
+       EMPTY STATE
+    ========================================================= */
 
     .empty-state {
-      padding: 44px 20px;
+      padding:
+        44px 20px;
 
-      text-align: center;
+      text-align:
+        center;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      border: 1px dashed rgba(255, 255, 255, 0.09);
-      border-radius: 16px;
+      border:
+        1px dashed rgba(255, 255, 255, 0.09);
+
+      border-radius:
+        16px;
     }
 
     .empty-icon {
-      width: 52px;
-      height: 52px;
+      width:
+        52px;
 
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height:
+        52px;
 
-      margin: 0 auto 13px;
+      display:
+        flex;
 
-      border-radius: 15px;
+      align-items:
+        center;
 
-      color: var(--fd-teal-light);
-      background: rgba(0, 166, 166, 0.08);
+      justify-content:
+        center;
 
-      font-size: 1rem;
+      margin:
+        0 auto 13px;
+
+      border-radius:
+        15px;
+
+      color:
+        var(--fd-teal-light);
+
+      background:
+        rgba(0, 166, 166, 0.08);
+
+      font-size:
+        1rem;
     }
 
     .empty-state strong {
-      display: block;
+      display:
+        block;
 
-      margin-bottom: 4px;
+      margin-bottom:
+        4px;
 
-      color: #fff;
+      color:
+        #ffffff;
 
-      font-size: 0.82rem;
+      font-size:
+        0.82rem;
     }
 
     .empty-state p {
-      font-size: 0.60rem;
-      line-height: 1.55;
+      font-size:
+        0.60rem;
+
+      line-height:
+        1.55;
     }
 
-    /* ---------------------------------------------------------
-       FOOTER OPERATIONS BAR
-    --------------------------------------------------------- */
+    /* =========================================================
+       FOOTER
+    ========================================================= */
 
     .operations-footer {
-      display: grid;
+      display:
+        grid;
 
       grid-template-columns:
         minmax(0, 1fr)
         auto
         auto;
 
-      align-items: center;
+      align-items:
+        center;
 
-      gap: 10px;
+      gap:
+        10px;
 
-      margin-top: 18px;
-      padding: 14px 16px;
+      margin-top:
+        18px;
+
+      padding:
+        14px 16px;
 
       background:
         linear-gradient(
@@ -1180,49 +1799,76 @@
           rgba(255, 255, 255, 0.018)
         );
 
-      border: 1px solid var(--fd-border);
-      border-radius: var(--fd-radius-md);
+      border:
+        1px solid var(--fd-border);
+
+      border-radius:
+        var(--fd-radius-md);
     }
 
     .footer-copy {
-      min-width: 0;
+      min-width:
+        0;
     }
 
     .footer-copy strong {
-      display: block;
+      display:
+        block;
 
-      font-size: 0.67rem;
-      font-weight: 700;
+      font-size:
+        0.67rem;
+
+      font-weight:
+        700;
     }
 
     .footer-copy span {
-      display: block;
+      display:
+        block;
 
-      margin-top: 2px;
+      margin-top:
+        2px;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.57rem;
+      font-size:
+        0.57rem;
     }
 
     .footer-link {
-      display: inline-flex;
-      align-items: center;
-      gap: 7px;
+      display:
+        inline-flex;
 
-      padding: 9px 11px;
+      align-items:
+        center;
 
-      color: var(--fd-text-soft);
+      gap:
+        7px;
 
-      background: rgba(255, 255, 255, 0.025);
+      padding:
+        9px 11px;
 
-      border: 1px solid var(--fd-border);
-      border-radius: 9px;
+      color:
+        var(--fd-text-soft);
 
-      text-decoration: none;
+      background:
+        rgba(255, 255, 255, 0.025);
 
-      font-size: 0.60rem;
-      font-weight: 600;
+      border:
+        1px solid var(--fd-border);
+
+      border-radius:
+        9px;
+
+      text-decoration:
+        none;
+
+      font-size:
+        0.60rem;
+
+      font-weight:
+        600;
 
       transition:
         transform 0.2s ease,
@@ -1231,161 +1877,258 @@
     }
 
     .footer-link:hover {
-      transform: translateY(-1px);
+      transform:
+        translateY(-1px);
 
-      background: rgba(255, 255, 255, 0.05);
-      border-color: rgba(0, 166, 166, 0.35);
+      background:
+        rgba(255, 255, 255, 0.05);
+
+      border-color:
+        rgba(0, 166, 166, 0.35);
     }
 
-    /* ---------------------------------------------------------
+    /* =========================================================
        TOAST
-    --------------------------------------------------------- */
+    ========================================================= */
 
     .toast-container {
-      position: fixed;
+      position:
+        fixed;
 
-      right: 22px;
-      bottom: 22px;
+      right:
+        22px;
 
-      z-index: 10000;
+      bottom:
+        22px;
 
-      width: min(410px, calc(100vw - 24px));
+      z-index:
+        10000;
 
-      display: flex;
-      flex-direction: column;
+      width:
+        min(
+          410px,
+          calc(100vw - 24px)
+        );
 
-      gap: 8px;
+      display:
+        flex;
 
-      pointer-events: none;
+      flex-direction:
+        column;
+
+      gap:
+        8px;
+
+      pointer-events:
+        none;
     }
 
     .toast {
-      display: flex;
-      align-items: flex-start;
-      gap: 11px;
+      display:
+        flex;
 
-      padding: 13px 14px;
+      align-items:
+        flex-start;
 
-      background: #111719;
+      gap:
+        11px;
 
-      border: 1px solid var(--fd-border-strong);
-      border-radius: 14px;
+      padding:
+        13px 14px;
 
-      box-shadow: 0 25px 65px rgba(0, 0, 0, 0.48);
+      background:
+        #111719;
 
-      pointer-events: auto;
+      border:
+        1px solid var(--fd-border-strong);
 
-      animation: toastIn 0.25s ease;
+      border-radius:
+        14px;
+
+      box-shadow:
+        0 25px 65px rgba(0, 0, 0, 0.48);
+
+      pointer-events:
+        auto;
+
+      animation:
+        toastIn 0.25s ease;
     }
 
     .toast.success {
-      border-color: rgba(46, 204, 113, 0.25);
+      border-color:
+        rgba(46, 204, 113, 0.25);
     }
 
     .toast.error {
-      border-color: rgba(232, 93, 93, 0.25);
+      border-color:
+        rgba(232, 93, 93, 0.25);
     }
 
     .toast.warning {
-      border-color: rgba(242, 189, 53, 0.25);
+      border-color:
+        rgba(242, 189, 53, 0.25);
     }
 
     .toast-icon {
-      width: 30px;
-      height: 30px;
+      width:
+        30px;
 
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height:
+        30px;
 
-      flex: 0 0 30px;
+      display:
+        flex;
 
-      border-radius: 9px;
+      align-items:
+        center;
 
-      background: rgba(255, 255, 255, 0.05);
+      justify-content:
+        center;
 
-      font-size: 0.71rem;
+      flex:
+        0 0 30px;
+
+      border-radius:
+        9px;
+
+      background:
+        rgba(255, 255, 255, 0.05);
+
+      font-size:
+        0.71rem;
     }
 
     .toast.success .toast-icon {
-      color: var(--fd-success);
-      background: rgba(46, 204, 113, 0.10);
+      color:
+        var(--fd-success);
+
+      background:
+        rgba(46, 204, 113, 0.10);
     }
 
     .toast.error .toast-icon {
-      color: var(--fd-danger);
-      background: rgba(232, 93, 93, 0.10);
+      color:
+        var(--fd-danger);
+
+      background:
+        rgba(232, 93, 93, 0.10);
     }
 
     .toast.warning .toast-icon {
-      color: var(--fd-warning);
-      background: rgba(242, 189, 53, 0.10);
+      color:
+        var(--fd-warning);
+
+      background:
+        rgba(242, 189, 53, 0.10);
     }
 
     .toast-copy {
-      min-width: 0;
+      min-width:
+        0;
     }
 
     .toast-copy strong {
-      display: block;
+      display:
+        block;
 
-      margin-bottom: 2px;
+      margin-bottom:
+        2px;
 
-      font-size: 0.70rem;
+      font-size:
+        0.70rem;
     }
 
     .toast-copy p {
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.59rem;
-      line-height: 1.5;
+      font-size:
+        0.59rem;
+
+      line-height:
+        1.5;
     }
 
     @keyframes toastIn {
       from {
-        opacity: 0;
-        transform: translateY(10px) scale(0.98);
+        opacity:
+          0;
+
+        transform:
+          translateY(10px)
+          scale(0.98);
       }
 
       to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
+        opacity:
+          1;
+
+        transform:
+          translateY(0)
+          scale(1);
       }
     }
 
-    /* ---------------------------------------------------------
+    /* =========================================================
        DETAILS MODAL
-    --------------------------------------------------------- */
+    ========================================================= */
 
     .modal-overlay {
-      position: fixed;
-      inset: 0;
+      position:
+        fixed;
 
-      z-index: 9998;
+      inset:
+        0;
 
-      display: none;
-      align-items: center;
-      justify-content: center;
+      z-index:
+        9998;
 
-      padding: 18px;
+      display:
+        none;
 
-      background: rgba(2, 5, 6, 0.70);
+      align-items:
+        center;
 
-      backdrop-filter: blur(10px);
+      justify-content:
+        center;
+
+      padding:
+        18px;
+
+      background:
+        rgba(2, 5, 6, 0.70);
+
+      backdrop-filter:
+        blur(10px);
+
+      -webkit-backdrop-filter:
+        blur(10px);
     }
 
     .modal-overlay.open {
-      display: flex;
+      display:
+        flex;
     }
 
     .details-modal {
-      width: min(720px, 100%);
+      width:
+        min(
+          720px,
+          100%
+        );
 
-      max-height: min(720px, calc(100vh - 36px));
+      max-height:
+        min(
+          720px,
+          calc(100vh - 36px)
+        );
 
-      overflow: auto;
+      overflow:
+        auto;
 
-      padding: 24px;
+      padding:
+        24px;
 
       background:
         linear-gradient(
@@ -1394,251 +2137,377 @@
           #0d1315
         );
 
-      border: 1px solid var(--fd-border-strong);
-      border-radius: 24px;
+      border:
+        1px solid var(--fd-border-strong);
+
+      border-radius:
+        24px;
 
       box-shadow:
         0 35px 100px rgba(0, 0, 0, 0.55);
 
-      animation: modalIn 0.22s ease;
+      animation:
+        modalIn 0.22s ease;
     }
 
     @keyframes modalIn {
       from {
-        opacity: 0;
-        transform: translateY(12px) scale(0.985);
+        opacity:
+          0;
+
+        transform:
+          translateY(12px)
+          scale(0.985);
       }
 
       to {
-        opacity: 1;
-        transform: translateY(0) scale(1);
+        opacity:
+          1;
+
+        transform:
+          translateY(0)
+          scale(1);
       }
     }
 
     .modal-header {
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
+      display:
+        flex;
 
-      gap: 18px;
+      align-items:
+        flex-start;
 
-      margin-bottom: 18px;
+      justify-content:
+        space-between;
+
+      gap:
+        18px;
+
+      margin-bottom:
+        18px;
     }
 
     .modal-title {
-      font-family: "Playfair Display", serif;
+      font-family:
+        "Playfair Display",
+        serif;
 
-      font-size: 1.45rem;
+      font-size:
+        1.45rem;
     }
 
     .modal-subtitle {
-      margin-top: 3px;
+      margin-top:
+        3px;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.61rem;
+      font-size:
+        0.61rem;
     }
 
     .modal-close {
-      width: 34px;
-      height: 34px;
+      width:
+        34px;
 
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      height:
+        34px;
 
-      flex: 0 0 34px;
+      display:
+        flex;
 
-      color: var(--fd-text-soft);
+      align-items:
+        center;
 
-      background: rgba(255, 255, 255, 0.04);
+      justify-content:
+        center;
 
-      border: 1px solid var(--fd-border);
-      border-radius: 9px;
+      flex:
+        0 0 34px;
 
-      cursor: pointer;
+      color:
+        var(--fd-text-soft);
+
+      background:
+        rgba(255, 255, 255, 0.04);
+
+      border:
+        1px solid var(--fd-border);
+
+      border-radius:
+        9px;
+
+      cursor:
+        pointer;
     }
 
     .modal-close:hover {
-      background: rgba(255, 255, 255, 0.075);
+      background:
+        rgba(255, 255, 255, 0.075);
     }
 
     .modal-grid {
-      display: grid;
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-      gap: 10px;
+      display:
+        grid;
+
+      grid-template-columns:
+        repeat(
+          2,
+          minmax(0, 1fr)
+        );
+
+      gap:
+        10px;
     }
 
     .modal-field {
-      padding: 12px;
+      padding:
+        12px;
 
-      background: rgba(255, 255, 255, 0.028);
+      background:
+        rgba(255, 255, 255, 0.028);
 
-      border: 1px solid var(--fd-border);
-      border-radius: 12px;
+      border:
+        1px solid var(--fd-border);
+
+      border-radius:
+        12px;
     }
 
     .modal-field.full {
-      grid-column: 1 / -1;
+      grid-column:
+        1 / -1;
     }
 
     .modal-field span {
-      display: block;
+      display:
+        block;
 
-      color: var(--fd-muted);
+      color:
+        var(--fd-muted);
 
-      font-size: 0.52rem;
+      font-size:
+        0.52rem;
 
-      text-transform: uppercase;
-      letter-spacing: 0.7px;
+      text-transform:
+        uppercase;
+
+      letter-spacing:
+        0.7px;
     }
 
     .modal-field strong {
-      display: block;
+      display:
+        block;
 
-      margin-top: 3px;
+      margin-top:
+        3px;
 
-      color: var(--fd-text-soft);
+      color:
+        var(--fd-text-soft);
 
-      font-size: 0.65rem;
-      line-height: 1.5;
+      font-size:
+        0.65rem;
 
-      word-break: break-word;
+      line-height:
+        1.5;
+
+      word-break:
+        break-word;
     }
 
-    /* ---------------------------------------------------------
+    /* =========================================================
        RESPONSIVE
-    --------------------------------------------------------- */
+    ========================================================= */
 
     @media (max-width: 1250px) {
       .metric-grid {
-        grid-template-columns: repeat(2, minmax(0, 1fr));
+        grid-template-columns:
+          repeat(
+            2,
+            minmax(0, 1fr)
+          );
       }
     }
 
     @media (max-width: 1080px) {
       .operations-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns:
+          1fr;
       }
     }
 
     @media (max-width: 860px) {
       .frontdesk-shell {
-        width: min(100% - 30px, 1580px);
+        width:
+          min(
+            100% - 30px,
+            1580px
+          );
 
-        padding-top: 28px;
+        padding-top:
+          28px;
       }
 
       .frontdesk-header {
-        align-items: stretch;
-        flex-direction: column;
+        align-items:
+          stretch;
+
+        flex-direction:
+          column;
       }
 
       .header-right {
-        width: 100%;
+        width:
+          100%;
       }
 
       .clock-card {
-        flex: 1;
+        flex:
+          1;
       }
     }
 
     @media (max-width: 650px) {
       .frontdesk-shell {
-        width: min(100% - 22px, 1580px);
+        width:
+          min(
+            100% - 22px,
+            1580px
+          );
 
-        padding-bottom: 50px;
+        padding-bottom:
+          50px;
       }
 
       .metric-grid {
-        grid-template-columns: 1fr;
-        gap: 10px;
+        grid-template-columns:
+          1fr;
+
+        gap:
+          10px;
       }
 
       .metric-card {
-        min-height: 110px;
+        min-height:
+          110px;
       }
 
       .header-right {
-        align-items: stretch;
-        flex-direction: column;
+        align-items:
+          stretch;
+
+        flex-direction:
+          column;
       }
 
       .refresh-btn {
-        min-height: 48px;
+        min-height:
+          48px;
       }
 
       .clock-card {
-        min-width: 0;
-        min-height: 60px;
+        min-width:
+          0;
+
+        min-height:
+          60px;
       }
 
       .operation-panel {
-        padding: 18px;
-        border-radius: 21px;
+        padding:
+          18px;
+
+        border-radius:
+          21px;
       }
 
       .panel-toolbar {
-        grid-template-columns: 1fr;
+        grid-template-columns:
+          1fr;
       }
 
       .status-filter {
-        width: 100%;
+        width:
+          100%;
       }
 
       .booking-item {
-        grid-template-columns: 1fr;
+        grid-template-columns:
+          1fr;
       }
 
       .booking-side {
-        align-items: stretch;
-        min-width: 0;
+        align-items:
+          stretch;
+
+        min-width:
+          0;
       }
 
       .action-stack {
-        flex-direction: row;
+        flex-direction:
+          row;
       }
 
       .action-btn {
-        flex: 1;
+        flex:
+          1;
       }
 
       .operations-footer {
-        grid-template-columns: 1fr;
+        grid-template-columns:
+          1fr;
       }
 
       .footer-link {
-        justify-content: center;
+        justify-content:
+          center;
       }
 
       .modal-grid {
-        grid-template-columns: 1fr;
+        grid-template-columns:
+          1fr;
       }
 
       .modal-field.full {
-        grid-column: auto;
+        grid-column:
+          auto;
       }
 
       .toast-container {
-        right: 11px;
-        bottom: 11px;
-        left: 11px;
+        right:
+          11px;
 
-        width: auto;
+        bottom:
+          11px;
+
+        left:
+          11px;
+
+        width:
+          auto;
       }
     }
 
     @media (prefers-reduced-motion: reduce) {
       html {
-        scroll-behavior: auto;
+        scroll-behavior:
+          auto;
       }
 
       *,
       *::before,
       *::after {
-        animation-duration: 0.01ms !important;
-        animation-iteration-count: 1 !important;
-        transition-duration: 0.01ms !important;
+        animation-duration:
+          0.01ms !important;
+
+        animation-iteration-count:
+          1 !important;
+
+        transition-duration:
+          0.01ms !important;
       }
     }
   </style>
@@ -1646,14 +2515,17 @@
 
 <body>
 
-  <%- include('../partials/navadmin') %>
+  <!-- =========================================================
+       ADMIN NAVIGATION
+  ========================================================= -->
+
+  <%- include("../partials/navadmin") %>
+
+  <!-- =========================================================
+       SERVER-SIDE DATA NORMALIZATION
+  ========================================================= -->
 
   <%
-    /* =========================================================
-       FIX: Safely handle missing EJS locals.
-       This prevents "arrivals is not defined" /
-       "inHouse is not defined" from crashing the page.
-       ========================================================= */
     const arrivalData =
       typeof arrivals !== "undefined"
         ? arrivals
@@ -1674,19 +2546,28 @@
         ? inHouseData
         : [];
 
-    function safeString(value, fallback = "") {
-      if (value === null || value === undefined) {
+    function safeString(
+      value,
+      fallback = ""
+    ) {
+      if (
+        value === null ||
+        value === undefined
+      ) {
         return fallback;
       }
 
       return String(value);
     }
 
-    function guestName(booking) {
+    function guestName(
+      booking
+    ) {
       const populatedUser =
         booking &&
         booking.userId &&
-        typeof booking.userId === "object"
+        typeof booking.userId ===
+          "object"
           ? booking.userId
           : null;
 
@@ -1697,11 +2578,14 @@
       );
     }
 
-    function guestEmail(booking) {
+    function guestEmail(
+      booking
+    ) {
       const populatedUser =
         booking &&
         booking.userId &&
-        typeof booking.userId === "object"
+        typeof booking.userId ===
+          "object"
           ? booking.userId
           : null;
 
@@ -1712,24 +2596,32 @@
       );
     }
 
-    function bookingId(booking) {
+    function bookingId(
+      booking
+    ) {
       return booking?._id
         ? String(booking._id)
         : "";
     }
 
-    function roomName(booking) {
+    function roomName(
+      booking
+    ) {
       if (!booking) {
         return "Accommodation";
       }
 
-      if (typeof booking.room === "string") {
+      if (
+        typeof booking.room ===
+        "string"
+      ) {
         return booking.room;
       }
 
       if (
         booking.room &&
-        typeof booking.room === "object"
+        typeof booking.room ===
+          "object"
       ) {
         return (
           booking.room.name ||
@@ -1746,29 +2638,64 @@
       );
     }
 
-    function initials(name) {
+    function initials(
+      name
+    ) {
       const value =
-        safeString(name, "Guest")
+        safeString(
+          name,
+          "Guest"
+        )
           .trim()
           .split(/\s+/)
           .slice(0, 2)
-          .map(part =>
-            part.charAt(0).toUpperCase()
+          .map(
+            part =>
+              part
+                .charAt(0)
+                .toUpperCase()
           )
           .join("");
 
       return value || "G";
     }
 
-    function formatDate(value) {
+    function getValidDate(
+      value
+    ) {
       if (!value) {
-        return "Not recorded";
+        return null;
       }
 
-      const date = new Date(value);
+      const date =
+        new Date(value);
 
-      if (Number.isNaN(date.getTime())) {
-        return "Invalid date";
+      return Number.isNaN(
+        date.getTime()
+      )
+        ? null
+        : date;
+    }
+
+    function safeIsoDate(
+      value
+    ) {
+      const date =
+        getValidDate(value);
+
+      return date
+        ? date.toISOString()
+        : "";
+    }
+
+    function formatDate(
+      value
+    ) {
+      const date =
+        getValidDate(value);
+
+      if (!date) {
+        return "Not recorded";
       }
 
       return date.toLocaleDateString(
@@ -1782,15 +2709,14 @@
       );
     }
 
-    function formatTime(value) {
-      if (!value) {
+    function formatTime(
+      value
+    ) {
+      const date =
+        getValidDate(value);
+
+      if (!date) {
         return "Not recorded";
-      }
-
-      const date = new Date(value);
-
-      if (Number.isNaN(date.getTime())) {
-        return "Invalid time";
       }
 
       return date.toLocaleTimeString(
@@ -1803,11 +2729,15 @@
       );
     }
 
-    function formatMoney(value) {
+    function formatMoney(
+      value
+    ) {
       const amount =
         Number(value);
 
-      if (!Number.isFinite(amount)) {
+      if (
+        !Number.isFinite(amount)
+      ) {
         return "—";
       }
 
@@ -1820,26 +2750,54 @@
       )}`;
     }
 
-    function guestCount(booking) {
+    function guestCount(
+      booking
+    ) {
       const value =
-        Number(booking?.guests);
+        Number(
+          booking?.guests
+        );
 
-      return Number.isFinite(value)
+      return Number.isFinite(
+        value
+      )
         ? value
         : 0;
     }
 
-    function hasAddon(booking) {
+    function hasAddon(
+      booking
+    ) {
       return (
-        booking?.cottageAddon === true ||
-        booking?.cottageAddon === "true" ||
-        booking?.cottageAddon === "on"
+        booking?.cottageAddon ===
+          true ||
+        booking?.cottageAddon ===
+          "true" ||
+        booking?.cottageAddon ===
+          "on"
       );
     }
 
-    function bookingData(booking) {
+    function getCheckInTimestamp(
+      booking
+    ) {
+      return (
+        booking?.checkedInAt ||
+        booking?.checkInTime ||
+        null
+      );
+    }
+
+    function bookingData(
+      booking
+    ) {
       const name =
         guestName(booking);
+
+      const checkInTimestamp =
+        getCheckInTimestamp(
+          booking
+        );
 
       return {
         id:
@@ -1848,7 +2806,9 @@
         name,
 
         email:
-          guestEmail(booking),
+          guestEmail(
+            booking
+          ),
 
         contact:
           safeString(
@@ -1860,24 +2820,35 @@
           roomName(booking),
 
         guests:
-          guestCount(booking),
+          guestCount(
+            booking
+          ),
 
         checkin:
-          formatDate(booking?.checkin),
+          formatDate(
+            booking?.checkin
+          ),
 
         checkout:
-          formatDate(booking?.checkout),
+          formatDate(
+            booking?.checkout
+          ),
 
         checkinRaw:
-          booking?.checkin || null,
+          booking?.checkin ||
+          null,
 
         checkoutRaw:
-          booking?.checkout || null,
+          booking?.checkout ||
+          null,
+
+        checkedInAt:
+          checkInTimestamp,
 
         checkInTime:
-          booking?.checkInTime
+          checkInTimestamp
             ? formatTime(
-                booking.checkInTime
+                checkInTimestamp
               )
             : "Not yet checked in",
 
@@ -1906,7 +2877,15 @@
     }
   %>
 
+  <!-- =========================================================
+       MAIN
+  ========================================================= -->
+
   <main class="frontdesk-shell">
+
+    <!-- =======================================================
+         HEADER
+    ======================================================== -->
 
     <header class="frontdesk-header">
 
@@ -1917,7 +2896,8 @@
         </div>
 
         <h1 class="page-title">
-          Front Desk <span>Operations</span>
+          Front Desk
+          <span>Operations</span>
         </h1>
 
         <p class="page-subtitle">
@@ -1981,20 +2961,26 @@
 
     </header>
 
+    <!-- =======================================================
+         LIVE STRIP
+    ======================================================== -->
+
     <div class="live-strip">
 
       <div class="live-indicator">
+
         <span class="live-dot"></span>
 
         Front desk live
 
-        <span>
+        <span aria-hidden="true">
           ·
         </span>
 
         <span id="lastUpdated">
           Just loaded
         </span>
+
       </div>
 
       <div class="live-help">
@@ -2002,6 +2988,10 @@
       </div>
 
     </div>
+
+    <!-- =======================================================
+         METRICS
+    ======================================================== -->
 
     <section
       class="metric-grid"
@@ -2130,6 +3120,10 @@
 
     </section>
 
+    <!-- =======================================================
+         OPERATIONS
+    ======================================================== -->
+
     <section class="operations-grid">
 
       <!-- =====================================================
@@ -2208,7 +3202,6 @@
             <option value="upcoming">
               Upcoming
             </option>
-
           </select>
 
         </div>
@@ -2247,19 +3240,6 @@
                     ""
                   );
 
-                const checkinDate =
-                  booking.checkin
-                    ? new Date(
-                        booking.checkin
-                      )
-                    : null;
-
-                const validCheckin =
-                  checkinDate &&
-                  !Number.isNaN(
-                    checkinDate.getTime()
-                  );
-
                 const data =
                   bookingData(booking);
               %>
@@ -2268,24 +3248,17 @@
                 class="booking-item"
                 id="arrival-<%= id %>"
                 data-booking-id="<%= id %>"
-                data-search="
-                  <%= [
-                    name,
-                    email,
-                    booking.contact,
-                    room
-                  ]
-                    .filter(Boolean)
-                    .join(' ')
-                    .toLowerCase()
-                  %>
-                "
-                data-checkin-date="
-                  <%= validCheckin
-                    ? checkinDate.toISOString()
-                    : ''
-                  %>
-                "
+                data-search="<%= [
+                  name,
+                  email,
+                  booking.contact,
+                  room
+                ]
+                  .filter(Boolean)
+                  .join(' ')
+                  .toLowerCase()
+                %>"
+                data-checkin-date="<%= safeIsoDate(booking.checkin) %>"
                 data-booking-json="<%= encodeURIComponent(JSON.stringify(data)) %>"
               >
 
@@ -2510,8 +3483,8 @@
 
               <p>
                 The front desk is currently clear.
-                New accepted reservations will appear here automatically
-                after this page is refreshed.
+                New accepted reservations will appear here after
+                the page is refreshed.
               </p>
 
             </div>
@@ -2594,7 +3567,6 @@
             <option value="today">
               Checkout today
             </option>
-
           </select>
 
         </div>
@@ -2638,26 +3610,17 @@
                 class="booking-item"
                 id="inhouse-<%= id %>"
                 data-booking-id="<%= id %>"
-                data-search="
-                  <%= [
-                    name,
-                    email,
-                    booking.contact,
-                    room
-                  ]
-                    .filter(Boolean)
-                    .join(' ')
-                    .toLowerCase()
-                  %>
-                "
-                data-checkout-date="
-                  <%= booking.checkout
-                    ? new Date(
-                        booking.checkout
-                      ).toISOString()
-                    : ''
-                  %>
-                "
+                data-search="<%= [
+                  name,
+                  email,
+                  booking.contact,
+                  room
+                ]
+                  .filter(Boolean)
+                  .join(' ')
+                  .toLowerCase()
+                %>"
+                data-checkout-date="<%= safeIsoDate(booking.checkout) %>"
                 data-booking-json="<%= encodeURIComponent(JSON.stringify(data)) %>"
               >
 
@@ -2747,11 +3710,7 @@
                       </span>
 
                       <strong>
-                        <%= booking.checkInTime
-                          ? formatTime(
-                              booking.checkInTime
-                            )
-                          : "Recorded" %>
+                        <%= data.checkInTime %>
                       </strong>
                     </div>
 
@@ -2896,6 +3855,10 @@
 
     </section>
 
+    <!-- =======================================================
+         FOOTER
+    ======================================================== -->
+
     <div class="operations-footer">
 
       <div class="footer-copy">
@@ -2905,8 +3868,9 @@
         </strong>
 
         <span>
-          Always verify the reservation, guest identity, accommodation,
-          and stay dates before changing a guest's occupancy state.
+          Always verify the reservation, guest identity,
+          accommodation, and stay dates before changing a
+          guest's occupancy state.
         </span>
 
       </div>
@@ -2939,12 +3903,20 @@
 
   </main>
 
+  <!-- =========================================================
+       TOAST
+  ========================================================= -->
+
   <div
     class="toast-container"
     id="toastContainer"
     aria-live="polite"
     aria-atomic="true"
   ></div>
+
+  <!-- =========================================================
+       DETAILS MODAL
+  ========================================================= -->
 
   <div
     class="modal-overlay"
@@ -3002,49 +3974,89 @@
 
   </div>
 
+  <!-- =========================================================
+       FRONT DESK CLIENT LOGIC
+  ========================================================= -->
+
   <script>
     "use strict";
 
-    /*
-     * ---------------------------------------------------------
-     * LOCAL HELPERS
-     * ---------------------------------------------------------
-     */
+    /* =========================================================
+       STATE
+    ========================================================= */
 
-    function nowPhilippines() {
-      return new Date();
-    }
+    let lastFocusedElement = null;
 
-    function startOfDay(date) {
-      const value =
-        new Date(date);
+    /* =========================================================
+       CSRF
+    ========================================================= */
 
-      value.setHours(
-        0,
-        0,
-        0,
-        0
-      );
+    function getAdminCsrfToken() {
+      const globalToken =
+        window.IsleRMS?.csrfToken;
 
-      return value;
-    }
-
-    function sameLocalDay(a, b) {
-      if (!a || !b) {
-        return false;
+      if (
+        globalToken !==
+        undefined &&
+        globalToken !==
+        null &&
+        String(globalToken).trim()
+      ) {
+        return String(
+          globalToken
+        ).trim();
       }
 
-      const first =
-        startOfDay(a);
+      const tokenInput =
+        document.getElementById(
+          "adminCsrfToken"
+        );
 
-      const second =
-        startOfDay(b);
+      if (
+        tokenInput &&
+        tokenInput.value
+      ) {
+        return String(
+          tokenInput.value
+        ).trim();
+      }
 
-      return (
-        first.getTime() ===
-        second.getTime()
-      );
+      const csrfInput =
+        document.querySelector(
+          'input[name="_csrf"]'
+        );
+
+      return csrfInput
+        ? String(
+            csrfInput.value || ""
+          ).trim()
+        : "";
     }
+
+    function getMutationHeaders() {
+      const headers = {
+        "Content-Type":
+          "application/json",
+
+        "Accept":
+          "application/json"
+      };
+
+      const token =
+        getAdminCsrfToken();
+
+      if (token) {
+        headers[
+          "X-CSRF-Token"
+        ] = token;
+      }
+
+      return headers;
+    }
+
+    /* =========================================================
+       TOAST
+    ========================================================= */
 
     function showToast(
       title,
@@ -3077,12 +4089,17 @@
         );
 
       toast.className =
-        `toast ${type}`;
+        `toast ${
+          type || "success"
+        }`;
 
       toast.innerHTML = `
         <div class="toast-icon">
           <i
-            class="fas ${iconMap[type] || iconMap.success}"
+            class="fas ${
+              iconMap[type] ||
+              iconMap.success
+            }"
             aria-hidden="true"
           ></i>
         </div>
@@ -3093,15 +4110,26 @@
         </div>
       `;
 
-      toast
-        .querySelector("strong")
-        .textContent =
-        title || "Front Desk";
+      const strong =
+        toast.querySelector(
+          "strong"
+        );
 
-      toast
-        .querySelector("p")
-        .textContent =
-        message || "";
+      const paragraph =
+        toast.querySelector(
+          "p"
+        );
+
+      if (strong) {
+        strong.textContent =
+          title ||
+          "Front Desk";
+      }
+
+      if (paragraph) {
+        paragraph.textContent =
+          message || "";
+      }
 
       container.appendChild(
         toast
@@ -3119,12 +4147,16 @@
             () => {
               toast.remove();
             },
-            200
+            220
           );
         },
         4200
       );
     }
+
+    /* =========================================================
+       CLOCK
+    ========================================================= */
 
     function setLastUpdated() {
       const target =
@@ -3158,19 +4190,159 @@
       }
 
       target.textContent =
-        nowPhilippines().toLocaleString(
+        new Date().toLocaleString(
           "en-PH",
           {
-            weekday: "short",
-            month: "short",
-            day: "numeric",
-            hour: "2-digit",
-            minute: "2-digit",
-            second: "2-digit",
-            hour12: true
+            weekday:
+              "short",
+
+            month:
+              "short",
+
+            day:
+              "numeric",
+
+            hour:
+              "2-digit",
+
+            minute:
+              "2-digit",
+
+            second:
+              "2-digit",
+
+            hour12:
+              true
           }
         );
     }
+
+    /* =========================================================
+       DATE HELPERS
+    ========================================================= */
+
+    function getValidDate(
+      value
+    ) {
+      if (!value) {
+        return null;
+      }
+
+      const date =
+        new Date(value);
+
+      return Number.isNaN(
+        date.getTime()
+      )
+        ? null
+        : date;
+    }
+
+    function startOfDay(
+      value
+    ) {
+      const date =
+        getValidDate(
+          value
+        );
+
+      if (!date) {
+        return null;
+      }
+
+      date.setHours(
+        0,
+        0,
+        0,
+        0
+      );
+
+      return date;
+    }
+
+    function sameLocalDay(
+      first,
+      second
+    ) {
+      const firstDay =
+        startOfDay(first);
+
+      const secondDay =
+        startOfDay(second);
+
+      if (
+        !firstDay ||
+        !secondDay
+      ) {
+        return false;
+      }
+
+      return (
+        firstDay.getTime() ===
+        secondDay.getTime()
+      );
+    }
+
+    function formatClientDate(
+      value
+    ) {
+      const date =
+        getValidDate(
+          value
+        );
+
+      if (!date) {
+        return "Not recorded";
+      }
+
+      return date.toLocaleDateString(
+        "en-PH",
+        {
+          weekday:
+            "short",
+
+          month:
+            "short",
+
+          day:
+            "numeric",
+
+          year:
+            "numeric"
+        }
+      );
+    }
+
+    function formatClientTime(
+      value
+    ) {
+      const date =
+        getValidDate(
+          value
+        );
+
+      if (!date) {
+        return "Not recorded";
+      }
+
+      return date.toLocaleTimeString(
+        "en-PH",
+        {
+          hour:
+            "2-digit",
+
+          minute:
+            "2-digit",
+
+          hour12:
+            true
+        }
+      );
+    }
+
+    /* =========================================================
+       METRICS
+    ========================================================= */
 
     function updateMetrics() {
       const arrivalItems =
@@ -3210,18 +4382,24 @@
 
       if (arrivalMetric) {
         arrivalMetric.textContent =
-          arrivalItems.length;
+          String(
+            arrivalItems.length
+          );
       }
 
       if (inHouseMetric) {
         inHouseMetric.textContent =
-          inHouseItems.length;
+          String(
+            inHouseItems.length
+          );
       }
 
       if (operationMetric) {
         operationMetric.textContent =
-          arrivalItems.length +
-          inHouseItems.length;
+          String(
+            arrivalItems.length +
+            inHouseItems.length
+          );
       }
 
       if (arrivalCount) {
@@ -3249,20 +4427,18 @@
 
         arrivalItems.forEach(
           item => {
-            const value =
-              item.dataset.checkinDate;
-
-            if (!value) {
-              return;
-            }
+            const rawDate =
+              item.dataset
+                .checkinDate;
 
             const date =
-              new Date(value);
+              getValidDate(
+                rawDate
+              );
 
             if (
-              !Number.isNaN(
-                date.getTime()
-              ) &&
+              date &&
+              today &&
               sameLocalDay(
                 date,
                 today
@@ -3274,35 +4450,40 @@
         );
 
         todayMetric.textContent =
-          count;
+          String(count);
       }
     }
 
-    function emptyState(
+    /* =========================================================
+       EMPTY STATE
+    ========================================================= */
+
+    function ensureDynamicEmptyState(
       list,
       icon,
       title,
       message
     ) {
-      const existing =
-        list.querySelector(
-          ".empty-state.dynamic-empty"
-        );
+      if (!list) {
+        return;
+      }
 
       const items =
         list.querySelectorAll(
           ".booking-item"
         );
 
-      if (items.length > 0) {
-        if (existing) {
-          existing.remove();
-        }
+      const dynamicEmpty =
+        list.querySelector(
+          ".dynamic-empty"
+        );
 
+      if (items.length > 0) {
+        dynamicEmpty?.remove();
         return;
       }
 
-      if (existing) {
+      if (dynamicEmpty) {
         return;
       }
 
@@ -3326,33 +4507,40 @@
         <p></p>
       `;
 
-      wrapper.querySelector(
-        "strong"
-      ).textContent =
-        title;
+      const strong =
+        wrapper.querySelector(
+          "strong"
+        );
 
-      wrapper.querySelector(
-        "p"
-      ).textContent =
-        message;
+      const paragraph =
+        wrapper.querySelector(
+          "p"
+        );
+
+      if (strong) {
+        strong.textContent =
+          title;
+      }
+
+      if (paragraph) {
+        paragraph.textContent =
+          message;
+      }
 
       list.appendChild(
         wrapper
       );
     }
 
-    /*
-     * ---------------------------------------------------------
-     * FILTERS
-     * ---------------------------------------------------------
-     */
+    /* =========================================================
+       FILTERS
+    ========================================================= */
 
     function applyListFilters({
       listId,
       searchId,
       filterId,
-      dateAttribute,
-      mode
+      dateAttribute
     }) {
       const list =
         document.getElementById(
@@ -3397,10 +4585,12 @@
         .forEach(
           item => {
             const haystack =
-              item.dataset.search ||
-              "";
+              String(
+                item.dataset
+                  .search || ""
+              ).toLowerCase();
 
-            let matchesSearch =
+            const matchesSearch =
               !query ||
               haystack.includes(
                 query
@@ -3409,26 +4599,24 @@
             let matchesFilter =
               true;
 
+            const rawDate =
+              item.dataset[
+                dateAttribute
+              ];
+
+            const date =
+              getValidDate(
+                rawDate
+              );
+
             if (
               filterValue ===
               "today"
             ) {
-              const value =
-                item.dataset[
-                  dateAttribute
-                ];
-
-              const date =
-                value
-                  ? new Date(value)
-                  : null;
-
               matchesFilter =
                 Boolean(
                   date &&
-                  !Number.isNaN(
-                    date.getTime()
-                  ) &&
+                  today &&
                   sameLocalDay(
                     date,
                     today
@@ -3440,24 +4628,17 @@
               filterValue ===
               "upcoming"
             ) {
-              const value =
-                item.dataset[
-                  dateAttribute
-                ];
-
-              const date =
-                value
-                  ? new Date(value)
-                  : null;
-
               matchesFilter =
                 Boolean(
                   date &&
-                  !Number.isNaN(
-                    date.getTime()
+                  today &&
+                  startOfDay(
+                    date
                   ) &&
-                  startOfDay(date) >
-                    today
+                  startOfDay(
+                    date
+                  ).getTime() >
+                    today.getTime()
                 );
             }
 
@@ -3470,11 +4651,9 @@
         );
     }
 
-    /*
-     * ---------------------------------------------------------
-     * DETAILS MODAL
-     * ---------------------------------------------------------
-     */
+    /* =========================================================
+       BOOKING DATA
+    ========================================================= */
 
     function parseBookingFromElement(
       element
@@ -3484,7 +4663,8 @@
       }
 
       const encoded =
-        element.dataset.bookingJson;
+        element.dataset
+          .bookingJson;
 
       if (!encoded) {
         return null;
@@ -3505,6 +4685,52 @@
         return null;
       }
     }
+
+    function bookingNameFromCard(
+      card
+    ) {
+      return (
+        card
+          ?.querySelector(
+            ".guest-name"
+          )
+          ?.textContent
+          ?.trim() ||
+        "Guest"
+      );
+    }
+
+    function escapeHtml(
+      value
+    ) {
+      return String(
+        value ?? ""
+      )
+        .replaceAll(
+          "&",
+          "&amp;"
+        )
+        .replaceAll(
+          "<",
+          "&lt;"
+        )
+        .replaceAll(
+          ">",
+          "&gt;"
+        )
+        .replaceAll(
+          '"',
+          "&quot;"
+        )
+        .replaceAll(
+          "'",
+          "&#039;"
+        );
+    }
+
+    /* =========================================================
+       DETAILS MODAL
+    ========================================================= */
 
     function openDetails(
       booking
@@ -3532,72 +4758,166 @@
       if (
         !modal ||
         !grid ||
+        !title ||
+        !subtitle ||
         !booking
       ) {
         return;
       }
+
+      lastFocusedElement =
+        document.activeElement;
+
+      const checkInTimestamp =
+        booking.checkedInAt ||
+        null;
 
       title.textContent =
         booking.name ||
         "Guest";
 
       subtitle.textContent =
-        `${booking.room || "Accommodation"} · Reservation ${booking.id || "—"}`;
+        `${
+          booking.room ||
+          "Accommodation"
+        } · Reservation ${
+          booking.id ||
+          "—"
+        }`;
 
       grid.innerHTML = `
         <div class="modal-field">
           <span>Guest</span>
-          <strong>${escapeHtml(booking.name || "Guest")}</strong>
+          <strong>
+            ${escapeHtml(
+              booking.name ||
+                "Guest"
+            )}
+          </strong>
         </div>
 
         <div class="modal-field">
           <span>Contact</span>
-          <strong>${escapeHtml(booking.contact || "Not provided")}</strong>
+          <strong>
+            ${escapeHtml(
+              booking.contact ||
+                "Not provided"
+            )}
+          </strong>
         </div>
 
         <div class="modal-field">
           <span>Email</span>
-          <strong>${escapeHtml(booking.email || "Not provided")}</strong>
+          <strong>
+            ${escapeHtml(
+              booking.email ||
+                "Not provided"
+            )}
+          </strong>
         </div>
 
         <div class="modal-field">
           <span>Accommodation</span>
-          <strong>${escapeHtml(booking.room || "Accommodation")}</strong>
+          <strong>
+            ${escapeHtml(
+              booking.room ||
+                "Accommodation"
+            )}
+          </strong>
         </div>
 
         <div class="modal-field">
           <span>Arrival</span>
-          <strong>${escapeHtml(booking.checkin || "Not recorded")}</strong>
+          <strong>
+            ${escapeHtml(
+              booking.checkin ||
+                "Not recorded"
+            )}
+          </strong>
         </div>
 
         <div class="modal-field">
           <span>Departure</span>
-          <strong>${escapeHtml(booking.checkout || "Not recorded")}</strong>
+          <strong>
+            ${escapeHtml(
+              booking.checkout ||
+                "Not recorded"
+            )}
+          </strong>
         </div>
 
         <div class="modal-field">
           <span>Party</span>
-          <strong>${escapeHtml(String(booking.guests || 0))} ${Number(booking.guests) === 1 ? "guest" : "guests"}</strong>
+          <strong>
+            ${escapeHtml(
+              String(
+                booking.guests ||
+                  0
+              )
+            )}
+            ${
+              Number(
+                booking.guests
+              ) === 1
+                ? "guest"
+                : "guests"
+            }
+          </strong>
         </div>
 
         <div class="modal-field">
           <span>Reservation Total</span>
-          <strong>${escapeHtml(booking.totalPrice || "—")}</strong>
+          <strong>
+            ${escapeHtml(
+              booking.totalPrice ||
+                "—"
+            )}
+          </strong>
         </div>
 
         <div class="modal-field">
           <span>Cottage Add-on</span>
-          <strong>${escapeHtml(booking.cottageAddon || "None")}</strong>
+          <strong>
+            ${escapeHtml(
+              booking.cottageAddon ||
+                "None"
+            )}
+          </strong>
         </div>
 
         <div class="modal-field">
           <span>Current Status</span>
-          <strong>${escapeHtml(booking.status || "Unknown")}</strong>
+          <strong>
+            ${escapeHtml(
+              booking.status ||
+                "Unknown"
+            )}
+          </strong>
+        </div>
+
+        <div class="modal-field">
+          <span>Check-in Time</span>
+          <strong>
+            ${
+              checkInTimestamp
+                ? escapeHtml(
+                    formatClientTime(
+                      checkInTimestamp
+                    )
+                  )
+                : "Not yet checked in"
+            }
+          </strong>
         </div>
 
         <div class="modal-field full">
           <span>Special Requests</span>
-          <strong>${escapeHtml(booking.specialRequests || "None")}</strong>
+          <strong>
+            ${escapeHtml(
+              booking.specialRequests ||
+                "None"
+            )}
+          </strong>
         </div>
       `;
 
@@ -3612,6 +4932,12 @@
 
       document.body.style.overflow =
         "hidden";
+
+      document
+        .getElementById(
+          "closeDetails"
+        )
+        ?.focus();
     }
 
     function closeDetails() {
@@ -3635,24 +4961,22 @@
 
       document.body.style.overflow =
         "";
+
+      if (
+        lastFocusedElement &&
+        typeof lastFocusedElement.focus ===
+          "function"
+      ) {
+        lastFocusedElement.focus();
+      }
+
+      lastFocusedElement =
+        null;
     }
 
-    function escapeHtml(
-      value
-    ) {
-      return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * CHECK-IN
-     * ---------------------------------------------------------
-     */
+    /* =========================================================
+       CHECK-IN
+    ========================================================= */
 
     async function performCheckIn(
       button
@@ -3662,7 +4986,10 @@
       }
 
       const bookingId =
-        button.dataset.bookingId;
+        String(
+          button.dataset
+            .bookingId || ""
+        ).trim();
 
       if (!bookingId) {
         showToast(
@@ -3689,9 +5016,14 @@
         return;
       }
 
+      const guest =
+        bookingNameFromCard(
+          card
+        );
+
       const confirmed =
         window.confirm(
-          "Confirm guest check-in? This will record the guest as currently in-house."
+          `Confirm check-in for ${guest}? This will record the guest as currently in-house.`
         );
 
       if (!confirmed) {
@@ -3703,6 +5035,11 @@
 
       button.disabled =
         true;
+
+      button.setAttribute(
+        "aria-busy",
+        "true"
+      );
 
       button.innerHTML = `
         <i
@@ -3718,15 +5055,11 @@
           await fetch(
             "/admin/update-checkin",
             {
-              method: "POST",
+              method:
+                "POST",
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-
-                "Accept":
-                  "application/json"
-              },
+              headers:
+                getMutationHeaders(),
 
               credentials:
                 "same-origin",
@@ -3734,31 +5067,12 @@
               body:
                 JSON.stringify({
                   bookingId,
-                  checkedIn: true
+
+                  checkedIn:
+                    true
                 })
             }
           );
-
-        if (
-          response.status ===
-            401 ||
-          response.status ===
-            403
-        ) {
-          showToast(
-            "Session required",
-            "Your administrator session may have expired. Please log in again.",
-            "error"
-          );
-
-          button.disabled =
-            false;
-
-          button.innerHTML =
-            originalHtml;
-
-          return;
-        }
 
         const contentType =
           response.headers.get(
@@ -3769,12 +5083,60 @@
           null;
 
         if (
-          contentType.includes(
-            "application/json"
-          )
+          contentType
+            .toLowerCase()
+            .includes(
+              "application/json"
+            )
         ) {
           data =
             await response.json();
+        }
+
+        if (
+          response.status ===
+          401
+        ) {
+          showToast(
+            "Session expired",
+            "Your administrator session may have expired. Please log in again.",
+            "error"
+          );
+
+          button.disabled =
+            false;
+
+          button.removeAttribute(
+            "aria-busy"
+          );
+
+          button.innerHTML =
+            originalHtml;
+
+          return;
+        }
+
+        if (
+          response.status ===
+          403
+        ) {
+          showToast(
+            "Security verification failed",
+            "The security token was missing or invalid. Refresh the page and try again.",
+            "error"
+          );
+
+          button.disabled =
+            false;
+
+          button.removeAttribute(
+            "aria-busy"
+          );
+
+          button.innerHTML =
+            originalHtml;
+
+          return;
         }
 
         if (
@@ -3789,16 +5151,42 @@
         }
 
         /*
-         * Keep the existing reservation card,
-         * but move its DOM element to In-House.
+         * Prefer the timestamp returned by the server.
          */
-        card.classList.add(
-          "action-success"
-        );
+        const serverCheckInTimestamp =
+          data?.booking?.checkedInAt ||
+          data?.booking?.checkInTime ||
+          new Date().toISOString();
 
-        const dataPayload =
-          card.dataset.bookingJson;
+        /*
+         * Read the existing booking payload before
+         * removing the arrival card.
+         */
+        const booking =
+          parseBookingFromElement(
+            card
+          );
 
+        if (!booking) {
+          throw new Error(
+            "The reservation data could not be read after the server confirmed check-in."
+          );
+        }
+
+        booking.status =
+          "checked-in";
+
+        booking.checkedInAt =
+          serverCheckInTimestamp;
+
+        booking.checkInTime =
+          formatClientTime(
+            serverCheckInTimestamp
+          );
+
+        /*
+         * Remove the arrival card.
+         */
         card.remove();
 
         const arrivalList =
@@ -3815,30 +5203,6 @@
           arrivalList &&
           inHouseList
         ) {
-          /*
-           * Build a new in-house card from the
-           * existing server-rendered DOM data.
-           */
-          const booking =
-            JSON.parse(
-              decodeURIComponent(
-                dataPayload
-              )
-            );
-
-          booking.status =
-            "checked-in";
-
-          booking.checkInTime =
-            new Date().toLocaleTimeString(
-              "en-PH",
-              {
-                hour: "2-digit",
-                minute: "2-digit",
-                hour12: true
-              }
-            );
-
           const newCard =
             document.createElement(
               "article"
@@ -3865,7 +5229,8 @@
               .toLowerCase();
 
           newCard.dataset.checkoutDate =
-            booking.checkoutRaw || "";
+            booking.checkoutRaw ||
+            "";
 
           newCard.dataset.bookingJson =
             encodeURIComponent(
@@ -3879,18 +5244,23 @@
 
               <div class="booking-topline">
 
-                <div class="guest-avatar" aria-hidden="true">
+                <div
+                  class="guest-avatar"
+                  aria-hidden="true"
+                >
                   ${escapeHtml(
                     booking.name
-                      .trim()
+                      ?.trim()
                       .split(/\s+/)
                       .slice(0, 2)
-                      .map(part =>
-                        part
-                          .charAt(0)
-                          .toUpperCase()
+                      .map(
+                        part =>
+                          part
+                            .charAt(0)
+                            .toUpperCase()
                       )
-                      .join("") || "G"
+                      .join("") ||
+                      "G"
                   )}
                 </div>
 
@@ -3898,7 +5268,8 @@
 
                   <div class="guest-name">
                     ${escapeHtml(
-                      booking.name
+                      booking.name ||
+                        "Guest"
                     )}
                   </div>
 
@@ -3925,6 +5296,7 @@
                     class="fas fa-bed"
                     aria-hidden="true"
                   ></i>
+
                   Checked In
                 </span>
 
@@ -3937,6 +5309,7 @@
                           class="fas fa-umbrella-beach"
                           aria-hidden="true"
                         ></i>
+
                         Cottage Add-on
                       </span>
                     `
@@ -3948,52 +5321,93 @@
               <div class="booking-details">
 
                 <div class="detail-item">
-                  <span>Accommodation</span>
-                  <strong>${escapeHtml(
-                    booking.room
-                  )}</strong>
+                  <span>
+                    Accommodation
+                  </span>
+
+                  <strong>
+                    ${escapeHtml(
+                      booking.room ||
+                        "Accommodation"
+                    )}
+                  </strong>
                 </div>
 
                 <div class="detail-item">
-                  <span>Contact</span>
-                  <strong>${escapeHtml(
-                    booking.contact
-                  )}</strong>
+                  <span>
+                    Contact
+                  </span>
+
+                  <strong>
+                    ${escapeHtml(
+                      booking.contact ||
+                        "Not provided"
+                    )}
+                  </strong>
                 </div>
 
                 <div class="detail-item">
-                  <span>Checked In</span>
-                  <strong>${escapeHtml(
-                    booking.checkInTime ||
-                      "Recorded"
-                  )}</strong>
+                  <span>
+                    Checked In
+                  </span>
+
+                  <strong>
+                    ${escapeHtml(
+                      booking.checkInTime ||
+                        formatClientTime(
+                          serverCheckInTimestamp
+                        )
+                    )}
+                  </strong>
                 </div>
 
                 <div class="detail-item">
-                  <span>Scheduled Checkout</span>
-                  <strong>${escapeHtml(
-                    booking.checkout
-                  )}</strong>
+                  <span>
+                    Scheduled Checkout
+                  </span>
+
+                  <strong>
+                    ${escapeHtml(
+                      booking.checkout ||
+                        "Not recorded"
+                    )}
+                  </strong>
                 </div>
 
                 <div class="detail-item">
-                  <span>Party</span>
-                  <strong>${escapeHtml(
-                    String(
-                      booking.guests
-                    )
-                  )} ${
-            Number(booking.guests) === 1
-              ? "guest"
-              : "guests"
-          }</strong>
+                  <span>
+                    Party
+                  </span>
+
+                  <strong>
+                    ${escapeHtml(
+                      String(
+                        booking.guests ||
+                          0
+                      )
+                    )}
+
+                    ${
+                      Number(
+                        booking.guests
+                      ) === 1
+                        ? "guest"
+                        : "guests"
+                    }
+                  </strong>
                 </div>
 
                 <div class="detail-item">
-                  <span>Reservation Total</span>
-                  <strong>${escapeHtml(
-                    booking.totalPrice
-                  )}</strong>
+                  <span>
+                    Reservation Total
+                  </span>
+
+                  <strong>
+                    ${escapeHtml(
+                      booking.totalPrice ||
+                        "—"
+                    )}
+                  </strong>
                 </div>
 
               </div>
@@ -4026,10 +5440,16 @@
             <div class="booking-side">
 
               <div class="amount">
-                <small>Stay total</small>
+
+                <small>
+                  Stay total
+                </small>
+
                 ${escapeHtml(
-                  booking.totalPrice
+                  booking.totalPrice ||
+                    "—"
                 )}
+
               </div>
 
               <div class="action-stack">
@@ -4045,6 +5465,7 @@
                     class="fas fa-eye"
                     aria-hidden="true"
                   ></i>
+
                   Details
                 </button>
 
@@ -4059,6 +5480,7 @@
                     class="fas fa-right-from-bracket"
                     aria-hidden="true"
                   ></i>
+
                   Check Out
                 </button>
 
@@ -4074,29 +5496,32 @@
 
         showToast(
           "Guest checked in",
-          `${bookingNameFromCard(card)} is now marked as in-house.`,
+          `${guest} is now marked as in-house.`,
           "success"
         );
 
         updateMetrics();
+
         setLastUpdated();
 
         wireDynamicButtons();
 
-        emptyState(
+        ensureDynamicEmptyState(
           arrivalList,
           "fa-check",
           "No arrivals waiting",
           "The front desk is currently clear."
         );
 
-        const inHouseEmpty =
-          inHouseList?.querySelector(
-            ".dynamic-empty"
-          );
+        if (inHouseList) {
+          const empty =
+            inHouseList.querySelector(
+              ".empty-state:not(.dynamic-empty)"
+            );
 
-        if (inHouseEmpty) {
-          inHouseEmpty.remove();
+          if (empty) {
+            empty.remove();
+          }
         }
 
       } catch (error) {
@@ -4115,35 +5540,18 @@
         button.disabled =
           false;
 
+        button.removeAttribute(
+          "aria-busy"
+        );
+
         button.innerHTML =
           originalHtml;
       }
     }
 
-    function bookingNameFromCard(
-      card
-    ) {
-      return (
-        card?.querySelector(
-          ".guest-name"
-        )?.textContent
-          ?.trim() ||
-        "Guest"
-      );
-    }
-
-    /*
-     * ---------------------------------------------------------
-     * CHECK-OUT
-     *
-     * IMPORTANT:
-     * The current backend source available to me exposes the
-     * check-in endpoint. Before using this action in production,
-     * /admin/update-checkout must exist and persist checkout data.
-     * The UI calls that endpoint and will show a clean error if
-     * it is not present yet.
-     * ---------------------------------------------------------
-     */
+    /* =========================================================
+       CHECK-OUT
+    ========================================================= */
 
     async function performCheckOut(
       button
@@ -4153,14 +5561,27 @@
       }
 
       const bookingId =
-        button.dataset.bookingId;
+        String(
+          button.dataset
+            .bookingId || ""
+        ).trim();
+
+      if (!bookingId) {
+        showToast(
+          "Checkout unavailable",
+          "The reservation ID is missing.",
+          "error"
+        );
+
+        return;
+      }
 
       const card =
         document.getElementById(
           `inhouse-${bookingId}`
         );
 
-      if (!bookingId || !card) {
+      if (!card) {
         showToast(
           "Checkout unavailable",
           "The in-house reservation could not be identified.",
@@ -4190,6 +5611,11 @@
       button.disabled =
         true;
 
+      button.setAttribute(
+        "aria-busy",
+        "true"
+      );
+
       button.innerHTML = `
         <i
           class="fas fa-spinner fa-spin"
@@ -4204,15 +5630,11 @@
           await fetch(
             "/admin/update-checkout",
             {
-              method: "POST",
+              method:
+                "POST",
 
-              headers: {
-                "Content-Type":
-                  "application/json",
-
-                "Accept":
-                  "application/json"
-              },
+              headers:
+                getMutationHeaders(),
 
               credentials:
                 "same-origin",
@@ -4220,7 +5642,9 @@
               body:
                 JSON.stringify({
                   bookingId,
-                  checkedOut: true
+
+                  checkedOut:
+                    true
                 })
             }
           );
@@ -4234,9 +5658,11 @@
           null;
 
         if (
-          contentType.includes(
-            "application/json"
-          )
+          contentType
+            .toLowerCase()
+            .includes(
+              "application/json"
+            )
         ) {
           data =
             await response.json();
@@ -4244,22 +5670,48 @@
 
         if (
           response.status ===
-            404
+          401
         ) {
-          throw new Error(
-            "The checkout endpoint is not connected in the server yet. Add /admin/update-checkout before testing departures."
+          showToast(
+            "Session expired",
+            "Your administrator session may have expired. Please log in again.",
+            "error"
           );
+
+          button.disabled =
+            false;
+
+          button.removeAttribute(
+            "aria-busy"
+          );
+
+          button.innerHTML =
+            originalHtml;
+
+          return;
         }
 
         if (
           response.status ===
-            401 ||
-          response.status ===
-            403
+          403
         ) {
-          throw new Error(
-            "Your administrator session may have expired. Please log in again."
+          showToast(
+            "Security verification failed",
+            "The security token was missing or invalid. Refresh the page and try again.",
+            "error"
           );
+
+          button.disabled =
+            false;
+
+          button.removeAttribute(
+            "aria-busy"
+          );
+
+          button.innerHTML =
+            originalHtml;
+
+          return;
         }
 
         if (
@@ -4273,10 +5725,19 @@
           );
         }
 
+        const serverCheckoutTimestamp =
+          data?.booking?.checkedOutAt ||
+          data?.booking?.checkOutTime ||
+          new Date().toISOString();
+
         card.classList.add(
           "action-info"
         );
 
+        /*
+         * Give the successful state a moment to render,
+         * then remove the guest from active in-house records.
+         */
         window.setTimeout(
           () => {
             card.remove();
@@ -4286,7 +5747,7 @@
                 "inHouseList"
               );
 
-            emptyState(
+            ensureDynamicEmptyState(
               inHouseList,
               "fa-bed",
               "No guests currently in-house",
@@ -4294,6 +5755,7 @@
             );
 
             updateMetrics();
+
             setLastUpdated();
           },
           250
@@ -4301,7 +5763,9 @@
 
         showToast(
           "Guest checked out",
-          `${guest} has been checked out successfully.`,
+          `${guest} has been checked out successfully at ${formatClientTime(
+            serverCheckoutTimestamp
+          )}.`,
           "success"
         );
 
@@ -4321,16 +5785,35 @@
         button.disabled =
           false;
 
+        button.removeAttribute(
+          "aria-busy"
+        );
+
         button.innerHTML =
           originalHtml;
       }
     }
 
-    /*
-     * ---------------------------------------------------------
-     * BUTTON WIRING
-     * ---------------------------------------------------------
-     */
+    /* =========================================================
+       DYNAMIC BUTTON WIRING
+    ========================================================= */
+
+    function findBookingCard(
+      bookingId
+    ) {
+      if (!bookingId) {
+        return null;
+      }
+
+      return (
+        document.getElementById(
+          `arrival-${bookingId}`
+        ) ||
+        document.getElementById(
+          `inhouse-${bookingId}`
+        )
+      );
+    }
 
     function wireDynamicButtons() {
       document
@@ -4371,35 +5854,13 @@
           button => {
             button.onclick =
               () => {
-                const card =
-                  document.getElementById(
-                    button.dataset
-                      .bookingId
-                      ?.startsWith(
-                        "arr"
-                      )
-                      ? `arrival-${button.dataset.bookingId}`
-                      : `inhouse-${button.dataset.bookingId}`
-                  );
-
-                /*
-                 * Use the two known IDs first, then fall back
-                 * to scanning the page. This keeps the handler
-                 * resilient when cards are moved client-side.
-                 */
-                const possibleCards = [
-                  document.getElementById(
-                    `arrival-${button.dataset.bookingId}`
-                  ),
-                  document.getElementById(
-                    `inhouse-${button.dataset.bookingId}`
-                  ),
-                  card
-                ];
+                const bookingId =
+                  button.dataset
+                    .bookingId;
 
                 const source =
-                  possibleCards.find(
-                    Boolean
+                  findBookingCard(
+                    bookingId
                   );
 
                 const booking =
@@ -4407,211 +5868,283 @@
                     source
                   );
 
-                if (booking) {
-                  openDetails(
-                    booking
+                if (!booking) {
+                  showToast(
+                    "Details unavailable",
+                    "The reservation data could not be loaded.",
+                    "error"
                   );
+
+                  return;
                 }
+
+                openDetails(
+                  booking
+                );
               };
           }
         );
     }
 
-    /*
-     * ---------------------------------------------------------
-     * EVENTS
-     * ---------------------------------------------------------
-     */
+    /* =========================================================
+       INITIALIZATION
+    ========================================================= */
 
-    document.addEventListener(
-      "DOMContentLoaded",
-      () => {
-        updateClock();
-        setLastUpdated();
-        updateMetrics();
-        wireDynamicButtons();
+    function initializeFrontDesk() {
+      updateClock();
 
-        window.setInterval(
-          updateClock,
-          1000
+      setLastUpdated();
+
+      updateMetrics();
+
+      wireDynamicButtons();
+
+      window.setInterval(
+        updateClock,
+        1000
+      );
+
+      /* -------------------------------------------------------
+         REFRESH
+      ------------------------------------------------------- */
+
+      const refresh =
+        document.getElementById(
+          "refreshPage"
         );
 
-        const refresh =
-          document.getElementById(
-            "refreshPage"
-          );
+      if (refresh) {
+        refresh.addEventListener(
+          "click",
+          () => {
+            refresh.disabled =
+              true;
 
-        if (refresh) {
-          refresh.addEventListener(
-            "click",
-            () => {
-              refresh.disabled =
-                true;
+            refresh.setAttribute(
+              "aria-busy",
+              "true"
+            );
 
-              const icon =
-                refresh.querySelector(
-                  "i"
-                );
-
-              if (icon) {
-                icon.className =
-                  "fas fa-spinner fa-spin";
-              }
-
-              window.setTimeout(
-                () => {
-                  window.location.reload();
-                },
-                220
+            const icon =
+              refresh.querySelector(
+                "i"
               );
+
+            if (icon) {
+              icon.className =
+                "fas fa-spinner fa-spin";
             }
-          );
-        }
 
-        const arrivalSearch =
-          document.getElementById(
-            "arrivalSearch"
-          );
+            window.setTimeout(
+              () => {
+                window.location.reload();
+              },
+              220
+            );
+          }
+        );
+      }
 
-        const arrivalFilter =
-          document.getElementById(
-            "arrivalFilter"
-          );
+      /* -------------------------------------------------------
+         ARRIVAL SEARCH
+      ------------------------------------------------------- */
 
-        if (arrivalSearch) {
-          arrivalSearch.addEventListener(
-            "input",
-            () => {
-              applyListFilters({
-                listId:
-                  "arrivalList",
-                searchId:
-                  "arrivalSearch",
-                filterId:
-                  "arrivalFilter",
-                dateAttribute:
-                  "checkinDate",
-                mode:
-                  "arrivals"
-              });
-            }
-          );
-        }
+      const arrivalSearch =
+        document.getElementById(
+          "arrivalSearch"
+        );
 
-        if (arrivalFilter) {
-          arrivalFilter.addEventListener(
-            "change",
-            () => {
-              applyListFilters({
-                listId:
-                  "arrivalList",
-                searchId:
-                  "arrivalSearch",
-                filterId:
-                  "arrivalFilter",
-                dateAttribute:
-                  "checkinDate",
-                mode:
-                  "arrivals"
-              });
-            }
-          );
-        }
+      const arrivalFilter =
+        document.getElementById(
+          "arrivalFilter"
+        );
 
-        const inHouseSearch =
-          document.getElementById(
-            "inHouseSearch"
-          );
+      if (arrivalSearch) {
+        arrivalSearch.addEventListener(
+          "input",
+          () => {
+            applyListFilters({
+              listId:
+                "arrivalList",
 
-        const inHouseFilter =
-          document.getElementById(
-            "inHouseFilter"
-          );
+              searchId:
+                "arrivalSearch",
 
-        if (inHouseSearch) {
-          inHouseSearch.addEventListener(
-            "input",
-            () => {
-              applyListFilters({
-                listId:
-                  "inHouseList",
-                searchId:
-                  "inHouseSearch",
-                filterId:
-                  "inHouseFilter",
-                dateAttribute:
-                  "checkoutDate",
-                mode:
-                  "inhouse"
-              });
-            }
-          );
-        }
+              filterId:
+                "arrivalFilter",
 
-        if (inHouseFilter) {
-          inHouseFilter.addEventListener(
-            "change",
-            () => {
-              applyListFilters({
-                listId:
-                  "inHouseList",
-                searchId:
-                  "inHouseSearch",
-                filterId:
-                  "inHouseFilter",
-                dateAttribute:
-                  "checkoutDate",
-                mode:
-                  "inhouse"
-              });
-            }
-          );
-        }
+              dateAttribute:
+                "checkinDate"
+            });
+          }
+        );
+      }
 
-        const closeButton =
-          document.getElementById(
-            "closeDetails"
-          );
+      if (arrivalFilter) {
+        arrivalFilter.addEventListener(
+          "change",
+          () => {
+            applyListFilters({
+              listId:
+                "arrivalList",
 
-        if (closeButton) {
-          closeButton.addEventListener(
-            "click",
-            closeDetails
-          );
-        }
+              searchId:
+                "arrivalSearch",
 
-        const modal =
-          document.getElementById(
-            "detailsModal"
-          );
+              filterId:
+                "arrivalFilter",
 
-        if (modal) {
-          modal.addEventListener(
-            "click",
-            event => {
-              if (
-                event.target ===
-                modal
-              ) {
-                closeDetails();
-              }
-            }
-          );
-        }
+              dateAttribute:
+                "checkinDate"
+            });
+          }
+        );
+      }
 
-        document.addEventListener(
-          "keydown",
+      /* -------------------------------------------------------
+         IN-HOUSE SEARCH
+      ------------------------------------------------------- */
+
+      const inHouseSearch =
+        document.getElementById(
+          "inHouseSearch"
+        );
+
+      const inHouseFilter =
+        document.getElementById(
+          "inHouseFilter"
+        );
+
+      if (inHouseSearch) {
+        inHouseSearch.addEventListener(
+          "input",
+          () => {
+            applyListFilters({
+              listId:
+                "inHouseList",
+
+              searchId:
+                "inHouseSearch",
+
+              filterId:
+                "inHouseFilter",
+
+              dateAttribute:
+                "checkoutDate"
+            });
+          }
+        );
+      }
+
+      if (inHouseFilter) {
+        inHouseFilter.addEventListener(
+          "change",
+          () => {
+            applyListFilters({
+              listId:
+                "inHouseList",
+
+              searchId:
+                "inHouseSearch",
+
+              filterId:
+                "inHouseFilter",
+
+              dateAttribute:
+                "checkoutDate"
+            });
+          }
+        );
+      }
+
+      /* -------------------------------------------------------
+         MODAL
+      ------------------------------------------------------- */
+
+      const closeButton =
+        document.getElementById(
+          "closeDetails"
+        );
+
+      if (closeButton) {
+        closeButton.addEventListener(
+          "click",
+          closeDetails
+        );
+      }
+
+      const modal =
+        document.getElementById(
+          "detailsModal"
+        );
+
+      if (modal) {
+        modal.addEventListener(
+          "click",
           event => {
             if (
-              event.key ===
-              "Escape"
+              event.target ===
+              modal
             ) {
               closeDetails();
             }
           }
         );
       }
-    );
+
+      document.addEventListener(
+        "keydown",
+        event => {
+          if (
+            event.key ===
+            "Escape"
+          ) {
+            closeDetails();
+          }
+        }
+      );
+
+      /* -------------------------------------------------------
+         EMPTY STATES
+      ------------------------------------------------------- */
+
+      ensureDynamicEmptyState(
+        document.getElementById(
+          "arrivalList"
+        ),
+        "fa-check",
+        "No arrivals waiting",
+        "The front desk is currently clear."
+      );
+
+      ensureDynamicEmptyState(
+        document.getElementById(
+          "inHouseList"
+        ),
+        "fa-bed",
+        "No guests currently in-house",
+        "Checked-in reservations will appear here."
+      );
+    }
+
+    /* =========================================================
+       DOM READY
+    ========================================================= */
+
+    if (
+      document.readyState ===
+      "loading"
+    ) {
+      document.addEventListener(
+        "DOMContentLoaded",
+        initializeFrontDesk,
+        {
+          once: true
+        }
+      );
+    } else {
+      initializeFrontDesk();
+    }
   </script>
 
 </body>

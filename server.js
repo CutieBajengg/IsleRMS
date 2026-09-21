@@ -6,6 +6,42 @@
  * server.js
  *
  * Main application/bootstrap server.
+ *
+ * AUTHENTICATION STEP 2
+ * ------------------------------------------------------------
+ * Customer authentication improvements:
+ *
+ * - Passwords are loaded explicitly with .select("+password")
+ * - Account status is checked during login
+ * - Failed-login lockout is enforced
+ * - Expired login locks are cleared
+ * - Successful login resets login-security counters
+ * - Sessions are regenerated after authentication
+ * - Customer username is optional
+ * - Email remains the primary customer login identifier
+ * - Server-side password confirmation is required
+ * - Password minimum matches User.js
+ * - Philippine phone numbers are normalized
+ * - Plain-text password fallback removed
+ * - POST /logout is canonical
+ * - Temporary GET /logout compatibility retained
+ *
+ * STEP 3 CSRF PROTECTION
+ * ------------------------------------------------------------
+ * - CSRF token generated per session
+ * - Token exposed to all EJS views as csrfToken
+ * - Customer authentication POSTs are CSRF protected
+ * - POST /login protected
+ * - POST /signup protected
+ * - POST /logout protected
+ *
+ * NOT YET INCLUDED:
+ * - CSRF protection for booking/customer update actions
+ * - CSRF protection for admin actions
+ * - Login/signup rate limiting
+ *
+ * Those are handled in later steps so each security change
+ * can be tested separately.
  * ============================================================
  */
 
@@ -22,6 +58,15 @@ const Admin = require("./models/Admin");
 const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
 
+const {
+  attachCsrfToken,
+  verifyCsrfToken,
+} = require("./middleware/csrf");
+
+/* ============================================================
+   ENVIRONMENT
+   ============================================================ */
+
 dotenv.config();
 
 /* ============================================================
@@ -31,7 +76,7 @@ dotenv.config();
 const app = express();
 
 /* ============================================================
-   ENVIRONMENT
+   ENVIRONMENT CONFIGURATION
    ============================================================ */
 
 const NODE_ENV = String(
@@ -40,22 +85,17 @@ const NODE_ENV = String(
   .trim()
   .toLowerCase();
 
-const IS_PRODUCTION =
-  NODE_ENV === "production";
+const IS_PRODUCTION = NODE_ENV === "production";
 
-const PORT = Number(
-  process.env.PORT || 5000
-);
+const PORT = Number(process.env.PORT || 5000);
 
 const HOST =
-  process.env.HOST ||
-  (IS_PRODUCTION
-    ? "0.0.0.0"
-    : "127.0.0.1");
+  String(process.env.HOST || "").trim() ||
+  (IS_PRODUCTION ? "0.0.0.0" : "127.0.0.1");
 
 /* ------------------------------------------------------------
    MongoDB
------------------------------------------------------------- */
+   ------------------------------------------------------------ */
 
 const DEFAULT_LOCAL_MONGO_URI =
   "mongodb://localhost:27017/puffer_isle_resort";
@@ -66,62 +106,70 @@ const RAW_MONGO_URI = String(
     ""
 ).trim();
 
-/*
- * Treat placeholder values as missing configuration.
- */
 const PLACEHOLDER_MONGO_VALUES = [
   "your_existing_mongodb_connection",
   "your_mongodb_connection_string",
   "mongodb_connection_string",
-  "your_existing_mongodb_uri"
+  "your_existing_mongodb_uri",
 ];
 
 const MONGO_URI =
-  PLACEHOLDER_MONGO_VALUES.includes(
-    RAW_MONGO_URI
-  )
+  PLACEHOLDER_MONGO_VALUES.includes(RAW_MONGO_URI)
     ? ""
     : RAW_MONGO_URI;
 
-const SESSION_SECRET =
-  String(
-    process.env.SESSION_SECRET || ""
-  ).trim();
+/* ------------------------------------------------------------
+   Session
+   ------------------------------------------------------------ */
+
+const SESSION_SECRET = String(
+  process.env.SESSION_SECRET || ""
+).trim();
 
 const SESSION_NAME =
   String(
-    process.env.SESSION_NAME ||
-      "islerms.sid"
-  ).trim();
+    process.env.SESSION_NAME || "islerms.sid"
+  ).trim() || "islerms.sid";
 
-const ADMIN_USERNAME =
-  String(
-    process.env.ADMIN_USERNAME || ""
-  ).trim();
+/* ------------------------------------------------------------
+   Default admin
+   ------------------------------------------------------------ */
 
-const ADMIN_PASSWORD =
-  String(
-    process.env.ADMIN_PASSWORD || ""
-  );
+const ADMIN_USERNAME = String(
+  process.env.ADMIN_USERNAME || ""
+).trim();
+
+const ADMIN_PASSWORD = String(
+  process.env.ADMIN_PASSWORD || ""
+);
 
 /* ============================================================
    CONSTANTS
    ============================================================ */
 
 const EFFECTIVE_MONGO_URI =
-  MONGO_URI ||
-  DEFAULT_LOCAL_MONGO_URI;
+  MONGO_URI || DEFAULT_LOCAL_MONGO_URI;
 
 const SESSION_MAX_AGE =
-  1000 * 60 * 60 * 8;
+  1000 * 60 * 60 * 8; // 8 hours
+
+const PASSWORD_MIN_LENGTH = 10;
 
 const JSON_LIMIT =
-  process.env.JSON_LIMIT ||
-  "1mb";
+  process.env.JSON_LIMIT || "1mb";
 
 const URLENCODED_LIMIT =
-  process.env.URLENCODED_LIMIT ||
-  "1mb";
+  process.env.URLENCODED_LIMIT || "1mb";
+  const USER_IDLE_TIMEOUT_MINUTES = Math.max(
+  1,
+  Number(process.env.USER_IDLE_TIMEOUT_MINUTES || 30)
+);
+
+const USER_IDLE_TIMEOUT_MS =
+  USER_IDLE_TIMEOUT_MINUTES * 60 * 1000;
+
+const USER_ACTIVITY_WRITE_INTERVAL_MS =
+  60 * 1000;
 
 /* ============================================================
    ENVIRONMENT VALIDATION
@@ -147,12 +195,8 @@ function validateEnvironment() {
       );
     }
   } else if (
-    !MONGO_URI.startsWith(
-      "mongodb://"
-    ) &&
-    !MONGO_URI.startsWith(
-      "mongodb+srv://"
-    )
+    !MONGO_URI.startsWith("mongodb://") &&
+    !MONGO_URI.startsWith("mongodb+srv://")
   ) {
     errors.push(
       "MONGO_URI must start with mongodb:// or mongodb+srv://."
@@ -170,32 +214,23 @@ function validateEnvironment() {
     SESSION_SECRET.length < 32
   ) {
     errors.push(
-      "SESSION_SECRET should contain at least 32 characters in production."
+      "SESSION_SECRET must contain at least 32 characters in production."
     );
   }
 
-  if (
-    IS_PRODUCTION &&
-    !ADMIN_USERNAME
-  ) {
+  if (IS_PRODUCTION && !ADMIN_USERNAME) {
     console.warn(
       "⚠️ ADMIN_USERNAME is not configured. Default admin creation will be skipped."
     );
   }
 
-  if (
-    IS_PRODUCTION &&
-    !ADMIN_PASSWORD
-  ) {
+  if (IS_PRODUCTION && !ADMIN_PASSWORD) {
     console.warn(
       "⚠️ ADMIN_PASSWORD is not configured. Default admin creation will be skipped."
     );
   }
 
-  if (
-    RAW_MONGO_URI &&
-    !MONGO_URI
-  ) {
+  if (RAW_MONGO_URI && !MONGO_URI) {
     console.warn(
       "⚠️ Placeholder MongoDB URI detected. Using local MongoDB instead."
     );
@@ -205,14 +240,11 @@ function validateEnvironment() {
     const message = [
       "Environment validation failed:",
       ...errors.map(
-        (error) =>
-          `- ${error}`
-      )
+        (error) => `- ${error}`
+      ),
     ].join("\n");
 
-    throw new Error(
-      message
-    );
+    throw new Error(message);
   }
 }
 
@@ -233,6 +265,12 @@ if (!MONGO_URI) {
    SESSION SECRET
    ============================================================ */
 
+/**
+ * Development fallback only.
+ *
+ * Production requires SESSION_SECRET.
+ */
+
 const EFFECTIVE_SESSION_SECRET =
   SESSION_SECRET ||
   "dev-only-puffer-isle-session-secret-change-me";
@@ -241,32 +279,25 @@ const EFFECTIVE_SESSION_SECRET =
    EXPRESS HARDENING
    ============================================================ */
 
-app.disable(
-  "x-powered-by"
-);
+app.disable("x-powered-by");
 
 if (IS_PRODUCTION) {
-  app.set(
-    "trust proxy",
-    1
-  );
+  /**
+   * IsleRMS is expected to run behind a reverse proxy
+   * such as DigitalOcean's deployment stack / Nginx.
+   */
+  app.set("trust proxy", 1);
 }
 
 /* ============================================================
    VIEW ENGINE
    ============================================================ */
 
-app.set(
-  "view engine",
-  "ejs"
-);
+app.set("view engine", "ejs");
 
 app.set(
   "views",
-  path.join(
-    __dirname,
-    "views"
-  )
+  path.join(__dirname, "views")
 );
 
 /* ============================================================
@@ -276,15 +307,13 @@ app.set(
 app.use(
   express.urlencoded({
     extended: true,
-    limit:
-      URLENCODED_LIMIT
+    limit: URLENCODED_LIMIT,
   })
 );
 
 app.use(
   express.json({
-    limit:
-      JSON_LIMIT
+    limit: JSON_LIMIT,
   })
 );
 
@@ -294,17 +323,11 @@ app.use(
 
 app.use(
   express.static(
-    path.join(
-      __dirname,
-      "public"
-    ),
+    path.join(__dirname, "public"),
     {
       index: false,
       redirect: false,
-      maxAge:
-        IS_PRODUCTION
-          ? "7d"
-          : 0
+      maxAge: IS_PRODUCTION ? "7d" : 0,
     }
   )
 );
@@ -313,17 +336,12 @@ app.use(
    REQUEST METADATA
    ============================================================ */
 
-app.use(
-  (req, res, next) => {
-    res.locals.requestMethod =
-      req.method;
+app.use((req, res, next) => {
+  res.locals.requestMethod = req.method;
+  res.locals.requestPath = req.path;
 
-    res.locals.requestPath =
-      req.path;
-
-    next();
-  }
-);
+  next();
+});
 
 /* ============================================================
    SESSION
@@ -331,153 +349,198 @@ app.use(
 
 app.use(
   session({
-    name:
-      SESSION_NAME,
+    name: SESSION_NAME,
 
-    secret:
-      EFFECTIVE_SESSION_SECRET,
+    secret: EFFECTIVE_SESSION_SECRET,
 
     resave: false,
 
-    saveUninitialized:
-      false,
+    saveUninitialized: false,
 
-    rolling:
-      true,
+    rolling: true,
 
-    store:
-      MongoStore.create({
-        mongoUrl:
-          EFFECTIVE_MONGO_URI,
+    store: MongoStore.create({
+      mongoUrl: EFFECTIVE_MONGO_URI,
+      collectionName: "sessions",
 
-        collectionName:
-          "sessions",
+      ttl: Math.floor(
+        SESSION_MAX_AGE / 1000
+      ),
 
-        ttl:
-          Math.floor(
-            SESSION_MAX_AGE /
-              1000
-          ),
+      autoRemove: "native",
 
-        autoRemove:
-          "native",
+      touchAfter: 60 * 5,
 
-        touchAfter:
-          60 * 5,
-
-        stringify:
-          false
-      }),
+      stringify: false,
+    }),
 
     cookie: {
-      httpOnly:
-        true,
+      httpOnly: true,
 
-      secure:
-        IS_PRODUCTION,
+      secure: IS_PRODUCTION,
 
-      sameSite:
-        "lax",
+      sameSite: "lax",
 
-      maxAge:
-        SESSION_MAX_AGE,
+      maxAge: SESSION_MAX_AGE,
 
-      path:
-        "/"
-    }
+      path: "/",
+    },
   })
 );
 
 /* ============================================================
-   SESSION HELPERS
+   CSRF TOKEN
    ============================================================ */
 
-function createUserSessionData(
-  user
-) {
+/**
+ * CSRF is being introduced in two stages.
+ *
+ * Stage 1:
+ * - Generate one random token per session.
+ * - Expose it to every EJS view as `csrfToken`.
+ *
+ * Stage 2:
+ * - Verify the token for the customer authentication
+ *   POST requests that already include CSRF fields.
+ *
+ * Booking and admin actions will be protected separately
+ * after their forms are updated.
+ */
+
+app.use(
+  attachCsrfToken
+);
+
+/* ============================================================
+   CSRF VERIFICATION - CUSTOMER AUTHENTICATION
+   ============================================================ */
+
+/**
+ * Protect only the customer authentication endpoints
+ * that already contain CSRF fields in navbar.ejs.
+ *
+ * Protected:
+ * - POST /login
+ * - POST /signup
+ * - POST /logout
+ *
+ * Other POST requests remain untouched for now so we
+ * do not break the older booking/admin forms.
+ */
+
+app.use(
+  (req, res, next) => {
+    if (
+      req.method === "POST" &&
+      (
+        req.path === "/login" ||
+        req.path === "/signup" ||
+        req.path === "/logout"
+      )
+    ) {
+      return verifyCsrfToken(
+        req,
+        res,
+        next
+      );
+    }
+
+    next();
+  }
+);
+
+/* ============================================================
+   USER SESSION DATA
+   ============================================================ */
+
+/**
+ * Only safe customer information belongs in the session.
+ *
+ * NEVER store:
+ * - password
+ * - password reset tokens
+ * - email verification tokens
+ * - failed-login counters
+ * - lockedUntil
+ */
+
+function createUserSessionData(user) {
   if (!user) {
     return null;
   }
 
-  const id =
-    user._id
-      ? String(
-          user._id
-        )
-      : String(
-          user.id || ""
-        );
+  const id = user._id
+    ? String(user._id)
+    : String(user.id || "");
 
-  const fullname =
-    String(
-      user.fullname ||
-        user.name ||
-        ""
-    ).trim();
+  const fullname = String(
+    user.fullname ||
+      user.name ||
+      ""
+  ).trim();
 
-  const username =
-    String(
-      user.username ||
-        user.email ||
-        ""
-    )
-      .trim()
-      .toLowerCase();
+  const username = String(
+    user.username || ""
+  )
+    .trim()
+    .toLowerCase();
 
-  const email =
-    String(
-      user.email || ""
-    )
-      .trim()
-      .toLowerCase();
+  const email = String(
+    user.email || ""
+  )
+    .trim()
+    .toLowerCase();
 
-  const phone =
-    String(
-      user.phone || ""
-    ).trim();
+  const phone = String(
+    user.phone || ""
+  ).trim();
 
   return {
     id,
     _id: id,
-    username,
-    email,
+
     fullname,
+    name: fullname,
+
+    username,
+
+    email,
+
     phone,
-    name: fullname
+
+    status:
+      user.status || "active",
+
+    emailVerified:
+      Boolean(user.emailVerified),
   };
 }
 
-function createAdminSessionData(
-  admin
-) {
+/* ============================================================
+   ADMIN SESSION DATA
+   ============================================================ */
+
+function createAdminSessionData(admin) {
   if (!admin) {
     return null;
   }
 
-  const id =
-    admin._id
-      ? String(
-          admin._id
-        )
-      : String(
-          admin.id || ""
-        );
+  const id = admin._id
+    ? String(admin._id)
+    : String(admin.id || "");
 
   return {
     id,
     _id: id,
 
-    username:
-      String(
-        admin.username ||
-          ""
-      )
-        .trim()
-        .toLowerCase(),
+    username: String(
+      admin.username || ""
+    )
+      .trim()
+      .toLowerCase(),
 
     role:
-      admin.role ||
-      "admin"
+      admin.role || "admin",
   };
 }
 
@@ -485,20 +548,13 @@ function createAdminSessionData(
    SESSION PROMISE HELPERS
    ============================================================ */
 
-function regenerateSession(
-  req
-) {
+function regenerateSession(req) {
   return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
+    (resolve, reject) => {
       req.session.regenerate(
         (error) => {
           if (error) {
-            return reject(
-              error
-            );
+            return reject(error);
           }
 
           resolve();
@@ -508,20 +564,13 @@ function regenerateSession(
   );
 }
 
-function saveSession(
-  req
-) {
+function saveSession(req) {
   return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
+    (resolve, reject) => {
       req.session.save(
         (error) => {
           if (error) {
-            return reject(
-              error
-            );
+            return reject(error);
           }
 
           resolve();
@@ -531,14 +580,9 @@ function saveSession(
   );
 }
 
-function destroySession(
-  req
-) {
+function destroySession(req) {
   return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
+    (resolve, reject) => {
       if (!req.session) {
         return resolve();
       }
@@ -546,9 +590,7 @@ function destroySession(
       req.session.destroy(
         (error) => {
           if (error) {
-            return reject(
-              error
-            );
+            return reject(error);
           }
 
           resolve();
@@ -559,15 +601,158 @@ function destroySession(
 }
 
 /* ============================================================
+   AUTH HELPERS
+   ============================================================ */
+
+function getSessionUserId(req) {
+  return (
+    req.session?.user?.id ||
+    req.session?.user?._id ||
+    null
+  );
+}
+
+function clearSessionCookie(res) {
+  res.clearCookie(
+    SESSION_NAME,
+    {
+      httpOnly: true,
+      sameSite: "lax",
+      secure: IS_PRODUCTION,
+      path: "/",
+    }
+  );
+}
+
+function redirectAuthError(
+  res,
+  mode,
+  message
+) {
+  return res.redirect(
+    303,
+    `/?auth=${encodeURIComponent(
+      mode
+    )}&error=${encodeURIComponent(
+      message
+    )}`
+  );
+}
+
+function redirectAuthSuccess(
+  res,
+  mode,
+  message
+) {
+  return res.redirect(
+    303,
+    `/?auth=${encodeURIComponent(
+      mode
+    )}&success=${encodeURIComponent(
+      message
+    )}`
+  );
+}
+
+/* ============================================================
+   INPUT NORMALIZATION
+   ============================================================ */
+
+function normalizeString(value) {
+  return String(value ?? "")
+    .trim()
+    .replace(/\s+/g, " ");
+}
+
+function normalizeEmail(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeIdentifier(value) {
+  return String(value ?? "")
+    .trim()
+    .toLowerCase();
+}
+
+function normalizeUsername(value) {
+  const username = String(value ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/\s+/g, "");
+
+  return username || "";
+}
+
+/**
+ * Normalize Philippine mobile numbers.
+ *
+ * Accepted:
+ * - 09XXXXXXXXX
+ * - 639XXXXXXXXX
+ * - +639XXXXXXXXX
+ */
+
+function normalizePhone(value) {
+  let phone = String(value ?? "")
+    .trim()
+    .replace(/[\s()-]/g, "");
+
+  if (!phone) {
+    return "";
+  }
+
+  if (/^\+639\d{9}$/.test(phone)) {
+    return `0${phone.slice(3)}`;
+  }
+
+  if (/^639\d{9}$/.test(phone)) {
+    return `0${phone.slice(2)}`;
+  }
+
+  return phone;
+}
+
+function isValidEmail(email) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
+    email
+  );
+}
+
+function isValidUsername(username) {
+  return /^[a-z0-9._-]+$/i.test(
+    username
+  );
+}
+
+function isDuplicateKeyError(error) {
+  return Boolean(
+    error && error.code === 11000
+  );
+}
+
+/* ============================================================
    AUTH MIDDLEWARE
    ============================================================ */
+
+/**
+ * Session-level customer authentication check.
+ *
+ * This currently validates the authenticated session itself.
+ * Live account-state verification against MongoDB will be
+ * centralized later when userRoutes.js is refactored.
+ */
 
 function requireUser(
   req,
   res,
   next
 ) {
-  if (!req.session?.user) {
+  const sessionUser =
+    req.session?.user;
+
+  if (!sessionUser) {
     return res.redirect(
       "/?auth=login&error=" +
         encodeURIComponent(
@@ -576,8 +761,35 @@ function requireUser(
     );
   }
 
+  if (
+    sessionUser.status &&
+    sessionUser.status !== "active"
+  ) {
+    return destroySession(req)
+      .catch((error) => {
+        console.error(
+          "SESSION CLEANUP ERROR:",
+          error
+        );
+      })
+      .finally(() => {
+        clearSessionCookie(res);
+
+        res.redirect(
+          "/?auth=login&error=" +
+            encodeURIComponent(
+              "Your account is currently unavailable."
+            )
+        );
+      });
+  }
+
   next();
 }
+
+/**
+ * Administrator session-level authentication.
+ */
 
 function requireAdmin(
   req,
@@ -603,12 +815,10 @@ function requireAdmin(
 app.use(
   (req, res, next) => {
     const currentUser =
-      req.session?.user ||
-      null;
+      req.session?.user || null;
 
     const currentAdmin =
-      req.session?.admin ||
-      null;
+      req.session?.admin || null;
 
     res.locals.currentUser =
       currentUser;
@@ -616,6 +826,9 @@ app.use(
     res.locals.currentAdmin =
       currentAdmin;
 
+    /**
+     * Compatibility aliases for existing views.
+     */
     res.locals.user =
       currentUser;
 
@@ -623,28 +836,31 @@ app.use(
       currentAdmin;
 
     res.locals.isAuthenticated =
-      Boolean(
-        currentUser
-      );
+      Boolean(currentUser);
 
     res.locals.isAdmin =
-      Boolean(
-        currentAdmin
-      );
+      Boolean(currentAdmin);
 
     res.locals.currentPath =
       req.path;
 
     res.locals.error =
-      req.query?.error ||
-      null;
+      req.query?.error || null;
 
     res.locals.success =
-      req.query?.success ||
-      null;
+      req.query?.success || null;
 
     res.locals.authMode =
-      req.query?.auth ||
+      req.query?.auth || null;
+
+    /*
+     * CSRF token generated by middleware/csrf.js.
+     *
+     * Keep this available to all EJS templates.
+     */
+    res.locals.csrfToken =
+      res.locals.csrfToken ||
+      req.session?.csrfToken ||
       null;
 
     next();
@@ -659,43 +875,40 @@ app.get(
   "/health",
   (req, res) => {
     const mongoReady =
-      mongoose.connection
-        .readyState === 1;
+      mongoose.connection.readyState === 1;
+
+    const payload = {
+      success: mongoReady,
+
+      status: mongoReady
+        ? "ok"
+        : "degraded",
+
+      server: "online",
+
+      database: mongoReady
+        ? "connected"
+        : "disconnected",
+
+      uptimeSeconds:
+        Math.floor(
+          process.uptime()
+        ),
+
+      timestamp:
+        new Date().toISOString(),
+    };
+
+    if (!IS_PRODUCTION) {
+      payload.environment =
+        NODE_ENV;
+    }
 
     return res
       .status(
-        mongoReady
-          ? 200
-          : 503
+        mongoReady ? 200 : 503
       )
-      .json({
-        success:
-          mongoReady,
-
-        status:
-          mongoReady
-            ? "ok"
-            : "degraded",
-
-        server:
-          "online",
-
-        database:
-          mongoReady
-            ? "connected"
-            : "disconnected",
-
-        environment:
-          NODE_ENV,
-
-        uptimeSeconds:
-          Math.floor(
-            process.uptime()
-          ),
-
-        timestamp:
-          new Date().toISOString()
-      });
+      .json(payload);
   }
 );
 
@@ -707,8 +920,7 @@ app.get(
   "/ready",
   (req, res) => {
     const mongoReady =
-      mongoose.connection
-        .readyState === 1;
+      mongoose.connection.readyState === 1;
 
     if (!mongoReady) {
       return res
@@ -716,16 +928,14 @@ app.get(
         .json({
           success: false,
           ready: false,
-          database:
-            "disconnected"
+          database: "disconnected",
         });
     }
 
     return res.json({
       success: true,
       ready: true,
-      database:
-        "connected"
+      database: "connected",
     });
   }
 );
@@ -754,18 +964,14 @@ app.get(
     if (req.query?.error) {
       query.set(
         "error",
-        String(
-          req.query.error
-        )
+        String(req.query.error)
       );
     }
 
     if (req.query?.success) {
       query.set(
         "success",
-        String(
-          req.query.success
-        )
+        String(req.query.success)
       );
     }
 
@@ -783,101 +989,199 @@ app.post(
   "/login",
   async (req, res) => {
     try {
+      /**
+       * Login accepts either:
+       * - email
+       * - username
+       *
+       * The new navbar uses "email" as its field name,
+       * while legacy forms may still send "username".
+       */
+
       const identifier =
-        String(
-          req.body?.username ||
-            req.body?.email ||
+        normalizeIdentifier(
+          req.body?.email ||
+            req.body?.username ||
             ""
-        )
-          .trim()
-          .toLowerCase();
+        );
 
       const password =
         String(
-          req.body?.password ||
-            ""
+          req.body?.password || ""
         );
 
       if (
         !identifier ||
         !password
       ) {
-        return res.redirect(
-          "/?auth=login&error=" +
-            encodeURIComponent(
-              "Username/email and password are required."
-            )
+        return redirectAuthError(
+          res,
+          "login",
+          "Email/username and password are required."
+        );
+      }
+
+      /**
+       * Find by email OR username.
+       *
+       * User.js intentionally hides password by default,
+       * so select("+password") is required for comparison.
+       */
+
+      if (
+        typeof User.findByIdentifier !==
+        "function"
+      ) {
+        throw new Error(
+          "User.findByIdentifier() is unavailable."
         );
       }
 
       const user =
-        await User.findOne({
-          $or: [
-            {
-              username:
-                identifier
-            },
-            {
-              email:
-                identifier
-            }
-          ]
-        }).select(
-          "+password"
-        );
+        await User.findByIdentifier(
+          identifier
+        ).select("+password");
+
+      /**
+       * Generic authentication error.
+       *
+       * We do not expose whether an account exists.
+       */
 
       if (!user) {
-        return res.redirect(
-          "/?auth=login&error=" +
-            encodeURIComponent(
-              "Invalid username/email or password."
-            )
+        return redirectAuthError(
+          res,
+          "login",
+          "Invalid username/email or password."
         );
       }
 
-      let passwordValid =
-        false;
+      /**
+       * Clear an expired lockout.
+       */
 
       if (
-        typeof user.comparePassword ===
-        "function"
+        user.lockedUntil &&
+        user.lockedUntil instanceof Date &&
+        user.lockedUntil.getTime() <=
+          Date.now()
       ) {
-        passwordValid =
-          await user.comparePassword(
-            password
-          );
-      } else {
-        passwordValid =
-          user.password ===
-          password;
+        if (
+          typeof user.clearExpiredLock ===
+          "function"
+        ) {
+          await user.clearExpiredLock();
+        } else {
+          user.lockedUntil = null;
+          user.failedLoginAttempts = 0;
+          await user.save();
+        }
       }
 
-      if (!passwordValid) {
-        return res.redirect(
-          "/?auth=login&error=" +
-            encodeURIComponent(
-              "Invalid username/email or password."
-            )
+      /**
+       * Enforce temporary account lockout.
+       */
+
+      if (
+        typeof user.isCurrentlyLocked ===
+        "function" &&
+        user.isCurrentlyLocked()
+      ) {
+        return redirectAuthError(
+          res,
+          "login",
+          "Invalid username/email or password."
         );
       }
 
-      await regenerateSession(
-        req
-      );
+      /**
+       * Account status check.
+       *
+       * Older accounts without a status field are still
+       * treated as active for compatibility.
+       */
+
+      if (
+        user.status &&
+        user.status !== "active"
+      ) {
+        return redirectAuthError(
+          res,
+          "login",
+          "Invalid username/email or password."
+        );
+      }
+
+      /**
+       * Compare only against the bcrypt password hash.
+       *
+       * There is intentionally NO plaintext fallback.
+       */
+
+      const passwordValid =
+        typeof user.comparePassword ===
+        "function"
+          ? await user.comparePassword(
+              password
+            )
+          : false;
+
+      if (!passwordValid) {
+        /**
+         * Failed login is recorded by User.js.
+         */
+
+        if (
+          typeof user.recordFailedLogin ===
+          "function"
+        ) {
+          await user.recordFailedLogin();
+        }
+
+        return redirectAuthError(
+          res,
+          "login",
+          "Invalid username/email or password."
+        );
+      }
+
+      /**
+       * Successful login.
+       *
+       * Reset failed-login counters and save
+       * lastLoginAt.
+       */
+
+      if (
+        typeof user.resetLoginSecurity ===
+        "function"
+      ) {
+        await user.resetLoginSecurity();
+      }
+
+      /**
+       * Regenerate the session after authentication.
+       *
+       * This prevents session fixation attacks.
+       */
+
+      await regenerateSession(req);
 
       req.session.user =
         createUserSessionData(
           user
         );
 
-      req.session.admin =
-        null;
+      /**
+       * Customer sessions do not retain admin authentication.
+       */
 
-      await saveSession(
-        req
-      );
+      delete req.session.admin;
+
+      await saveSession(req);
 
       return res.redirect(
+        303,
         "/profile"
       );
     } catch (error) {
@@ -886,11 +1190,10 @@ app.post(
         error
       );
 
-      return res.redirect(
-        "/?auth=login&error=" +
-          encodeURIComponent(
-            "Unable to process login. Please try again."
-          )
+      return redirectAuthError(
+        res,
+        "login",
+        "Unable to process login. Please try again."
       );
     }
   }
@@ -920,18 +1223,14 @@ app.get(
     if (req.query?.error) {
       query.set(
         "error",
-        String(
-          req.query.error
-        )
+        String(req.query.error)
       );
     }
 
     if (req.query?.success) {
       query.set(
         "success",
-        String(
-          req.query.success
-        )
+        String(req.query.success)
       );
     }
 
@@ -950,148 +1249,240 @@ app.post(
   async (req, res) => {
     try {
       const fullname =
-        String(
+        normalizeString(
           req.body?.fullname ||
             req.body?.fullName ||
             req.body?.name ||
             ""
-        ).trim();
+        );
 
       const email =
-        String(
-          req.body?.email ||
-            ""
-        )
-          .trim()
-          .toLowerCase();
+        normalizeEmail(
+          req.body?.email || ""
+        );
+
+      /**
+       * Username is OPTIONAL.
+       *
+       * Email remains the primary customer identifier.
+       */
 
       const username =
-        String(
-          req.body?.username ||
-            email ||
-            ""
-        )
-          .trim()
-          .toLowerCase();
+        normalizeUsername(
+          req.body?.username || ""
+        );
 
       const password =
         String(
-          req.body?.password ||
-            ""
+          req.body?.password || ""
         );
 
       const confirmPassword =
         String(
-          req.body?.confirmPassword ||
-            ""
+          req.body?.confirmPassword || ""
         );
 
       const phone =
-        String(
-          req.body?.phone ||
-            ""
-        ).trim();
+        normalizePhone(
+          req.body?.phone || ""
+        );
+
+      /* --------------------------------------------------------
+         REQUIRED FIELDS
+         -------------------------------------------------------- */
 
       if (
         !fullname ||
         !email ||
-        !password
+        !password ||
+        !confirmPassword
       ) {
-        return res.redirect(
-          "/?auth=signup&error=" +
-            encodeURIComponent(
-              "Full name, email and password are required."
-            )
+        return redirectAuthError(
+          res,
+          "signup",
+          "Full name, email, password and password confirmation are required."
         );
       }
 
+      /* --------------------------------------------------------
+         FULL NAME
+         -------------------------------------------------------- */
+
+      /**
+       * User.js currently defines maxlength: 50.
+       * Keep server-side validation consistent.
+       */
+
       if (
-        password.length < 6
+        fullname.length < 2 ||
+        fullname.length > 50
       ) {
-        return res.redirect(
-          "/?auth=signup&error=" +
-            encodeURIComponent(
-              "Password must be at least 6 characters."
-            )
+        return redirectAuthError(
+          res,
+          "signup",
+          "Full name must contain between 2 and 50 characters."
         );
       }
 
+      /* --------------------------------------------------------
+         EMAIL
+         -------------------------------------------------------- */
+
+      if (!isValidEmail(email)) {
+        return redirectAuthError(
+          res,
+          "signup",
+          "Please provide a valid email address."
+        );
+      }
+
+      /* --------------------------------------------------------
+         PASSWORD
+         -------------------------------------------------------- */
+
       if (
-        confirmPassword &&
+        password.length <
+        PASSWORD_MIN_LENGTH
+      ) {
+        return redirectAuthError(
+          res,
+          "signup",
+          `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`
+        );
+      }
+
+      /* --------------------------------------------------------
+         PASSWORD CONFIRMATION
+         -------------------------------------------------------- */
+
+      if (
         password !==
-          confirmPassword
+        confirmPassword
       ) {
-        return res.redirect(
-          "/?auth=signup&error=" +
-            encodeURIComponent(
-              "Passwords do not match."
-            )
+        return redirectAuthError(
+          res,
+          "signup",
+          "Passwords do not match."
         );
       }
+
+      /* --------------------------------------------------------
+         OPTIONAL USERNAME
+         -------------------------------------------------------- */
+
+      if (
+        username &&
+        !isValidUsername(username)
+      ) {
+        return redirectAuthError(
+          res,
+          "signup",
+          "Username may only contain letters, numbers, dots, underscores, and hyphens."
+        );
+      }
+
+      if (
+        username &&
+        (
+          username.length < 3 ||
+          username.length > 50
+        )
+      ) {
+        return redirectAuthError(
+          res,
+          "signup",
+          "Username must contain between 3 and 50 characters."
+        );
+      }
+
+      /* --------------------------------------------------------
+         PHONE
+         -------------------------------------------------------- */
+
+      /**
+       * Phone remains optional at the model level.
+       */
 
       if (
         phone &&
-        !/^\d{11}$/.test(
-          phone
-        )
+        !/^09\d{9}$/.test(phone)
       ) {
-        return res.redirect(
-          "/?auth=signup&error=" +
-            encodeURIComponent(
-              "Contact number must contain exactly 11 digits."
-            )
+        return redirectAuthError(
+          res,
+          "signup",
+          "Please provide a valid Philippine mobile number."
         );
+      }
+
+      /* --------------------------------------------------------
+         DUPLICATE ACCOUNT CHECK
+         -------------------------------------------------------- */
+
+      const duplicateConditions = [
+        { email },
+      ];
+
+      if (username) {
+        duplicateConditions.push({
+          username,
+        });
       }
 
       const existingUser =
         await User.findOne({
-          $or: [
-            {
-              email
-            },
-            {
-              username
-            }
-          ]
+          $or: duplicateConditions,
         });
 
       if (existingUser) {
-        return res.redirect(
-          "/?auth=signup&error=" +
-            encodeURIComponent(
-              "An account with that email or username already exists."
-            )
+        return redirectAuthError(
+          res,
+          "signup",
+          "An account with that email or username already exists."
         );
+      }
+
+      /* --------------------------------------------------------
+         CREATE USER
+         -------------------------------------------------------- */
+
+      const userData = {
+        fullname,
+        email,
+        phone: phone || undefined,
+      };
+
+      if (username) {
+        userData.username =
+          username;
       }
 
       const user =
-        new User({
-          fullname,
-          username,
-          email,
-          phone:
-            phone || undefined
-        });
+        new User(userData);
+
+      /**
+       * User.js setPassword() performs password validation.
+       * Its pre-save hook handles bcrypt hashing.
+       */
 
       if (
-        typeof user.setPassword ===
+        typeof user.setPassword !==
         "function"
       ) {
-        await user.setPassword(
-          password
+        throw new Error(
+          "User password service is unavailable."
         );
-      } else {
-        user.password =
-          password;
       }
+
+      await user.setPassword(
+        password
+      );
 
       await user.save();
 
-      return res.redirect(
-        "/?auth=login&success=" +
-          encodeURIComponent(
-            "Account created successfully. Please sign in."
-          )
+      return redirectAuthSuccess(
+        res,
+        "login",
+        "Account created successfully. Please sign in."
       );
     } catch (error) {
       console.error(
@@ -1100,21 +1491,41 @@ app.post(
       );
 
       if (
-        error?.code === 11000
+        isDuplicateKeyError(error)
       ) {
-        return res.redirect(
-          "/?auth=signup&error=" +
-            encodeURIComponent(
-              "An account with that email or username already exists."
-            )
+        return redirectAuthError(
+          res,
+          "signup",
+          "An account with that email or username already exists."
         );
       }
 
-      return res.redirect(
-        "/?auth=signup&error=" +
-          encodeURIComponent(
-            "Unable to create your account. Please try again."
+      if (
+        error?.name ===
+        "ValidationError"
+      ) {
+        const message =
+          Object.values(
+            error.errors || {}
           )
+            .map(
+              (entry) =>
+                entry.message
+            )
+            .join(" ") ||
+          "Some account information is invalid.";
+
+        return redirectAuthError(
+          res,
+          "signup",
+          message
+        );
+      }
+
+      return redirectAuthError(
+        res,
+        "signup",
+        "Unable to create your account. Please try again."
       );
     }
   }
@@ -1124,26 +1535,24 @@ app.post(
    USER LOGOUT
    ============================================================ */
 
-app.get(
+/**
+ * Canonical logout endpoint.
+ *
+ * The upgraded navbar submits:
+ *
+ *     POST /logout
+ */
+
+app.post(
   "/logout",
   async (req, res) => {
     try {
-      await destroySession(
-        req
-      );
+      await destroySession(req);
 
-      res.clearCookie(
-        SESSION_NAME,
-        {
-          httpOnly: true,
-          sameSite: "lax",
-          secure:
-            IS_PRODUCTION,
-          path: "/"
-        }
-      );
+      clearSessionCookie(res);
 
       return res.redirect(
+        303,
         "/?auth=login&success=" +
           encodeURIComponent(
             "You have been logged out."
@@ -1155,7 +1564,54 @@ app.get(
         error
       );
 
+      clearSessionCookie(res);
+
       return res.redirect(
+        303,
+        "/"
+      );
+    }
+  }
+);
+
+/* ============================================================
+   TEMPORARY GET LOGOUT COMPATIBILITY
+   ============================================================ */
+
+/**
+ * Temporary compatibility only.
+ *
+ * The upgraded navbar no longer uses GET /logout.
+ *
+ * This route can be removed after we confirm that no
+ * remaining view depends on it.
+ */
+
+app.get(
+  "/logout",
+  async (req, res) => {
+    try {
+      await destroySession(req);
+
+      clearSessionCookie(res);
+
+      return res.redirect(
+        303,
+        "/?auth=login&success=" +
+          encodeURIComponent(
+            "You have been logged out."
+          )
+      );
+    } catch (error) {
+      console.error(
+        "USER GET LOGOUT ERROR:",
+        error
+      );
+
+      clearSessionCookie(res);
+
+      return res.redirect(
+        303,
         "/"
       );
     }
@@ -1175,9 +1631,14 @@ app.get(
     if (req.query?.error) {
       query.set(
         "error",
-        String(
-          req.query.error
-        )
+        String(req.query.error)
+      );
+    }
+
+    if (req.query?.success) {
+      query.set(
+        "success",
+        String(req.query.success)
       );
     }
 
@@ -1196,26 +1657,24 @@ app.get(
    ADMIN LOGOUT COMPATIBILITY
    ============================================================ */
 
+/**
+ * The administrator authentication system is being
+ * upgraded separately.
+ *
+ * This route remains for compatibility with current
+ * administrator templates.
+ */
+
 app.get(
   "/admin-logout",
   async (req, res) => {
     try {
-      await destroySession(
-        req
-      );
+      await destroySession(req);
 
-      res.clearCookie(
-        SESSION_NAME,
-        {
-          httpOnly: true,
-          sameSite: "lax",
-          secure:
-            IS_PRODUCTION,
-          path: "/"
-        }
-      );
+      clearSessionCookie(res);
 
       return res.redirect(
+        303,
         "/admin/login"
       );
     } catch (error) {
@@ -1224,7 +1683,10 @@ app.get(
         error
       );
 
+      clearSessionCookie(res);
+
       return res.redirect(
+        303,
         "/admin/login"
       );
     }
@@ -1235,13 +1697,22 @@ app.get(
    LEGACY BOOKING URL
    ============================================================ */
 
+/**
+ * Compatibility bridge:
+ *
+ * POST /booking/submit
+ *       ↓
+ * POST /appointment/submit
+ *
+ * This can be removed later when all frontend forms use the
+ * canonical endpoint.
+ */
+
 app.use(
   (req, res, next) => {
     if (
-      req.method ===
-        "POST" &&
-      req.path ===
-        "/booking/submit"
+      req.method === "POST" &&
+      req.path === "/booking/submit"
     ) {
       req.url =
         "/appointment/submit";
@@ -1254,13 +1725,17 @@ app.use(
 );
 
 /* ============================================================
-   ROUTES
+   CUSTOMER ROUTES
    ============================================================ */
 
 app.use(
   "/",
   userRoutes
 );
+
+/* ============================================================
+   ADMIN ROUTES
+   ============================================================ */
 
 app.use(
   "/admin",
@@ -1278,7 +1753,7 @@ app.get(
       "index",
       {
         title:
-          "Puffer Isle Resort"
+          "Puffer Isle Resort",
       }
     );
   }
@@ -1291,7 +1766,7 @@ app.get(
       "gallery",
       {
         title:
-          "Gallery | Puffer Isle Resort"
+          "Gallery | Puffer Isle Resort",
       }
     );
   }
@@ -1304,11 +1779,24 @@ app.get(
       "rules",
       {
         title:
-          "Resort Rules | Puffer Isle Resort"
+          "Resort Rules | Puffer Isle Resort",
       }
     );
   }
 );
+
+/* ============================================================
+   REQUEST TYPE HELPER
+   ============================================================ */
+
+function isApiRequest(req) {
+  return (
+    req.path.startsWith("/api/") ||
+    req.path.startsWith("/admin/api/") ||
+    req.path === "/health" ||
+    req.path === "/ready"
+  );
+}
 
 /* ============================================================
    404
@@ -1316,24 +1804,13 @@ app.get(
 
 app.use(
   (req, res) => {
-    const isApi =
-      req.path.startsWith(
-        "/admin/api/"
-      ) ||
-      req.path ===
-        "/health" ||
-      req.path ===
-        "/ready";
-
-    if (isApi) {
+    if (isApiRequest(req)) {
       return res
         .status(404)
         .json({
-          success:
-            false,
-
+          success: false,
           message:
-            "Resource not found."
+            "Resource not found.",
         });
     }
 
@@ -1345,11 +1822,10 @@ app.use(
           title:
             "Page Not Found | Puffer Isle Resort",
 
-          statusCode:
-            404,
+          statusCode: 404,
 
           error:
-            "The page you requested could not be found."
+            "The page you requested could not be found.",
         }
       );
   }
@@ -1371,32 +1847,17 @@ app.use(
       error
     );
 
-    if (
-      res.headersSent
-    ) {
-      return next(
-        error
-      );
+    if (res.headersSent) {
+      return next(error);
     }
 
-    const isApi =
-      req.path.startsWith(
-        "/admin/api/"
-      ) ||
-      req.path ===
-        "/health" ||
-      req.path ===
-        "/ready";
-
-    if (isApi) {
+    if (isApiRequest(req)) {
       return res
         .status(500)
         .json({
-          success:
-            false,
-
+          success: false,
           message:
-            "Internal server error."
+            "Internal server error.",
         });
     }
 
@@ -1408,14 +1869,13 @@ app.use(
           title:
             "Server Error | Puffer Isle Resort",
 
-          statusCode:
-            500,
+          statusCode: 500,
 
           error:
             IS_PRODUCTION
               ? "Something went wrong while processing your request."
               : error.message ||
-                "Something went wrong."
+                "Something went wrong.",
         }
       );
   }
@@ -1433,27 +1893,28 @@ async function connectDatabase() {
   await mongoose.connect(
     EFFECTIVE_MONGO_URI,
     {
-      serverSelectionTimeoutMS:
-        10000,
+      serverSelectionTimeoutMS: 10000,
 
-      connectTimeoutMS:
-        10000,
+      connectTimeoutMS: 10000,
 
-      socketTimeoutMS:
-        45000,
+      socketTimeoutMS: 45000,
 
       maxPoolSize:
-        IS_PRODUCTION
-          ? 20
-          : 10,
+        IS_PRODUCTION ? 20 : 10,
 
       minPoolSize:
-        IS_PRODUCTION
-          ? 2
-          : 0,
+        IS_PRODUCTION ? 2 : 0,
+
+      /**
+       * Development:
+       * Mongoose may automatically build indexes.
+       *
+       * Production:
+       * use controlled index deployment.
+       */
 
       autoIndex:
-        !IS_PRODUCTION
+        !IS_PRODUCTION,
     }
   );
 
@@ -1519,17 +1980,20 @@ async function ensureDefaultAdmin() {
     let admin =
       await Admin.findOne({
         username:
-          normalizedUsername
-      }).select(
-        "+password"
-      );
+          normalizedUsername,
+      }).select("+password");
 
     if (!admin) {
       admin =
         new Admin({
           username:
-            normalizedUsername
+            normalizedUsername,
         });
+
+      /**
+       * Prefer the model's setPassword() method when
+       * available.
+       */
 
       if (
         typeof admin.setPassword ===
@@ -1539,6 +2003,10 @@ async function ensureDefaultAdmin() {
           ADMIN_PASSWORD
         );
       } else {
+        /**
+         * Admin.js should normally hash the password
+         * through its pre-save hook.
+         */
         admin.password =
           ADMIN_PASSWORD;
       }
@@ -1571,8 +2039,7 @@ async function ensureDefaultAdmin() {
    START SERVER
    ============================================================ */
 
-let httpServer =
-  null;
+let httpServer = null;
 
 async function startServer() {
   try {
@@ -1622,8 +2089,7 @@ async function startServer() {
           );
 
           if (
-            HOST ===
-            "127.0.0.1"
+            HOST === "127.0.0.1"
           ) {
             console.log(
               `🌐 Local: http://localhost:${PORT}`
@@ -1635,7 +2101,11 @@ async function startServer() {
           }
 
           console.log(
-            "🔐 Admin: /admin/login"
+            "🔐 User Login: /login"
+          );
+
+          console.log(
+            "🔐 Admin Login: /admin/login"
           );
 
           console.log(
@@ -1676,10 +2146,13 @@ async function startServer() {
       "----------------------------------------------"
     );
 
-    if (
+    const errorMessage =
       String(
-        error.message
-      ).includes(
+        error.message || ""
+      );
+
+    if (
+      errorMessage.includes(
         "ECONNREFUSED"
       )
     ) {
@@ -1689,9 +2162,7 @@ async function startServer() {
     }
 
     if (
-      String(
-        error.message
-      )
+      errorMessage
         .toLowerCase()
         .includes(
           "authentication failed"
@@ -1710,8 +2181,7 @@ async function startServer() {
    GRACEFUL SHUTDOWN
    ============================================================ */
 
-let shuttingDown =
-  false;
+let shuttingDown = false;
 
 async function gracefulShutdown(
   signal
@@ -1720,8 +2190,7 @@ async function gracefulShutdown(
     return;
   }
 
-  shuttingDown =
-    true;
+  shuttingDown = true;
 
   console.log("");
 
@@ -1810,8 +2279,7 @@ process.on(
     gracefulShutdown(
       "UNCAUGHT_EXCEPTION"
     ).catch(
-      () =>
-        process.exit(1)
+      () => process.exit(1)
     );
   }
 );
@@ -1822,14 +2290,24 @@ process.on(
 
 module.exports = {
   app,
+
   startServer,
+
   requireUser,
+
   requireAdmin,
+
   createUserSessionData,
+
   createAdminSessionData,
+
   regenerateSession,
+
   saveSession,
-  destroySession
+
+  destroySession,
+
+  getSessionUserId,
 };
 
 /* ============================================================
@@ -1837,8 +2315,7 @@ module.exports = {
    ============================================================ */
 
 if (
-  require.main ===
-  module
+  require.main === module
 ) {
   startServer();
 }
