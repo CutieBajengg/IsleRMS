@@ -1,4 +1,5 @@
 <!DOCTYPE html>
+
 <html lang="en">
 
 <head>
@@ -14,44 +15,82 @@
     Puffer Isle Resort | Tropical Escape
   </title>
 
+
+  <!-- =========================================
+       FAVICON
+  ========================================== -->
+
   <link
     rel="icon"
     type="image/png"
     href="/images/islelogo.png"
   >
 
+
+  <!-- =========================================
+       FONT
+  ========================================== -->
+
   <link
     href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
     rel="stylesheet"
   >
 
+
+  <!-- =========================================
+       A-FRAME
+  ========================================== -->
+
+  <script
+    src="https://aframe.io/releases/1.5.0/aframe.min.js"
+  ></script>
+
+
+
   <style>
 
     :root {
 
-      --brand-color: #FFD700;
-      --brand-hover: #e6c200;
+      --brand-color:
+        #FFD700;
 
-      --accent-teal: #008080;
+      --brand-hover:
+        #e6c200;
 
-      --dark: #1a1a1a;
-      --dark-soft: #242424;
+      --accent-teal:
+        #008080;
 
-      --light-bg: #ffffff;
-      --section-bg: #f7f8f7;
+      --dark:
+        #1a1a1a;
 
-      --text: #222;
-      --text-muted: #666;
+      --dark-soft:
+        #242424;
 
-      --border: #e8e8e8;
+      --light-bg:
+        #ffffff;
+
+      --section-bg:
+        #f7f8f7;
+
+      --text:
+        #222;
+
+      --text-muted:
+        #666;
+
+      --border:
+        #e8e8e8;
 
       --shadow:
-        0 20px 50px rgba(0,0,0,0.08);
+        0 20px 50px
+        rgba(0,0,0,0.08);
 
       --shadow-heavy:
-        0 25px 70px rgba(0,0,0,0.14);
+        0 25px 70px
+        rgba(0,0,0,0.14);
 
     }
+
 
 
     /* ========================================
@@ -59,36 +98,76 @@
     ======================================== */
 
     * {
-      margin: 0;
-      padding: 0;
-      box-sizing: border-box;
+
+      margin:
+        0;
+
+      padding:
+        0;
+
+      box-sizing:
+        border-box;
+
     }
+
 
 
     html {
-      scroll-behavior: smooth;
+
+      scroll-behavior:
+        smooth;
+
     }
+
 
 
     body {
 
-      font-family: 'Poppins', sans-serif;
+      font-family:
+        'Poppins',
+        sans-serif;
 
-      color: var(--text);
+      color:
+        var(--text);
 
       background:
         var(--light-bg);
 
-      line-height: 1.7;
+      line-height:
+        1.7;
 
-      overflow-x: hidden;
+      overflow-x:
+        hidden;
 
     }
+
+
+
+    body.viewer-open {
+
+      overflow:
+        hidden;
+
+    }
+
+
+
+    button {
+
+      font-family:
+        inherit;
+
+    }
+
 
 
     a {
-      text-decoration: none;
+
+      text-decoration:
+        none;
+
     }
+
 
 
     /* ========================================
@@ -97,74 +176,447 @@
 
     .hero {
 
-      position: relative;
+      position:
+        relative;
 
-      height: 100vh;
-      min-height: 700px;
+      height:
+        100vh;
 
-      overflow: hidden;
+      min-height:
+        700px;
 
-      display: flex;
+      overflow:
+        hidden;
 
-      align-items: center;
-      justify-content: center;
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      isolation:
+        isolate;
+
+      background:
+        #080b0b;
 
     }
 
 
+
     .hero video {
 
-      position: absolute;
+      position:
+        absolute;
 
-      inset: 0;
+      inset:
+        0;
 
-      width: 100%;
-      height: 100%;
+      width:
+        100%;
 
-      object-fit: cover;
+      height:
+        100%;
+
+      object-fit:
+        cover;
 
       filter:
         brightness(45%)
         saturate(90%);
 
-      transform: scale(1.02);
+      transform:
+        scale(1.02);
+
+      cursor:
+        pointer;
+
+      transition:
+        transform 1.2s ease,
+        filter 0.45s ease;
 
     }
 
+
+
+    .hero:hover video {
+
+      transform:
+        scale(1.035);
+
+    }
+
+
+
+    /* ========================================
+       CINEMATIC OVERLAY
+    ======================================== */
 
     .hero::after {
 
-      content: "";
+      content:
+        "";
 
-      position: absolute;
+      position:
+        absolute;
 
-      inset: 0;
+      inset:
+        0;
+
+      z-index:
+        1;
+
+      pointer-events:
+        none;
 
       background:
+
         linear-gradient(
           to bottom,
-          rgba(0,0,0,0.15),
-          rgba(0,0,0,0.55)
+          rgba(0,0,0,0.10),
+          rgba(0,0,0,0.58)
         );
-
-      z-index: 1;
 
     }
 
 
+
+    .hero-video-overlay {
+
+      position:
+        absolute;
+
+      inset:
+        0;
+
+      z-index:
+        1;
+
+      pointer-events:
+        none;
+
+      background:
+
+        linear-gradient(
+          90deg,
+          rgba(0,0,0,0.45),
+          transparent 45%,
+          rgba(0,0,0,0.16)
+        ),
+
+        linear-gradient(
+          to top,
+          rgba(0,0,0,0.60),
+          transparent 42%
+        );
+
+    }
+
+
+
+    /* ========================================
+       HERO LABEL
+    ======================================== */
+
+    .hero-video-label {
+
+      position:
+        absolute;
+
+      top:
+        105px;
+
+      left:
+        28px;
+
+      z-index:
+        5;
+
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      gap:
+        9px;
+
+      padding:
+        9px 14px;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.16);
+
+      border-radius:
+        999px;
+
+      color:
+        rgba(255,255,255,0.88);
+
+      background:
+        rgba(0,0,0,0.40);
+
+      backdrop-filter:
+        blur(12px);
+
+      -webkit-backdrop-filter:
+        blur(12px);
+
+      font-size:
+        0.68rem;
+
+      font-weight:
+        600;
+
+      letter-spacing:
+        1.2px;
+
+      text-transform:
+        uppercase;
+
+      pointer-events:
+        none;
+
+    }
+
+
+
+    .hero-video-dot {
+
+      width:
+        7px;
+
+      height:
+        7px;
+
+      border-radius:
+        50%;
+
+      background:
+        var(--brand-color);
+
+      box-shadow:
+        0 0 12px
+        rgba(255,215,0,0.85);
+
+      animation:
+        heroPulse 1.8s ease-in-out infinite;
+
+    }
+
+
+
+    @keyframes heroPulse {
+
+      0%,
+      100% {
+
+        opacity:
+          1;
+
+        transform:
+          scale(1);
+
+      }
+
+      50% {
+
+        opacity:
+          0.55;
+
+        transform:
+          scale(0.72);
+
+      }
+
+    }
+
+
+
+    /* ========================================
+       HERO TOOLS
+    ======================================== */
+
+    .hero-video-tools {
+
+      position:
+        absolute;
+
+      top:
+        105px;
+
+      right:
+        28px;
+
+      z-index:
+        7;
+
+      display:
+        flex;
+
+      gap:
+        8px;
+
+    }
+
+
+
+    .hero-video-tool {
+
+      position:
+        relative;
+
+      width:
+        44px;
+
+      height:
+        44px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.16);
+
+      border-radius:
+        50%;
+
+      background:
+        rgba(0,0,0,0.42);
+
+      color:
+        white;
+
+      font-size:
+        0.92rem;
+
+      cursor:
+        pointer;
+
+      backdrop-filter:
+        blur(12px);
+
+      -webkit-backdrop-filter:
+        blur(12px);
+
+      transition:
+        all 0.25s ease;
+
+    }
+
+
+
+    .hero-video-tool:hover {
+
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
+
+      border-color:
+        var(--brand-color);
+
+      transform:
+        translateY(-2px)
+        scale(1.04);
+
+    }
+
+
+
+    .hero-360-bubble {
+
+      position:
+        absolute;
+
+      top:
+        -4px;
+
+      right:
+        -4px;
+
+      min-width:
+        15px;
+
+      height:
+        15px;
+
+      padding:
+        0 3px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border-radius:
+        999px;
+
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
+
+      font-size:
+        0.46rem;
+
+      font-weight:
+        900;
+
+      line-height:
+        1;
+
+    }
+
+
+
+    /* ========================================
+       HERO TEXT
+    ======================================== */
+
     .hero-text {
 
-      position: relative;
+      position:
+        relative;
 
-      z-index: 2;
+      z-index:
+        4;
 
-      color: white;
+      width:
+        min(850px, calc(100% - 30px));
 
-      text-align: center;
+      padding:
+        50px 55px;
 
-      padding: 50px 55px;
+      color:
+        white;
 
-      border-radius: 28px;
+      text-align:
+        center;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.14);
+
+      border-radius:
+        28px;
 
       background:
         rgba(0,0,0,0.34);
@@ -174,10 +626,6 @@
 
       -webkit-backdrop-filter:
         blur(12px);
-
-      border:
-        1px solid
-        rgba(255,255,255,0.14);
 
       box-shadow:
         0 25px 80px
@@ -189,31 +637,43 @@
         cubic-bezier(0.23,1,0.32,1)
         forwards;
 
-      max-width: 850px;
-
     }
+
 
 
     @keyframes fadeInUp {
 
       0% {
-        opacity: 0;
-        transform: translateY(35px);
+
+        opacity:
+          0;
+
+        transform:
+          translateY(35px);
+
       }
 
       100% {
-        opacity: 1;
-        transform: translateY(0);
+
+        opacity:
+          1;
+
+        transform:
+          translateY(0);
+
       }
 
     }
 
 
+
     .hero-logo {
 
-      width: 165px;
+      width:
+        165px;
 
-      margin-bottom: 25px;
+      margin-bottom:
+        25px;
 
       filter:
         drop-shadow(
@@ -224,16 +684,44 @@
     }
 
 
+
+    .hero-kicker {
+
+      margin-bottom:
+        13px;
+
+      color:
+        rgba(255,255,255,0.58);
+
+      font-size:
+        0.70rem;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        3px;
+
+      text-transform:
+        uppercase;
+
+    }
+
+
+
     .hero-text h2 {
 
       font-size:
         clamp(2.2rem, 5vw, 4rem);
 
-      line-height: 1.15;
+      line-height:
+        1.15;
 
-      margin-bottom: 20px;
+      margin-bottom:
+        20px;
 
-      font-weight: 700;
+      font-weight:
+        700;
 
       letter-spacing:
         -1px;
@@ -241,40 +729,53 @@
     }
 
 
+
     .hero-text h2 span {
-      color: var(--brand-color);
+
+      color:
+        var(--brand-color);
+
     }
+
 
 
     .hero-text p {
 
-      margin: 0 auto 30px;
+      max-width:
+        650px;
 
-      max-width: 650px;
-
-      font-size: 1.12rem;
-
-      font-weight: 300;
-
-      letter-spacing:
-        0.5px;
+      margin:
+        0 auto 30px;
 
       color:
         rgba(255,255,255,0.88);
 
+      font-size:
+        1.12rem;
+
+      font-weight:
+        300;
+
+      letter-spacing:
+        0.5px;
+
     }
+
 
 
     .hero-btn {
 
-      background:
-        var(--brand-color);
+      display:
+        inline-flex;
 
-      color:
-        var(--dark);
+      align-items:
+        center;
 
-      font-weight:
-        700;
+      justify-content:
+        center;
+
+      gap:
+        10px;
 
       padding:
         16px 38px;
@@ -282,11 +783,17 @@
       border-radius:
         50px;
 
-      display:
-        inline-block;
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
 
       font-size:
         1rem;
+
+      font-weight:
+        700;
 
       transition:
         all 0.3s ease;
@@ -296,6 +803,7 @@
         rgba(255,215,0,0.25);
 
     }
+
 
 
     .hero-btn:hover {
@@ -313,14 +821,251 @@
     }
 
 
+
+    .hero-btn-arrow {
+
+      transition:
+        transform 0.25s ease;
+
+    }
+
+
+
+    .hero-btn:hover
+    .hero-btn-arrow {
+
+      transform:
+        translateX(5px);
+
+    }
+
+
+
+    /* ========================================
+       HERO HINT
+    ======================================== */
+
+    .video-fullscreen-hint {
+
+      position:
+        absolute;
+
+      right:
+        22px;
+
+      bottom:
+        22px;
+
+      z-index:
+        5;
+
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      gap:
+        7px;
+
+      padding:
+        9px 14px;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.18);
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(0,0,0,0.55);
+
+      color:
+        rgba(255,255,255,0.94);
+
+      font-size:
+        0.72rem;
+
+      font-weight:
+        500;
+
+      letter-spacing:
+        0.3px;
+
+      pointer-events:
+        none;
+
+      backdrop-filter:
+        blur(8px);
+
+      -webkit-backdrop-filter:
+        blur(8px);
+
+      opacity:
+        0.85;
+
+      transition:
+        all 0.3s ease;
+
+    }
+
+
+
+    .hero:hover
+    .video-fullscreen-hint {
+
+      opacity:
+        1;
+
+      transform:
+        translateY(-2px);
+
+    }
+
+
+
+    .video-fullscreen-icon {
+
+      font-size:
+        0.95rem;
+
+    }
+
+
+
+    /* ========================================
+       HERO BOTTOM META
+    ======================================== */
+
+    .hero-bottom-meta {
+
+      position:
+        absolute;
+
+      left:
+        28px;
+
+      right:
+        28px;
+
+      bottom:
+        24px;
+
+      z-index:
+        5;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        space-between;
+
+      pointer-events:
+        none;
+
+    }
+
+
+
+    .hero-scroll-text {
+
+      color:
+        rgba(255,255,255,0.55);
+
+      font-size:
+        0.63rem;
+
+      font-weight:
+        600;
+
+      letter-spacing:
+        2px;
+
+    }
+
+
+
+    .hero-scroll-line {
+
+      width:
+        140px;
+
+      height:
+        2px;
+
+      overflow:
+        hidden;
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(255,255,255,0.18);
+
+    }
+
+
+
+    .hero-scroll-line span {
+
+      display:
+        block;
+
+      width:
+        35%;
+
+      height:
+        100%;
+
+      border-radius:
+        inherit;
+
+      background:
+        var(--brand-color);
+
+      animation:
+        heroScan 2.5s ease-in-out infinite;
+
+    }
+
+
+
+    @keyframes heroScan {
+
+      0% {
+
+        transform:
+          translateX(-120%);
+
+      }
+
+      50% {
+
+        transform:
+          translateX(180%);
+
+      }
+
+      100% {
+
+        transform:
+          translateX(300%);
+
+      }
+
+    }
+
+
+
     /* ========================================
        SECTION HEADINGS
     ======================================== */
 
     .section-heading {
-
-      text-align:
-        center;
 
       max-width:
         720px;
@@ -328,7 +1073,11 @@
       margin:
         0 auto 55px;
 
+      text-align:
+        center;
+
     }
+
 
 
     .section-label {
@@ -348,22 +1097,17 @@
       font-weight:
         700;
 
-      text-transform:
-        uppercase;
-
       letter-spacing:
         2.5px;
+
+      text-transform:
+        uppercase;
 
     }
 
 
+
     .section-heading h2 {
-
-      font-size:
-        clamp(2rem,4vw,3rem);
-
-      line-height:
-        1.2;
 
       margin-bottom:
         15px;
@@ -371,7 +1115,14 @@
       color:
         var(--dark);
 
+      font-size:
+        clamp(2rem,4vw,3rem);
+
+      line-height:
+        1.2;
+
     }
+
 
 
     .section-heading p {
@@ -385,14 +1136,12 @@
     }
 
 
+
     /* ========================================
        ABOUT
     ======================================== */
 
     #about {
-
-      padding:
-        110px 8%;
 
       display:
         grid;
@@ -406,10 +1155,14 @@
       align-items:
         center;
 
+      padding:
+        110px 8%;
+
       background:
         var(--light-bg);
 
     }
+
 
 
     .about-image-stack {
@@ -421,6 +1174,7 @@
         0 18px 18px 0;
 
     }
+
 
 
     .about-image-stack::after {
@@ -453,10 +1207,18 @@
       z-index:
         0;
 
+      pointer-events:
+        none;
+
     }
 
 
-    .about-image-stack img {
+
+    /* ========================================
+       360 EXPERIENCE CARD
+    ======================================== */
+
+    .experience-card {
 
       position:
         relative;
@@ -464,23 +1226,598 @@
       z-index:
         1;
 
+      min-height:
+        430px;
+
       width:
         100%;
 
-      display:
-        block;
+      overflow:
+        hidden;
+
+      cursor:
+        pointer;
+
+      border:
+        1px solid
+        rgba(0,128,128,0.20);
 
       border-radius:
         24px;
 
+      background:
+        linear-gradient(
+          145deg,
+          #073d3d,
+          #061b1b
+        );
+
       box-shadow:
         var(--shadow-heavy);
 
-      object-fit:
-        cover;
+      outline:
+        none;
+
+      transition:
+        transform 0.4s ease,
+        box-shadow 0.4s ease;
 
     }
 
+
+
+    .experience-card:hover {
+
+      transform:
+        translateY(-7px);
+
+      box-shadow:
+        0 32px 85px
+        rgba(0,0,0,0.22);
+
+    }
+
+
+
+    .experience-card:focus-visible {
+
+      box-shadow:
+        0 0 0 3px
+        rgba(255,215,0,0.40),
+        var(--shadow-heavy);
+
+    }
+
+
+
+    .experience-card-bg {
+
+      position:
+        absolute;
+
+      inset:
+        0;
+
+      background:
+
+        linear-gradient(
+          145deg,
+          rgba(0,0,0,0.16),
+          rgba(0,0,0,0.78)
+        ),
+
+        url("/images/resort1.jpg")
+        center / cover no-repeat;
+
+      transform:
+        scale(1.03);
+
+      transition:
+        transform 0.7s ease;
+
+    }
+
+
+
+    .experience-card:hover
+    .experience-card-bg {
+
+      transform:
+        scale(1.08);
+
+    }
+
+
+
+    .experience-card-glow {
+
+      position:
+        absolute;
+
+      width:
+        260px;
+
+      height:
+        260px;
+
+      top:
+        -140px;
+
+      right:
+        -110px;
+
+      border-radius:
+        50%;
+
+      background:
+        rgba(255,215,0,0.13);
+
+      filter:
+        blur(4px);
+
+      animation:
+        floatGlow 6s ease-in-out
+        infinite;
+
+    }
+
+
+
+    @keyframes floatGlow {
+
+      0%,
+      100% {
+
+        transform:
+          translate(0,0);
+
+        opacity:
+          0.65;
+
+      }
+
+      50% {
+
+        transform:
+          translate(-20px,20px);
+
+        opacity:
+          1;
+
+      }
+
+    }
+
+
+
+    .experience-card-content {
+
+      position:
+        relative;
+
+      z-index:
+        2;
+
+      min-height:
+        430px;
+
+      display:
+        flex;
+
+      flex-direction:
+        column;
+
+      justify-content:
+        space-between;
+
+      padding:
+        30px;
+
+    }
+
+
+
+    .experience-top {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        space-between;
+
+      gap:
+        15px;
+
+    }
+
+
+
+    .experience-badge {
+
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      gap:
+        8px;
+
+      padding:
+        9px 14px;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.18);
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(0,0,0,0.40);
+
+      color:
+        white;
+
+      font-size:
+        0.72rem;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        1px;
+
+      text-transform:
+        uppercase;
+
+      backdrop-filter:
+        blur(10px);
+
+      -webkit-backdrop-filter:
+        blur(10px);
+
+    }
+
+
+
+    .experience-badge-dot {
+
+      width:
+        7px;
+
+      height:
+        7px;
+
+      border-radius:
+        50%;
+
+      background:
+        var(--brand-color);
+
+      box-shadow:
+        0 0 12px
+        rgba(255,215,0,0.75);
+
+    }
+
+
+
+    .experience-rotate {
+
+      width:
+        42px;
+
+      height:
+        42px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.18);
+
+      border-radius:
+        50%;
+
+      background:
+        rgba(0,0,0,0.40);
+
+      color:
+        white;
+
+      font-size:
+        1.1rem;
+
+      backdrop-filter:
+        blur(10px);
+
+      -webkit-backdrop-filter:
+        blur(10px);
+
+      animation:
+        spinSlow 9s linear infinite;
+
+    }
+
+
+
+    @keyframes spinSlow {
+
+      from {
+
+        transform:
+          rotate(0deg);
+
+      }
+
+      to {
+
+        transform:
+          rotate(360deg);
+
+      }
+
+    }
+
+
+
+    .experience-center {
+
+      display:
+        flex;
+
+      flex-direction:
+        column;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      padding:
+        20px;
+
+      text-align:
+        center;
+
+    }
+
+
+
+    .experience-play {
+
+      width:
+        88px;
+
+      height:
+        88px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      padding-left:
+        4px;
+
+      border-radius:
+        50%;
+
+      background:
+        rgba(255,215,0,0.96);
+
+      color:
+        var(--dark);
+
+      font-size:
+        1.6rem;
+
+      box-shadow:
+        0 15px 45px
+        rgba(0,0,0,0.28),
+        0 0 0 10px
+        rgba(255,215,0,0.10);
+
+      animation:
+        pulsePlay 2.3s ease-in-out
+        infinite;
+
+      transition:
+        transform 0.3s ease,
+        box-shadow 0.3s ease;
+
+    }
+
+
+
+    .experience-card:hover
+    .experience-play {
+
+      transform:
+        scale(1.10);
+
+    }
+
+
+
+    @keyframes pulsePlay {
+
+      0%,
+      100% {
+
+        box-shadow:
+          0 15px 45px
+          rgba(0,0,0,0.28),
+          0 0 0 10px
+          rgba(255,215,0,0.10);
+
+      }
+
+      50% {
+
+        box-shadow:
+          0 15px 45px
+          rgba(0,0,0,0.28),
+          0 0 0 17px
+          rgba(255,215,0,0.035);
+
+      }
+
+    }
+
+
+
+    .experience-center h3 {
+
+      margin-top:
+        22px;
+
+      color:
+        white;
+
+      font-size:
+        clamp(1.5rem,3vw,2.1rem);
+
+      line-height:
+        1.2;
+
+    }
+
+
+
+    .experience-center p {
+
+      max-width:
+        390px;
+
+      margin-top:
+        10px;
+
+      color:
+        rgba(255,255,255,0.78);
+
+      font-size:
+        0.90rem;
+
+    }
+
+
+
+    .experience-bottom {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        space-between;
+
+      gap:
+        15px;
+
+      padding-top:
+        20px;
+
+      border-top:
+        1px solid
+        rgba(255,255,255,0.12);
+
+    }
+
+
+
+    .experience-instruction {
+
+      color:
+        rgba(255,255,255,0.72);
+
+      font-size:
+        0.75rem;
+
+    }
+
+
+
+    .experience-open {
+
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      gap:
+        7px;
+
+      padding:
+        10px 15px;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.18);
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(255,255,255,0.10);
+
+      color:
+        white;
+
+      font-size:
+        0.74rem;
+
+      font-weight:
+        600;
+
+      white-space:
+        nowrap;
+
+      transition:
+        all 0.25s ease;
+
+    }
+
+
+
+    .experience-card:hover
+    .experience-open {
+
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
+
+      border-color:
+        var(--brand-color);
+
+    }
+
+
+
+    /* ========================================
+       ABOUT CONTENT
+    ======================================== */
 
     .about-content {
 
@@ -488,6 +1825,7 @@
         relative;
 
     }
+
 
 
     .about-content .section-label {
@@ -498,7 +1836,14 @@
     }
 
 
+
     .about-content h2 {
+
+      margin-bottom:
+        22px;
+
+      color:
+        var(--dark);
 
       font-size:
         clamp(2rem,4vw,2.8rem);
@@ -506,13 +1851,8 @@
       line-height:
         1.2;
 
-      color:
-        var(--dark);
-
-      margin-bottom:
-        22px;
-
     }
+
 
 
     .about-content h2::after {
@@ -529,43 +1869,732 @@
       height:
         5px;
 
-      background:
-        var(--brand-color);
+      margin-top:
+        15px;
 
       border-radius:
         20px;
 
-      margin-top:
-        15px;
+      background:
+        var(--brand-color);
 
     }
+
 
 
     .about-content p {
 
-      font-size:
-        1.02rem;
+      margin-bottom:
+        20px;
 
       color:
         var(--text-muted);
 
-      margin-bottom:
-        20px;
+      font-size:
+        1.02rem;
 
     }
+
 
 
     .about-content strong {
+
       color:
         var(--dark);
+
     }
 
 
+
     /* ========================================
-       CONTACT SECTION
+       SHARED 360 VIEWER
+    ======================================== */
+
+    .viewer-overlay {
+
+      position:
+        fixed;
+
+      inset:
+        0;
+
+      z-index:
+        99999;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      background:
+        #020606;
+
+      opacity:
+        0;
+
+      visibility:
+        hidden;
+
+      pointer-events:
+        none;
+
+      transition:
+        opacity 0.35s ease,
+        visibility 0.35s ease;
+
+    }
+
+
+
+    .viewer-overlay.active {
+
+      opacity:
+        1;
+
+      visibility:
+        visible;
+
+      pointer-events:
+        auto;
+
+    }
+
+
+
+    .viewer-shell {
+
+      position:
+        relative;
+
+      width:
+        100%;
+
+      height:
+        100%;
+
+      overflow:
+        hidden;
+
+      background:
+        #020606;
+
+    }
+
+
+
+    .viewer-scene {
+
+      position:
+        absolute;
+
+      inset:
+        0;
+
+      width:
+        100%;
+
+      height:
+        100%;
+
+      touch-action:
+        none;
+
+    }
+
+
+
+    .viewer-scene a-scene {
+
+      width:
+        100% !important;
+
+      height:
+        100% !important;
+
+    }
+
+
+
+    /* ========================================
+       VIEWER HEADER
+    ======================================== */
+
+    .viewer-topbar {
+
+      position:
+        absolute;
+
+      top:
+        18px;
+
+      left:
+        18px;
+
+      right:
+        18px;
+
+      z-index:
+        40;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        space-between;
+
+      gap:
+        15px;
+
+      pointer-events:
+        none;
+
+    }
+
+
+
+    .viewer-title {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      gap:
+        11px;
+
+      padding:
+        11px 15px;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.14);
+
+      border-radius:
+        15px;
+
+      background:
+        rgba(0,0,0,0.48);
+
+      color:
+        white;
+
+      backdrop-filter:
+        blur(14px);
+
+      -webkit-backdrop-filter:
+        blur(14px);
+
+      pointer-events:
+        auto;
+
+    }
+
+
+
+    .viewer-title-icon {
+
+      width:
+        36px;
+
+      height:
+        36px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border-radius:
+        10px;
+
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
+
+      font-size:
+        0.66rem;
+
+      font-weight:
+        900;
+
+    }
+
+
+
+    .viewer-title-text strong {
+
+      display:
+        block;
+
+      font-size:
+        0.83rem;
+
+      line-height:
+        1.2;
+
+    }
+
+
+
+    .viewer-title-text span {
+
+      display:
+        block;
+
+      margin-top:
+        3px;
+
+      color:
+        rgba(255,255,255,0.58);
+
+      font-size:
+        0.65rem;
+
+    }
+
+
+
+    .viewer-close {
+
+      width:
+        46px;
+
+      height:
+        46px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.17);
+
+      border-radius:
+        50%;
+
+      background:
+        rgba(0,0,0,0.48);
+
+      color:
+        white;
+
+      font-size:
+        1.25rem;
+
+      cursor:
+        pointer;
+
+      backdrop-filter:
+        blur(14px);
+
+      -webkit-backdrop-filter:
+        blur(14px);
+
+      transition:
+        all 0.25s ease;
+
+      pointer-events:
+        auto;
+
+    }
+
+
+
+    .viewer-close:hover {
+
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
+
+      border-color:
+        var(--brand-color);
+
+      transform:
+        rotate(90deg);
+
+    }
+
+
+
+    /* ========================================
+       VIEWER HELP
+    ======================================== */
+
+    .viewer-help {
+
+      position:
+        absolute;
+
+      top:
+        50%;
+
+      left:
+        50%;
+
+      z-index:
+        35;
+
+      width:
+        max-content;
+
+      max-width:
+        calc(100% - 40px);
+
+      padding:
+        18px 23px;
+
+      transform:
+        translate(-50%, -50%);
+
+      border:
+        1px solid
+        rgba(255,255,255,0.12);
+
+      border-radius:
+        17px;
+
+      background:
+        rgba(0,0,0,0.42);
+
+      color:
+        white;
+
+      text-align:
+        center;
+
+      backdrop-filter:
+        blur(14px);
+
+      -webkit-backdrop-filter:
+        blur(14px);
+
+      pointer-events:
+        none;
+
+      transition:
+        opacity 0.7s ease,
+        transform 0.7s ease;
+
+    }
+
+
+
+    .viewer-help.hidden {
+
+      opacity:
+        0;
+
+      transform:
+        translate(-50%, -50%)
+        scale(0.95);
+
+    }
+
+
+
+    .viewer-help-icon {
+
+      margin-bottom:
+        5px;
+
+      font-size:
+        2.1rem;
+
+    }
+
+
+
+    .viewer-help strong {
+
+      display:
+        block;
+
+      font-size:
+        0.9rem;
+
+    }
+
+
+
+    .viewer-help span {
+
+      display:
+        block;
+
+      margin-top:
+        4px;
+
+      color:
+        rgba(255,255,255,0.66);
+
+      font-size:
+        0.72rem;
+
+    }
+
+
+
+    /* ========================================
+       VIEWER BADGE
+    ======================================== */
+
+    .viewer-badge {
+
+      position:
+        absolute;
+
+      left:
+        20px;
+
+      bottom:
+        24px;
+
+      z-index:
+        35;
+
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      gap:
+        8px;
+
+      padding:
+        8px 13px;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.12);
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(0,0,0,0.44);
+
+      color:
+        white;
+
+      font-size:
+        0.68rem;
+
+      font-weight:
+        600;
+
+      backdrop-filter:
+        blur(12px);
+
+      -webkit-backdrop-filter:
+        blur(12px);
+
+    }
+
+
+
+    .viewer-badge strong {
+
+      color:
+        var(--brand-color);
+
+    }
+
+
+
+    /* ========================================
+       VIEWER CONTROLS
+    ======================================== */
+
+    .viewer-controls {
+
+      position:
+        absolute;
+
+      left:
+        50%;
+
+      bottom:
+        21px;
+
+      z-index:
+        40;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      gap:
+        8px;
+
+      padding:
+        9px;
+
+      transform:
+        translateX(-50%);
+
+      border:
+        1px solid
+        rgba(255,255,255,0.14);
+
+      border-radius:
+        18px;
+
+      background:
+        rgba(0,0,0,0.55);
+
+      backdrop-filter:
+        blur(16px);
+
+      -webkit-backdrop-filter:
+        blur(16px);
+
+      box-shadow:
+        0 18px 50px
+        rgba(0,0,0,0.30);
+
+    }
+
+
+
+    .viewer-control {
+
+      min-width:
+        44px;
+
+      height:
+        44px;
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      border:
+        1px solid
+        rgba(255,255,255,0.12);
+
+      border-radius:
+        13px;
+
+      background:
+        rgba(255,255,255,0.07);
+
+      color:
+        white;
+
+      cursor:
+        pointer;
+
+      font-size:
+        1rem;
+
+      transition:
+        all 0.22s ease;
+
+    }
+
+
+
+    .viewer-control:hover {
+
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
+
+      border-color:
+        var(--brand-color);
+
+      transform:
+        translateY(-2px);
+
+    }
+
+
+
+    .viewer-control.primary {
+
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
+
+      border-color:
+        var(--brand-color);
+
+    }
+
+
+
+    .viewer-control-label {
+
+      display:
+        inline-block;
+
+      margin-left:
+        4px;
+
+      color:
+        rgba(255,255,255,0.56);
+
+      font-size:
+        0.61rem;
+
+      font-weight:
+        600;
+
+      letter-spacing:
+        0.7px;
+
+      text-transform:
+        uppercase;
+
+      pointer-events:
+        none;
+
+    }
+
+
+
+    /* ========================================
+       CONTACT
     ======================================== */
 
     #contact {
+
+      position:
+        relative;
 
       padding:
         110px 6%;
@@ -573,19 +2602,11 @@
       background:
         var(--section-bg);
 
-      position:
-        relative;
-
     }
 
 
+
     .contact-wrapper {
-
-      max-width:
-        1250px;
-
-      margin:
-        0 auto;
 
       display:
         grid;
@@ -596,10 +2617,17 @@
       gap:
         30px;
 
+      max-width:
+        1250px;
+
+      margin:
+        0 auto;
+
       align-items:
         stretch;
 
     }
+
 
 
     /* ========================================
@@ -608,29 +2636,30 @@
 
     .map-card {
 
+      position:
+        relative;
+
       min-height:
         560px;
 
-      background:
-        white;
-
-      border-radius:
-        28px;
-
       overflow:
         hidden;
-
-      box-shadow:
-        var(--shadow);
 
       border:
         1px solid
         rgba(0,0,0,0.04);
 
-      position:
-        relative;
+      border-radius:
+        28px;
+
+      background:
+        white;
+
+      box-shadow:
+        var(--shadow);
 
     }
+
 
 
     .map {
@@ -645,6 +2674,7 @@
         560px;
 
     }
+
 
 
     .map iframe {
@@ -664,22 +2694,20 @@
     }
 
 
+
     .map-label {
 
       position:
         absolute;
 
-      left:
+      top:
         20px;
 
-      top:
+      left:
         20px;
 
       z-index:
         2;
-
-      background:
-        rgba(255,255,255,0.95);
 
       padding:
         10px 16px;
@@ -687,9 +2715,11 @@
       border-radius:
         12px;
 
-      box-shadow:
-        0 8px 25px
-        rgba(0,0,0,0.12);
+      background:
+        rgba(255,255,255,0.95);
+
+      color:
+        var(--dark);
 
       font-size:
         0.8rem;
@@ -697,8 +2727,9 @@
       font-weight:
         600;
 
-      color:
-        var(--dark);
+      box-shadow:
+        0 8px 25px
+        rgba(0,0,0,0.12);
 
       backdrop-filter:
         blur(8px);
@@ -706,26 +2737,15 @@
     }
 
 
+
     /* ========================================
-       CONTACT INFORMATION CARD
+       CONTACT CARD
     ======================================== */
 
     .contact-card {
 
-      background:
-        var(--dark);
-
-      color:
-        white;
-
-      border-radius:
-        28px;
-
-      padding:
-        45px;
-
-      box-shadow:
-        var(--shadow-heavy);
+      position:
+        relative;
 
       display:
         flex;
@@ -736,13 +2756,26 @@
       justify-content:
         center;
 
-      position:
-        relative;
-
       overflow:
         hidden;
 
+      padding:
+        45px;
+
+      border-radius:
+        28px;
+
+      background:
+        var(--dark);
+
+      color:
+        white;
+
+      box-shadow:
+        var(--shadow-heavy);
+
     }
+
 
 
     .contact-card::before {
@@ -759,19 +2792,20 @@
       height:
         260px;
 
-      border-radius:
-        50%;
-
-      background:
-        rgba(255,215,0,0.06);
-
       top:
         -120px;
 
       right:
         -100px;
 
+      border-radius:
+        50%;
+
+      background:
+        rgba(255,215,0,0.06);
+
     }
+
 
 
     .contact-card::after {
@@ -788,20 +2822,21 @@
       height:
         180px;
 
-      border-radius:
-        50%;
-
-      border:
-        1px solid
-        rgba(255,215,0,0.12);
-
       bottom:
         -90px;
 
       left:
         -80px;
 
+      border:
+        1px solid
+        rgba(255,215,0,0.12);
+
+      border-radius:
+        50%;
+
     }
+
 
 
     .contact-card-content {
@@ -815,7 +2850,11 @@
     }
 
 
+
     .contact-eyebrow {
+
+      margin-bottom:
+        12px;
 
       color:
         var(--brand-color);
@@ -832,13 +2871,14 @@
       text-transform:
         uppercase;
 
-      margin-bottom:
-        12px;
-
     }
 
 
+
     .contact-card h3 {
+
+      margin-bottom:
+        15px;
 
       font-size:
         clamp(1.8rem,3vw,2.35rem);
@@ -846,32 +2886,24 @@
       line-height:
         1.2;
 
-      margin-bottom:
-        15px;
-
     }
+
 
 
     .contact-intro {
 
+      margin-bottom:
+        35px;
+
       color:
-        rgba(255,255,255,0.7);
+        rgba(255,255,255,0.70);
 
       font-size:
         0.95rem;
 
-      margin-bottom:
-        35px;
-
-      line-height:
-        1.7;
-
     }
 
 
-    /* ========================================
-       CONTACT ITEMS
-    ======================================== */
 
     .contact-details {
 
@@ -885,6 +2917,7 @@
         22px;
 
     }
+
 
 
     .contact-item {
@@ -901,6 +2934,7 @@
     }
 
 
+
     .contact-icon {
 
       flex:
@@ -912,16 +2946,6 @@
       height:
         45px;
 
-      border-radius:
-        13px;
-
-      background:
-        rgba(255,215,0,0.1);
-
-      border:
-        1px solid
-        rgba(255,215,0,0.18);
-
       display:
         flex;
 
@@ -930,6 +2954,16 @@
 
       justify-content:
         center;
+
+      border:
+        1px solid
+        rgba(255,215,0,0.18);
+
+      border-radius:
+        13px;
+
+      background:
+        rgba(255,215,0,0.10);
 
       color:
         var(--brand-color);
@@ -940,6 +2974,7 @@
     }
 
 
+
     .contact-item-text {
 
       min-width:
@@ -948,10 +2983,14 @@
     }
 
 
+
     .contact-item-label {
 
       display:
         block;
+
+      margin-bottom:
+        2px;
 
       color:
         rgba(255,255,255,0.45);
@@ -959,16 +2998,14 @@
       font-size:
         0.68rem;
 
-      text-transform:
-        uppercase;
-
       letter-spacing:
         1.5px;
 
-      margin-bottom:
-        2px;
+      text-transform:
+        uppercase;
 
     }
+
 
 
     .contact-item a,
@@ -986,12 +3023,14 @@
     }
 
 
+
     .contact-item a {
 
       transition:
         color 0.25s ease;
 
     }
+
 
 
     .contact-item a:hover {
@@ -1002,9 +3041,6 @@
     }
 
 
-    /* ========================================
-       BUSINESS HOURS
-    ======================================== */
 
     .business-hours {
 
@@ -1016,12 +3052,16 @@
 
       border-top:
         1px solid
-        rgba(255,255,255,0.1);
+        rgba(255,255,255,0.10);
 
     }
 
 
+
     .business-hours-title {
+
+      margin-bottom:
+        10px;
 
       color:
         white;
@@ -1032,16 +3072,14 @@
       font-weight:
         600;
 
-      margin-bottom:
-        10px;
-
     }
+
 
 
     .business-hours p {
 
       color:
-        rgba(255,255,255,0.6);
+        rgba(255,255,255,0.60);
 
       font-size:
         0.82rem;
@@ -1049,9 +3087,6 @@
     }
 
 
-    /* ========================================
-       FACEBOOK BUTTON
-    ======================================== */
 
     .contact-btn {
 
@@ -1070,32 +3105,33 @@
       margin-top:
         30px;
 
-      background:
-        var(--brand-color);
-
-      color:
-        var(--dark);
-
       padding:
         15px 22px;
 
       border-radius:
         14px;
 
-      font-weight:
-        700;
+      background:
+        var(--brand-color);
+
+      color:
+        var(--dark);
 
       font-size:
         0.9rem;
 
-      transition:
-        all 0.3s ease;
+      font-weight:
+        700;
 
       box-shadow:
         0 8px 20px
         rgba(255,215,0,0.15);
 
+      transition:
+        all 0.3s ease;
+
     }
+
 
 
     .contact-btn:hover {
@@ -1108,9 +3144,10 @@
 
       box-shadow:
         0 12px 25px
-        rgba(255,255,255,0.1);
+        rgba(255,255,255,0.10);
 
     }
+
 
 
     /* ========================================
@@ -1119,22 +3156,23 @@
 
     footer {
 
+      padding:
+        35px 20px;
+
       background:
         #111;
 
       color:
-        rgba(255,255,255,0.6);
+        rgba(255,255,255,0.60);
 
       text-align:
         center;
-
-      padding:
-        35px 20px;
 
       font-size:
         0.82rem;
 
     }
+
 
 
     footer strong {
@@ -1145,8 +3183,9 @@
     }
 
 
+
     /* ========================================
-       RESPONSIVE
+       TABLET
     ======================================== */
 
     @media (max-width: 992px) {
@@ -1156,13 +3195,14 @@
         grid-template-columns:
           1fr;
 
-        padding:
-          85px 7%;
-
         gap:
           50px;
 
+        padding:
+          85px 7%;
+
       }
+
 
 
       .about-content {
@@ -1173,12 +3213,14 @@
       }
 
 
+
       .about-content .section-label {
 
         text-align:
           center;
 
       }
+
 
 
       .about-content h2::after {
@@ -1192,12 +3234,14 @@
       }
 
 
+
       .contact-wrapper {
 
         grid-template-columns:
           1fr;
 
       }
+
 
 
       .map-card,
@@ -1208,8 +3252,23 @@
 
       }
 
+
+
+      .experience-card,
+      .experience-card-content {
+
+        min-height:
+          460px;
+
+      }
+
     }
 
+
+
+    /* ========================================
+       MOBILE
+    ======================================== */
 
     @media (max-width: 600px) {
 
@@ -1219,6 +3278,7 @@
           620px;
 
       }
+
 
 
       .hero-text {
@@ -1235,12 +3295,26 @@
       }
 
 
+
       .hero-logo {
 
         width:
           130px;
 
       }
+
+
+
+      .hero-kicker {
+
+        font-size:
+          0.58rem;
+
+        letter-spacing:
+          2px;
+
+      }
+
 
 
       .hero-text p {
@@ -1251,15 +3325,113 @@
       }
 
 
+
       .hero-btn {
 
         padding:
           14px 28px;
 
         font-size:
-          0.9rem;
+          0.90rem;
 
       }
+
+
+
+      .hero-video-label {
+
+        top:
+          86px;
+
+        left:
+          15px;
+
+        padding:
+          8px 11px;
+
+        font-size:
+          0.58rem;
+
+      }
+
+
+
+      .hero-video-tools {
+
+        top:
+          85px;
+
+        right:
+          15px;
+
+      }
+
+
+
+      .hero-video-tool {
+
+        width:
+          40px;
+
+        height:
+          40px;
+
+        font-size:
+          0.82rem;
+
+      }
+
+
+
+      .video-fullscreen-hint {
+
+        right:
+          15px;
+
+        bottom:
+          15px;
+
+        padding:
+          8px 11px;
+
+        font-size:
+          0.65rem;
+
+      }
+
+
+
+      .hero-bottom-meta {
+
+        left:
+          15px;
+
+        right:
+          15px;
+
+        bottom:
+          15px;
+
+      }
+
+
+
+      .hero-scroll-text {
+
+        font-size:
+          0.52rem;
+
+      }
+
+
+
+      .hero-scroll-line {
+
+        width:
+          90px;
+
+      }
+
 
 
       #about {
@@ -1270,12 +3442,239 @@
       }
 
 
+
+      .about-image-stack {
+
+        padding:
+          0 10px 10px 0;
+
+      }
+
+
+
+      .experience-card {
+
+        min-height:
+          390px;
+
+        border-radius:
+          22px;
+
+      }
+
+
+
+      .experience-card-content {
+
+        min-height:
+          390px;
+
+        padding:
+          24px;
+
+      }
+
+
+
+      .experience-center {
+
+        padding:
+          10px;
+
+      }
+
+
+
+      .experience-play {
+
+        width:
+          75px;
+
+        height:
+          75px;
+
+        font-size:
+          1.35rem;
+
+      }
+
+
+
+      .experience-center h3 {
+
+        font-size:
+          1.5rem;
+
+      }
+
+
+
+      .experience-center p {
+
+        font-size:
+          0.82rem;
+
+      }
+
+
+
+      .experience-bottom {
+
+        flex-direction:
+          column;
+
+        align-items:
+          flex-start;
+
+      }
+
+
+
+      .experience-open {
+
+        align-self:
+          flex-start;
+
+      }
+
+
+
+      .viewer-topbar {
+
+        top:
+          10px;
+
+        left:
+          10px;
+
+        right:
+          10px;
+
+      }
+
+
+
+      .viewer-title {
+
+        padding:
+          9px 11px;
+
+      }
+
+
+
+      .viewer-title-icon {
+
+        width:
+          30px;
+
+        height:
+          30px;
+
+      }
+
+
+
+      .viewer-title-text strong {
+
+        font-size:
+          0.74rem;
+
+      }
+
+
+
+      .viewer-title-text span {
+
+        font-size:
+          0.59rem;
+
+      }
+
+
+
+      .viewer-close {
+
+        width:
+          42px;
+
+        height:
+          42px;
+
+      }
+
+
+
+      .viewer-help {
+
+        width:
+          calc(100% - 40px);
+
+      }
+
+
+
+      .viewer-controls {
+
+        bottom:
+          15px;
+
+        gap:
+          5px;
+
+        padding:
+          7px;
+
+        border-radius:
+          15px;
+
+      }
+
+
+
+      .viewer-control {
+
+        min-width:
+          40px;
+
+        height:
+          40px;
+
+        border-radius:
+          11px;
+
+      }
+
+
+
+      .viewer-control-label {
+
+        display:
+          none;
+
+      }
+
+
+
+      .viewer-badge {
+
+        left:
+          12px;
+
+        bottom:
+          18px;
+
+      }
+
+
+
       #contact {
 
         padding:
           70px 15px;
 
       }
+
 
 
       .contact-card {
@@ -1289,12 +3688,14 @@
       }
 
 
+
       .map-card {
 
         border-radius:
           22px;
 
       }
+
 
 
       .map,
@@ -1304,6 +3705,7 @@
           330px;
 
       }
+
 
 
       .contact-icon {
@@ -1326,7 +3728,9 @@
 </head>
 
 
+
 <body>
+
 
 
   <!-- ======================================
@@ -1334,6 +3738,7 @@
   ======================================= -->
 
   <%- include('partials/navbar') %>
+
 
 
   <!-- ======================================
@@ -1345,21 +3750,115 @@
     id="home"
   >
 
+
+
+    <!-- ====================================
+         CINEMATIC HERO VIDEO
+    ===================================== -->
+
     <video
+      id="heroResortVideo"
       autoplay
       muted
       loop
       playsinline
+      preload="metadata"
       poster="/images/resort1.jpg"
+      aria-label="Puffer Isle Resort cinematic video"
     >
 
       <source
-        src="/videos/resort2.mp4"
+        src="/videos/forindexnavideo.mp4"
         type="video/mp4"
       >
 
+      Your browser does not support HTML5 video.
+
     </video>
 
+
+
+    <div class="hero-video-overlay"></div>
+
+
+
+    <!-- ====================================
+         HERO LABEL
+    ===================================== -->
+
+    <div class="hero-video-label">
+
+      <span class="hero-video-dot"></span>
+
+      <span>
+        Puffer Isle Cinematic
+      </span>
+
+    </div>
+
+
+
+    <!-- ====================================
+         HERO CONTROLS
+    ===================================== -->
+
+    <div class="hero-video-tools">
+
+
+
+      <button
+        type="button"
+        id="heroMuteBtn"
+        class="hero-video-tool"
+        aria-label="Turn sound on"
+        title="Sound"
+      >
+
+        🔇
+
+      </button>
+
+
+
+      <button
+        type="button"
+        id="heroImmersiveBtn"
+        class="hero-video-tool"
+        aria-label="Open immersive 360 experience"
+        title="Immersive 360"
+      >
+
+        ◉
+
+        <span class="hero-360-bubble">
+          360
+        </span>
+
+      </button>
+
+    </div>
+
+
+
+    <!-- ====================================
+         HERO HINT
+    ===================================== -->
+
+    <div class="video-fullscreen-hint">
+
+      <span class="video-fullscreen-icon">
+        ⛶
+      </span>
+
+      Explore immersive view
+
+    </div>
+
+
+
+    <!-- ====================================
+         HERO CONTENT
+    ===================================== -->
 
     <div class="hero-text">
 
@@ -1370,16 +3869,35 @@
       >
 
 
+
+      <div class="hero-kicker">
+
+        ESCAPE. EXPLORE. EXPERIENCE.
+
+      </div>
+
+
+
       <h2>
+
         Experience
-        <span>Puffer Isle</span>
+
+        <span>
+          Puffer Isle
+        </span>
+
       </h2>
 
 
+
       <p>
+
         A sanctuary where the sky kisses the sea
+
         and luxury meets the wild.
+
       </p>
+
 
 
       <% if (user) { %>
@@ -1388,7 +3906,13 @@
           href="/booking"
           class="hero-btn"
         >
+
           Start Your Journey
+
+          <span class="hero-btn-arrow">
+            →
+          </span>
+
         </a>
 
       <% } else { %>
@@ -1398,14 +3922,315 @@
           id="heroBookingBtn"
           class="hero-btn"
         >
+
           Start Your Journey
+
+          <span class="hero-btn-arrow">
+            →
+          </span>
+
         </a>
 
       <% } %>
 
     </div>
 
+
+
+    <!-- ====================================
+         HERO BOTTOM META
+    ===================================== -->
+
+    <div class="hero-bottom-meta">
+
+      <div class="hero-scroll-text">
+
+        SCROLL TO DISCOVER
+
+      </div>
+
+
+
+      <div class="hero-scroll-line">
+
+        <span></span>
+
+      </div>
+
+    </div>
+
   </section>
+
+
+
+  <!-- ======================================
+       SHARED IMMERSIVE 360 VIEWER
+  ======================================= -->
+
+  <div
+    class="viewer-overlay"
+    id="viewerOverlay"
+    aria-hidden="true"
+  >
+
+    <div
+      class="viewer-shell"
+      id="viewerShell"
+    >
+
+
+
+      <!-- ====================================
+           A-FRAME SCENE
+      ===================================== -->
+
+      <div class="viewer-scene">
+
+        <a-scene
+          embedded
+          id="shared360Scene"
+          vr-mode-ui="enabled: false"
+          device-orientation-permission-ui="enabled: true"
+          renderer="antialias: true; colorManagement: true"
+          loading-screen="enabled: false"
+        >
+
+
+
+          <a-assets>
+
+            <!--
+              One shared video element.
+              JavaScript switches this source between:
+              1. /videos/forindexnavideo.mp4
+              2. /videos/arvideoofresort.mp4
+            -->
+
+            <video
+              id="shared360Video"
+              preload="auto"
+              loop
+              muted
+              playsinline
+              webkit-playsinline
+              crossorigin="anonymous"
+            ></video>
+
+          </a-assets>
+
+
+
+          <!-- ==================================
+               360 SPHERE
+          =================================== -->
+
+          <a-videosphere
+            id="shared360Sphere"
+            src="#shared360Video"
+            rotation="0 180 0"
+          ></a-videosphere>
+
+
+
+          <!-- ==================================
+               CAMERA
+          =================================== -->
+
+          <a-entity
+            id="shared360Camera"
+            camera
+            position="0 0 0"
+            look-controls="
+              enabled: true;
+              magicWindowTrackingEnabled: true;
+              touchEnabled: true
+            "
+            wasd-controls="
+              enabled: false
+            "
+          ></a-entity>
+
+
+
+        </a-scene>
+
+      </div>
+
+
+
+      <!-- ====================================
+           VIEWER TOP BAR
+      ===================================== -->
+
+      <div class="viewer-topbar">
+
+
+
+        <div class="viewer-title">
+
+          <div class="viewer-title-icon">
+
+            360°
+
+          </div>
+
+
+
+          <div class="viewer-title-text">
+
+            <strong
+              id="viewerTitle"
+            >
+
+              Puffer Isle Explorer
+
+            </strong>
+
+
+
+            <span
+              id="viewerSubtitle"
+            >
+
+              Immersive resort experience
+
+            </span>
+
+          </div>
+
+        </div>
+
+
+
+        <button
+          type="button"
+          class="viewer-close"
+          id="viewerClose"
+          aria-label="Close immersive viewer"
+          title="Close"
+        >
+
+          ×
+
+        </button>
+
+      </div>
+
+
+
+      <!-- ====================================
+           HELP
+      ===================================== -->
+
+      <div
+        class="viewer-help"
+        id="viewerHelp"
+      >
+
+        <div class="viewer-help-icon">
+
+          ↔
+
+        </div>
+
+
+
+        <strong>
+          Look Around Freely
+        </strong>
+
+
+
+        <span>
+          Drag with your mouse or swipe your screen
+        </span>
+
+      </div>
+
+
+
+      <!-- ====================================
+           VIEWER BADGE
+      ===================================== -->
+
+      <div class="viewer-badge">
+
+        <strong>
+          360°
+        </strong>
+
+        <span id="viewerBadgeText">
+          Puffer Isle
+        </span>
+
+      </div>
+
+
+
+      <!-- ====================================
+           VIEWER CONTROLS
+      ===================================== -->
+
+      <div class="viewer-controls">
+
+
+
+        <button
+          type="button"
+          class="viewer-control primary"
+          id="viewerPlayPause"
+          aria-label="Pause video"
+          title="Play / Pause"
+        >
+
+          ❚❚
+
+        </button>
+
+
+
+        <button
+          type="button"
+          class="viewer-control"
+          id="viewerMute"
+          aria-label="Unmute video"
+          title="Mute / Unmute"
+        >
+
+          🔇
+
+        </button>
+
+
+
+        <button
+          type="button"
+          class="viewer-control"
+          id="viewerFullscreen"
+          aria-label="Enter fullscreen"
+          title="Fullscreen"
+        >
+
+          ⛶
+
+        </button>
+
+
+
+        <span class="viewer-control-label">
+
+          Drag / Swipe to Explore
+
+        </span>
+
+      </div>
+
+
+
+    </div>
+
+  </div>
+
 
 
   <!-- ======================================
@@ -1414,56 +4239,192 @@
 
   <section id="about">
 
+
+
+    <!-- ====================================
+         360 EXPERIENCE CARD
+    ===================================== -->
+
     <div class="about-image-stack">
 
-      <img
-        src="/images/resort1.jpg"
-        alt="Beautiful view of Puffer Isle Resort"
+      <div
+        class="experience-card"
+        id="openAbout360"
+        role="button"
+        tabindex="0"
+        aria-label="Open Puffer Isle interactive 360 degree resort experience"
       >
+
+
+
+        <div class="experience-card-bg"></div>
+
+        <div class="experience-card-glow"></div>
+
+
+
+        <div class="experience-card-content">
+
+
+
+          <div class="experience-top">
+
+
+
+            <div class="experience-badge">
+
+              <span class="experience-badge-dot"></span>
+
+              360° Experience
+
+            </div>
+
+
+
+            <div class="experience-rotate">
+
+              ↻
+
+            </div>
+
+          </div>
+
+
+
+          <div class="experience-center">
+
+
+
+            <div class="experience-play">
+
+              ▶
+
+            </div>
+
+
+
+            <h3>
+
+              Explore Puffer Isle
+
+            </h3>
+
+
+
+            <p>
+
+              Step inside our immersive 360° resort
+
+              experience and look around freely.
+
+            </p>
+
+          </div>
+
+
+
+          <div class="experience-bottom">
+
+
+
+            <div class="experience-instruction">
+
+              🖱 Drag or swipe to look around
+
+            </div>
+
+
+
+            <div class="experience-open">
+
+              Enter Experience
+
+              <span>
+                →
+              </span>
+
+            </div>
+
+          </div>
+
+
+
+        </div>
+
+      </div>
 
     </div>
 
 
+
+    <!-- ====================================
+         ABOUT CONTENT
+    ===================================== -->
+
     <div class="about-content">
 
       <span class="section-label">
+
         Discover Puffer Isle
+
       </span>
 
 
+
       <h2>
+
         About Our Isle
+
       </h2>
+
 
 
       <p>
 
         Puffer Isle Resort offers a transcendent
+
         escape into nature, blending traditional
+
         Filipino hospitality with modern coastal
+
         comfort.
 
         From our climate-controlled suites to the
+
         rustic charm of our seaside
-        <strong>Bahay Kubo</strong>,
+
+        <strong>
+          Bahay Kubo
+        </strong>,
+
         every corner is designed for serenity.
 
       </p>
 
 
+
       <p>
 
         Whether you're lounging by our
+
         crystal-clear pools, pitching a tent under
+
         the starlit canopy, or enjoying a private
+
         dinner by the shore, your time here is
+
         defined by peace.
 
         <strong>
+
           Our mission is to provide more than just
+
           a stay; we provide a space where memories
+
           are woven into the very fabric of the
+
           island's breeze.
+
         </strong>
 
       </p>
@@ -1473,6 +4434,7 @@
   </section>
 
 
+
   <!-- ======================================
        CONTACT
   ======================================= -->
@@ -1480,24 +4442,33 @@
   <section id="contact">
 
 
+
     <div class="section-heading">
 
       <span class="section-label">
+
         We're Here For You
+
       </span>
 
 
+
       <h2>
+
         Contact Us
+
       </h2>
+
 
 
       <p>
 
         Planning your escape or have a question
+
         about your stay?
 
         Our team is ready to help make your
+
         Puffer Isle experience exceptional.
 
       </p>
@@ -1505,7 +4476,9 @@
     </div>
 
 
+
     <div class="contact-wrapper">
+
 
 
       <!-- ====================================
@@ -1515,29 +4488,27 @@
       <div class="map-card">
 
         <div class="map-label">
+
           📍 Find Us at Puffer Isle
+
         </div>
+
 
 
         <div class="map">
 
           <iframe
-
             src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3859.794746437253!2d121.3917462153302!3d15.259247498997667!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x339743e2cdc9555f%3A0x7564b23bbd7617b9!2sPuffer%20Isle%20Resort!5e0!3m2!1sen!2sph!4v1700000000000!5m2!1sen!2sph"
-
             title="Puffer Isle Resort Location"
-
             allowfullscreen
-
             loading="lazy"
-
             referrerpolicy="no-referrer-when-downgrade"
-
           ></iframe>
 
         </div>
 
       </div>
+
 
 
       <!-- ====================================
@@ -1549,27 +4520,39 @@
         <div class="contact-card-content">
 
 
+
           <div class="contact-eyebrow">
+
             Get In Touch
+
           </div>
 
 
+
           <h3>
+
             We'd Love To Hear From You
+
           </h3>
+
 
 
           <p class="contact-intro">
 
             Whether you're planning a relaxing
+
             getaway, asking about accommodations,
+
             or simply want to learn more about
+
             Puffer Isle, feel free to reach out.
 
           </p>
 
 
+
           <div class="contact-details">
+
 
 
             <!-- PHONE -->
@@ -1577,24 +4560,33 @@
             <div class="contact-item">
 
               <div class="contact-icon">
+
                 ☎
+
               </div>
+
 
 
               <div class="contact-item-text">
 
                 <span class="contact-item-label">
+
                   Phone
+
                 </span>
 
 
+
                 <a href="tel:09000000000">
+
                   0900-000-0000
+
                 </a>
 
               </div>
 
             </div>
+
 
 
             <!-- EMAIL -->
@@ -1602,21 +4594,29 @@
             <div class="contact-item">
 
               <div class="contact-icon">
+
                 ✉
+
               </div>
+
 
 
               <div class="contact-item-text">
 
                 <span class="contact-item-label">
+
                   Email
+
                 </span>
+
 
 
                 <a
                   href="mailto:info@pufferisleresort.com"
                 >
+
                   info@pufferisleresort.com
+
                 </a>
 
               </div>
@@ -1624,25 +4624,35 @@
             </div>
 
 
+
             <!-- LOCATION -->
 
             <div class="contact-item">
 
               <div class="contact-icon">
+
                 📍
+
               </div>
+
 
 
               <div class="contact-item-text">
 
                 <span class="contact-item-label">
+
                   Location
+
                 </span>
 
 
+
                 <span class="value">
+
                   Puffer Isle, Coastal Road,
+
                   Philippines
+
                 </span>
 
               </div>
@@ -1650,32 +4660,38 @@
             </div>
 
 
+
           </div>
 
 
-          <!-- ==================================
-               BUSINESS HOURS
-          =================================== -->
+
+          <!-- BUSINESS HOURS -->
 
           <div class="business-hours">
 
             <div class="business-hours-title">
+
               Guest Services
+
             </div>
 
 
+
             <p>
+
               For reservations and inquiries,
+
               please contact our team during
+
               regular service hours.
+
             </p>
 
           </div>
 
 
-          <!-- ==================================
-               FACEBOOK
-          =================================== -->
+
+          <!-- FACEBOOK -->
 
           <a
             href="#"
@@ -1692,14 +4708,17 @@
           </a>
 
 
+
         </div>
 
       </div>
 
 
+
     </div>
 
   </section>
+
 
 
   <!-- ======================================
@@ -1711,8 +4730,11 @@
     <p>
 
       © 2026
+
       <strong>
+
         Puffer Isle Resort
+
       </strong>.
 
       Designed for Ultimate Serenity.
@@ -1720,6 +4742,7 @@
     </p>
 
   </footer>
+
 
 
   <!-- ======================================
@@ -1733,7 +4756,8 @@
       () => {
 
 
-        /* ================================
+
+        /* =================================
            HERO BOOKING BUTTON
         ================================= */
 
@@ -1743,10 +4767,12 @@
           );
 
 
-        const modal =
+
+        const authModal =
           document.getElementById(
             "authModal"
           );
+
 
 
         heroBookingBtn?.addEventListener(
@@ -1756,9 +4782,10 @@
             event.preventDefault();
 
 
-            if (modal) {
 
-              modal.style.display =
+            if (authModal) {
+
+              authModal.style.display =
                 "flex";
 
             }
@@ -1767,7 +4794,8 @@
         );
 
 
-        /* ================================
+
+        /* =================================
            FACEBOOK BUTTON
         ================================= */
 
@@ -1777,18 +4805,15 @@
           );
 
 
+
         facebookBtn?.addEventListener(
           "click",
           (event) => {
 
-            /*
-             * Replace this with the real
-             * Puffer Isle Resort Facebook
-             * page once you have the URL.
-             */
-
             if (
-              facebookBtn.getAttribute("href") === "#"
+              facebookBtn.getAttribute(
+                "href"
+              ) === "#"
             ) {
 
               event.preventDefault();
@@ -1803,13 +4828,1154 @@
         );
 
 
+
+        /* =================================
+           HERO VIDEO
+        ================================= */
+
+        const heroVideo =
+          document.getElementById(
+            "heroResortVideo"
+          );
+
+
+
+        const heroMuteBtn =
+          document.getElementById(
+            "heroMuteBtn"
+          );
+
+
+
+        const heroImmersiveBtn =
+          document.getElementById(
+            "heroImmersiveBtn"
+          );
+
+
+
+        /* =================================
+           SHARED VIEWER
+        ================================= */
+
+        const viewerOverlay =
+          document.getElementById(
+            "viewerOverlay"
+          );
+
+
+
+        const viewerShell =
+          document.getElementById(
+            "viewerShell"
+          );
+
+
+
+        const viewerClose =
+          document.getElementById(
+            "viewerClose"
+          );
+
+
+
+        const shared360Video =
+          document.getElementById(
+            "shared360Video"
+          );
+
+
+
+        const shared360Scene =
+          document.getElementById(
+            "shared360Scene"
+          );
+
+
+
+        const shared360Sphere =
+          document.getElementById(
+            "shared360Sphere"
+          );
+
+
+
+        const viewerTitle =
+          document.getElementById(
+            "viewerTitle"
+          );
+
+
+
+        const viewerSubtitle =
+          document.getElementById(
+            "viewerSubtitle"
+          );
+
+
+
+        const viewerBadgeText =
+          document.getElementById(
+            "viewerBadgeText"
+          );
+
+
+
+        const viewerHelp =
+          document.getElementById(
+            "viewerHelp"
+          );
+
+
+
+        const viewerPlayPause =
+          document.getElementById(
+            "viewerPlayPause"
+          );
+
+
+
+        const viewerMute =
+          document.getElementById(
+            "viewerMute"
+          );
+
+
+
+        const viewerFullscreen =
+          document.getElementById(
+            "viewerFullscreen"
+          );
+
+
+
+        const openAbout360 =
+          document.getElementById(
+            "openAbout360"
+          );
+
+
+
+        let currentViewerSource =
+          "";
+
+
+
+        let currentViewerType =
+          "";
+
+
+
+        let viewerHelpTimer =
+          null;
+
+
+
+        /* =================================
+           VIEWER CONFIG
+        ================================= */
+
+        const viewerConfigurations = {
+
+          hero: {
+
+            source:
+              "/videos/forindexnavideo.mp4",
+
+            title:
+              "Puffer Isle Cinematic Explorer",
+
+            subtitle:
+              "Immersive cinematic resort experience",
+
+            badge:
+              "Puffer Isle Cinematic",
+
+          },
+
+
+
+          about: {
+
+            source:
+              "/videos/arvideoofresort.mp4",
+
+            title:
+              "Puffer Isle Explorer",
+
+            subtitle:
+              "Interactive resort experience",
+
+            badge:
+              "Puffer Isle",
+
+          },
+
+        };
+
+
+
+        /* =================================
+           UPDATE PLAY BUTTON
+        ================================= */
+
+        function updateViewerPlayButton() {
+
+          if (
+            !viewerPlayPause ||
+            !shared360Video
+          ) {
+
+            return;
+
+          }
+
+
+
+          if (
+            shared360Video.paused
+          ) {
+
+            viewerPlayPause.textContent =
+              "▶";
+
+
+
+            viewerPlayPause.setAttribute(
+              "aria-label",
+              "Play video"
+            );
+
+          } else {
+
+            viewerPlayPause.textContent =
+              "❚❚";
+
+
+
+            viewerPlayPause.setAttribute(
+              "aria-label",
+              "Pause video"
+            );
+
+          }
+
+        }
+
+
+
+        /* =================================
+           UPDATE MUTE BUTTON
+        ================================= */
+
+        function updateViewerMuteButton() {
+
+          if (
+            !viewerMute ||
+            !shared360Video
+          ) {
+
+            return;
+
+          }
+
+
+
+          viewerMute.textContent =
+            shared360Video.muted
+              ? "🔇"
+              : "🔊";
+
+
+
+          viewerMute.setAttribute(
+            "aria-label",
+            shared360Video.muted
+              ? "Unmute video"
+              : "Mute video"
+          );
+
+        }
+
+
+
+        /* =================================
+           SHOW HELP
+        ================================= */
+
+        function showViewerHelp() {
+
+          viewerHelp?.classList.remove(
+            "hidden"
+          );
+
+
+
+          clearTimeout(
+            viewerHelpTimer
+          );
+
+
+
+          viewerHelpTimer =
+            setTimeout(
+              () => {
+
+                viewerHelp?.classList.add(
+                  "hidden"
+                );
+
+              },
+              4500
+            );
+
+        }
+
+
+
+        /* =================================
+           HIDE HELP
+        ================================= */
+
+        function hideViewerHelp() {
+
+          viewerHelp?.classList.add(
+            "hidden"
+          );
+
+
+
+          clearTimeout(
+            viewerHelpTimer
+          );
+
+        }
+
+
+
+        /* =================================
+           PREPARE 360 SOURCE
+        ================================= */
+
+        function changeViewerSource(
+          configuration,
+          startTime = 0
+        ) {
+
+          if (
+            !shared360Video ||
+            !configuration
+          ) {
+
+            return;
+
+          }
+
+
+
+          const nextSource =
+            configuration.source;
+
+
+
+          currentViewerSource =
+            nextSource;
+
+
+
+          shared360Video.pause();
+
+
+
+          shared360Video.removeAttribute(
+            "src"
+          );
+
+
+
+          shared360Video.src =
+            nextSource;
+
+
+
+          shared360Video.load();
+
+
+
+          /*
+           * Force the sphere to keep using
+           * the shared video element.
+           */
+
+          shared360Sphere?.setAttribute(
+            "src",
+            "#shared360Video"
+          );
+
+
+
+          /*
+           * Reset camera position whenever
+           * a new experience is opened.
+           */
+
+          const camera =
+            document.getElementById(
+              "shared360Camera"
+            );
+
+
+
+          if (camera) {
+
+            camera.setAttribute(
+              "rotation",
+              "0 0 0"
+            );
+
+          }
+
+
+
+          /*
+           * Apply the requested starting
+           * timestamp once metadata exists.
+           */
+
+          const safeStartTime =
+            Number.isFinite(
+              Number(startTime)
+            )
+              ? Math.max(
+                  0,
+                  Number(startTime)
+                )
+              : 0;
+
+
+
+          const setStartTime =
+            () => {
+
+              if (
+                !Number.isFinite(
+                  shared360Video.duration
+                )
+              ) {
+
+                return;
+
+              }
+
+
+
+              if (
+                safeStartTime >
+                0
+              ) {
+
+                shared360Video.currentTime =
+                  Math.min(
+                    safeStartTime,
+                    Math.max(
+                      0,
+                      shared360Video.duration -
+                      0.25
+                    )
+                  );
+
+              }
+
+            };
+
+
+
+          if (
+            shared360Video.readyState >= 1
+          ) {
+
+            setStartTime();
+
+          } else {
+
+            shared360Video.addEventListener(
+              "loadedmetadata",
+              setStartTime,
+              {
+                once:
+                  true
+              }
+            );
+
+          }
+
+        }
+
+
+
+        /* =================================
+           OPEN VIEWER
+        ================================= */
+
+        async function openViewer(
+          viewerType,
+          startTime = 0
+        ) {
+
+          const configuration =
+            viewerConfigurations[
+              viewerType
+            ];
+
+
+
+          if (
+            !configuration ||
+            !viewerOverlay ||
+            !shared360Video
+          ) {
+
+            return;
+
+          }
+
+
+
+          currentViewerType =
+            viewerType;
+
+
+
+          viewerTitle.textContent =
+            configuration.title;
+
+
+
+          viewerSubtitle.textContent =
+            configuration.subtitle;
+
+
+
+          viewerBadgeText.textContent =
+            configuration.badge;
+
+
+
+          changeViewerSource(
+            configuration,
+            startTime
+          );
+
+
+
+          viewerOverlay.classList.add(
+            "active"
+          );
+
+
+
+          viewerOverlay.setAttribute(
+            "aria-hidden",
+            "false"
+          );
+
+
+
+          document.body.classList.add(
+            "viewer-open"
+          );
+
+
+
+          /*
+           * Let A-Frame measure the visible
+           * viewport before rendering.
+           */
+
+          setTimeout(
+            () => {
+
+              if (
+                shared360Scene &&
+                typeof shared360Scene.resize ===
+                  "function"
+              ) {
+
+                shared360Scene.resize();
+
+              }
+
+            },
+            100
+          );
+
+
+
+          /*
+           * Start muted for reliable
+           * browser playback.
+           */
+
+          shared360Video.muted =
+            true;
+
+
+
+          try {
+
+            await shared360Video.play();
+
+          } catch (error) {
+
+            console.warn(
+              "360 video playback was blocked:",
+              error
+            );
+
+          }
+
+
+
+          updateViewerPlayButton();
+
+          updateViewerMuteButton();
+
+          showViewerHelp();
+
+        }
+
+
+
+        /* =================================
+           CLOSE VIEWER
+        ================================= */
+
+        async function closeViewer() {
+
+          viewerOverlay?.classList.remove(
+            "active"
+          );
+
+
+
+          viewerOverlay?.setAttribute(
+            "aria-hidden",
+            "true"
+          );
+
+
+
+          document.body.classList.remove(
+            "viewer-open"
+          );
+
+
+
+          clearTimeout(
+            viewerHelpTimer
+          );
+
+
+
+          if (shared360Video) {
+
+            shared360Video.pause();
+
+            shared360Video.currentTime =
+              0;
+
+          }
+
+
+
+          if (
+            document.fullscreenElement
+          ) {
+
+            try {
+
+              await document.exitFullscreen();
+
+            } catch (error) {
+
+              console.warn(
+                "Could not exit fullscreen:",
+                error
+              );
+
+            }
+
+          }
+
+        }
+
+
+
+        /* =================================
+           HERO IMMERSIVE OPEN
+        ================================= */
+
+        heroImmersiveBtn?.addEventListener(
+          "click",
+          (event) => {
+
+            event.stopPropagation();
+
+
+
+            openViewer(
+              "hero",
+              heroVideo
+                ? heroVideo.currentTime
+                : 0
+            );
+
+          }
+        );
+
+
+
+        /* =================================
+           HERO VIDEO CLICK
+        ================================= */
+
+        heroVideo?.addEventListener(
+          "click",
+          (event) => {
+
+            event.preventDefault();
+
+
+
+            openViewer(
+              "hero",
+              heroVideo.currentTime
+            );
+
+          }
+        );
+
+
+
+        /* =================================
+           HERO MUTE
+        ================================= */
+
+        heroMuteBtn?.addEventListener(
+          "click",
+          (event) => {
+
+            event.stopPropagation();
+
+
+
+            if (!heroVideo) {
+
+              return;
+
+            }
+
+
+
+            heroVideo.muted =
+              !heroVideo.muted;
+
+
+
+            heroMuteBtn.textContent =
+              heroVideo.muted
+                ? "🔇"
+                : "🔊";
+
+
+
+            heroMuteBtn.setAttribute(
+              "aria-label",
+              heroVideo.muted
+                ? "Turn sound on"
+                : "Mute video"
+            );
+
+          }
+        );
+
+
+
+        /* =================================
+           ABOUT 360 OPEN
+        ================================= */
+
+        openAbout360?.addEventListener(
+          "click",
+          () => {
+
+            openViewer(
+              "about",
+              0
+            );
+
+          }
+        );
+
+
+
+        /* =================================
+           ABOUT KEYBOARD
+        ================================= */
+
+        openAbout360?.addEventListener(
+          "keydown",
+          (event) => {
+
+            if (
+              event.key === "Enter" ||
+              event.key === " "
+            ) {
+
+              event.preventDefault();
+
+
+
+              openViewer(
+                "about",
+                0
+              );
+
+            }
+
+          }
+        );
+
+
+
+        /* =================================
+           CLOSE BUTTON
+        ================================= */
+
+        viewerClose?.addEventListener(
+          "click",
+          (event) => {
+
+            event.stopPropagation();
+
+            closeViewer();
+
+          }
+        );
+
+
+
+        /* =================================
+           PLAY / PAUSE
+        ================================= */
+
+        viewerPlayPause?.addEventListener(
+          "click",
+          async (event) => {
+
+            event.stopPropagation();
+
+
+
+            if (!shared360Video) {
+
+              return;
+
+            }
+
+
+
+            try {
+
+              if (
+                shared360Video.paused
+              ) {
+
+                await shared360Video.play();
+
+              } else {
+
+                shared360Video.pause();
+
+              }
+
+            } catch (error) {
+
+              console.error(
+                "360 playback error:",
+                error
+              );
+
+            }
+
+
+
+            updateViewerPlayButton();
+
+          }
+        );
+
+
+
+        /* =================================
+           VIDEO EVENTS
+        ================================= */
+
+        shared360Video?.addEventListener(
+          "play",
+          updateViewerPlayButton
+        );
+
+
+
+        shared360Video?.addEventListener(
+          "pause",
+          updateViewerPlayButton
+        );
+
+
+
+        /* =================================
+           MUTE / UNMUTE
+        ================================= */
+
+        viewerMute?.addEventListener(
+          "click",
+          (event) => {
+
+            event.stopPropagation();
+
+
+
+            if (!shared360Video) {
+
+              return;
+
+            }
+
+
+
+            shared360Video.muted =
+              !shared360Video.muted;
+
+
+
+            updateViewerMuteButton();
+
+          }
+        );
+
+
+
+        /* =================================
+           FULLSCREEN
+        ================================= */
+
+        async function toggleViewerFullscreen() {
+
+          if (!viewerShell) {
+
+            return;
+
+          }
+
+
+
+          try {
+
+            if (
+              document.fullscreenElement
+            ) {
+
+              await document.exitFullscreen();
+
+              return;
+
+            }
+
+
+
+            if (
+              viewerShell.requestFullscreen
+            ) {
+
+              await viewerShell.requestFullscreen();
+
+              return;
+
+            }
+
+
+
+            if (
+              viewerShell.webkitRequestFullscreen
+            ) {
+
+              await viewerShell.webkitRequestFullscreen();
+
+            }
+
+          } catch (error) {
+
+            console.error(
+              "Viewer fullscreen error:",
+              error
+            );
+
+          }
+
+        }
+
+
+
+        viewerFullscreen?.addEventListener(
+          "click",
+          (event) => {
+
+            event.stopPropagation();
+
+            toggleViewerFullscreen();
+
+          }
+        );
+
+
+
+        /* =================================
+           HIDE HELP AFTER MOVEMENT
+        ================================= */
+
+        viewerShell?.addEventListener(
+          "pointerdown",
+          () => {
+
+            hideViewerHelp();
+
+          },
+          {
+            passive:
+              true
+          }
+        );
+
+
+
+        viewerShell?.addEventListener(
+          "touchstart",
+          () => {
+
+            hideViewerHelp();
+
+          },
+          {
+            passive:
+              true
+          }
+        );
+
+
+
+        /* =================================
+           ESC KEY
+        ================================= */
+
+        document.addEventListener(
+          "keydown",
+          (event) => {
+
+            if (
+              event.key === "Escape" &&
+              viewerOverlay?.classList.contains(
+                "active"
+              )
+            ) {
+
+              closeViewer();
+
+            }
+
+          }
+        );
+
+
+
+        /* =================================
+           RESIZE A-FRAME
+        ================================= */
+
+        window.addEventListener(
+          "resize",
+          () => {
+
+            if (
+              viewerOverlay?.classList.contains(
+                "active"
+              ) &&
+              shared360Scene &&
+              typeof shared360Scene.resize ===
+                "function"
+            ) {
+
+              shared360Scene.resize();
+
+            }
+
+          }
+        );
+
+
+
+        /* =================================
+           FULLSCREEN CHANGE
+        ================================= */
+
+        document.addEventListener(
+          "fullscreenchange",
+          () => {
+
+            if (!viewerFullscreen) {
+
+              return;
+
+            }
+
+
+
+            viewerFullscreen.textContent =
+              document.fullscreenElement
+                ? "⛶"
+                : "⛶";
+
+
+
+            viewerFullscreen.setAttribute(
+              "aria-label",
+              document.fullscreenElement
+                ? "Exit fullscreen"
+                : "Enter fullscreen"
+            );
+
+          }
+        );
+
+
+
+        /* =================================
+           STARTING HERO STATE
+        ================================= */
+
+        heroMuteBtn.textContent =
+          heroVideo?.muted
+            ? "🔇"
+            : "🔊";
+
       }
     );
 
   </script>
 
 
+
 </body>
 
 </html>
-```

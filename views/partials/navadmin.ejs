@@ -1,15 +1,3 @@
-<!-- ============================================================
-     PUFFER ISLE RESORT | IsleRMS
-     ADMIN NAVIGATION PARTIAL
-
-     IMPORTANT:
-
-     This file is intentionally ONLY the navigation.
-
-     Do not place <html>, <head>, <body>, dashboard content,
-     statistics, booking tables, or page-specific JS here.
-============================================================ -->
-
 <%
   const adminUser =
     typeof admin !== "undefined" && admin
@@ -93,8 +81,7 @@
     left: 0;
     right: 0;
 
-    height:
-      var(--admin-nav-header-height);
+    height: var(--admin-nav-header-height);
 
     z-index: 5000;
 
@@ -102,20 +89,15 @@
     align-items: center;
     justify-content: space-between;
 
-    padding:
-      0 22px;
+    padding: 0 22px;
 
-    background:
-      rgba(7, 16, 18, 0.94);
+    background: rgba(7, 16, 18, 0.94);
 
     border-bottom:
       1px solid var(--admin-nav-border);
 
-    backdrop-filter:
-      blur(18px);
-
-    -webkit-backdrop-filter:
-      blur(18px);
+    backdrop-filter: blur(18px);
+    -webkit-backdrop-filter: blur(18px);
 
     box-shadow:
       0 8px 30px rgba(0, 0, 0, 0.20);
@@ -128,7 +110,6 @@
   .admin-brand {
     display: inline-flex;
     align-items: center;
-
     gap: 11px;
 
     min-width: 0;
@@ -149,8 +130,7 @@
 
     border-radius: 11px;
 
-    background:
-      rgba(255, 255, 255, 0.95);
+    background: rgba(255, 255, 255, 0.95);
 
     border:
       1px solid rgba(255, 255, 255, 0.18);
@@ -164,7 +144,6 @@
   .admin-brand-logo img {
     width: 32px;
     height: 32px;
-
     object-fit: contain;
   }
 
@@ -187,8 +166,7 @@
   }
 
   .admin-brand-name span {
-    color:
-      var(--admin-nav-gold);
+    color: var(--admin-nav-gold);
   }
 
   .admin-brand-subtitle {
@@ -196,15 +174,12 @@
 
     margin-top: 4px;
 
-    color:
-      var(--admin-nav-muted);
+    color: var(--admin-nav-muted);
 
     font-size: 0.53rem;
-
     font-weight: 600;
 
     letter-spacing: 1.5px;
-
     text-transform: uppercase;
 
     white-space: nowrap;
@@ -269,39 +244,28 @@
 
   .admin-topbar-right {
     display: flex;
-
     align-items: center;
-
     gap: 12px;
   }
 
   .admin-view-site {
     display: inline-flex;
-
     align-items: center;
-
     gap: 7px;
 
-    padding:
-      9px 13px;
+    padding: 9px 13px;
 
     border:
       1px solid var(--admin-nav-border);
 
-    border-radius:
-      10px;
+    border-radius: 10px;
 
-    color:
-      var(--admin-nav-muted);
+    color: var(--admin-nav-muted);
 
-    text-decoration:
-      none;
+    text-decoration: none;
 
-    font-size:
-      0.7rem;
-
-    font-weight:
-      600;
+    font-size: 0.7rem;
+    font-weight: 600;
 
     transition:
       background 0.2s ease,
@@ -324,40 +288,29 @@
   ============================================================ */
 
   .admin-account {
-    position:
-      relative;
+    position: relative;
   }
 
   .admin-account-button {
-    display:
-      flex;
+    display: flex;
+    align-items: center;
+    gap: 9px;
 
-    align-items:
-      center;
+    min-height: 44px;
 
-    gap:
-      9px;
-
-    min-height:
-      44px;
-
-    padding:
-      5px 10px 5px 5px;
+    padding: 5px 10px 5px 5px;
 
     border:
       1px solid var(--admin-nav-border);
 
-    border-radius:
-      999px;
+    border-radius: 999px;
 
     background:
       rgba(255, 255, 255, 0.035);
 
-    color:
-      white;
+    color: white;
 
-    cursor:
-      pointer;
+    cursor: pointer;
 
     transition:
       background 0.18s ease,
@@ -370,23 +323,14 @@
   }
 
   .admin-avatar {
-    width:
-      33px;
+    width: 33px;
+    height: 33px;
 
-    height:
-      33px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
 
-    display:
-      flex;
-
-    align-items:
-      center;
-
-    justify-content:
-      center;
-
-    border-radius:
-      50%;
+    border-radius: 50%;
 
     background:
       linear-gradient(
@@ -395,70 +339,43 @@
         var(--admin-nav-teal-dark)
       );
 
-    color:
-      white;
+    color: white;
 
-    font-size:
-      0.75rem;
-
-    font-weight:
-      800;
+    font-size: 0.75rem;
+    font-weight: 800;
   }
 
   .admin-account-copy {
-    display:
-      flex;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 
-    flex-direction:
-      column;
-
-    align-items:
-      flex-start;
-
-    min-width:
-      0;
+    min-width: 0;
   }
 
   .admin-account-name {
-    max-width:
-      130px;
+    max-width: 130px;
 
-    overflow:
-      hidden;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
 
-    text-overflow:
-      ellipsis;
-
-    white-space:
-      nowrap;
-
-    font-size:
-      0.68rem;
-
-    font-weight:
-      600;
+    font-size: 0.68rem;
+    font-weight: 600;
   }
 
   .admin-account-role {
-    color:
-      var(--admin-nav-muted);
+    color: var(--admin-nav-muted);
 
-    font-size:
-      0.53rem;
+    font-size: 0.53rem;
 
-    text-transform:
-      uppercase;
-
-    letter-spacing:
-      0.7px;
+    text-transform: uppercase;
+    letter-spacing: 0.7px;
   }
 
   .admin-account-chevron {
-    color:
-      var(--admin-nav-muted);
-
-    font-size:
-      0.6rem;
+    color: var(--admin-nav-muted);
+    font-size: 0.6rem;
   }
 
   /* ============================================================
@@ -466,41 +383,29 @@
   ============================================================ */
 
   .admin-account-menu {
-    position:
-      absolute;
+    position: absolute;
 
-    top:
-      calc(100% + 9px);
+    top: calc(100% + 9px);
+    right: 0;
 
-    right:
-      0;
+    width: 220px;
 
-    width:
-      220px;
-
-    padding:
-      7px;
+    padding: 7px;
 
     border:
       1px solid var(--admin-nav-border);
 
-    border-radius:
-      14px;
+    border-radius: 14px;
 
-    background:
-      #101b1d;
+    background: #101b1d;
 
     box-shadow:
       0 22px 60px rgba(0, 0, 0, 0.38);
 
-    opacity:
-      0;
+    opacity: 0;
+    visibility: hidden;
 
-    visibility:
-      hidden;
-
-    transform:
-      translateY(-5px);
+    transform: translateY(-5px);
 
     transition:
       opacity 0.18s ease,
@@ -508,86 +413,58 @@
       transform 0.18s ease;
   }
 
-  .admin-account.open
-  .admin-account-menu {
-    opacity:
-      1;
-
-    visibility:
-      visible;
-
-    transform:
-      translateY(0);
+  .admin-account.open .admin-account-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
   }
 
   .admin-account-summary {
-    padding:
-      11px 12px 10px;
+    padding: 11px 12px 10px;
   }
 
   .admin-account-summary strong {
-    display:
-      block;
+    display: block;
 
-    color:
-      white;
+    color: white;
 
-    font-size:
-      0.72rem;
+    font-size: 0.72rem;
   }
 
   .admin-account-summary span {
-    display:
-      block;
+    display: block;
 
-    margin-top:
-      3px;
+    margin-top: 3px;
 
-    color:
-      var(--admin-nav-muted);
+    color: var(--admin-nav-muted);
 
-    font-size:
-      0.6rem;
+    font-size: 0.6rem;
   }
 
   .admin-account-divider {
-    height:
-      1px;
+    height: 1px;
 
-    margin:
-      3px 5px 7px;
+    margin: 3px 5px 7px;
 
     background:
       var(--admin-nav-border);
   }
 
   .admin-account-menu a {
-    display:
-      flex;
+    display: flex;
+    align-items: center;
+    gap: 9px;
 
-    align-items:
-      center;
+    padding: 10px 11px;
 
-    gap:
-      9px;
+    border-radius: 9px;
 
-    padding:
-      10px 11px;
+    color: var(--admin-nav-muted);
 
-    border-radius:
-      9px;
+    text-decoration: none;
 
-    color:
-      var(--admin-nav-muted);
-
-    text-decoration:
-      none;
-
-    font-size:
-      0.68rem;
-
-    font-weight:
-      500;
+    font-size: 0.68rem;
+    font-weight: 500;
 
     transition:
       background 0.18s ease,
@@ -595,8 +472,7 @@
   }
 
   .admin-account-menu a:hover {
-    color:
-      white;
+    color: white;
 
     background:
       rgba(255, 255, 255, 0.06);
@@ -607,55 +483,34 @@
   ============================================================ */
 
   .admin-account-menu .logout-form {
-    margin:
-      0;
-
-    padding:
-      0;
+    margin: 0;
+    padding: 0;
   }
 
   .admin-account-menu .logout-button {
-    width:
-      100%;
+    width: 100%;
 
-    display:
-      flex;
+    display: flex;
+    align-items: center;
+    gap: 9px;
 
-    align-items:
-      center;
+    padding: 10px 11px;
 
-    gap:
-      9px;
+    border: 0;
 
-    padding:
-      10px 11px;
+    border-radius: 9px;
 
-    border:
-      0;
+    background: transparent;
 
-    border-radius:
-      9px;
+    color: #ff8178;
 
-    background:
-      transparent;
+    text-align: left;
 
-    color:
-      #ff8178;
+    font: inherit;
+    font-size: 0.68rem;
+    font-weight: 500;
 
-    text-align:
-      left;
-
-    font:
-      inherit;
-
-    font-size:
-      0.68rem;
-
-    font-weight:
-      500;
-
-    cursor:
-      pointer;
+    cursor: pointer;
 
     transition:
       background 0.18s ease,
@@ -680,32 +535,20 @@
   ============================================================ */
 
   .admin-sidebar {
-    position:
-      fixed;
+    position: fixed;
 
-    top:
-      var(--admin-nav-header-height);
+    top: var(--admin-nav-header-height);
+    left: 0;
+    bottom: 0;
 
-    left:
-      0;
+    width: var(--admin-nav-width);
 
-    bottom:
-      0;
+    z-index: 4500;
 
-    width:
-      var(--admin-nav-width);
+    display: flex;
+    flex-direction: column;
 
-    z-index:
-      4500;
-
-    display:
-      flex;
-
-    flex-direction:
-      column;
-
-    padding:
-      20px 13px;
+    padding: 20px 13px;
 
     background:
       linear-gradient(
@@ -717,8 +560,7 @@
     border-right:
       1px solid var(--admin-nav-border);
 
-    overflow-y:
-      auto;
+    overflow-y: auto;
 
     box-shadow:
       12px 0 40px rgba(0, 0, 0, 0.12);
@@ -728,78 +570,50 @@
   }
 
   .admin-sidebar-label {
-    padding:
-      4px 11px 8px;
+    padding: 4px 11px 8px;
 
-    color:
-      #667478;
+    color: #667478;
 
-    font-size:
-      0.55rem;
+    font-size: 0.55rem;
+    font-weight: 700;
 
-    font-weight:
-      700;
-
-    letter-spacing:
-      1.7px;
-
-    text-transform:
-      uppercase;
+    letter-spacing: 1.7px;
+    text-transform: uppercase;
   }
 
   .admin-nav-list {
-    list-style:
-      none;
+    list-style: none;
 
-    display:
-      grid;
+    display: grid;
+    gap: 4px;
 
-    gap:
-      4px;
-
-    margin:
-      0;
-
-    padding:
-      0;
+    margin: 0;
+    padding: 0;
   }
 
   .admin-nav-item a {
-    position:
-      relative;
+    position: relative;
 
-    display:
-      flex;
+    display: flex;
+    align-items: center;
 
-    align-items:
-      center;
+    gap: 11px;
 
-    gap:
-      11px;
+    min-height: 46px;
 
-    min-height:
-      46px;
-
-    padding:
-      0 12px;
+    padding: 0 12px;
 
     border:
       1px solid transparent;
 
-    border-radius:
-      11px;
+    border-radius: 11px;
 
-    color:
-      var(--admin-nav-muted);
+    color: var(--admin-nav-muted);
 
-    text-decoration:
-      none;
+    text-decoration: none;
 
-    font-size:
-      0.72rem;
-
-    font-weight:
-      500;
+    font-size: 0.72rem;
+    font-weight: 500;
 
     transition:
       background 0.18s ease,
@@ -809,8 +623,7 @@
   }
 
   .admin-nav-item a:hover {
-    color:
-      white;
+    color: white;
 
     background:
       rgba(255, 255, 255, 0.035);
@@ -823,8 +636,7 @@
   }
 
   .admin-nav-item.active a {
-    color:
-      white;
+    color: white;
 
     background:
       linear-gradient(
@@ -842,23 +654,16 @@
   }
 
   .admin-nav-item.active a::before {
-    content:
-      "";
+    content: "";
 
-    position:
-      absolute;
+    position: absolute;
 
-    left:
-      -1px;
+    left: -1px;
 
-    top:
-      8px;
+    top: 8px;
+    bottom: 8px;
 
-    bottom:
-      8px;
-
-    width:
-      3px;
+    width: 3px;
 
     border-radius:
       0 4px 4px 0;
@@ -868,36 +673,25 @@
   }
 
   .admin-nav-icon {
-    width:
-      20px;
+    width: 20px;
 
-    display:
-      inline-flex;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 
-    align-items:
-      center;
+    color: currentColor;
 
-    justify-content:
-      center;
-
-    color:
-      currentColor;
-
-    font-size:
-      0.78rem;
+    font-size: 0.78rem;
   }
 
   .admin-nav-label {
-    flex:
-      1;
+    flex: 1;
   }
 
   .admin-nav-badge {
-    padding:
-      3px 6px;
+    padding: 3px 6px;
 
-    border-radius:
-      999px;
+    border-radius: 999px;
 
     background:
       rgba(255, 215, 0, 0.08);
@@ -905,96 +699,67 @@
     color:
       var(--admin-nav-gold);
 
-    font-size:
-      0.46rem;
+    font-size: 0.46rem;
+    font-weight: 700;
 
-    font-weight:
-      700;
-
-    letter-spacing:
-      0.5px;
-
-    text-transform:
-      uppercase;
+    letter-spacing: 0.5px;
+    text-transform: uppercase;
   }
 
   .admin-sidebar-divider {
-    height:
-      1px;
+    height: 1px;
 
-    margin:
-      17px 9px;
+    margin: 17px 9px;
 
     background:
       var(--admin-nav-border);
   }
 
   .admin-sidebar-footer {
-    margin-top:
-      auto;
+    margin-top: auto;
   }
 
   .admin-security-card {
-    margin-top:
-      16px;
+    margin-top: 16px;
 
-    padding:
-      13px;
+    padding: 13px;
 
     border:
       1px solid
       rgba(18, 183, 183, 0.12);
 
-    border-radius:
-      13px;
+    border-radius: 13px;
 
     background:
       rgba(0, 128, 128, 0.045);
   }
 
   .admin-security-title {
-    display:
-      flex;
-
-    align-items:
-      center;
-
-    gap:
-      7px;
+    display: flex;
+    align-items: center;
+    gap: 7px;
 
     color:
       var(--admin-nav-teal);
 
-    font-size:
-      0.58rem;
+    font-size: 0.58rem;
+    font-weight: 700;
 
-    font-weight:
-      700;
-
-    letter-spacing:
-      0.8px;
-
-    text-transform:
-      uppercase;
+    letter-spacing: 0.8px;
+    text-transform: uppercase;
   }
 
   .admin-security-title i {
-    font-size:
-      0.65rem;
+    font-size: 0.65rem;
   }
 
   .admin-security-text {
-    margin-top:
-      7px;
+    margin-top: 7px;
 
-    color:
-      #748287;
+    color: #748287;
 
-    font-size:
-      0.55rem;
-
-    line-height:
-      1.5;
+    font-size: 0.55rem;
+    line-height: 1.5;
   }
 
   /* ============================================================
@@ -1002,23 +767,16 @@
   ============================================================ */
 
   .admin-sidebar-overlay {
-    position:
-      fixed;
+    position: fixed;
+    inset: 0;
 
-    inset:
-      0;
-
-    z-index:
-      4400;
+    z-index: 4400;
 
     background:
       rgba(0, 0, 0, 0.55);
 
-    opacity:
-      0;
-
-    visibility:
-      hidden;
+    opacity: 0;
+    visibility: hidden;
 
     transition:
       opacity 0.25s ease,
@@ -1042,28 +800,23 @@
   ============================================================ */
 
   @media (max-width: 900px) {
-
     .admin-menu-toggle {
-      display:
-        inline-flex;
+      display: inline-flex;
     }
 
     .admin-brand-subtitle,
     .admin-view-site,
     .admin-account-copy,
     .admin-account-chevron {
-      display:
-        none;
+      display: none;
     }
 
     .admin-brand-name {
-      font-size:
-        0.95rem;
+      font-size: 0.95rem;
     }
 
     .admin-topbar {
-      padding:
-        0 14px;
+      padding: 0 14px;
     }
 
     .admin-sidebar {
@@ -1072,60 +825,42 @@
     }
 
     body {
-      padding-left:
-        0;
+      padding-left: 0;
     }
 
-    body.admin-sidebar-open
-    .admin-sidebar {
+    body.admin-sidebar-open .admin-sidebar {
       transform:
         translateX(0);
     }
 
-    body.admin-sidebar-open
-    .admin-sidebar-overlay {
-      opacity:
-        1;
-
-      visibility:
-        visible;
+    body.admin-sidebar-open .admin-sidebar-overlay {
+      opacity: 1;
+      visibility: visible;
     }
   }
 
   @media (max-width: 520px) {
-
     .admin-topbar {
-      height:
-        66px;
+      height: 66px;
     }
 
     .admin-sidebar {
-      top:
-        66px;
+      top: 66px;
     }
 
     body {
-      padding-top:
-        66px;
+      padding-top: 66px;
     }
 
     .admin-brand-logo {
-      width:
-        36px;
-
-      height:
-        36px;
-
-      flex-basis:
-        36px;
+      width: 36px;
+      height: 36px;
+      flex-basis: 36px;
     }
 
     .admin-brand-logo img {
-      width:
-        29px;
-
-      height:
-        29px;
+      width: 29px;
+      height: 29px;
     }
   }
 
@@ -1134,7 +869,6 @@
   ============================================================ */
 
   @media (prefers-reduced-motion: reduce) {
-
     .admin-sidebar,
     .admin-account-menu,
     .admin-sidebar-overlay,
@@ -1143,8 +877,7 @@
     .admin-account-menu .logout-button,
     .admin-menu-toggle,
     .admin-account-button {
-      transition:
-        none !important;
+      transition: none !important;
     }
   }
 </style>
@@ -1164,7 +897,6 @@
   >
 
     <!-- MOBILE TOGGLE -->
-
     <button
       type="button"
       class="admin-menu-toggle"
@@ -1173,51 +905,37 @@
       aria-expanded="false"
       aria-controls="adminSidebar"
     >
-
       <i
         class="fas fa-bars"
         aria-hidden="true"
       ></i>
-
     </button>
 
     <!-- BRAND -->
-
     <a
       href="/admin/dashboard"
       class="admin-brand"
       aria-label="Puffer Isle IsleRMS Command Center"
     >
-
       <span class="admin-brand-logo">
-
         <img
           src="/images/islelogo.png"
           alt="Puffer Isle Resort"
           width="32"
           height="32"
         >
-
       </span>
 
       <span class="admin-brand-copy">
-
         <span class="admin-brand-name">
-
           Puffer Isle
-
           <span>IsleRMS</span>
-
         </span>
 
         <span class="admin-brand-subtitle">
-
           Resort Management System
-
         </span>
-
       </span>
-
     </a>
 
   </div>
@@ -1233,14 +951,12 @@
       class="admin-view-site"
       title="Open public resort website"
     >
-
       <i
         class="fas fa-arrow-up-right-from-square"
         aria-hidden="true"
       ></i>
 
       View Site
-
     </a>
 
     <div
@@ -1309,28 +1025,24 @@
           href="/admin/dashboard"
           role="menuitem"
         >
-
           <i
             class="fas fa-gauge-high"
             aria-hidden="true"
           ></i>
 
           Command Center
-
         </a>
 
         <a
           href="/"
           role="menuitem"
         >
-
           <i
             class="fas fa-globe"
             aria-hidden="true"
           ></i>
 
           Public Website
-
         </a>
 
         <!-- ======================================================
@@ -1356,14 +1068,12 @@
             class="logout-button"
             role="menuitem"
           >
-
             <i
               class="fas fa-right-from-bracket"
               aria-hidden="true"
             ></i>
 
             Sign Out
-
           </button>
 
         </form>
@@ -1413,16 +1123,13 @@
       <li
         class="admin-nav-item <%= isActive('/admin/dashboard') ? 'active' : '' %>"
       >
-
         <a href="/admin/dashboard">
 
           <span class="admin-nav-icon">
-
             <i
               class="fas fa-gauge-high"
               aria-hidden="true"
             ></i>
-
           </span>
 
           <span class="admin-nav-label">
@@ -1430,7 +1137,6 @@
           </span>
 
         </a>
-
       </li>
 
       <!-- HISTORY -->
@@ -1438,16 +1144,13 @@
       <li
         class="admin-nav-item <%= isActive('/admin/history') ? 'active' : '' %>"
       >
-
         <a href="/admin/history">
 
           <span class="admin-nav-icon">
-
             <i
               class="fas fa-calendar-check"
               aria-hidden="true"
             ></i>
-
           </span>
 
           <span class="admin-nav-label">
@@ -1455,7 +1158,6 @@
           </span>
 
         </a>
-
       </li>
 
       <!-- FRONT DESK -->
@@ -1463,16 +1165,13 @@
       <li
         class="admin-nav-item <%= isActive('/admin/checkin') || isActive('/admin/checkin-manager') ? 'active' : '' %>"
       >
-
         <a href="/admin/checkin-manager">
 
           <span class="admin-nav-icon">
-
             <i
               class="fas fa-concierge-bell"
               aria-hidden="true"
             ></i>
-
           </span>
 
           <span class="admin-nav-label">
@@ -1484,7 +1183,6 @@
           </span>
 
         </a>
-
       </li>
 
     </ul>
@@ -1492,6 +1190,7 @@
   </nav>
 
   <div class="admin-sidebar-divider"></div>
+
 
   <!-- ==========================================================
        RESORT CATALOG
@@ -1510,16 +1209,13 @@
       <li
         class="admin-nav-item <%= isActive('/admin/rooms') ? 'active' : '' %>"
       >
-
         <a href="/admin/rooms">
 
           <span class="admin-nav-icon">
-
             <i
               class="fas fa-bed"
               aria-hidden="true"
             ></i>
-
           </span>
 
           <span class="admin-nav-label">
@@ -1527,7 +1223,6 @@
           </span>
 
         </a>
-
       </li>
 
       <!-- ADD-ONS -->
@@ -1535,16 +1230,13 @@
       <li
         class="admin-nav-item <%= isActive('/admin/add-ons') ? 'active' : '' %>"
       >
-
         <a href="/admin/add-ons">
 
           <span class="admin-nav-icon">
-
             <i
               class="fas fa-puzzle-piece"
               aria-hidden="true"
             ></i>
-
           </span>
 
           <span class="admin-nav-label">
@@ -1552,7 +1244,6 @@
           </span>
 
         </a>
-
       </li>
 
       <!-- USERS -->
@@ -1560,16 +1251,13 @@
       <li
         class="admin-nav-item <%= isActive('/admin/users') ? 'active' : '' %>"
       >
-
         <a href="/admin/users">
 
           <span class="admin-nav-icon">
-
             <i
               class="fas fa-users"
               aria-hidden="true"
             ></i>
-
           </span>
 
           <span class="admin-nav-label">
@@ -1577,7 +1265,6 @@
           </span>
 
         </a>
-
       </li>
 
     </ul>
@@ -1585,6 +1272,47 @@
   </nav>
 
   <div class="admin-sidebar-divider"></div>
+
+
+  <!-- ==========================================================
+       GUEST EXPERIENCE
+  =========================================================== -->
+
+  <div class="admin-sidebar-label">
+    Guest Experience
+  </div>
+
+  <nav aria-label="Guest Experience">
+
+    <ul class="admin-nav-list">
+
+      <!-- 360° GALLERY -->
+
+      <li
+        class="admin-nav-item <%= isActive('/admin/gallery-editor') ? 'active' : '' %>"
+      >
+        <a href="/admin/gallery-editor">
+
+          <span class="admin-nav-icon">
+            <i
+              class="fas fa-images"
+              aria-hidden="true"
+            ></i>
+          </span>
+
+          <span class="admin-nav-label">
+            360° Gallery
+          </span>
+
+        </a>
+      </li>
+
+    </ul>
+
+  </nav>
+
+  <div class="admin-sidebar-divider"></div>
+
 
   <!-- ==========================================================
        INSIGHTS
@@ -1603,16 +1331,13 @@
       <li
         class="admin-nav-item <%= isActive('/admin/analytics') ? 'active' : '' %>"
       >
-
         <a href="/admin/analytics">
 
           <span class="admin-nav-icon">
-
             <i
               class="fas fa-chart-line"
               aria-hidden="true"
             ></i>
-
           </span>
 
           <span class="admin-nav-label">
@@ -1620,12 +1345,12 @@
           </span>
 
         </a>
-
       </li>
 
     </ul>
 
   </nav>
+
 
   <!-- ==========================================================
        SECURITY CARD
@@ -1654,6 +1379,7 @@
   </div>
 
 </aside>
+
 
 <!-- ============================================================
      ADMIN NAVIGATION CLIENT LOGIC
@@ -1705,11 +1431,9 @@
         "adminCsrfToken"
       );
 
+
     /* ==========================================================
        CSRF TOKEN
-
-       IMPORTANT:
-       Do NOT place EJS directly inside this <script>.
 
        The token is rendered into the HTML form above,
        then safely read from the DOM.
@@ -1731,6 +1455,7 @@
 
     window.IsleRMS.getCsrfToken =
       function getCsrfToken() {
+
         const element =
           document.getElementById(
             "adminCsrfToken"
@@ -1741,11 +1466,13 @@
           : "";
       };
 
+
     /* ==========================================================
        SIDEBAR
     =========================================================== */
 
     function setSidebar(open) {
+
       if (!body) {
         return;
       }
@@ -1756,6 +1483,7 @@
       );
 
       if (menuToggle) {
+
         menuToggle.setAttribute(
           "aria-expanded",
           String(Boolean(open))
@@ -1769,11 +1497,10 @@
         );
 
         const icon =
-          menuToggle.querySelector(
-            "i"
-          );
+          menuToggle.querySelector("i");
 
         if (icon) {
+
           icon.className =
             open
               ? "fas fa-xmark"
@@ -1782,11 +1509,13 @@
       }
     }
 
+
     /* ==========================================================
        ACCOUNT MENU
     =========================================================== */
 
     function setAccount(open) {
+
       if (!account) {
         return;
       }
@@ -1797,6 +1526,7 @@
       );
 
       if (accountButton) {
+
         accountButton.setAttribute(
           "aria-expanded",
           String(Boolean(open))
@@ -1804,11 +1534,13 @@
       }
     }
 
+
     /* ==========================================================
        MOBILE MENU
     =========================================================== */
 
     if (menuToggle) {
+
       menuToggle.addEventListener(
         "click",
         () => {
@@ -1819,14 +1551,14 @@
               "admin-sidebar-open"
             );
 
-          setSidebar(
-            !isOpen
-          );
+          setSidebar(!isOpen);
         }
       );
     }
 
+
     if (overlay) {
+
       overlay.addEventListener(
         "click",
         () => {
@@ -1835,11 +1567,13 @@
       );
     }
 
+
     /* ==========================================================
        ACCOUNT MENU BUTTON
     =========================================================== */
 
     if (accountButton) {
+
       accountButton.addEventListener(
         "click",
         (event) => {
@@ -1852,12 +1586,11 @@
               "open"
             );
 
-          setAccount(
-            !isOpen
-          );
+          setAccount(!isOpen);
         }
       );
     }
+
 
     /* ==========================================================
        OUTSIDE CLICK
@@ -1873,9 +1606,7 @@
         if (
           account &&
           target instanceof Node &&
-          !account.contains(
-            target
-          )
+          !account.contains(target)
         ) {
           setAccount(false);
         }
@@ -1884,19 +1615,15 @@
           window.innerWidth <= 900 &&
           sidebar &&
           target instanceof Node &&
-          !sidebar.contains(
-            target
-          ) &&
+          !sidebar.contains(target) &&
           menuToggle &&
-          !menuToggle.contains(
-            target
-          )
+          !menuToggle.contains(target)
         ) {
           setSidebar(false);
         }
-
       }
     );
+
 
     /* ==========================================================
        ESCAPE KEY
@@ -1906,19 +1633,14 @@
       "keydown",
       (event) => {
 
-        if (
-          event.key ===
-          "Escape"
-        ) {
+        if (event.key === "Escape") {
 
           setAccount(false);
-
           setSidebar(false);
-
         }
-
       }
     );
+
 
     /* ==========================================================
        CLOSE MOBILE MENU AFTER NAVIGATION
@@ -1927,9 +1649,7 @@
     if (sidebar) {
 
       const sidebarLinks =
-        sidebar.querySelectorAll(
-          "a"
-        );
+        sidebar.querySelectorAll("a");
 
       sidebarLinks.forEach(
         (link) => {
@@ -1943,14 +1663,12 @@
               ) {
                 setSidebar(false);
               }
-
             }
           );
-
         }
       );
-
     }
+
 
     /* ==========================================================
        CLOSE ACCOUNT MENU AFTER ACTION
@@ -1972,11 +1690,10 @@
               setAccount(false);
             }
           );
-
         }
       );
-
     }
+
 
     /* ==========================================================
        RESPONSIVE RESET
@@ -1991,16 +1708,15 @@
         ) {
           setSidebar(false);
         }
-
       }
     );
+
 
     /* ==========================================================
        ADMIN LOGOUT
 
        The logout form remains a normal HTML POST.
 
-       This is intentional:
        - works without JavaScript
        - submits CSRF token normally
        - server remains authoritative
@@ -2017,12 +1733,9 @@
       logoutForm.addEventListener(
         "submit",
         () => {
-
           setAccount(false);
-
         }
       );
-
     }
 
   })();

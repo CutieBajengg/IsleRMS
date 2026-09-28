@@ -37,12 +37,18 @@ const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
 
+// ✅ GALLERY CHANGE: Multipart upload support for 360° panorama images.
+const multer = require("multer");
+
 const Appointment = require("../models/Appointment");
 const User = require("../models/User");
 const Admin = require("../models/Admin");
 const Notification = require("../models/Notification");
 const Room = require("../models/Room");
 const AddOn = require("../models/AddOn");
+
+// ✅ GALLERY CHANGE: Dedicated 360° gallery model.
+const Gallery = require("../models/Gallery");
 
 const csrf = require("../middleware/csrf");
 
@@ -227,6 +233,97 @@ const parseAddOnImageBody =
   express.raw({
     type: ADDON_IMAGE_CONTENT_TYPES,
     limit: ADDON_IMAGE_MAX_BYTES,
+  });
+
+/* ============================================================
+   GALLERY IMAGE UPLOAD CONFIGURATION
+============================================================ */
+
+// ✅ GALLERY CHANGE: Dedicated storage rules for 360° panoramas.
+
+const GALLERY_IMAGE_MAX_BYTES =
+  25 * 1024 * 1024;
+
+const GALLERY_IMAGE_UPLOAD_DIR =
+  path.join(
+    __dirname,
+    "..",
+    "public",
+    "uploads",
+    "gallery"
+  );
+
+const GALLERY_IMAGE_PUBLIC_PREFIX =
+  "/uploads/gallery/";
+
+const GALLERY_IMAGE_CONTENT_TYPES = [
+  "image/jpeg",
+  "image/png",
+  "image/webp",
+];
+
+try {
+  fs.mkdirSync(
+    GALLERY_IMAGE_UPLOAD_DIR,
+    {
+      recursive: true,
+    }
+  );
+} catch (error) {
+  console.error(
+    "Gallery image upload directory initialization failed:",
+    error.stack ||
+      error.message ||
+      error
+  );
+}
+
+// ✅ GALLERY CHANGE: Keep uploaded panorama files in memory until validated.
+const galleryUpload =
+  multer({
+    storage:
+      multer.memoryStorage(),
+
+    limits: {
+      fileSize:
+        GALLERY_IMAGE_MAX_BYTES,
+
+      files: 1,
+
+      fields: 20,
+    },
+
+    fileFilter:
+      (
+        req,
+        file,
+        callback
+      ) => {
+        const contentType =
+          String(
+            file?.mimetype ||
+              ""
+          )
+            .trim()
+            .toLowerCase();
+
+        if (
+          GALLERY_IMAGE_CONTENT_TYPES.includes(
+            contentType
+          )
+        ) {
+          return callback(
+            null,
+            true
+          );
+        }
+
+        return callback(
+          new Error(
+            "Unsupported gallery image type."
+          )
+        );
+      },
   });
 
 const LEGACY_ROOMS = [
@@ -628,7 +725,8 @@ async function removeManagedAddOnImage(
     ) {
       console.warn(
         "Unable to remove previous add-on image:",
-        error.message || error
+        error.message ||
+          error
       );
     }
   }
@@ -702,6 +800,262 @@ async function saveAddOnImageBuffer(
 
     url:
       `${ADDON_IMAGE_PUBLIC_PREFIX}${filename}`,
+  };
+}
+
+// ✅ GALLERY CHANGE: Validate and safely save gallery panorama files.
+
+function detectGalleryImageType(
+  buffer
+) {
+  if (
+    !Buffer.isBuffer(buffer) ||
+    buffer.length < 12
+  ) {
+    return null;
+  }
+
+  // JPEG
+  if (
+    buffer[0] === 0xff &&
+    buffer[1] === 0xd8 &&
+    buffer[2] === 0xff
+  ) {
+    return {
+      extension: "jpg",
+      contentType: "image/jpeg",
+    };
+  }
+
+  // PNG
+  const pngSignature =
+    Buffer.from([
+      0x89,
+      0x50,
+      0x4e,
+      0x47,
+      0x0d,
+      0x0a,
+      0x1a,
+      0x0a,
+    ]);
+
+  if (
+    buffer.length >=
+      pngSignature.length &&
+    buffer
+      .subarray(
+        0,
+        pngSignature.length
+      )
+      .equals(
+        pngSignature
+      )
+  ) {
+    return {
+      extension: "png",
+      contentType: "image/png",
+    };
+  }
+
+  // WEBP
+  if (
+    buffer.toString(
+      "ascii",
+      0,
+      4
+    ) === "RIFF" &&
+    buffer.toString(
+      "ascii",
+      8,
+      12
+    ) === "WEBP"
+  ) {
+    return {
+      extension: "webp",
+      contentType: "image/webp",
+    };
+  }
+
+  return null;
+}
+
+function isManagedGalleryImageUrl(
+  value
+) {
+  const normalized =
+    normalizeString(
+      value,
+      1000
+    );
+
+  if (
+    !normalized ||
+    !normalized.startsWith(
+      GALLERY_IMAGE_PUBLIC_PREFIX
+    )
+  ) {
+    return false;
+  }
+
+  const filename =
+    normalized.slice(
+      GALLERY_IMAGE_PUBLIC_PREFIX.length
+    );
+
+  if (
+    !filename ||
+    filename.includes("/") ||
+    filename.includes("\\")
+  ) {
+    return false;
+  }
+
+  return /^[A-Za-z0-9._-]+$/.test(
+    filename
+  );
+}
+
+function galleryImageAbsolutePathFromUrl(
+  value
+) {
+  if (
+    !isManagedGalleryImageUrl(
+      value
+    )
+  ) {
+    return null;
+  }
+
+  const filename =
+    value.slice(
+      GALLERY_IMAGE_PUBLIC_PREFIX.length
+    );
+
+  const uploadRoot =
+    path.resolve(
+      GALLERY_IMAGE_UPLOAD_DIR
+    );
+
+  const absolutePath =
+    path.resolve(
+      GALLERY_IMAGE_UPLOAD_DIR,
+      filename
+    );
+
+  if (
+    absolutePath !==
+      uploadRoot &&
+    !absolutePath.startsWith(
+      `${uploadRoot}${path.sep}`
+    )
+  ) {
+    return null;
+  }
+
+  return absolutePath;
+}
+
+async function removeManagedGalleryImage(
+  value
+) {
+  const filePath =
+    galleryImageAbsolutePathFromUrl(
+      value
+    );
+
+  if (!filePath) {
+    return;
+  }
+
+  try {
+    await fs.promises.unlink(
+      filePath
+    );
+  } catch (error) {
+    if (
+      error?.code !==
+      "ENOENT"
+    ) {
+      console.warn(
+        "Unable to remove gallery image:",
+        error.message ||
+          error
+      );
+    }
+  }
+}
+
+function createGalleryImageFilename(
+  extension
+) {
+  return (
+    `pano-${Date.now()}-${crypto
+      .randomBytes(16)
+      .toString("hex")}.${extension}`
+  );
+}
+
+async function saveGalleryImageBuffer(
+  buffer,
+  imageType
+) {
+  await fs.promises.mkdir(
+    GALLERY_IMAGE_UPLOAD_DIR,
+    {
+      recursive: true,
+    }
+  );
+
+  const filename =
+    createGalleryImageFilename(
+      imageType.extension
+    );
+
+  const finalPath =
+    path.join(
+      GALLERY_IMAGE_UPLOAD_DIR,
+      filename
+    );
+
+  const tempPath =
+    `${finalPath}.${crypto
+      .randomBytes(6)
+      .toString("hex")}.tmp`;
+
+  await fs.promises.writeFile(
+    tempPath,
+    buffer,
+    {
+      flag: "wx",
+    }
+  );
+
+  try {
+    await fs.promises.rename(
+      tempPath,
+      finalPath
+    );
+  } catch (error) {
+    try {
+      await fs.promises.unlink(
+        tempPath
+      );
+    } catch (_) {
+      // Best-effort cleanup.
+    }
+
+    throw error;
+  }
+
+  return {
+    filename,
+
+    path:
+      finalPath,
+
+    url:
+      `${GALLERY_IMAGE_PUBLIC_PREFIX}${filename}`,
   };
 }
 
@@ -1134,6 +1488,180 @@ function redirectWithMessage(
     `${path}${separator}${key}=${encodeURIComponent(
       value
     )}`
+  );
+}
+
+/* ============================================================
+   GALLERY DATA HELPERS
+============================================================ */
+
+// ✅ GALLERY CHANGE: Keeps gallery scene indexes consistent.
+
+function normalizeGalleryImages(
+  images
+) {
+  if (
+    !Array.isArray(images)
+  ) {
+    return [];
+  }
+
+  const sceneCount =
+    images.length;
+
+  return images.map(
+    (
+      item,
+      index
+    ) => {
+      const plain =
+        typeof item?.toObject ===
+        "function"
+          ? item.toObject()
+          : {
+              ...item,
+            };
+
+      const normalizeNavigation =
+        (value) => {
+          const parsed =
+            Number(value);
+
+          if (
+            !Number.isInteger(
+              parsed
+            ) ||
+            parsed < 0 ||
+            parsed >= sceneCount ||
+            parsed === index
+          ) {
+            return null;
+          }
+
+          return parsed;
+        };
+
+      return {
+        _id:
+          plain._id,
+
+        title:
+          normalizeString(
+            plain.title ||
+              `Resort View ${
+                index + 1
+              }`,
+            150
+          ) ||
+          `Resort View ${
+            index + 1
+          }`,
+
+        image:
+          normalizeString(
+            plain.image ||
+              "",
+            1000
+          ),
+
+        order:
+          index + 1,
+
+        left:
+          normalizeNavigation(
+            plain.left
+          ),
+
+        right:
+          normalizeNavigation(
+            plain.right
+          ),
+
+        forward:
+          normalizeNavigation(
+            plain.forward
+          ),
+
+        backward:
+          normalizeNavigation(
+            plain.backward
+          ),
+      };
+    }
+  );
+}
+
+async function getAdminGallery() {
+  const gallery =
+    await Gallery.getOrCreateDefault();
+
+  return {
+    gallery,
+
+    images:
+      normalizeGalleryImages(
+        gallery.images
+      ),
+  };
+}
+
+function remapGalleryNavigationAfterDelete(
+  images,
+  deletedIndex
+) {
+  return images.map(
+    (image) => {
+      const remap =
+        (value) => {
+          if (
+            !Number.isInteger(
+              value
+            )
+          ) {
+            return null;
+          }
+
+          if (
+            value ===
+            deletedIndex
+          ) {
+            return null;
+          }
+
+          if (
+            value >
+            deletedIndex
+          ) {
+            return value - 1;
+          }
+
+          return value;
+        };
+
+      return {
+        ...image,
+
+        left:
+          remap(
+            image.left
+          ),
+
+        right:
+          remap(
+            image.right
+          ),
+
+        forward:
+          remap(
+            image.forward
+          ),
+
+        backward:
+          remap(
+            image.backward
+          ),
+      };
+    }
   );
 }
 
@@ -1838,7 +2366,8 @@ function firstPresent(
   names
 ) {
   for (
-    const name of names
+    const name of
+      names
   ) {
     if (
       hasOwn(body, name)

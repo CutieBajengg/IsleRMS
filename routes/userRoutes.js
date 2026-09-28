@@ -29,6 +29,9 @@ const Notification = require("../models/Notification");
 const Room = require("../models/Room");
 const AddOn = require("../models/AddOn");
 
+// ✅ GALLERY CHANGE: Added the dedicated Gallery model.
+const Gallery = require("../models/Gallery");
+
 const BLOCKING_STATUSES =
   typeof Appointment.getBlockingStatuses === "function"
     ? Appointment.getBlockingStatuses()
@@ -618,6 +621,73 @@ function validateContact(
     value: contact,
   };
 }
+
+/* ============================================================
+   PUBLIC 360° GALLERY
+============================================================ */
+
+// ✅ GALLERY CHANGE: Added the public /gallery page route.
+router.get(
+  "/gallery",
+  async (req, res) => {
+    try {
+      const gallery =
+        await Gallery.getOrCreateDefault();
+
+      const galleryImages =
+        Array.isArray(gallery.images)
+          ? gallery.images
+              .map((item) =>
+                typeof item.toObject === "function"
+                  ? item.toObject()
+                  : { ...item }
+              )
+              .sort(
+                (a, b) =>
+                  Number(a.order || 0) -
+                  Number(b.order || 0)
+              )
+          : [];
+
+      return res.render(
+        "gallery",
+        {
+          title:
+            "Explore Puffer Isle | 360° Experience",
+
+          galleryImages,
+
+          currentPath:
+            req.path,
+        }
+      );
+    } catch (error) {
+      console.error(
+        "Gallery Page Error:",
+        error
+      );
+
+      return res
+        .status(500)
+        .render(
+          "error",
+          {
+            title:
+              "Gallery Error | Puffer Isle Resort",
+
+            statusCode:
+              500,
+
+            message:
+              "Unable to load the resort gallery.",
+
+            error:
+              "Unable to load the resort gallery.",
+          }
+        );
+    }
+  }
+);
 
 /* ============================================================
    CATALOG

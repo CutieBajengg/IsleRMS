@@ -20,11 +20,16 @@ const User = require("./models/User");
 
 const Admin = require("./models/Admin");
 
+// ✅ GALLERY CHANGE: SiteSettings is no longer used by the gallery system.
+
 const userRoutes =
   require("./routes/userRoutes");
 
 const adminRoutes =
   require("./routes/adminRoutes");
+
+const galleryRoutes =
+  require("./routes/galleryRoutes");
 
 const {
   attachCsrfToken,
@@ -561,6 +566,8 @@ app.use(
     next();
 
   },
+
+  galleryRoutes,
 
   adminRoutes
 );
@@ -4079,25 +4086,8 @@ app.get(
   }
 );
 
-app.get(
-  "/gallery",
-  (req, res) => {
-
-    return res.render(
-
-      "gallery",
-
-      {
-
-        title:
-          "Gallery | Puffer Isle Resort",
-
-      }
-
-    );
-
-  }
-);
+// ✅ GALLERY CHANGE: Removed the old SiteSettings-based /gallery route.
+// /gallery is now handled by routes/userRoutes.js using models/Gallery.js.
 
 app.get(
   "/rules",

@@ -1,296 +1,2062 @@
+<%
+  /*
+   * ============================================================
+   * PUBLIC GALLERY DATA
+   * ============================================================
+   *
+   * galleryImages comes from:
+   * routes/userRoutes.js
+   *        ↓
+   * models/Gallery.js
+   *
+   * We normalize the data here so the browser receives only
+   * the information it needs.
+   */
+
+  const hasGalleryImages =
+    Array.isArray(galleryImages) &&
+    galleryImages.length > 0;
+
+  const galleryData = hasGalleryImages
+    ? galleryImages
+        .map((item) => ({
+          image: String(item.image || "").trim(),
+          title: String(
+            item.title || "Resort View"
+          ).trim(),
+
+          left: Number.isInteger(item.left)
+            ? item.left
+            : null,
+
+          right: Number.isInteger(item.right)
+            ? item.right
+            : null,
+
+          forward: Number.isInteger(item.forward)
+            ? item.forward
+            : null,
+
+          backward: Number.isInteger(item.backward)
+            ? item.backward
+            : null,
+
+          order: Number(item.order || 0),
+        }))
+        .filter((item) => item.image)
+        .sort(
+          (a, b) =>
+            Number(a.order || 0) -
+            Number(b.order || 0)
+        )
+    : [];
+%>
+
 <!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-  <title>360 Virtual Tour – Puffer Isle Resort</title>
 
-  <link rel="icon" type="image/png" href="/images/islelogo.png" />
-  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600;700&display=swap" rel="stylesheet">
-  
-  <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+<head>
+
+  <meta charset="UTF-8" />
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  />
+
+  <title>
+    Explore Puffer Isle | 360° Virtual Tour
+  </title>
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/islelogo.png"
+  />
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap"
+    rel="stylesheet"
+  />
+
+  <script
+    src="https://aframe.io/releases/1.5.0/aframe.min.js"
+  ></script>
+
 
   <style>
+
+    /* ============================================================
+       ROOT
+    ============================================================ */
+
     :root {
-      --brand-color: #FFD700; /* New Brand Yellow */
+      --brand-color: #FFD700;
       --brand-hover: #e6c200;
+
       --accent-teal: #008080;
+
       --dark: #1a1a1a;
+      --dark-soft: #292929;
+
       --light-bg: #ffffff;
-      --text-muted: #555;
+      --soft-bg: #f7f7f7;
+
+      --text-muted: #666;
+
+      --viewer-radius: 40px;
     }
 
-    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    /* ============================================================
+       RESET
+    ============================================================ */
+
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+
+
+    html {
+      scroll-behavior: smooth;
+    }
+
 
     body {
-      font-family: 'Poppins', sans-serif;
-      background-color: var(--light-bg);
+      font-family: "Poppins", sans-serif;
+
+      background:
+        linear-gradient(
+          180deg,
+          #ffffff 0%,
+          #fafafa 100%
+        );
+
       color: var(--dark);
+
       overflow-x: hidden;
+
       line-height: 1.6;
     }
 
-    /* PAGE WRAPPER */
-    .tour-container {
-      padding-top: 120px; /* Space for Navbar */
-      padding-bottom: 80px;
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      min-height: 100vh;
-      max-width: 1400px;
-      margin: 0 auto;
+
+    button {
+      font: inherit;
     }
 
+
+    /* ============================================================
+       PAGE
+    ============================================================ */
+
+    .tour-container {
+      width: 100%;
+
+      max-width: 1500px;
+
+      min-height: 100vh;
+
+      margin: 0 auto;
+
+      padding: 120px 24px 80px;
+
+      display: flex;
+
+      flex-direction: column;
+
+      align-items: center;
+    }
+
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+
     .tour-header {
-      margin-bottom: 40px;
+      width: 100%;
+
+      margin-bottom: 36px;
+
       text-align: center;
     }
 
+
     .tour-header h1 {
-      font-size: clamp(2rem, 5vw, 3rem);
-      color: var(--dark);
+      margin: 0;
+
+      font-size:
+        clamp(
+          2rem,
+          5vw,
+          3.1rem
+        );
+
       font-weight: 700;
+
       text-transform: uppercase;
+
       letter-spacing: 2px;
+
+      line-height: 1.2;
+
+      color: var(--dark);
     }
 
-    .tour-header span {
+
+    .tour-header h1 span {
       color: var(--brand-color);
-      border-bottom: 6px solid var(--brand-color);
+
+      border-bottom:
+        6px solid
+        var(--brand-color);
+
+      padding-bottom: 2px;
     }
+
 
     .tour-header p {
+      margin-top: 14px;
+
       color: var(--text-muted);
-      margin-top: 10px;
-      font-weight: 300;
+
+      font-size: 0.98rem;
+
+      font-weight: 400;
     }
 
-    /* THE VIEWER */
+
+    /* ============================================================
+       VIEWER
+    ============================================================ */
+
     .viewer-wrapper {
-      width: 95%;
-      height: 70vh;
-      min-height: 500px;
-      border-radius: 40px; /* More rounded like the About section */
-      overflow: hidden;
-      box-shadow: 0 30px 60px rgba(0,0,0,0.15);
-      border: 12px solid white; /* Thick premium border */
       position: relative;
+
+      width: 96%;
+
+      height: 70vh;
+
+      min-height: 500px;
+
+      overflow: hidden;
+
       background: #000;
+
+      border:
+        12px solid
+        #ffffff;
+
+      border-radius:
+        var(--viewer-radius);
+
+      box-shadow:
+        0 30px 70px
+        rgba(0, 0, 0, 0.16);
+
+      user-select: none;
+
+      touch-action: none;
+
+      isolation: isolate;
     }
 
-    a-scene {
-      height: 100%;
-      width: 100%;
+
+    .viewer-wrapper:focus {
+      outline:
+        3px solid
+        rgba(255, 215, 0, 0.65);
+
+      outline-offset: 4px;
     }
 
-    /* CONTROLS AREA */
-    .controls-container {
-      width: 100%;
-      margin-top: 40px;
+
+    /* ============================================================
+       A-FRAME
+    ============================================================ */
+
+    .viewer-wrapper a-scene {
+      display: block;
+
+      width: 100% !important;
+      height: 100% !important;
+
+      touch-action: none;
+    }
+
+
+    .viewer-wrapper canvas {
+      display: block;
+
+      width: 100% !important;
+      height: 100% !important;
+
+      cursor: grab;
+    }
+
+
+    .viewer-wrapper canvas:active {
+      cursor: grabbing;
+    }
+
+
+    /* ============================================================
+       VIEWER TOP INFORMATION
+    ============================================================ */
+
+    .viewer-info {
+      position: absolute;
+
+      top: 18px;
+      left: 18px;
+
+      z-index: 10;
+
       display: flex;
-      flex-direction: column;
+
       align-items: center;
-      gap: 25px;
+
+      gap: 10px;
+
+      max-width:
+        calc(100% - 36px);
+
+      padding:
+        9px 15px;
+
+      border:
+        1px solid
+        rgba(255, 255, 255, 0.25);
+
+      border-radius: 999px;
+
+      background:
+        rgba(0, 0, 0, 0.52);
+
+      backdrop-filter:
+        blur(10px);
+
+      -webkit-backdrop-filter:
+        blur(10px);
+
+      color: #ffffff;
+
+      pointer-events: none;
     }
 
-    .btn-group {
-      display: flex;
-      align-items: center;
-      gap: 40px;
+
+    .viewer-info-title {
+      font-size: 0.88rem;
+
+      font-weight: 600;
+
+      white-space: nowrap;
+
+      overflow: hidden;
+
+      text-overflow: ellipsis;
     }
 
-    .btn {
-      padding: 16px 45px;
-      border-radius: 50px;
-      background: var(--dark);
-      color: var(--brand-color); /* Yellow on Dark */
-      border: none;
-      font-weight: 700;
-      font-size: 1rem;
-      cursor: pointer;
-      transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
-      box-shadow: 0 8px 20px rgba(0,0,0,0.1);
-      text-transform: uppercase;
-      letter-spacing: 1px;
-    }
 
-    .btn:hover:not(:disabled) {
-      background: var(--brand-color);
+    .viewer-info-count {
+      flex-shrink: 0;
+
+      padding:
+        3px 8px;
+
+      border-radius: 999px;
+
+      background:
+        rgba(255, 215, 0, 0.95);
+
       color: var(--dark);
-      transform: translateY(-5px);
-      box-shadow: 0 12px 25px rgba(255, 215, 0, 0.3);
+
+      font-size: 0.72rem;
+
+      font-weight: 700;
     }
 
-    .btn:disabled {
-      background: #eee;
-      color: #aaa;
-      cursor: not-allowed;
+
+    /* ============================================================
+       LOADING INDICATOR
+    ============================================================ */
+
+    .viewer-loading {
+      position: absolute;
+
+      inset: 0;
+
+      z-index: 20;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      background:
+        rgba(0, 0, 0, 0.45);
+
+      backdrop-filter:
+        blur(3px);
+
+      -webkit-backdrop-filter:
+        blur(3px);
+
+      color: #ffffff;
+
+      pointer-events: none;
+
+      opacity: 1;
+
+      transition:
+        opacity 0.35s ease;
+    }
+
+
+    .viewer-loading.hidden {
+      opacity: 0;
+    }
+
+
+    .loading-content {
+      display: flex;
+
+      flex-direction: column;
+
+      align-items: center;
+
+      gap: 12px;
+    }
+
+
+    .loading-spinner {
+      width: 42px;
+      height: 42px;
+
+      border:
+        4px solid
+        rgba(255, 255, 255, 0.25);
+
+      border-top-color:
+        var(--brand-color);
+
+      border-radius: 50%;
+
+      animation:
+        gallerySpin 0.8s linear infinite;
+    }
+
+
+    .loading-text {
+      font-size: 0.85rem;
+
+      font-weight: 500;
+
+      letter-spacing: 0.3px;
+    }
+
+
+    @keyframes gallerySpin {
+      to {
+        transform: rotate(360deg);
+      }
+    }
+
+
+    /* ============================================================
+       STREET VIEW CONTROLS
+    ============================================================ */
+
+    .street-controls {
+      position: absolute;
+
+      inset: 0;
+
+      z-index: 10;
+
+      pointer-events: none;
+
+      opacity: 0;
+
+      transition:
+        opacity 0.25s ease;
+    }
+
+
+    .viewer-wrapper:hover .street-controls,
+    .viewer-wrapper:focus-within .street-controls {
+      opacity: 1;
+    }
+
+
+    .street-control {
+      position: absolute;
+
+      width: 48px;
+      height: 48px;
+
+      padding: 0;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      border:
+        1px solid
+        rgba(255, 255, 255, 0.7);
+
+      border-radius: 50%;
+
+      background:
+        rgba(0, 0, 0, 0.55);
+
+      color: #ffffff;
+
+      font-size: 1.25rem;
+
+      font-weight: 700;
+
+      line-height: 1;
+
+      cursor: pointer;
+
+      pointer-events: auto;
+
+      backdrop-filter:
+        blur(6px);
+
+      -webkit-backdrop-filter:
+        blur(6px);
+
+      box-shadow:
+        0 6px 20px
+        rgba(0, 0, 0, 0.2);
+
+      transition:
+        background 0.2s ease,
+        transform 0.2s ease,
+        opacity 0.2s ease;
+    }
+
+
+    .street-control:hover:not(:disabled) {
+      background:
+        rgba(0, 0, 0, 0.82);
+
+      transform:
+        scale(1.08);
+    }
+
+
+    .street-control:active:not(:disabled) {
+      transform:
+        scale(0.95);
+    }
+
+
+    .street-control:disabled {
+      display: none;
+    }
+
+
+    #leftBtn {
+      left: 18px;
+      top: 50%;
+
+      transform:
+        translateY(-50%);
+    }
+
+
+    #leftBtn:hover:not(:disabled) {
+      transform:
+        translateY(-50%)
+        scale(1.08);
+    }
+
+
+    #rightBtn {
+      right: 18px;
+      top: 50%;
+
+      transform:
+        translateY(-50%);
+    }
+
+
+    #rightBtn:hover:not(:disabled) {
+      transform:
+        translateY(-50%)
+        scale(1.08);
+    }
+
+
+    #forwardBtn {
+      left: 50%;
+      top: 18px;
+
+      transform:
+        translateX(-50%);
+    }
+
+
+    #forwardBtn:hover:not(:disabled) {
+      transform:
+        translateX(-50%)
+        scale(1.08);
+    }
+
+
+    #backwardBtn {
+      left: 50%;
+      bottom: 18px;
+
+      transform:
+        translateX(-50%);
+    }
+
+
+    #backwardBtn:hover:not(:disabled) {
+      transform:
+        translateX(-50%)
+        scale(1.08);
+    }
+
+
+    /* ============================================================
+       VIEWER HINT
+    ============================================================ */
+
+    .viewer-hint {
+      position: absolute;
+
+      left: 50%;
+      bottom: 18px;
+
+      z-index: 9;
+
+      transform:
+        translateX(-50%);
+
+      padding:
+        7px 13px;
+
+      border:
+        1px solid
+        rgba(255, 255, 255, 0.2);
+
+      border-radius: 999px;
+
+      background:
+        rgba(0, 0, 0, 0.42);
+
+      color:
+        rgba(255, 255, 255, 0.92);
+
+      font-size: 0.72rem;
+
+      font-weight: 500;
+
+      white-space: nowrap;
+
+      pointer-events: none;
+
+      opacity: 0;
+
+      transition:
+        opacity 0.25s ease;
+    }
+
+
+    .viewer-wrapper:hover .viewer-hint {
+      opacity: 1;
+    }
+
+
+    /* ============================================================
+       EMPTY STATE
+    ============================================================ */
+
+    .gallery-empty {
+      width: 96%;
+
+      min-height: 500px;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: center;
+
+      padding: 40px;
+
+      border:
+        2px dashed
+        #dddddd;
+
+      border-radius:
+        var(--viewer-radius);
+
+      background:
+        var(--soft-bg);
+
+      text-align: center;
+    }
+
+
+    .gallery-empty-content {
+      max-width: 500px;
+    }
+
+
+    .gallery-empty-content h2 {
+      margin-bottom: 10px;
+
+      font-size: 1.5rem;
+
+      font-weight: 700;
+    }
+
+
+    .gallery-empty-content p {
+      color: var(--text-muted);
+
+      font-size: 0.95rem;
+    }
+
+
+    /* ============================================================
+       BOTTOM INFORMATION
+    ============================================================ */
+
+    .gallery-footer {
+      width: 96%;
+
+      margin-top: 28px;
+
+      display: flex;
+
+      align-items: center;
+
+      justify-content: space-between;
+
+      gap: 20px;
+
+      flex-wrap: wrap;
+    }
+
+
+    .gallery-footer-text {
+      color: var(--text-muted);
+
+      font-size: 0.85rem;
+    }
+
+
+    .gallery-footer-text strong {
+      color: var(--dark);
+    }
+
+
+    .gallery-counter {
+      padding:
+        8px 14px;
+
+      border-radius: 999px;
+
+      background:
+        rgba(255, 215, 0, 0.12);
+
+      color: var(--dark);
+
+      font-size: 0.78rem;
+
+      font-weight: 600;
+    }
+
+
+    /* ============================================================
+       A-FRAME DEFAULT BUTTONS
+    ============================================================ */
+
+    .a-enter-vr-button,
+    .a-fullscreen-button {
+      display: none !important;
+    }
+
+
+    /* ============================================================
+       FULLSCREEN
+    ============================================================ */
+
+    .viewer-wrapper:fullscreen {
+      width: 100vw;
+
+      height: 100vh;
+
+      min-height: 0;
+
+      border: none;
+
+      border-radius: 0;
+
       box-shadow: none;
     }
 
-    /* NAVIGATION DOTS & PREVIEWS */
-    .nav-wrapper {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 15px;
+
+    .viewer-wrapper:-webkit-full-screen {
+      width: 100vw;
+
+      height: 100vh;
+
+      min-height: 0;
+
+      border: none;
+
+      border-radius: 0;
+
+      box-shadow: none;
     }
 
-    .dots { display: flex; gap: 15px; }
 
-    .dot {
-      width: 12px;
-      height: 12px;
-      border-radius: 50%;
-      background: #ddd;
-      transition: 0.4s;
-      border: 2px solid transparent;
+    /* ============================================================
+       RESPONSIVE
+    ============================================================ */
+
+    @media (max-width: 900px) {
+
+      .tour-container {
+        padding:
+          105px 14px 60px;
+      }
+
+
+      .viewer-wrapper {
+        width: 100%;
+
+        height: 62vh;
+
+        min-height: 430px;
+
+        border-width: 7px;
+
+        border-radius: 28px;
+      }
+
+
+      .gallery-footer {
+        width: 100%;
+      }
+
     }
 
-    .dot.active {
-      background: var(--brand-color);
-      transform: scale(1.8);
-      border-color: var(--dark);
-    }
 
-    .hint-box {
-      margin-top: 20px;
-      padding: 10px 30px;
-      background: rgba(255, 215, 0, 0.1);
-      border-radius: 50px;
-      font-size: 0.85rem;
-      color: var(--dark);
-      font-weight: 600;
-      letter-spacing: 0.5px;
-    }
-
-    /* RESPONSIVE */
     @media (max-width: 768px) {
-      .viewer-wrapper { height: 50vh; border-width: 6px; }
-      .btn { padding: 12px 25px; font-size: 0.8rem; }
-      .tour-header h1 { font-size: 1.8rem; }
+
+      .tour-header {
+        margin-bottom: 24px;
+      }
+
+
+      .tour-header h1 {
+        font-size: 1.85rem;
+
+        letter-spacing: 1px;
+      }
+
+
+      .tour-header p {
+        max-width: 500px;
+
+        font-size: 0.85rem;
+
+        margin-left: auto;
+        margin-right: auto;
+      }
+
+
+      .viewer-wrapper {
+        height: 56vh;
+
+        min-height: 390px;
+
+        border-width: 6px;
+
+        border-radius: 22px;
+      }
+
+
+      .street-controls {
+        opacity: 1;
+      }
+
+
+      .street-control {
+        width: 44px;
+        height: 44px;
+
+        font-size: 1.05rem;
+      }
+
+
+      #leftBtn {
+        left: 10px;
+      }
+
+
+      #rightBtn {
+        right: 10px;
+      }
+
+
+      #forwardBtn {
+        top: 10px;
+      }
+
+
+      #backwardBtn {
+        bottom: 10px;
+      }
+
+
+      .viewer-info {
+        top: 10px;
+        left: 10px;
+
+        max-width:
+          calc(100% - 20px);
+
+        padding:
+          7px 11px;
+      }
+
+
+      .viewer-info-title {
+        font-size: 0.75rem;
+      }
+
+
+      .viewer-info-count {
+        font-size: 0.65rem;
+      }
+
+
+      .viewer-hint {
+        display: none;
+      }
+
+
+      .gallery-footer {
+        margin-top: 20px;
+
+        flex-direction: column;
+
+        align-items: flex-start;
+      }
+
+
+      .gallery-empty {
+        width: 100%;
+
+        min-height: 390px;
+
+        border-radius: 22px;
+      }
+
     }
+
+
+    @media (max-width: 480px) {
+
+      .tour-container {
+        padding:
+          95px 10px 45px;
+      }
+
+
+      .tour-header h1 {
+        font-size: 1.55rem;
+      }
+
+
+      .tour-header span {
+        border-bottom-width: 4px;
+      }
+
+
+      .viewer-wrapper {
+        height: 52vh;
+
+        min-height: 350px;
+
+        border-width: 4px;
+
+        border-radius: 18px;
+      }
+
+
+      .street-control {
+        width: 42px;
+        height: 42px;
+      }
+
+
+      .gallery-counter {
+        font-size: 0.7rem;
+      }
+
+    }
+
   </style>
+
 </head>
+
 
 <body>
 
-<%- include('partials/navbar') %>
+  <%- include("partials/navbar") %>
 
-<div class="tour-container">
-  <div class="tour-header">
-    <h1>Experience <span>The Isle</span></h1>
-    <p>Step inside our paradise through an immersive 360° perspective.</p>
-  </div>
 
-  <div class="viewer-wrapper">
-    <a-scene embedded vr-mode-ui="enabled: false">
-      <a-assets>
-        <img id="pano1" src="/images/pano.jpg">
-      </a-assets>
+  <main class="tour-container">
 
-      <a-entity position="0 0 0">
-        <a-camera id="camera" fov="80" look-controls="reverseMouseDrag: false" wasd-controls="enabled: false"></a-camera>
-      </a-entity>
+    <!-- ========================================================
+         HEADER
+    ========================================================= -->
 
-      <a-sky id="sky" src="#pano1" rotation="0 -90 0" transparent="true" opacity="1"></a-sky>
-    </a-scene>
-  </div>
+    <header class="tour-header">
 
-  <div class="controls-container">
-    <div class="btn-group">
-      <button class="btn" id="prevBtn">Previous</button>
-      
-      <div class="nav-wrapper">
-        <div class="dots">
-          <div class="dot active"></div>
-          <div class="dot"></div>
-          <div class="dot"></div>
-          <div class="dot"></div>
+      <h1>
+        Experience
+        <span>The Isle</span>
+      </h1>
+
+      <p>
+        Step inside our paradise through an immersive
+        360° perspective.
+      </p>
+
+    </header>
+
+
+    <!-- ========================================================
+         GALLERY
+    ========================================================= -->
+
+    <% if (hasGalleryImages) { %>
+
+      <div
+        class="viewer-wrapper"
+        id="galleryViewer"
+        tabindex="0"
+        aria-label="Puffer Isle Resort 360 degree virtual tour"
+      >
+
+        <!-- ====================================================
+             VIEWER INFORMATION
+        ===================================================== -->
+
+        <div
+          class="viewer-info"
+          aria-live="polite"
+        >
+
+          <span
+            class="viewer-info-title"
+            id="sceneTitle"
+          >
+            <%= galleryData[0].title %>
+          </span>
+
+          <span
+            class="viewer-info-count"
+            id="sceneCount"
+          >
+            1 / <%= galleryData.length %>
+          </span>
+
         </div>
+
+
+        <!-- ====================================================
+             LOADING
+        ===================================================== -->
+
+        <div
+          class="viewer-loading"
+          id="viewerLoading"
+          aria-hidden="true"
+        >
+
+          <div class="loading-content">
+
+            <div class="loading-spinner"></div>
+
+            <div class="loading-text">
+              Loading 360° view...
+            </div>
+
+          </div>
+
+        </div>
+
+
+        <!-- ====================================================
+             A-FRAME VIEWER
+        ===================================================== -->
+
+        <a-scene
+          embedded
+          vr-mode-ui="enabled: false"
+          renderer="antialias: true; colorManagement: true"
+        >
+
+          <a-entity position="0 0 0">
+
+            <a-camera
+              id="camera"
+              fov="80"
+              look-controls="reverseMouseDrag: false"
+              wasd-controls="enabled: false"
+            ></a-camera>
+
+          </a-entity>
+
+
+          <a-sky
+            id="sky"
+            rotation="0 -90 0"
+            material="transparent: true; opacity: 1"
+          ></a-sky>
+
+        </a-scene>
+
+
+        <!-- ====================================================
+             STREET VIEW CONTROLS
+        ===================================================== -->
+
+        <div
+          class="street-controls"
+          aria-label="360 degree scene navigation"
+        >
+
+          <button
+            class="street-control"
+            id="leftBtn"
+            type="button"
+            aria-label="Go to left scene"
+            title="Go left"
+          >
+            ←
+          </button>
+
+
+          <button
+            class="street-control"
+            id="forwardBtn"
+            type="button"
+            aria-label="Go to forward scene"
+            title="Go forward"
+          >
+            ↑
+          </button>
+
+
+          <button
+            class="street-control"
+            id="rightBtn"
+            type="button"
+            aria-label="Go to right scene"
+            title="Go right"
+          >
+            →
+          </button>
+
+
+          <button
+            class="street-control"
+            id="backwardBtn"
+            type="button"
+            aria-label="Go to backward scene"
+            title="Go backward"
+          >
+            ↓
+          </button>
+
+        </div>
+
+
+        <!-- ====================================================
+             VIEWER HINT
+        ===================================================== -->
+
+        <div
+          class="viewer-hint"
+          aria-hidden="true"
+        >
+          Drag to rotate • Scroll to zoom • Double-click for fullscreen
+        </div>
+
       </div>
 
-      <button class="btn" id="nextBtn">Next View</button>
-    </div>
 
-    <div class="hint-box">
-      ✨ <strong>INTERACTIVE:</strong> DRAG TO ROTATE • SCROLL TO ZOOM
-    </div>
-  </div>
-</div>
+      <!-- ======================================================
+           FOOTER
+      ======================================================= -->
 
-<script>
-  const sky = document.querySelector('#sky');
-  const camera = document.querySelector('#camera');
-  const dots = document.querySelectorAll('.dot');
-  const nextBtn = document.getElementById('nextBtn');
-  const prevBtn = document.getElementById('prevBtn');
+      <div class="gallery-footer">
 
-  const scenes = [
-    "/images/pano.jpg",
-    "/images/pano2.jpg",
-    "/images/pano3.jpg",
-    "/images/pano4.jpg"
-  ];
+        <div class="gallery-footer-text">
 
-  let currentIndex = 0;
+          <strong>Explore Puffer Isle</strong>
+          through our 360° virtual experience.
 
-  function updateUI() {
-    dots.forEach((dot, index) => {
-      dot.classList.toggle("active", index === currentIndex);
-    });
-    prevBtn.disabled = (currentIndex === 0);
-    nextBtn.disabled = (currentIndex === scenes.length - 1);
-  }
+        </div>
 
-  function fadeTo(image) {
-    // Smooth Fade Sequence
-    sky.setAttribute('animation', {
-      property: 'components.material.material.opacity',
-      to: 0,
-      dur: 400,
-      easing: 'easeInOutCubic'
-    });
-    
-    setTimeout(() => {
-      sky.setAttribute('src', image);
-      sky.setAttribute('animation', {
-        property: 'components.material.material.opacity',
-        to: 1,
-        dur: 400,
-        easing: 'easeInOutCubic'
-      });
-    }, 405);
-  }
 
-  nextBtn.onclick = () => {
-    if (currentIndex < scenes.length - 1) {
-      currentIndex++;
-      fadeTo(scenes[currentIndex]);
-      updateUI();
+        <div
+          class="gallery-counter"
+          id="galleryCounter"
+        >
+          <%= galleryData.length %>
+          <%= galleryData.length === 1 ? "view" : "views" %>
+        </div>
+
+      </div>
+
+
+    <% } else { %>
+
+
+      <!-- ======================================================
+           EMPTY GALLERY
+      ======================================================= -->
+
+      <section
+        class="gallery-empty"
+        aria-live="polite"
+      >
+
+        <div class="gallery-empty-content">
+
+          <h2>
+            360° Experience Unavailable
+          </h2>
+
+          <p>
+            The resort gallery does not have any
+            panorama scenes available yet.
+          </p>
+
+        </div>
+
+      </section>
+
+    <% } %>
+
+
+  </main>
+
+
+  <!-- ==========================================================
+       GALLERY DATA
+       JSON is kept outside HTML attributes so titles and URLs
+       cannot accidentally break the markup.
+  =========================================================== -->
+
+  <script
+    id="galleryData"
+    type="application/json"
+  ><%- JSON.stringify(galleryData) %></script>
+
+
+  <!-- ==========================================================
+       GALLERY JAVASCRIPT
+  =========================================================== -->
+
+  <script>
+
+    "use strict";
+
+
+    /* ============================================================
+       ELEMENTS
+    ============================================================ */
+
+    const viewer =
+      document.getElementById(
+        "galleryViewer"
+      );
+
+    const sky =
+      document.getElementById(
+        "sky"
+      );
+
+    const camera =
+      document.getElementById(
+        "camera"
+      );
+
+    const sceneTitle =
+      document.getElementById(
+        "sceneTitle"
+      );
+
+    const sceneCount =
+      document.getElementById(
+        "sceneCount"
+      );
+
+    const viewerLoading =
+      document.getElementById(
+        "viewerLoading"
+      );
+
+    const galleryDataElement =
+      document.getElementById(
+        "galleryData"
+      );
+
+    const leftBtn =
+      document.getElementById(
+        "leftBtn"
+      );
+
+    const forwardBtn =
+      document.getElementById(
+        "forwardBtn"
+      );
+
+    const rightBtn =
+      document.getElementById(
+        "rightBtn"
+      );
+
+    const backwardBtn =
+      document.getElementById(
+        "backwardBtn"
+      );
+
+
+    /* ============================================================
+       GALLERY DATA
+    ============================================================ */
+
+    let galleryData = [];
+
+
+    try {
+
+      galleryData =
+        JSON.parse(
+          galleryDataElement?.textContent || "[]"
+        );
+
+    } catch (error) {
+
+      console.error(
+        "Gallery Data Parse Error:",
+        error
+      );
+
+      galleryData = [];
+
     }
-  };
 
-  prevBtn.onclick = () => {
-    if (currentIndex > 0) {
-      currentIndex--;
-      fadeTo(scenes[currentIndex]);
-      updateUI();
+
+    const scenes =
+      galleryData
+        .map((item) =>
+          String(
+            item?.image || ""
+          ).trim()
+        )
+        .filter(Boolean);
+
+
+    let currentIndex = 0;
+
+    let transitionTimer = null;
+
+    let transitionId = 0;
+
+    let isTransitioning = false;
+
+
+    /* ============================================================
+       HELPERS
+    ============================================================ */
+
+    function isValidSceneIndex(index) {
+
+      return (
+        Number.isInteger(index) &&
+        index >= 0 &&
+        index < scenes.length
+      );
+
     }
-  };
 
-  // ZOOM CLAMPING - No more black screens
-  document.querySelector('.viewer-wrapper').addEventListener('wheel', (e) => {
-    e.preventDefault();
-    let fov = parseFloat(camera.getAttribute('fov'));
-    fov += (e.deltaY > 0) ? 3 : -3;
-    fov = Math.min(Math.max(fov, 30), 95); 
-    camera.setAttribute('fov', fov);
-  }, { passive: false });
 
-  updateUI();
-</script>
+    function getCurrentNavigation() {
+
+      return (
+        galleryData[currentIndex] || {}
+      );
+
+    }
+
+
+    function showLoading() {
+
+      if (!viewerLoading) {
+        return;
+      }
+
+      viewerLoading.classList.remove(
+        "hidden"
+      );
+
+    }
+
+
+    function hideLoading() {
+
+      if (!viewerLoading) {
+        return;
+      }
+
+      viewerLoading.classList.add(
+        "hidden"
+      );
+
+    }
+
+
+    /* ============================================================
+       UI
+    ============================================================ */
+
+    function updateUI() {
+
+      if (!scenes.length) {
+        return;
+      }
+
+
+      const current =
+        galleryData[currentIndex] || {};
+
+
+      if (sceneTitle) {
+
+        sceneTitle.textContent =
+          current.title ||
+          `Resort View ${currentIndex + 1}`;
+
+      }
+
+
+      if (sceneCount) {
+
+        sceneCount.textContent =
+          `${currentIndex + 1} / ${scenes.length}`;
+
+      }
+
+
+      const navigation =
+        getCurrentNavigation();
+
+
+      if (leftBtn) {
+
+        leftBtn.disabled =
+          !isValidSceneIndex(
+            navigation.left
+          );
+
+      }
+
+
+      if (rightBtn) {
+
+        rightBtn.disabled =
+          !isValidSceneIndex(
+            navigation.right
+          );
+
+      }
+
+
+      if (forwardBtn) {
+
+        forwardBtn.disabled =
+          !isValidSceneIndex(
+            navigation.forward
+          );
+
+      }
+
+
+      if (backwardBtn) {
+
+        backwardBtn.disabled =
+          !isValidSceneIndex(
+            navigation.backward
+          );
+
+      }
+
+    }
+
+
+    /* ============================================================
+       LOAD FIRST SCENE
+    ============================================================ */
+
+    function loadInitialScene() {
+
+      if (
+        !sky ||
+        !scenes.length
+      ) {
+
+        hideLoading();
+
+        return;
+
+      }
+
+
+      currentIndex = 0;
+
+
+      sky.setAttribute(
+        "material",
+        "transparent",
+        true
+      );
+
+
+      sky.setAttribute(
+        "material",
+        "opacity",
+        1
+      );
+
+
+      sky.setAttribute(
+        "src",
+        scenes[currentIndex]
+      );
+
+
+      updateUI();
+
+    }
+
+
+    /* ============================================================
+       SCENE FADE
+    ============================================================ */
+
+    function fadeOutSky() {
+
+      if (!sky) {
+        return;
+      }
+
+
+      sky.setAttribute(
+        "animation__fadeout",
+        {
+          property:
+            "material.opacity",
+
+          to: 0,
+
+          dur: 280,
+
+          easing:
+            "easeInOutQuad"
+        }
+      );
+
+    }
+
+
+    function fadeInSky() {
+
+      if (!sky) {
+        return;
+      }
+
+
+      sky.setAttribute(
+        "animation__fadein",
+        {
+          property:
+            "material.opacity",
+
+          to: 1,
+
+          dur: 320,
+
+          easing:
+            "easeInOutQuad"
+        }
+      );
+
+    }
+
+
+    /* ============================================================
+       GO TO SCENE
+    ============================================================ */
+
+    function goTo(index) {
+
+      if (
+        !isValidSceneIndex(index)
+      ) {
+        return;
+      }
+
+
+      if (
+        index === currentIndex
+      ) {
+        return;
+      }
+
+
+      if (
+        isTransitioning
+      ) {
+        return;
+      }
+
+
+      if (!sky) {
+        return;
+      }
+
+
+      isTransitioning = true;
+
+      const thisTransition =
+        ++transitionId;
+
+
+      showLoading();
+
+
+      if (transitionTimer) {
+
+        clearTimeout(
+          transitionTimer
+        );
+
+        transitionTimer = null;
+
+      }
+
+
+      fadeOutSky();
+
+
+      transitionTimer =
+        setTimeout(() => {
+
+          if (
+            thisTransition !==
+            transitionId
+          ) {
+            return;
+          }
+
+
+          sky.setAttribute(
+            "src",
+            scenes[index]
+          );
+
+
+          currentIndex = index;
+
+
+          updateUI();
+
+
+          /*
+           * Give A-Frame a moment to register
+           * the new source before fading back in.
+           */
+          transitionTimer =
+            setTimeout(() => {
+
+              if (
+                thisTransition !==
+                transitionId
+              ) {
+                return;
+              }
+
+
+              fadeInSky();
+
+
+              /*
+               * Keep the viewer responsive even
+               * if the image is already cached.
+               */
+              setTimeout(() => {
+
+                if (
+                  thisTransition ===
+                  transitionId
+                ) {
+
+                  hideLoading();
+
+                  isTransitioning =
+                    false;
+
+                }
+
+              }, 330);
+
+            }, 50);
+
+        }, 290);
+
+    }
+
+
+    /* ============================================================
+       STREET VIEW BUTTONS
+    ============================================================ */
+
+    if (leftBtn) {
+
+      leftBtn.addEventListener(
+        "click",
+        () => {
+
+          const navigation =
+            getCurrentNavigation();
+
+          goTo(
+            navigation.left
+          );
+
+        }
+      );
+
+    }
+
+
+    if (forwardBtn) {
+
+      forwardBtn.addEventListener(
+        "click",
+        () => {
+
+          const navigation =
+            getCurrentNavigation();
+
+          goTo(
+            navigation.forward
+          );
+
+        }
+      );
+
+    }
+
+
+    if (rightBtn) {
+
+      rightBtn.addEventListener(
+        "click",
+        () => {
+
+          const navigation =
+            getCurrentNavigation();
+
+          goTo(
+            navigation.right
+          );
+
+        }
+      );
+
+    }
+
+
+    if (backwardBtn) {
+
+      backwardBtn.addEventListener(
+        "click",
+        () => {
+
+          const navigation =
+            getCurrentNavigation();
+
+          goTo(
+            navigation.backward
+          );
+
+        }
+      );
+
+    }
+
+
+    /* ============================================================
+       ZOOM
+    ============================================================ */
+
+    if (
+      viewer &&
+      camera
+    ) {
+
+      viewer.addEventListener(
+        "wheel",
+        (event) => {
+
+          event.preventDefault();
+
+
+          let fov =
+            Number(
+              camera.getAttribute(
+                "fov"
+              )
+            );
+
+
+          if (
+            !Number.isFinite(fov)
+          ) {
+
+            fov = 80;
+
+          }
+
+
+          const zoomAmount =
+            event.deltaY > 0
+              ? 3
+              : -3;
+
+
+          fov += zoomAmount;
+
+
+          /*
+           * Keep the FOV inside a safe range.
+           */
+          fov =
+            Math.min(
+              Math.max(
+                fov,
+                30
+              ),
+              95
+            );
+
+
+          camera.setAttribute(
+            "fov",
+            fov
+          );
+
+        },
+        {
+          passive: false
+        }
+      );
+
+    }
+
+
+    /* ============================================================
+       FULLSCREEN
+    ============================================================ */
+
+    function toggleViewerFullscreen() {
+
+      if (!viewer) {
+        return;
+      }
+
+
+      const activeFullscreen =
+        document.fullscreenElement ||
+        document.webkitFullscreenElement;
+
+
+      if (activeFullscreen) {
+
+        if (
+          document.exitFullscreen
+        ) {
+
+          document.exitFullscreen();
+
+        } else if (
+          document.webkitExitFullscreen
+        ) {
+
+          document.webkitExitFullscreen();
+
+        }
+
+        return;
+
+      }
+
+
+      if (
+        viewer.requestFullscreen
+      ) {
+
+        viewer.requestFullscreen();
+
+      } else if (
+        viewer.webkitRequestFullscreen
+      ) {
+
+        viewer.webkitRequestFullscreen();
+
+      }
+
+    }
+
+
+    if (viewer) {
+
+      viewer.addEventListener(
+        "dblclick",
+        (event) => {
+
+          event.preventDefault();
+
+          toggleViewerFullscreen();
+
+        }
+      );
+
+
+      /*
+       * Mobile double-tap fullscreen.
+       */
+      let lastTapAt = 0;
+
+
+      viewer.addEventListener(
+        "touchend",
+        (event) => {
+
+          const now =
+            Date.now();
+
+
+          if (
+            now - lastTapAt <
+            350
+          ) {
+
+            event.preventDefault();
+
+            toggleViewerFullscreen();
+
+            lastTapAt = 0;
+
+          } else {
+
+            lastTapAt = now;
+
+          }
+
+        },
+        {
+          passive: false
+        }
+      );
+
+    }
+
+
+    /* ============================================================
+       TEXTURE EVENTS
+    ============================================================ */
+
+    if (sky) {
+
+      sky.addEventListener(
+        "materialtextureloaded",
+        () => {
+
+          hideLoading();
+
+        }
+      );
+
+    }
+
+
+    /* ============================================================
+       A-FRAME READY
+    ============================================================ */
+
+    const scene =
+      document.querySelector(
+        "a-scene"
+      );
+
+
+    if (scene) {
+
+      if (scene.hasLoaded) {
+
+        loadInitialScene();
+
+      } else {
+
+        scene.addEventListener(
+          "loaded",
+          loadInitialScene,
+          {
+            once: true
+          }
+        );
+
+      }
+
+    } else {
+
+      hideLoading();
+
+    }
+
+
+    /* ============================================================
+       INITIAL UI
+    ============================================================ */
+
+    updateUI();
+
+  </script>
 
 </body>
+
 </html>

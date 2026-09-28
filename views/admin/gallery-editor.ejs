@@ -1,0 +1,4172 @@
+<%
+  /*
+   * ============================================================
+   * PUFFER ISLE RESORT | IsleRMS
+   * views/admin/gallery-editor.ejs
+   *
+   * 360° GALLERY MANAGEMENT
+   *
+   * Visual system based on rooms.ejs.
+   *
+   * Supported actions:
+   * - Add panorama
+   * - Update scene title
+   * - Replace panorama
+   * - Configure navigation
+   * - Delete scene
+   *
+   * Expected server data:
+   * - galleryImages
+   * - success
+   * - error
+   * - csrfToken
+   * ============================================================
+   */
+
+  const galleryScenes =
+    Array.isArray(galleryImages)
+      ? galleryImages
+      : [];
+
+  const successMessage =
+    typeof success !== "undefined"
+      ? String(success || "")
+      : "";
+
+  const errorMessage =
+    typeof error !== "undefined"
+      ? String(error || "")
+      : "";
+
+  const adminCsrfToken =
+    typeof csrfToken !== "undefined"
+      ? String(csrfToken || "")
+      : "";
+
+  function getSceneTitle(scene, index) {
+    if (
+      scene &&
+      scene.title &&
+      String(scene.title).trim()
+    ) {
+      return String(scene.title).trim();
+    }
+
+    return "Resort View " + (index + 1);
+  }
+
+  function isSelected(value, targetIndex) {
+    if (
+      value === null ||
+      value === undefined ||
+      value === ""
+    ) {
+      return false;
+    }
+
+    return Number(value) === targetIndex;
+  }
+
+  let navigationLinks = 0;
+  let connectedScenes = 0;
+
+  galleryScenes.forEach(function (scene) {
+
+    let connected = false;
+
+    const directions = [
+      scene.left,
+      scene.forward,
+      scene.right,
+      scene.backward
+    ];
+
+    directions.forEach(function (value) {
+
+      if (
+        Number.isInteger(value)
+      ) {
+        navigationLinks += 1;
+        connected = true;
+      }
+
+    });
+
+    if (connected) {
+      connectedScenes += 1;
+    }
+
+  });
+%>
+
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+
+  <meta charset="UTF-8">
+
+  <meta
+    name="viewport"
+    content="width=device-width, initial-scale=1.0"
+  >
+
+  <meta
+    name="color-scheme"
+    content="dark"
+  >
+
+  <meta
+    name="theme-color"
+    content="#070a0c"
+  >
+
+  <!-- Font Awesome used by the admin navigation -->
+  <link
+    rel="stylesheet"
+    href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css"
+    crossorigin="anonymous"
+    referrerpolicy="no-referrer"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.googleapis.com"
+  >
+
+  <link
+    rel="preconnect"
+    href="https://fonts.gstatic.com"
+    crossorigin
+  >
+
+  <link
+    href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap"
+    rel="stylesheet"
+  >
+
+  <link
+    rel="icon"
+    type="image/png"
+    href="/images/islelogo.png"
+  >
+
+  <title>
+    <%= title || "360° Gallery Management" %> | Isle RMS
+  </title>
+
+
+  <style>
+
+    /* ============================================================
+       ROOT
+    ============================================================ */
+
+    :root {
+
+      --gallery-bg: #070a0c;
+      --gallery-soft: #0c1113;
+
+      --gallery-panel:
+        rgba(
+          15,
+          22,
+          24,
+          0.84
+        );
+
+      --gallery-panel-strong:
+        rgba(
+          10,
+          15,
+          17,
+          0.96
+        );
+
+      --gallery-border:
+        rgba(
+          255,
+          255,
+          255,
+          0.085
+        );
+
+      --gallery-border-strong:
+        rgba(
+          255,
+          255,
+          255,
+          0.14
+        );
+
+      --gallery-text: #ffffff;
+
+      --gallery-soft-text:
+        rgba(
+          255,
+          255,
+          255,
+          0.76
+        );
+
+      --gallery-muted:
+        rgba(
+          255,
+          255,
+          255,
+          0.48
+        );
+
+      --gallery-faint:
+        rgba(
+          255,
+          255,
+          255,
+          0.28
+        );
+
+      --gallery-teal: #00a6a6;
+
+      --gallery-teal-light: #1fc7c7;
+
+      --gallery-teal-deep: #006f70;
+
+      --gallery-gold: #ffd700;
+
+      --gallery-gold-soft: #f2cf36;
+
+      --gallery-success: #2ecc71;
+
+      --gallery-danger: #e85d5d;
+
+      --gallery-warning: #f2bd35;
+
+      --gallery-info: #4da3ff;
+
+      --gallery-xl: 28px;
+
+      --gallery-lg: 20px;
+
+      --gallery-md: 15px;
+
+      --gallery-sm: 10px;
+
+      --gallery-shadow:
+        0
+        24px
+        70px
+        rgba(
+          0,
+          0,
+          0,
+          0.38
+        );
+
+      --gallery-shadow-soft:
+        0
+        12px
+        32px
+        rgba(
+          0,
+          0,
+          0,
+          0.24
+        );
+    }
+
+
+    /* ============================================================
+       RESET
+    ============================================================ */
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html {
+      scroll-behavior: smooth;
+    }
+
+    body {
+
+      margin: 0;
+
+      min-height: 100vh;
+
+      overflow-x: hidden;
+
+      color:
+        var(--gallery-text);
+
+      background:
+
+        radial-gradient(
+          circle at 14% 0%,
+          rgba(
+            0,
+            166,
+            166,
+            0.12
+          ),
+          transparent 31%
+        ),
+
+        radial-gradient(
+          circle at 86% 12%,
+          rgba(
+            255,
+            215,
+            0,
+            0.07
+          ),
+          transparent 25%
+        ),
+
+        linear-gradient(
+          180deg,
+          #080b0d 0%,
+          #060809 100%
+        );
+
+      font-family:
+        "Poppins",
+        system-ui,
+        -apple-system,
+        BlinkMacSystemFont,
+        "Segoe UI",
+        sans-serif;
+    }
+
+
+    body::before {
+
+      content: "";
+
+      position: fixed;
+
+      inset: 0;
+
+      pointer-events: none;
+
+      opacity: 0.22;
+
+      background-image:
+
+        linear-gradient(
+          rgba(
+            255,
+            255,
+            255,
+            0.026
+          ) 1px,
+          transparent 1px
+        ),
+
+        linear-gradient(
+          90deg,
+          rgba(
+            255,
+            255,
+            255,
+            0.026
+          ) 1px,
+          transparent 1px
+        );
+
+      background-size:
+        48px 48px;
+
+      mask-image:
+        linear-gradient(
+          to bottom,
+          black,
+          transparent 92%
+        );
+    }
+
+
+    ::selection {
+
+      background:
+        rgba(
+          255,
+          215,
+          0,
+          0.24
+        );
+
+      color: #fff;
+    }
+
+
+    ::-webkit-scrollbar {
+      width: 10px;
+    }
+
+
+    ::-webkit-scrollbar-track {
+      background:
+        var(--gallery-bg);
+    }
+
+
+    ::-webkit-scrollbar-thumb {
+
+      background:
+        linear-gradient(
+          180deg,
+          var(--gallery-teal),
+          var(--gallery-teal-deep)
+        );
+
+      border-radius:
+        999px;
+    }
+
+
+    button,
+    input,
+    select,
+    textarea {
+      font: inherit;
+    }
+
+
+    button,
+    a,
+    input,
+    select,
+    textarea {
+      -webkit-tap-highlight-color:
+        transparent;
+    }
+
+
+    :focus-visible {
+
+      outline:
+        2px solid
+        var(--gallery-gold);
+
+      outline-offset:
+        3px;
+    }
+
+
+    /* ============================================================
+       MAIN PAGE
+    ============================================================ */
+
+    .gallery-page {
+
+      position: relative;
+
+      width:
+        min(
+          1440px,
+          calc(100% - 34px)
+        );
+
+      margin:
+        0 auto;
+
+      padding:
+        118px
+        0
+        56px;
+    }
+
+
+    /* ============================================================
+       HEADER
+    ============================================================ */
+
+    .gallery-header {
+
+      display: flex;
+
+      align-items:
+        flex-end;
+
+      justify-content:
+        space-between;
+
+      gap: 24px;
+
+      margin-bottom:
+        18px;
+    }
+
+
+    .gallery-heading {
+      min-width: 0;
+    }
+
+
+    .eyebrow {
+
+      display: inline-flex;
+
+      align-items:
+        center;
+
+      gap: 9px;
+
+      margin-bottom:
+        10px;
+
+      color:
+        var(--gallery-muted);
+
+      font-size:
+        0.72rem;
+
+      font-weight:
+        700;
+
+      letter-spacing:
+        0.16em;
+
+      text-transform:
+        uppercase;
+    }
+
+
+    .eyebrow::before {
+
+      content: "";
+
+      width: 24px;
+
+      height: 2px;
+
+      border-radius:
+        999px;
+
+      background:
+        linear-gradient(
+          90deg,
+          var(--gallery-teal),
+          var(--gallery-gold)
+        );
+    }
+
+
+    h1,
+    h2,
+    h3,
+    p {
+      margin: 0;
+    }
+
+
+    .gallery-heading h1 {
+
+      font-family:
+        "Playfair Display",
+        Georgia,
+        serif;
+
+      font-size:
+        clamp(
+          2.3rem,
+          4vw,
+          3.8rem
+        );
+
+      line-height: 1;
+
+      letter-spacing:
+        -0.035em;
+    }
+
+
+    .gallery-heading h1 span {
+      color:
+        var(--gallery-teal-light);
+    }
+
+
+    .gallery-heading p {
+
+      max-width:
+        820px;
+
+      margin-top:
+        12px;
+
+      color:
+        var(--gallery-muted);
+
+      font-size:
+        0.93rem;
+
+      line-height:
+        1.75;
+    }
+
+
+    /* ============================================================
+       HEADER ACTIONS
+    ============================================================ */
+
+    .header-actions {
+
+      display: flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        flex-end;
+
+      gap: 9px;
+
+      flex-wrap:
+        wrap;
+    }
+
+
+    .status-card {
+
+      display: inline-flex;
+
+      align-items:
+        center;
+
+      gap: 10px;
+
+      min-height:
+        46px;
+
+      padding:
+        0 14px;
+
+      border:
+        1px solid
+        var(--gallery-border);
+
+      border-radius:
+        14px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.035
+        );
+
+      box-shadow:
+        var(--gallery-shadow-soft);
+
+      backdrop-filter:
+        blur(16px);
+
+      color:
+        var(--gallery-soft-text);
+
+      font-size:
+        0.75rem;
+
+      font-weight:
+        700;
+    }
+
+
+    .status-dot {
+
+      width: 9px;
+
+      height: 9px;
+
+      flex:
+        0 0 9px;
+
+      border-radius:
+        50%;
+
+      background:
+        var(--gallery-success);
+
+      box-shadow:
+
+        0 0 0 5px
+        rgba(
+          46,
+          204,
+          113,
+          0.09
+        ),
+
+        0 0 18px
+        rgba(
+          46,
+          204,
+          113,
+          0.48
+        );
+
+      animation:
+        galleryPulse
+        2.3s
+        ease-in-out
+        infinite;
+    }
+
+
+    @keyframes galleryPulse {
+
+      0%,
+      100% {
+
+        transform:
+          scale(1);
+
+        opacity: 1;
+      }
+
+      50% {
+
+        transform:
+          scale(1.1);
+
+        opacity: 0.72;
+      }
+    }
+
+
+    /* ============================================================
+       BUTTON SYSTEM
+    ============================================================ */
+
+    .btn {
+
+      display: inline-flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      gap: 8px;
+
+      min-height:
+        44px;
+
+      padding:
+        0 15px;
+
+      border:
+        1px solid
+        transparent;
+
+      border-radius:
+        12px;
+
+      cursor:
+        pointer;
+
+      text-decoration:
+        none;
+
+      white-space:
+        nowrap;
+
+      font-size:
+        0.74rem;
+
+      font-weight:
+        800;
+
+      transition:
+
+        transform
+        0.18s
+        ease,
+
+        border-color
+        0.18s
+        ease,
+
+        background
+        0.18s
+        ease,
+
+        box-shadow
+        0.18s
+        ease;
+    }
+
+
+    .btn:hover {
+      transform:
+        translateY(-1px);
+    }
+
+
+    .btn:disabled {
+
+      cursor:
+        not-allowed;
+
+      opacity:
+        0.55;
+
+      transform:
+        none;
+    }
+
+
+    .btn-primary {
+
+      color:
+        #041011;
+
+      background:
+        linear-gradient(
+          135deg,
+          var(--gallery-teal-light),
+          var(--gallery-teal)
+        );
+
+      box-shadow:
+        0
+        10px
+        28px
+        rgba(
+          0,
+          166,
+          166,
+          0.18
+        );
+    }
+
+
+    .btn-secondary {
+
+      color:
+        var(--gallery-text);
+
+      border-color:
+        var(--gallery-border-strong);
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.035
+        );
+    }
+
+
+    .btn-gold {
+
+      color:
+        #0d0c02;
+
+      background:
+        linear-gradient(
+          135deg,
+          #ffe76c,
+          var(--gallery-gold)
+        );
+
+      box-shadow:
+        0
+        10px
+        24px
+        rgba(
+          255,
+          215,
+          0,
+          0.12
+        );
+    }
+
+
+    .btn-danger {
+
+      color:
+        #ffffff;
+
+      background:
+        linear-gradient(
+          135deg,
+          #bc4747,
+          #8f2e2e
+        );
+
+      box-shadow:
+        0
+        10px
+        24px
+        rgba(
+          232,
+          93,
+          93,
+          0.14
+        );
+    }
+
+
+    .btn-small {
+
+      min-height:
+        38px;
+
+      padding:
+        0 12px;
+
+      font-size:
+        0.65rem;
+    }
+
+
+    /* ============================================================
+       NOTICES
+    ============================================================ */
+
+    .notice {
+
+      margin-bottom:
+        18px;
+
+      padding:
+        13px 15px;
+
+      border:
+        1px solid
+        rgba(
+          46,
+          204,
+          113,
+          0.18
+        );
+
+      border-radius:
+        14px;
+
+      background:
+        rgba(
+          46,
+          204,
+          113,
+          0.08
+        );
+
+      color:
+        #8af0b6;
+
+      font-size:
+        0.72rem;
+
+      font-weight:
+        700;
+    }
+
+
+    .notice.error {
+
+      border-color:
+        rgba(
+          232,
+          93,
+          93,
+          0.20
+        );
+
+      background:
+        rgba(
+          232,
+          93,
+          93,
+          0.08
+        );
+
+      color:
+        #ff9b9b;
+    }
+
+
+    /* ============================================================
+       LIVE STRIP
+    ============================================================ */
+
+    .live-strip {
+
+      display: flex;
+
+      align-items:
+        center;
+
+      gap: 10px;
+
+      margin-bottom:
+        18px;
+
+      padding:
+        12px 16px;
+
+      border:
+        1px solid
+        var(--gallery-border);
+
+      border-radius:
+        14px;
+
+      background:
+        linear-gradient(
+          90deg,
+          rgba(
+            0,
+            166,
+            166,
+            0.08
+          ),
+          rgba(
+            255,
+            255,
+            255,
+            0.018
+          )
+        );
+
+      color:
+        var(--gallery-soft-text);
+
+      font-size:
+        0.74rem;
+    }
+
+
+    .live-strip strong {
+      color:
+        var(--gallery-text);
+    }
+
+
+    /* ============================================================
+       METRIC CARDS
+    ============================================================ */
+
+    .metric-grid {
+
+      display: grid;
+
+      grid-template-columns:
+        repeat(
+          4,
+          minmax(
+            0,
+            1fr
+          )
+        );
+
+      gap: 14px;
+
+      margin-bottom:
+        18px;
+    }
+
+
+    .metric-card {
+
+      position:
+        relative;
+
+      overflow:
+        hidden;
+
+      min-height:
+        124px;
+
+      padding:
+        18px;
+
+      border:
+        1px solid
+        var(--gallery-border);
+
+      border-radius:
+        var(--gallery-lg);
+
+      background:
+        linear-gradient(
+          150deg,
+          rgba(
+            17,
+            25,
+            27,
+            0.92
+          ),
+          rgba(
+            10,
+            15,
+            17,
+            0.78
+          )
+        );
+
+      box-shadow:
+        var(--gallery-shadow-soft);
+
+      backdrop-filter:
+        blur(18px);
+    }
+
+
+    .metric-card::before {
+
+      content:
+        "";
+
+      position:
+        absolute;
+
+      inset:
+        0
+        0
+        auto;
+
+      height:
+        1px;
+
+      background:
+        linear-gradient(
+          90deg,
+          transparent,
+          rgba(
+            255,
+            255,
+            255,
+            0.18
+          ),
+          transparent
+        );
+    }
+
+
+    .metric-card::after {
+
+      content:
+        "";
+
+      position:
+        absolute;
+
+      width:
+        120px;
+
+      height:
+        120px;
+
+      right:
+        -48px;
+
+      bottom:
+        -62px;
+
+      border-radius:
+        50%;
+
+      background:
+        rgba(
+          0,
+          166,
+          166,
+          0.10
+        );
+
+      filter:
+        blur(8px);
+
+      pointer-events:
+        none;
+    }
+
+
+    .metric-top {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        space-between;
+
+      gap:
+        12px;
+    }
+
+
+    .metric-label {
+
+      color:
+        var(--gallery-muted);
+
+      font-size:
+        0.68rem;
+
+      font-weight:
+        800;
+
+      letter-spacing:
+        0.08em;
+
+      text-transform:
+        uppercase;
+    }
+
+
+    .metric-icon {
+
+      display:
+        grid;
+
+      place-items:
+        center;
+
+      width:
+        38px;
+
+      height:
+        38px;
+
+      border:
+        1px solid
+        rgba(
+          0,
+          166,
+          166,
+          0.24
+        );
+
+      border-radius:
+        12px;
+
+      background:
+        rgba(
+          0,
+          166,
+          166,
+          0.12
+        );
+
+      color:
+        var(--gallery-teal-light);
+
+      font-size:
+        0.96rem;
+    }
+
+
+    .metric-card:nth-child(2)
+    .metric-icon {
+
+      border-color:
+        rgba(
+          46,
+          204,
+          113,
+          0.20
+        );
+
+      background:
+        rgba(
+          46,
+          204,
+          113,
+          0.09
+        );
+
+      color:
+        #77e8a3;
+    }
+
+
+    .metric-card:nth-child(3)
+    .metric-icon {
+
+      border-color:
+        rgba(
+          77,
+          163,
+          255,
+          0.20
+        );
+
+      background:
+        rgba(
+          77,
+          163,
+          255,
+          0.09
+        );
+
+      color:
+        #76b7ff;
+    }
+
+
+    .metric-card:nth-child(4)
+    .metric-icon {
+
+      border-color:
+        rgba(
+          255,
+          215,
+          0,
+          0.18
+        );
+
+      background:
+        rgba(
+          255,
+          215,
+          0,
+          0.07
+        );
+
+      color:
+        var(--gallery-gold-soft);
+    }
+
+
+    .metric-value {
+
+      display:
+        block;
+
+      margin-top:
+        14px;
+
+      font-size:
+        1.82rem;
+
+      font-weight:
+        800;
+
+      line-height:
+        1;
+
+      letter-spacing:
+        -0.04em;
+    }
+
+
+    .metric-note {
+
+      display:
+        block;
+
+      margin-top:
+        5px;
+
+      color:
+        var(--gallery-muted);
+
+      font-size:
+        0.66rem;
+    }
+
+
+    /* ============================================================
+       MAIN OPERATION PANEL
+    ============================================================ */
+
+    .operation-panel {
+
+      overflow:
+        hidden;
+
+      border:
+        1px solid
+        var(--gallery-border);
+
+      border-radius:
+        var(--gallery-xl);
+
+      background:
+        linear-gradient(
+          150deg,
+          rgba(
+            15,
+            22,
+            24,
+            0.90
+          ),
+          rgba(
+            8,
+            12,
+            14,
+            0.83
+          )
+        );
+
+      box-shadow:
+        var(--gallery-shadow);
+
+      backdrop-filter:
+        blur(20px);
+    }
+
+
+    .panel-head {
+
+      display:
+        flex;
+
+      align-items:
+        flex-start;
+
+      justify-content:
+        space-between;
+
+      gap:
+        18px;
+
+      padding:
+        22px
+        22px
+        16px;
+
+      border-bottom:
+        1px solid
+        var(--gallery-border);
+    }
+
+
+    .panel-title {
+
+      font-family:
+        "Playfair Display",
+        Georgia,
+        serif;
+
+      font-size:
+        1.58rem;
+
+      line-height:
+        1.15;
+    }
+
+
+    .panel-subtitle {
+
+      max-width:
+        860px;
+
+      margin-top:
+        6px;
+
+      color:
+        var(--gallery-muted);
+
+      font-size:
+        0.76rem;
+
+      line-height:
+        1.65;
+    }
+
+
+    .panel-tools {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      gap:
+        8px;
+
+      flex-wrap:
+        wrap;
+
+      justify-content:
+        flex-end;
+    }
+
+
+    /* ============================================================
+       ADD PANEL
+    ============================================================ */
+
+    .add-section {
+
+      margin:
+        18px
+        22px
+        0;
+
+      padding:
+        18px;
+
+      border:
+        1px solid
+        var(--gallery-border);
+
+      border-radius:
+        18px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.018
+        );
+    }
+
+
+    .add-header {
+
+      display:
+        flex;
+
+      align-items:
+        flex-start;
+
+      justify-content:
+        space-between;
+
+      gap:
+        18px;
+
+      margin-bottom:
+        16px;
+    }
+
+
+    .add-title {
+
+      font-family:
+        "Playfair Display",
+        Georgia,
+        serif;
+
+      font-size:
+        1.28rem;
+    }
+
+
+    .add-description {
+
+      margin-top:
+        5px;
+
+      color:
+        var(--gallery-muted);
+
+      font-size:
+        0.70rem;
+
+      line-height:
+        1.6;
+    }
+
+
+    .format-badge {
+
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      min-height:
+        30px;
+
+      padding:
+        0 10px;
+
+      border:
+        1px solid
+        rgba(
+          255,
+          215,
+          0,
+          0.16
+        );
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(
+          255,
+          215,
+          0,
+          0.06
+        );
+
+      color:
+        var(--gallery-gold-soft);
+
+      font-size:
+        0.61rem;
+
+      font-weight:
+        800;
+
+      white-space:
+        nowrap;
+    }
+
+
+    .add-form {
+
+      display:
+        grid;
+
+      grid-template-columns:
+        minmax(
+          220px,
+          0.9fr
+        )
+        minmax(
+          300px,
+          1.5fr
+        )
+        auto;
+
+      gap:
+        12px;
+
+      align-items:
+        end;
+    }
+
+
+    /* ============================================================
+       FORM CONTROLS
+    ============================================================ */
+
+    .field {
+
+      min-width:
+        0;
+
+      display:
+        flex;
+
+      flex-direction:
+        column;
+
+      gap:
+        7px;
+    }
+
+
+    .field-label {
+
+      color:
+        var(--gallery-soft-text);
+
+      font-size:
+        0.68rem;
+
+      font-weight:
+        800;
+    }
+
+
+    .field input,
+    .field select {
+
+      width:
+        100%;
+
+      min-height:
+        44px;
+
+      padding:
+        10px
+        12px;
+
+      border:
+        1px solid
+        var(--gallery-border);
+
+      border-radius:
+        12px;
+
+      outline:
+        none;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.035
+        );
+
+      color:
+        var(--gallery-text);
+
+      transition:
+
+        border-color
+        0.18s
+        ease,
+
+        background
+        0.18s
+        ease,
+
+        box-shadow
+        0.18s
+        ease;
+    }
+
+
+    .field input::placeholder {
+      color:
+        rgba(
+          255,
+          255,
+          255,
+          0.28
+        );
+    }
+
+
+    .field input:focus,
+    .field select:focus {
+
+      border-color:
+        rgba(
+          0,
+          166,
+          166,
+          0.64
+        );
+
+      background:
+        rgba(
+          0,
+          166,
+          166,
+          0.055
+        );
+
+      box-shadow:
+        0
+        0
+        0
+        4px
+        rgba(
+          0,
+          166,
+          166,
+          0.09
+        );
+    }
+
+
+    .field select option {
+
+      background:
+        #101517;
+
+      color:
+        #ffffff;
+    }
+
+
+    .field input[type="file"] {
+      padding:
+        7px;
+    }
+
+
+    .field input[type="file"]::file-selector-button {
+
+      margin-right:
+        8px;
+
+      padding:
+        7px
+        10px;
+
+      border:
+        0;
+
+      border-radius:
+        8px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.08
+        );
+
+      color:
+        var(--gallery-text);
+
+      cursor:
+        pointer;
+    }
+
+
+    .help-text {
+
+      color:
+        var(--gallery-muted);
+
+      font-size:
+        0.61rem;
+
+      line-height:
+        1.5;
+    }
+
+
+    /* ============================================================
+       ADD BUTTON
+    ============================================================ */
+
+    .add-submit {
+
+      min-height:
+        44px;
+    }
+
+
+    /* ============================================================
+       SCENE GRID
+    ============================================================ */
+
+    .scene-section {
+
+      padding:
+        22px;
+    }
+
+
+    .scene-section-head {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        space-between;
+
+      gap:
+        12px;
+
+      margin-bottom:
+        15px;
+    }
+
+
+    .scene-section-title {
+
+      font-family:
+        "Playfair Display",
+        Georgia,
+        serif;
+
+      font-size:
+        1.28rem;
+    }
+
+
+    .scene-section-count {
+
+      color:
+        var(--gallery-muted);
+
+      font-size:
+        0.67rem;
+
+      font-weight:
+        700;
+    }
+
+
+    .scene-grid {
+
+      display:
+        grid;
+
+      grid-template-columns:
+        repeat(
+          auto-fit,
+          minmax(
+            340px,
+            1fr
+          )
+        );
+
+      gap:
+        18px;
+    }
+
+
+    /* ============================================================
+       SCENE CARD
+    ============================================================ */
+
+    .scene-card {
+
+      overflow:
+        hidden;
+
+      border:
+        1px solid
+        var(--gallery-border);
+
+      border-radius:
+        20px;
+
+      background:
+        linear-gradient(
+          150deg,
+          rgba(
+            17,
+            25,
+            27,
+            0.93
+          ),
+          rgba(
+            9,
+            14,
+            16,
+            0.94
+          )
+        );
+
+      box-shadow:
+        var(--gallery-shadow-soft);
+
+      transition:
+        transform
+        0.18s
+        ease,
+
+        border-color
+        0.18s
+        ease;
+    }
+
+
+    .scene-card:hover {
+
+      transform:
+        translateY(
+          -2px
+        );
+
+      border-color:
+        rgba(
+          0,
+          166,
+          166,
+          0.22
+        );
+    }
+
+
+    /* ============================================================
+       IMAGE PREVIEW
+    ============================================================ */
+
+    .preview-area {
+
+      position:
+        relative;
+
+      background:
+        #020506;
+
+      overflow:
+        hidden;
+    }
+
+
+    .preview-area::after {
+
+      content:
+        "";
+
+      position:
+        absolute;
+
+      inset:
+        0;
+
+      pointer-events:
+        none;
+
+      background:
+        linear-gradient(
+          180deg,
+          rgba(
+            0,
+            0,
+            0,
+            0.05
+          ),
+          rgba(
+            0,
+            0,
+            0,
+            0.64
+          )
+        );
+    }
+
+
+    .scene-image {
+
+      display:
+        block;
+
+      width:
+        100%;
+
+      aspect-ratio:
+        16 / 9;
+
+      object-fit:
+        cover;
+
+      background:
+        #020506;
+    }
+
+
+    .scene-number {
+
+      position:
+        absolute;
+
+      top:
+        12px;
+
+      left:
+        12px;
+
+      z-index:
+        2;
+
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      gap:
+        6px;
+
+      min-height:
+        30px;
+
+      padding:
+        0 10px;
+
+      border:
+        1px solid
+        rgba(
+          255,
+          255,
+          255,
+          0.15
+        );
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(
+          7,
+          10,
+          12,
+          0.72
+        );
+
+      backdrop-filter:
+        blur(10px);
+
+      color:
+        #ffffff;
+
+      font-size:
+        0.61rem;
+
+      font-weight:
+        800;
+
+      letter-spacing:
+        0.04em;
+
+      text-transform:
+        uppercase;
+    }
+
+
+    .scene-number i {
+
+      color:
+        var(--gallery-teal-light);
+
+      font-size:
+        0.65rem;
+    }
+
+
+    .scene-overlay {
+
+      position:
+        absolute;
+
+      right:
+        12px;
+
+      bottom:
+        12px;
+
+      left:
+        12px;
+
+      z-index:
+        2;
+
+      display:
+        flex;
+
+      align-items:
+        flex-end;
+
+      justify-content:
+        space-between;
+
+      gap:
+        10px;
+    }
+
+
+    .scene-name {
+
+      min-width:
+        0;
+    }
+
+
+    .scene-name strong {
+
+      display:
+        block;
+
+      overflow:
+        hidden;
+
+      font-size:
+        0.88rem;
+
+      font-weight:
+        800;
+
+      white-space:
+        nowrap;
+
+      text-overflow:
+        ellipsis;
+
+      text-shadow:
+        0
+        2px
+        10px
+        rgba(
+          0,
+          0,
+          0,
+          0.65
+        );
+    }
+
+
+    .scene-name span {
+
+      display:
+        block;
+
+      margin-top:
+        3px;
+
+      color:
+        rgba(
+          255,
+          255,
+          255,
+          0.68
+        );
+
+      font-size:
+        0.59rem;
+    }
+
+
+    .scene-type {
+
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      min-height:
+        28px;
+
+      padding:
+        0 9px;
+
+      border:
+        1px solid
+        rgba(
+          255,
+          215,
+          0,
+          0.15
+        );
+
+      border-radius:
+        999px;
+
+      background:
+        rgba(
+          255,
+          215,
+          0,
+          0.07
+        );
+
+      color:
+        var(--gallery-gold-soft);
+
+      font-size:
+        0.56rem;
+
+      font-weight:
+        800;
+
+      white-space:
+        nowrap;
+    }
+
+
+    /* ============================================================
+       CARD BODY
+    ============================================================ */
+
+    .scene-body {
+
+      padding:
+        18px;
+    }
+
+
+    .scene-form {
+
+      display:
+        grid;
+
+      gap:
+        14px;
+    }
+
+
+    .scene-form input,
+    .scene-form select {
+
+      width:
+        100%;
+
+      min-height:
+        43px;
+
+      padding:
+        9px
+        11px;
+
+      border:
+        1px solid
+        var(--gallery-border);
+
+      border-radius:
+        11px;
+
+      outline:
+        none;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.03
+        );
+
+      color:
+        var(--gallery-text);
+
+      transition:
+        border-color
+        0.18s
+        ease,
+
+        background
+        0.18s
+        ease,
+
+        box-shadow
+        0.18s
+        ease;
+    }
+
+
+    .scene-form input:focus,
+    .scene-form select:focus {
+
+      border-color:
+        rgba(
+          0,
+          166,
+          166,
+          0.64
+        );
+
+      background:
+        rgba(
+          0,
+          166,
+          166,
+          0.055
+        );
+
+      box-shadow:
+        0
+        0
+        0
+        4px
+        rgba(
+          0,
+          166,
+          166,
+          0.09
+        );
+    }
+
+
+    .replace-box {
+
+      padding:
+        13px;
+
+      border:
+        1px solid
+        var(--gallery-border);
+
+      border-radius:
+        14px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.018
+        );
+    }
+
+
+    .replace-heading {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      gap:
+        8px;
+
+      margin-bottom:
+        8px;
+
+      color:
+        var(--gallery-soft-text);
+
+      font-size:
+        0.66rem;
+
+      font-weight:
+        800;
+    }
+
+
+    .replace-heading i {
+
+      color:
+        var(--gallery-teal-light);
+    }
+
+
+    .navigation-heading {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      gap:
+        8px;
+
+      margin-top:
+        2px;
+
+      margin-bottom:
+        -2px;
+
+      color:
+        var(--gallery-teal-light);
+
+      font-size:
+        0.66rem;
+
+      font-weight:
+        800;
+
+      letter-spacing:
+        0.10em;
+
+      text-transform:
+        uppercase;
+    }
+
+
+    .navigation-grid {
+
+      display:
+        grid;
+
+      grid-template-columns:
+        1fr
+        1fr;
+
+      gap:
+        10px;
+    }
+
+
+    .navigation-item {
+
+      padding:
+        10px;
+
+      border:
+        1px solid
+        rgba(
+          255,
+          255,
+          255,
+          0.055
+        );
+
+      border-radius:
+        12px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.018
+        );
+    }
+
+
+    .navigation-item .field-label {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      gap:
+        7px;
+
+      margin-bottom:
+        6px;
+
+      font-size:
+        0.61rem;
+    }
+
+
+    .navigation-item .field-label i {
+
+      width:
+        18px;
+
+      text-align:
+        center;
+
+      color:
+        var(--gallery-gold-soft);
+    }
+
+
+    .scene-actions {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        space-between;
+
+      gap:
+        9px;
+
+      padding-top:
+        2px;
+    }
+
+
+    .scene-actions .btn-primary {
+
+      flex:
+        1;
+    }
+
+
+    .delete-form {
+      margin-top:
+        0;
+    }
+
+
+    .delete-button {
+      min-width:
+        108px;
+    }
+
+
+    /* ============================================================
+       EMPTY STATE
+    ============================================================ */
+
+    .empty-state {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        center;
+
+      min-height:
+        430px;
+
+      padding:
+        45px
+        24px;
+
+      border:
+        1px dashed
+        var(--gallery-border-strong);
+
+      border-radius:
+        20px;
+
+      background:
+        rgba(
+          255,
+          255,
+          255,
+          0.018
+        );
+
+      text-align:
+        center;
+    }
+
+
+    .empty-inner {
+      max-width:
+        540px;
+    }
+
+
+    .empty-icon {
+
+      display:
+        grid;
+
+      place-items:
+        center;
+
+      width:
+        58px;
+
+      height:
+        58px;
+
+      margin:
+        0
+        auto
+        15px;
+
+      border:
+        1px solid
+        rgba(
+          0,
+          166,
+          166,
+          0.20
+        );
+
+      border-radius:
+        17px;
+
+      background:
+        rgba(
+          0,
+          166,
+          166,
+          0.08
+        );
+
+      color:
+        var(--gallery-teal-light);
+
+      font-size:
+        1.1rem;
+    }
+
+
+    .empty-state h3 {
+
+      font-family:
+        "Playfair Display",
+        Georgia,
+        serif;
+
+      font-size:
+        1.42rem;
+    }
+
+
+    .empty-state p {
+
+      margin-top:
+        7px;
+
+      color:
+        var(--gallery-muted);
+
+      font-size:
+        0.74rem;
+
+      line-height:
+        1.7;
+    }
+
+
+    /* ============================================================
+       PANEL FOOTER
+    ============================================================ */
+
+    .panel-footer {
+
+      display:
+        flex;
+
+      align-items:
+        center;
+
+      justify-content:
+        space-between;
+
+      gap:
+        12px;
+
+      padding:
+        14px
+        22px;
+
+      border-top:
+        1px solid
+        var(--gallery-border);
+
+      color:
+        var(--gallery-muted);
+
+      font-size:
+        0.64rem;
+    }
+
+
+    .panel-footer strong {
+      color:
+        var(--gallery-text);
+    }
+
+
+    .footer-status {
+
+      display:
+        inline-flex;
+
+      align-items:
+        center;
+
+      gap:
+        7px;
+    }
+
+
+    .footer-status .status-dot {
+
+      width:
+        7px;
+
+      height:
+        7px;
+
+      flex-basis:
+        7px;
+    }
+
+
+    /* ============================================================
+       RESPONSIVE
+    ============================================================ */
+
+    @media (max-width: 1160px) {
+
+      .metric-grid {
+
+        grid-template-columns:
+          repeat(
+            2,
+            minmax(
+              0,
+              1fr
+            )
+          );
+      }
+
+
+      .add-form {
+
+        grid-template-columns:
+          1fr
+          1fr;
+      }
+
+
+      .add-submit {
+
+        width:
+          100%;
+      }
+
+    }
+
+
+    @media (max-width: 900px) {
+
+      .gallery-page {
+
+        width:
+          min(
+            calc(100% - 22px),
+            1440px
+          );
+
+        padding-top:
+          102px;
+      }
+
+
+      .gallery-header {
+
+        align-items:
+          flex-start;
+
+        flex-direction:
+          column;
+      }
+
+
+      .header-actions {
+
+        justify-content:
+          flex-start;
+      }
+
+
+      .panel-head {
+
+        flex-direction:
+          column;
+      }
+
+
+      .panel-tools {
+
+        justify-content:
+          flex-start;
+      }
+
+
+      .scene-grid {
+
+        grid-template-columns:
+          repeat(
+            auto-fit,
+            minmax(
+              300px,
+              1fr
+            )
+          );
+      }
+
+    }
+
+
+    @media (max-width: 650px) {
+
+      .gallery-page {
+
+        width:
+          min(
+            calc(100% - 16px),
+            1440px
+          );
+
+        padding-top:
+          94px;
+
+        padding-bottom:
+          34px;
+      }
+
+
+      .metric-grid {
+
+        grid-template-columns:
+          1fr;
+      }
+
+
+      .add-section {
+
+        margin:
+          16px;
+
+        padding:
+          16px;
+      }
+
+
+      .add-form {
+
+        grid-template-columns:
+          1fr;
+      }
+
+
+      .scene-section {
+
+        padding:
+          16px;
+      }
+
+
+      .scene-grid {
+
+        grid-template-columns:
+          1fr;
+      }
+
+
+      .panel-head,
+      .panel-footer {
+
+        padding-left:
+          16px;
+
+        padding-right:
+          16px;
+      }
+
+
+      .gallery-heading h1 {
+
+        font-size:
+          2.2rem;
+      }
+
+
+      .navigation-grid {
+
+        grid-template-columns:
+          1fr;
+      }
+
+
+      .scene-actions {
+
+        align-items:
+          stretch;
+
+        flex-direction:
+          column;
+      }
+
+
+      .scene-actions .btn {
+
+        width:
+          100%;
+      }
+
+
+      .panel-footer {
+
+        align-items:
+          flex-start;
+
+        flex-direction:
+          column;
+      }
+
+    }
+
+
+    @media (max-width: 420px) {
+
+      .gallery-heading h1 {
+
+        font-size:
+          1.95rem;
+      }
+
+
+      .scene-body {
+
+        padding:
+          15px;
+      }
+
+
+      .scene-card {
+
+        border-radius:
+          17px;
+      }
+
+    }
+
+
+    @media (prefers-reduced-motion: reduce) {
+
+      *,
+      *::before,
+      *::after {
+
+        animation-duration:
+          0.01ms !important;
+
+        animation-iteration-count:
+          1 !important;
+
+        scroll-behavior:
+          auto !important;
+
+        transition-duration:
+          0.01ms !important;
+      }
+
+    }
+
+  </style>
+
+</head>
+
+
+<body>
+
+
+  <!-- ==========================================================
+       ADMIN NAVIGATION
+  =========================================================== -->
+
+  <%- include("../partials/navadmin") %>
+
+
+  <!-- ==========================================================
+       MAIN
+  =========================================================== -->
+
+  <main class="gallery-page">
+
+
+    <!-- ========================================================
+         PAGE HEADER
+    ========================================================= -->
+
+    <header class="gallery-header">
+
+      <div class="gallery-heading">
+
+        <div class="eyebrow">
+          Puffer Isle Resort · Isle RMS
+        </div>
+
+        <h1>
+          360°
+          <span>Gallery</span>
+        </h1>
+
+        <p>
+          Maintain the resort's immersive 360° experience,
+          including panorama locations, scene names, image
+          replacements, and guest navigation pathways.
+        </p>
+
+      </div>
+
+
+      <div class="header-actions">
+
+        <div class="status-card">
+
+          <span
+            class="status-dot"
+            aria-hidden="true"
+          ></span>
+
+          <span>
+            Gallery services online
+          </span>
+
+        </div>
+
+
+        <button
+          class="btn btn-secondary"
+          type="button"
+          id="refreshBtn"
+        >
+          <i class="fa-solid fa-rotate-right"></i>
+          Refresh
+        </button>
+
+
+        <a
+          class="btn btn-primary"
+          href="/gallery"
+          target="_blank"
+          rel="noopener noreferrer"
+        >
+          <i class="fa-solid fa-eye"></i>
+          View Public Gallery
+        </a>
+
+      </div>
+
+    </header>
+
+
+    <!-- ========================================================
+         NOTICES
+    ========================================================= -->
+
+    <% if (successMessage) { %>
+
+      <div class="notice">
+        <i class="fa-solid fa-circle-check"></i>
+        <%= successMessage %>
+      </div>
+
+    <% } %>
+
+
+    <% if (errorMessage) { %>
+
+      <div class="notice error">
+        <i class="fa-solid fa-circle-exclamation"></i>
+        <%= errorMessage %>
+      </div>
+
+    <% } %>
+
+
+    <!-- ========================================================
+         LIVE STRIP
+    ========================================================= -->
+
+    <div class="live-strip">
+
+      <span
+        class="status-dot"
+        aria-hidden="true"
+      ></span>
+
+      <span>
+
+        <strong>
+          Live gallery:
+        </strong>
+
+        Changes made here control the panorama scenes
+        and navigation presented to resort guests.
+
+      </span>
+
+    </div>
+
+
+    <!-- ========================================================
+         METRICS
+    ========================================================= -->
+
+    <section
+      class="metric-grid"
+      aria-label="Gallery metrics"
+    >
+
+
+      <!-- SCENES -->
+
+      <article class="metric-card">
+
+        <div class="metric-top">
+
+          <span class="metric-label">
+            360° Scenes
+          </span>
+
+          <span
+            class="metric-icon"
+            aria-hidden="true"
+          >
+            <i class="fa-solid fa-panorama"></i>
+          </span>
+
+        </div>
+
+        <strong class="metric-value">
+          <%= galleryScenes.length %>
+        </strong>
+
+        <span class="metric-note">
+          Configured panorama locations
+        </span>
+
+      </article>
+
+
+      <!-- CONNECTED -->
+
+      <article class="metric-card">
+
+        <div class="metric-top">
+
+          <span class="metric-label">
+            Connected Scenes
+          </span>
+
+          <span
+            class="metric-icon"
+            aria-hidden="true"
+          >
+            <i class="fa-solid fa-link"></i>
+          </span>
+
+        </div>
+
+        <strong class="metric-value">
+          <%= connectedScenes %>
+        </strong>
+
+        <span class="metric-note">
+          Scenes with navigation links
+        </span>
+
+      </article>
+
+
+      <!-- NAVIGATION -->
+
+      <article class="metric-card">
+
+        <div class="metric-top">
+
+          <span class="metric-label">
+            Navigation Links
+          </span>
+
+          <span
+            class="metric-icon"
+            aria-hidden="true"
+          >
+            <i class="fa-solid fa-arrows-up-down-left-right"></i>
+          </span>
+
+        </div>
+
+        <strong class="metric-value">
+          <%= navigationLinks %>
+        </strong>
+
+        <span class="metric-note">
+          Configured guest pathways
+        </span>
+
+      </article>
+
+
+      <!-- STATUS -->
+
+      <article class="metric-card">
+
+        <div class="metric-top">
+
+          <span class="metric-label">
+            Gallery Status
+          </span>
+
+          <span
+            class="metric-icon"
+            aria-hidden="true"
+          >
+            <i class="fa-solid fa-globe"></i>
+          </span>
+
+        </div>
+
+        <strong
+          class="metric-value"
+          style="font-size: 1.45rem;"
+        >
+          <%= galleryScenes.length > 0 ? "ONLINE" : "EMPTY" %>
+        </strong>
+
+        <span class="metric-note">
+          Public guest experience
+        </span>
+
+      </article>
+
+    </section>
+
+
+    <!-- ========================================================
+         MAIN OPERATION PANEL
+    ========================================================= -->
+
+    <section
+      class="operation-panel"
+      aria-labelledby="galleryManagementTitle"
+    >
+
+
+      <!-- PANEL HEADER -->
+
+      <div class="panel-head">
+
+        <div>
+
+          <h2
+            class="panel-title"
+            id="galleryManagementTitle"
+          >
+            Gallery Management
+          </h2>
+
+          <p class="panel-subtitle">
+            Add and maintain AR 360° Photo scenes,
+            then connect them together to create the
+            Street View-style resort journey.
+          </p>
+
+        </div>
+
+
+        <div class="panel-tools">
+
+          <a
+            class="btn btn-secondary btn-small"
+            href="/gallery"
+            target="_blank"
+            rel="noopener noreferrer"
+          >
+            <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            Open Guest Experience
+          </a>
+
+        </div>
+
+      </div>
+
+
+      <!-- ======================================================
+           ADD NEW AR 360 Photo
+      ======================================================= -->
+
+      <section class="add-section">
+
+        <div class="add-header">
+
+          <div>
+
+            <h3 class="add-title">
+              Add AR / 360° Photo
+            </h3>
+
+            <p class="add-description">
+              Upload a new AR 360° Photo and give the
+              location a clear name for guest navigation.
+            </p>
+
+          </div>
+
+
+          <span class="format-badge">
+            JPG · PNG · WEBP · MAX 25 MB
+          </span>
+
+        </div>
+
+
+        <form
+          class="add-form"
+          method="POST"
+          action="/admin/gallery-editor"
+          enctype="multipart/form-data"
+        >
+
+
+          <% if (adminCsrfToken) { %>
+
+            <input
+              type="hidden"
+              name="_csrf"
+              value="<%= adminCsrfToken %>"
+            >
+
+          <% } %>
+
+
+          <input
+            type="hidden"
+            name="action"
+            value="add"
+          >
+
+
+          <!-- LOCATION NAME -->
+
+          <div class="field">
+
+            <label
+              class="field-label"
+              for="newGalleryTitle"
+            >
+              Location Name
+            </label>
+
+            <input
+              id="newGalleryTitle"
+              type="text"
+              name="title"
+              minlength="2"
+              maxlength="150"
+              placeholder="Example: Main Beach"
+              required
+            >
+
+          </div>
+
+
+          <!-- IMAGE -->
+
+          <div class="field">
+
+            <label
+              class="field-label"
+              for="newGalleryImage"
+            >
+              360° AR Photo
+            </label>
+
+            <input
+              id="newGalleryImage"
+              type="file"
+              name="imageFile"
+              accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+              required
+            >
+
+            <span class="help-text">
+              Use an equirectangular 360° AR Photo whenever possible.
+            </span>
+
+          </div>
+
+
+          <!-- SUBMIT -->
+
+          <button
+            class="btn btn-gold add-submit"
+            type="submit"
+          >
+            <i class="fa-solid fa-plus"></i>
+            Add AR 360° Photo
+          </button>
+
+        </form>
+
+      </section>
+
+
+      <!-- ======================================================
+           SCENE LIST
+      ======================================================= -->
+
+      <section class="scene-section">
+
+
+        <div class="scene-section-head">
+
+          <h3 class="scene-section-title">
+            Resort Scenes
+          </h3>
+
+          <span class="scene-section-count">
+
+            <%= galleryScenes.length %>
+
+            <%= galleryScenes.length === 1
+              ? "scene"
+              : "scenes" %>
+
+          </span>
+
+        </div>
+
+
+        <% if (galleryScenes.length > 0) { %>
+
+
+          <div class="scene-grid">
+
+
+            <% galleryScenes.forEach(function(item, index) { %>
+
+
+              <article class="scene-card">
+
+
+                <!-- ============================================
+                     IMAGE PREVIEW
+                ============================================= -->
+
+                <div class="preview-area">
+
+                  <img
+                    class="scene-image"
+                    src="<%= item.image %>"
+                    alt="<%= getSceneTitle(item, index) %>"
+                    loading="lazy"
+                  >
+
+
+                  <div class="scene-number">
+
+                    <i class="fa-solid fa-panorama"></i>
+
+                    Scene
+                    <%= index + 1 %>
+
+                  </div>
+
+
+                  <div class="scene-overlay">
+
+                    <div class="scene-name">
+
+                      <strong>
+                        <%= getSceneTitle(item, index) %>
+                      </strong>
+
+                      <span>
+                        360° AR Photo Location
+                      </span>
+
+                    </div>
+
+
+                    <span class="scene-type">
+                      <i class="fa-solid fa-street-view"></i>
+                      Street View
+                    </span>
+
+                  </div>
+
+                </div>
+
+
+                <!-- ============================================
+                     SCENE EDITOR
+                ============================================= -->
+
+                <div class="scene-body">
+
+
+                  <form
+                    class="scene-form"
+                    method="POST"
+                    action="/admin/gallery-editor"
+                    enctype="multipart/form-data"
+                  >
+
+
+                    <% if (adminCsrfToken) { %>
+
+                      <input
+                        type="hidden"
+                        name="_csrf"
+                        value="<%= adminCsrfToken %>"
+                      >
+
+                    <% } %>
+
+
+                    <input
+                      type="hidden"
+                      name="action"
+                      value="update"
+                    >
+
+
+                    <input
+                      type="hidden"
+                      name="imageIndex"
+                      value="<%= index %>"
+                    >
+
+
+                    <!-- LOCATION NAME -->
+
+                    <div class="field">
+
+                      <label
+                        class="field-label"
+                        for="title_<%= index %>"
+                      >
+                        Location Name
+                      </label>
+
+                      <input
+                        id="title_<%= index %>"
+                        type="text"
+                        name="title"
+                        value="<%= item.title || '' %>"
+                        minlength="2"
+                        maxlength="150"
+                        required
+                      >
+
+                    </div>
+
+
+                    <!-- REPLACE IMAGE -->
+
+                    <div class="replace-box">
+
+                      <div class="replace-heading">
+
+                        <i class="fa-solid fa-image"></i>
+
+                        Replace AR 360° Photo
+
+                      </div>
+
+
+                      <div class="field">
+
+                        <input
+                          id="image_<%= index %>"
+                          type="file"
+                          name="imageFile"
+                          accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"
+                        >
+
+                        <span class="help-text">
+                          Leave empty to keep the current AR 360° Photo.
+                        </span>
+
+                      </div>
+
+                    </div>
+
+
+                    <!-- NAVIGATION -->
+
+                    <div class="navigation-heading">
+
+                      <i class="fa-solid fa-route"></i>
+
+                      Scene Navigation
+
+                    </div>
+
+
+                    <div class="navigation-grid">
+
+
+                      <!-- LEFT -->
+
+                      <div class="navigation-item">
+
+                        <label
+                          class="field-label"
+                          for="left_<%= index %>"
+                        >
+
+                          <i class="fa-solid fa-arrow-left"></i>
+
+                          Left Destination
+
+                        </label>
+
+
+                        <select
+                          id="left_<%= index %>"
+                          name="left"
+                        >
+
+                          <option value="">
+                            No destination
+                          </option>
+
+
+                          <% galleryScenes.forEach(function(target, targetIndex) { %>
+
+                            <%
+                              if (targetIndex !== index) {
+                            %>
+
+                              <option
+                                value="<%= targetIndex %>"
+                                <%= isSelected(item.left, targetIndex) ? "selected" : "" %>
+                              >
+
+                                Scene
+                                <%= targetIndex + 1 %>
+                                -
+                                <%= getSceneTitle(target, targetIndex) %>
+
+                              </option>
+
+                            <%
+                              }
+                            %>
+
+                          <% }); %>
+
+                        </select>
+
+                      </div>
+
+
+                      <!-- FORWARD -->
+
+                      <div class="navigation-item">
+
+                        <label
+                          class="field-label"
+                          for="forward_<%= index %>"
+                        >
+
+                          <i class="fa-solid fa-arrow-up"></i>
+
+                          Forward Destination
+
+                        </label>
+
+
+                        <select
+                          id="forward_<%= index %>"
+                          name="forward"
+                        >
+
+                          <option value="">
+                            No destination
+                          </option>
+
+
+                          <% galleryScenes.forEach(function(target, targetIndex) { %>
+
+                            <%
+                              if (targetIndex !== index) {
+                            %>
+
+                              <option
+                                value="<%= targetIndex %>"
+                                <%= isSelected(item.forward, targetIndex) ? "selected" : "" %>
+                              >
+
+                                Scene
+                                <%= targetIndex + 1 %>
+                                -
+                                <%= getSceneTitle(target, targetIndex) %>
+
+                              </option>
+
+                            <%
+                              }
+                            %>
+
+                          <% }); %>
+
+                        </select>
+
+                      </div>
+
+
+                      <!-- RIGHT -->
+
+                      <div class="navigation-item">
+
+                        <label
+                          class="field-label"
+                          for="right_<%= index %>"
+                        >
+
+                          <i class="fa-solid fa-arrow-right"></i>
+
+                          Right Destination
+
+                        </label>
+
+
+                        <select
+                          id="right_<%= index %>"
+                          name="right"
+                        >
+
+                          <option value="">
+                            No destination
+                          </option>
+
+
+                          <% galleryScenes.forEach(function(target, targetIndex) { %>
+
+                            <%
+                              if (targetIndex !== index) {
+                            %>
+
+                              <option
+                                value="<%= targetIndex %>"
+                                <%= isSelected(item.right, targetIndex) ? "selected" : "" %>
+                              >
+
+                                Scene
+                                <%= targetIndex + 1 %>
+                                -
+                                <%= getSceneTitle(target, targetIndex) %>
+
+                              </option>
+
+                            <%
+                              }
+                            %>
+
+                          <% }); %>
+
+                        </select>
+
+                      </div>
+
+
+                      <!-- BACKWARD -->
+
+                      <div class="navigation-item">
+
+                        <label
+                          class="field-label"
+                          for="backward_<%= index %>"
+                        >
+
+                          <i class="fa-solid fa-arrow-down"></i>
+
+                          Backward Destination
+
+                        </label>
+
+
+                        <select
+                          id="backward_<%= index %>"
+                          name="backward"
+                        >
+
+                          <option value="">
+                            No destination
+                          </option>
+
+
+                          <% galleryScenes.forEach(function(target, targetIndex) { %>
+
+                            <%
+                              if (targetIndex !== index) {
+                            %>
+
+                              <option
+                                value="<%= targetIndex %>"
+                                <%= isSelected(item.backward, targetIndex) ? "selected" : "" %>
+                              >
+
+                                Scene
+                                <%= targetIndex + 1 %>
+                                -
+                                <%= getSceneTitle(target, targetIndex) %>
+
+                              </option>
+
+                            <%
+                              }
+                            %>
+
+                          <% }); %>
+
+                        </select>
+
+                      </div>
+
+
+                    </div>
+
+
+                    <!-- ACTIONS -->
+
+                    <div class="scene-actions">
+
+
+                      <button
+                        class="btn btn-primary"
+                        type="submit"
+                      >
+
+                        <i class="fa-solid fa-floppy-disk"></i>
+
+                        Save Scene
+
+                      </button>
+
+
+                      <button
+                        class="btn btn-secondary btn-small"
+                        type="button"
+                        onclick="window.open('/gallery', '_blank', 'noopener,noreferrer')"
+                      >
+
+                        <i class="fa-solid fa-eye"></i>
+
+                        Preview
+
+                      </button>
+
+
+                    </div>
+
+
+                  </form>
+
+
+                  <!-- ==========================================
+                       DELETE
+                  =========================================== -->
+
+                  <form
+                    class="delete-form"
+                    method="POST"
+                    action="/admin/gallery-editor"
+                    onsubmit="return confirm('Delete Scene <%= index + 1 %>? Any navigation connected to this scene will be repaired automatically.');"
+                  >
+
+
+                    <% if (adminCsrfToken) { %>
+
+                      <input
+                        type="hidden"
+                        name="_csrf"
+                        value="<%= adminCsrfToken %>"
+                      >
+
+                    <% } %>
+
+
+                    <input
+                      type="hidden"
+                      name="action"
+                      value="delete"
+                    >
+
+
+                    <input
+                      type="hidden"
+                      name="imageIndex"
+                      value="<%= index %>"
+                    >
+
+
+                    <button
+                      class="btn btn-danger btn-small delete-button"
+                      type="submit"
+                    >
+
+                      <i class="fa-solid fa-trash"></i>
+
+                      Delete Scene
+
+                    </button>
+
+                  </form>
+
+
+                </div>
+
+              </article>
+
+
+            <% }); %>
+
+
+          </div>
+
+
+        <% } else { %>
+
+
+          <!-- ================================================
+               EMPTY STATE
+          ================================================= -->
+
+          <div class="empty-state">
+
+            <div class="empty-inner">
+
+              <div
+                class="empty-icon"
+                aria-hidden="true"
+              >
+                <i class="fa-solid fa-panorama"></i>
+              </div>
+
+
+              <h3>
+                No Gallery Scenes Yet
+              </h3>
+
+
+              <p>
+                Your 360° gallery is currently empty.
+                Upload your first AR 360° Photo above to begin
+                building the Puffer Isle virtual resort
+                experience.
+              </p>
+
+            </div>
+
+          </div>
+
+
+        <% } %>
+
+
+      </section>
+
+
+      <!-- ======================================================
+           PANEL FOOTER
+      ======================================================= -->
+
+      <div class="panel-footer">
+
+        <span>
+          <strong>
+            IsleRMS Guest Experience
+          </strong>
+          · 360° AR Photo management
+        </span>
+
+
+        <span class="footer-status">
+
+          <span
+            class="status-dot"
+            aria-hidden="true"
+          ></span>
+
+          <%= galleryScenes.length > 0
+            ? "Gallery ready for guests"
+            : "Waiting for AR 360° Photo scenes" %>
+
+        </span>
+
+      </div>
+
+
+    </section>
+
+
+  </main>
+
+
+  <!-- ==========================================================
+       PAGE JAVASCRIPT
+  =========================================================== -->
+
+  <script>
+
+    "use strict";
+
+
+    /* =========================================================
+       REFRESH
+    ========================================================= */
+
+    const refreshButton =
+      document.getElementById(
+        "refreshBtn"
+      );
+
+
+    if (refreshButton) {
+
+      refreshButton.addEventListener(
+        "click",
+        function () {
+
+          refreshButton.disabled =
+            true;
+
+          refreshButton.innerHTML =
+            '<i class="fa-solid fa-rotate-right fa-spin"></i> Refreshing...';
+
+          window.location.reload();
+
+        }
+      );
+
+    }
+
+
+    /* =========================================================
+       IMAGE FILE CLIENT VALIDATION
+    ========================================================= */
+
+    const imageInputs =
+      document.querySelectorAll(
+        'input[type="file"][name="imageFile"]'
+      );
+
+
+    imageInputs.forEach(
+      function (input) {
+
+        input.addEventListener(
+          "change",
+          function () {
+
+            const file =
+              input.files &&
+              input.files[0];
+
+
+            if (!file) {
+              return;
+            }
+
+
+            const allowedTypes =
+              [
+                "image/jpeg",
+                "image/png",
+                "image/webp"
+              ];
+
+
+            if (
+              !allowedTypes.includes(
+                file.type
+              )
+            ) {
+
+              alert(
+                "Please choose a JPG, PNG, or WEBP image."
+              );
+
+              input.value = "";
+
+              return;
+            }
+
+
+            const maxBytes =
+              25 *
+              1024 *
+              1024;
+
+
+            if (
+              file.size >
+              maxBytes
+            ) {
+
+              alert(
+                "The selected image is larger than 25 MB."
+              );
+
+              input.value = "";
+
+            }
+
+          }
+        );
+
+      }
+    );
+
+  </script>
+
+
+</body>
+
+</html>
