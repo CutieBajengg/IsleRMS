@@ -11,20 +11,22 @@
  * - Store customer identity information
  * - Securely hash passwords
  * - Compare login passwords
+ * - Support local and Google authentication
  * - Track account status
  * - Support login lockout
- * - Prepare for email verification
+ * - Support email verification / OTP
  * - Prepare for password reset
  * - Prevent sensitive fields from being exposed
  *
  * IMPORTANT:
- * Authentication flow itself belongs in the auth/service layer.
- * This model only handles user/account-level behavior.
+ * Authentication flow belongs in the auth/service layer.
+ * This model handles user/account-level behavior only.
  * ============================================================
  */
 
 const mongoose = require("mongoose");
 const bcrypt = require("bcryptjs");
+const crypto = require("crypto");
 
 /* ============================================================
    CONSTANTS
@@ -37,6 +39,17 @@ const MAX_LOGIN_ATTEMPTS = 5;
 const LOGIN_LOCK_DURATION_MS =
   15 * 60 * 1000;
 
+const EMAIL_OTP_LENGTH = 6;
+
+const EMAIL_OTP_EXPIRATION_MS =
+  10 * 60 * 1000;
+
+const EMAIL_OTP_MAX_ATTEMPTS = 5;
+
+const EMAIL_OTP_RESEND_COOLDOWN_MS =
+  60 * 1000;
+
+
 /* ============================================================
    HELPERS
    ============================================================ */
@@ -44,416 +57,808 @@ const LOGIN_LOCK_DURATION_MS =
 /**
  * Normalize email addresses consistently.
  */
+
 function normalizeEmail(value) {
+
   return String(value ?? "")
     .trim()
     .toLowerCase();
+
 }
+
 
 /**
  * Normalize usernames consistently.
+ *
+ * IMPORTANT:
+ * Empty usernames return undefined rather than "",
+ * so MongoDB sparse unique indexes behave correctly.
  */
+
 function normalizeUsername(value) {
-  return String(value ?? "")
-    .trim()
-    .toLowerCase()
-    .replace(/\s+/g, "");
+
+  const username =
+    String(value ?? "")
+      .trim()
+      .toLowerCase()
+      .replace(/\s+/g, "");
+
+  return username || undefined;
+
 }
+
 
 /**
- * Normalize phone numbers.
+ * Normalize Philippine phone numbers.
  *
- * Supported formats:
+ * Supported:
+ *
  * 09XXXXXXXXX
  * +639XXXXXXXXX
+ * 639XXXXXXXXX
  *
- * Internally we store:
+ * Internally:
+ *
  * 09XXXXXXXXX
  */
+
 function normalizePhone(value) {
-  const phone = String(value ?? "")
-    .trim()
-    .replace(/[\s()-]/g, "");
+
+  const phone =
+    String(value ?? "")
+      .trim()
+      .replace(/[\s()-]/g, "");
 
   if (!phone) {
+
     return undefined;
+
   }
 
-  if (/^\+639\d{9}$/.test(phone)) {
+
+  if (
+    /^\+639\d{9}$/.test(phone)
+  ) {
+
     return `0${phone.slice(3)}`;
+
   }
 
-  if (/^639\d{9}$/.test(phone)) {
+
+  if (
+    /^639\d{9}$/.test(phone)
+  ) {
+
     return `0${phone.slice(2)}`;
+
   }
+
 
   return phone;
+
 }
+
+
+/**
+ * Hash an OTP for secure database storage.
+ *
+ * bcrypt is used because the verification code is short
+ * and should not be stored as plain text.
+ */
+
+async function hashVerificationCode(
+  code
+) {
+
+  return bcrypt.hash(
+    String(code ?? ""),
+    10
+  );
+
+}
+
+
+/**
+ * Generate a random six-digit OTP.
+ *
+ * crypto.randomInt provides a cryptographically stronger
+ * random number source than Math.random().
+ */
+
+function generateVerificationCode() {
+
+  const minimum = 100000;
+
+  const maximum = 1000000;
+
+  return String(
+    crypto.randomInt(
+      minimum,
+      maximum
+    )
+  );
+
+}
+
 
 /* ============================================================
    USER SCHEMA
    ============================================================ */
 
-const userSchema = new mongoose.Schema(
-  {
-    /* ----------------------------------------------------------
-       IDENTITY
-    ---------------------------------------------------------- */
+const userSchema =
+  new mongoose.Schema(
 
-    fullname: {
-      type: String,
+    {
 
-      required: [
-        true,
-        "Full name is required",
-      ],
+      /* --------------------------------------------------------
+         IDENTITY
+      -------------------------------------------------------- */
 
-      trim: true,
+      fullname: {
 
-      maxlength: [
-        100,
-        "Full name cannot exceed 100 characters.",
-      ],
-    },
+        type: String,
 
-    username: {
-      type: String,
-
-      trim: true,
-
-      lowercase: true,
-
-      unique: true,
-
-      sparse: true,
-
-      maxlength: [
-        50,
-        "Username cannot exceed 50 characters.",
-      ],
-
-      set: normalizeUsername,
-
-      validate: {
-        validator(value) {
-          /*
-           * Username is optional.
-           * When provided, allow letters, numbers,
-           * dots, underscores and hyphens.
-           */
-          if (!value) {
-            return true;
-          }
-
-          return /^[a-z0-9._-]+$/i.test(value);
-        },
-
-        message:
-          "Username may only contain letters, numbers, dots, underscores, and hyphens.",
-      },
-    },
-
-    email: {
-      type: String,
-
-      required: [
-        true,
-        "Email is required",
-      ],
-
-      unique: true,
-
-      lowercase: true,
-
-      trim: true,
-
-      set: normalizeEmail,
-
-      maxlength: [
-        254,
-        "Email address is too long.",
-      ],
-
-      match: [
-        /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
-        "Please provide a valid email address.",
-      ],
-    },
-
-    phone: {
-      type: String,
-
-      trim: true,
-
-      set: normalizePhone,
-
-      maxlength: [
-        20,
-        "Phone number is too long.",
-      ],
-
-      validate: {
-        validator(value) {
-          if (!value) {
-            return true;
-          }
-
-          /*
-           * Accept Philippine mobile format:
-           * 09XXXXXXXXX
-           */
-          return /^09\d{9}$/.test(value);
-        },
-
-        message:
-          "Please provide a valid Philippine mobile number.",
-      },
-    },
-
-    /* ----------------------------------------------------------
-       AUTHENTICATION
-    ---------------------------------------------------------- */
-
-    password: {
-      type: String,
-
-      required: [
-        true,
-        "Password is required",
-      ],
-
-      /*
-       * Password is hidden from normal MongoDB queries.
-       *
-       * Login must explicitly request it:
-       * .select("+password")
-       */
-      select: false,
-    },
-
-    /* ----------------------------------------------------------
-       ACCOUNT STATUS
-    ---------------------------------------------------------- */
-
-    status: {
-      type: String,
-
-      enum: {
-        values: [
-          "active",
-          "suspended",
-          "disabled",
+        required: [
+          true,
+          "Full name is required",
         ],
 
-        message:
-          "Invalid account status.",
+        trim: true,
+
+        minlength: [
+          2,
+          "Full name must contain at least 2 characters.",
+        ],
+
+        maxlength: [
+          100,
+          "Full name cannot exceed 100 characters.",
+        ],
+
       },
 
-      default: "active",
 
-      index: true,
-    },
+      username: {
 
-    /* ----------------------------------------------------------
-       EMAIL VERIFICATION
-    ---------------------------------------------------------- */
+        type: String,
 
-    emailVerified: {
-      type: Boolean,
+        trim: true,
 
-      default: false,
+        lowercase: true,
 
-      index: true,
-    },
+        unique: true,
 
-    emailVerificationTokenHash: {
-      type: String,
+        sparse: true,
 
-      select: false,
+        maxlength: [
+          50,
+          "Username cannot exceed 50 characters.",
+        ],
 
-      default: null,
-    },
+        set:
+          normalizeUsername,
 
-    emailVerificationExpiresAt: {
-      type: Date,
+        validate: {
 
-      select: false,
+          validator(value) {
 
-      default: null,
-    },
+            if (!value) {
 
-    /* ----------------------------------------------------------
-       PASSWORD RESET
-    ---------------------------------------------------------- */
+              return true;
 
-    passwordResetTokenHash: {
-      type: String,
+            }
 
-      select: false,
+            return /^[a-z0-9._-]+$/i.test(
+              value
+            );
 
-      default: null,
-    },
+          },
 
-    passwordResetExpiresAt: {
-      type: Date,
+          message:
+            "Username may only contain letters, numbers, dots, underscores, and hyphens.",
 
-      select: false,
+        },
 
-      default: null,
-    },
-
-    /* ----------------------------------------------------------
-       LOGIN SECURITY
-    ---------------------------------------------------------- */
-
-    failedLoginAttempts: {
-      type: Number,
-
-      default: 0,
-
-      min: [
-        0,
-        "Failed login attempts cannot be negative.",
-      ],
-    },
-
-    lockedUntil: {
-      type: Date,
-
-      default: null,
-    },
-
-    lastLoginAt: {
-      type: Date,
-
-      default: null,
-    },
-
-    passwordChangedAt: {
-      type: Date,
-
-      default: null,
-    },
-  },
-
-  {
-    timestamps: true,
-
-    /*
-     * Don't automatically expose hidden security
-     * properties through JSON serialization.
-     */
-    toJSON: {
-      virtuals: true,
-
-      transform: function (doc, ret) {
-        delete ret.password;
-
-        delete ret.emailVerificationTokenHash;
-
-        delete ret.emailVerificationExpiresAt;
-
-        delete ret.passwordResetTokenHash;
-
-        delete ret.passwordResetExpiresAt;
-
-        delete ret.failedLoginAttempts;
-
-        delete ret.lockedUntil;
-
-        return ret;
       },
+
+
+      email: {
+
+        type: String,
+
+        required: [
+          true,
+          "Email is required",
+        ],
+
+        unique: true,
+
+        lowercase: true,
+
+        trim: true,
+
+        set:
+          normalizeEmail,
+
+        maxlength: [
+          254,
+          "Email address is too long.",
+        ],
+
+        match: [
+
+          /^[^\s@]+@[^\s@]+\.[^\s@]+$/,
+
+          "Please provide a valid email address.",
+
+        ],
+
+      },
+
+
+      phone: {
+
+        type: String,
+
+        trim: true,
+
+        set:
+          normalizePhone,
+
+        maxlength: [
+
+          20,
+
+          "Phone number is too long.",
+
+        ],
+
+        validate: {
+
+          validator(value) {
+
+            if (!value) {
+
+              return true;
+
+            }
+
+            return /^09\d{9}$/.test(
+              value
+            );
+
+          },
+
+          message:
+            "Please provide a valid Philippine mobile number.",
+
+        },
+
+      },
+
+
+      /* --------------------------------------------------------
+         AUTHENTICATION PROVIDER
+      -------------------------------------------------------- */
+
+      authProvider: {
+
+        type: String,
+
+        enum: {
+
+          values: [
+            "local",
+            "google",
+            "hybrid",
+          ],
+
+          message:
+            "Invalid authentication provider.",
+
+        },
+
+        default: "local",
+
+        index: true,
+
+      },
+
+
+      /**
+       * Google account identifier.
+       *
+       * sparse + unique allows local accounts
+       * to have no Google ID.
+       */
+
+      googleId: {
+  type: String,
+  unique: true,
+  sparse: true,
+  select: false,
+  default: undefined,
+  trim: true,
+},
+
+      /**
+       * Optional Google profile image.
+       */
+
+      avatarUrl: {
+
+        type: String,
+
+        trim: true,
+
+        maxlength: 1000,
+
+        default: null,
+
+      },
+
+
+      /* --------------------------------------------------------
+         PASSWORD
+      -------------------------------------------------------- */
+
+      password: {
+
+        type: String,
+
+        /**
+         * Local/hybrid accounts require passwords.
+         * Google-only accounts do not.
+         */
+
+        required: function () {
+
+          return (
+            this.authProvider === "local" ||
+            this.authProvider === "hybrid"
+          );
+
+        },
+
+        select: false,
+
+      },
+
+
+      /* --------------------------------------------------------
+         ACCOUNT STATUS
+      -------------------------------------------------------- */
+
+      status: {
+
+        type: String,
+
+        enum: {
+
+          values: [
+            "active",
+            "suspended",
+            "disabled",
+          ],
+
+          message:
+            "Invalid account status.",
+
+        },
+
+        default: "active",
+
+        index: true,
+
+      },
+
+
+      /* --------------------------------------------------------
+         EMAIL VERIFICATION
+      -------------------------------------------------------- */
+
+      emailVerified: {
+
+        type: Boolean,
+
+        default: false,
+
+        index: true,
+
+      },
+
+
+      emailVerifiedAt: {
+
+        type: Date,
+
+        default: null,
+
+      },
+
+
+      /**
+       * Legacy verification token support.
+       *
+       * Kept for compatibility with your existing model.
+       */
+
+      emailVerificationTokenHash: {
+
+        type: String,
+
+        select: false,
+
+        default: null,
+
+      },
+
+
+      emailVerificationExpiresAt: {
+
+        type: Date,
+
+        select: false,
+
+        default: null,
+
+      },
+
+
+      /**
+       * NEW:
+       * Hashed six-digit email OTP.
+       */
+
+      emailVerificationCodeHash: {
+
+        type: String,
+
+        select: false,
+
+        default: null,
+
+      },
+
+
+      /**
+       * How long the current OTP remains valid.
+       */
+
+      emailVerificationCodeExpiresAt: {
+
+        type: Date,
+
+        select: false,
+
+        default: null,
+
+      },
+
+
+      /**
+       * Failed OTP attempts.
+       */
+
+      emailVerificationAttempts: {
+
+        type: Number,
+
+        default: 0,
+
+        min: 0,
+
+        max: EMAIL_OTP_MAX_ATTEMPTS,
+
+        select: false,
+
+      },
+
+
+      /**
+       * Prevents users from repeatedly requesting
+       * OTP emails too quickly.
+       */
+
+      emailVerificationResendAt: {
+
+        type: Date,
+
+        select: false,
+
+        default: null,
+
+      },
+
+
+      /* --------------------------------------------------------
+         PASSWORD RESET
+      -------------------------------------------------------- */
+
+      passwordResetTokenHash: {
+
+        type: String,
+
+        select: false,
+
+        default: null,
+
+      },
+
+
+      passwordResetExpiresAt: {
+
+        type: Date,
+
+        select: false,
+
+        default: null,
+
+      },
+
+
+      /* --------------------------------------------------------
+         LOGIN SECURITY
+      -------------------------------------------------------- */
+
+      failedLoginAttempts: {
+
+        type: Number,
+
+        default: 0,
+
+        min: [
+
+          0,
+
+          "Failed login attempts cannot be negative.",
+
+        ],
+
+      },
+
+
+      lockedUntil: {
+
+        type: Date,
+
+        default: null,
+
+      },
+
+
+      lastLoginAt: {
+
+        type: Date,
+
+        default: null,
+
+      },
+
+
+      passwordChangedAt: {
+
+        type: Date,
+
+        default: null,
+
+      },
+
     },
 
-    toObject: {
-      virtuals: true,
-    },
-  }
-);
 
-/* ============================================================
-   INDEXES
-   ============================================================ */
+    {
 
-/*
- * Email and username already create their required indexes
- * through `unique: true`.
- *
- * Status already creates its lookup index through
- * `index: true` on the schema field.
- *
- * Do not declare the same indexes again with
- * userSchema.index(), or Mongoose will emit duplicate-index
- * warnings during startup.
- */
+      timestamps: true,
+
+
+      /* --------------------------------------------------------
+         JSON SECURITY
+      -------------------------------------------------------- */
+
+      toJSON: {
+
+        virtuals: true,
+
+        transform: function (
+          doc,
+          ret
+        ) {
+
+          delete ret.password;
+
+          delete ret.googleId;
+
+          delete ret.emailVerificationTokenHash;
+
+          delete ret.emailVerificationExpiresAt;
+
+          delete ret.emailVerificationCodeHash;
+
+          delete ret.emailVerificationCodeExpiresAt;
+
+          delete ret.emailVerificationAttempts;
+
+          delete ret.emailVerificationResendAt;
+
+          delete ret.passwordResetTokenHash;
+
+          delete ret.passwordResetExpiresAt;
+
+          delete ret.failedLoginAttempts;
+
+          delete ret.lockedUntil;
+
+          return ret;
+
+        },
+
+      },
+
+
+      toObject: {
+
+        virtuals: true,
+
+        transform: function (
+          doc,
+          ret
+        ) {
+
+          delete ret.password;
+
+          delete ret.googleId;
+
+          delete ret.emailVerificationTokenHash;
+
+          delete ret.emailVerificationExpiresAt;
+
+          delete ret.emailVerificationCodeHash;
+
+          delete ret.emailVerificationCodeExpiresAt;
+
+          delete ret.emailVerificationAttempts;
+
+          delete ret.emailVerificationResendAt;
+
+          delete ret.passwordResetTokenHash;
+
+          delete ret.passwordResetExpiresAt;
+
+          delete ret.failedLoginAttempts;
+
+          delete ret.lockedUntil;
+
+          return ret;
+
+        },
+
+      },
+
+    }
+
+  );
+
 
 /* ============================================================
    VIRTUALS
    ============================================================ */
 
 /**
- * Check whether the account is currently locked.
+ * Whether login is currently locked.
  */
-userSchema.virtual("isLocked").get(function () {
+
+userSchema.virtual(
+  "isLocked"
+).get(function () {
+
   return Boolean(
+
     this.lockedUntil &&
-      this.lockedUntil.getTime() >
-        Date.now()
+
+    this.lockedUntil.getTime() >
+
+      Date.now()
+
   );
+
 });
+
 
 /**
  * Safe display name for UI.
  */
-userSchema.virtual("displayName").get(function () {
+
+userSchema.virtual(
+  "displayName"
+).get(function () {
+
   return (
+
     this.fullname ||
+
     this.username ||
+
     this.email ||
+
     "Guest"
+
   );
+
 });
+
+
+/**
+ * Whether the current OTP has expired.
+ */
+
+userSchema.virtual(
+  "isEmailVerificationExpired"
+).get(function () {
+
+  if (
+    !this.emailVerificationCodeExpiresAt
+  ) {
+
+    return true;
+
+  }
+
+  return (
+    this.emailVerificationCodeExpiresAt.getTime() <=
+    Date.now()
+  );
+
+});
+
 
 /* ============================================================
    PRE-SAVE
    ============================================================ */
 
-/**
- * Secure password hashing.
- *
- * Passwords are only hashed when they are modified.
- *
- * This also means:
- * - creating a user hashes the password
- * - changing a password hashes the new password
- * - updating a profile without touching password
- *   does NOT hash the existing password again
- */
 userSchema.pre(
   "save",
   async function () {
-    if (!this.isModified("password")) {
+
+    if (
+      !this.isModified(
+        "password"
+      )
+    ) {
+
       return;
+
     }
 
-    /*
-     * The password at this stage should still be
-     * the plain-text password supplied by the application.
-     *
-     * We validate it BEFORE hashing.
-     */
+
     if (
-      typeof this.password !== "string" ||
+      this.authProvider ===
+      "google"
+    ) {
+
+      return;
+
+    }
+
+
+    if (
+      typeof this.password !==
+        "string" ||
+
       this.password.length <
         PASSWORD_MIN_LENGTH
     ) {
+
       throw new Error(
         `Password must be at least ${PASSWORD_MIN_LENGTH} characters long.`
       );
+
     }
+
 
     const salt =
       await bcrypt.genSalt(10);
+
 
     this.password =
       await bcrypt.hash(
@@ -461,214 +866,647 @@ userSchema.pre(
         salt
       );
 
+
     this.passwordChangedAt =
       new Date();
+
   }
 );
+
 
 /* ============================================================
    PASSWORD METHODS
    ============================================================ */
 
 /**
- * Set a new password.
- *
- * This method is useful for:
- * - signup
- * - password change
- * - password reset
+ * Set a new local password.
  */
+
 userSchema.methods.setPassword =
-  async function (newPassword) {
+  async function (
+    newPassword
+  ) {
+
     const password =
-      String(newPassword ?? "");
+      String(
+        newPassword ?? ""
+      );
+
 
     if (
       password.length <
       PASSWORD_MIN_LENGTH
     ) {
+
       throw new Error(
         `Password must be at least ${PASSWORD_MIN_LENGTH} characters long.`
       );
+
     }
 
-    /*
-     * Assign plain text here.
-     * The pre-save hook hashes it.
-     */
-    this.password = password;
+
+    this.password =
+      password;
+
+
+    if (
+      this.authProvider ===
+      "google"
+    ) {
+
+      this.authProvider =
+        "hybrid";
+
+    }
+
 
     return this;
+
   };
+
 
 /**
- * Compare a supplied password against
- * the stored bcrypt hash.
- *
- * IMPORTANT:
- * The password field must be explicitly selected
- * for this method to work after using `select: false`.
+ * Compare supplied password to stored bcrypt hash.
  */
+
 userSchema.methods.comparePassword =
-  async function (candidatePassword) {
+  async function (
+    candidatePassword
+  ) {
+
     if (
       !this.password ||
-      typeof this.password !== "string"
+      typeof this.password !==
+        "string"
     ) {
+
       return false;
+
     }
 
+
     return bcrypt.compare(
-      String(candidatePassword ?? ""),
+
+      String(
+        candidatePassword ?? ""
+      ),
+
       this.password
+
     );
+
   };
 
+
 /* ============================================================
-   LOGIN SECURITY METHODS
+   EMAIL VERIFICATION
+   ============================================================ */
+
+/**
+ * Generate and store a new email verification code.
+ *
+ * Returns the plain OTP so the mailer can send it.
+ *
+ * The plain OTP is NEVER stored in MongoDB.
+ */
+
+userSchema.methods.createEmailVerificationCode =
+  async function () {
+
+    const now =
+      Date.now();
+
+
+    if (
+      this.emailVerificationResendAt &&
+
+      this.emailVerificationResendAt.getTime() >
+
+        now
+    ) {
+
+      const remainingMs =
+        this.emailVerificationResendAt.getTime() -
+        now;
+
+      const remainingSeconds =
+        Math.ceil(
+          remainingMs / 1000
+        );
+
+
+      throw new Error(
+        `Please wait ${remainingSeconds} seconds before requesting another verification code.`
+      );
+
+    }
+
+
+    const code =
+      generateVerificationCode();
+
+
+    this.emailVerificationCodeHash =
+      await hashVerificationCode(
+        code
+      );
+
+
+    this.emailVerificationCodeExpiresAt =
+      new Date(
+        now +
+          EMAIL_OTP_EXPIRATION_MS
+      );
+
+
+    this.emailVerificationAttempts =
+      0;
+
+
+    this.emailVerificationResendAt =
+      new Date(
+        now +
+          EMAIL_OTP_RESEND_COOLDOWN_MS
+      );
+
+
+    return code;
+
+  };
+
+
+/**
+ * Verify an entered email OTP.
+ */
+
+userSchema.methods.verifyEmailVerificationCode =
+  async function (
+    code
+  ) {
+
+    const suppliedCode =
+      String(
+        code ?? ""
+      ).trim();
+
+
+    if (
+      !/^\d{6}$/.test(
+        suppliedCode
+      )
+    ) {
+
+      return {
+        success: false,
+        reason: "invalid",
+      };
+
+    }
+
+
+    if (
+      !this.emailVerificationCodeHash
+    ) {
+
+      return {
+        success: false,
+        reason: "missing",
+      };
+
+    }
+
+
+    if (
+      !this.emailVerificationCodeExpiresAt ||
+      this.emailVerificationCodeExpiresAt.getTime() <=
+        Date.now()
+    ) {
+
+      return {
+        success: false,
+        reason: "expired",
+      };
+
+    }
+
+
+    if (
+      Number(
+        this.emailVerificationAttempts || 0
+      ) >=
+      EMAIL_OTP_MAX_ATTEMPTS
+    ) {
+
+      return {
+        success: false,
+        reason: "attempts",
+      };
+
+    }
+
+
+    const matched =
+      await bcrypt.compare(
+
+        suppliedCode,
+
+        this.emailVerificationCodeHash
+
+      );
+
+
+    if (!matched) {
+
+      this.emailVerificationAttempts =
+        Number(
+          this.emailVerificationAttempts || 0
+        ) + 1;
+
+
+      return {
+        success: false,
+        reason: "invalid",
+      };
+
+    }
+
+
+    this.emailVerified =
+      true;
+
+
+    this.emailVerifiedAt =
+      new Date();
+
+
+    this.emailVerificationCodeHash =
+      null;
+
+
+    this.emailVerificationCodeExpiresAt =
+      null;
+
+
+    this.emailVerificationAttempts =
+      0;
+
+
+    this.emailVerificationResendAt =
+      null;
+
+
+    return {
+      success: true,
+      reason: "verified",
+    };
+
+  };
+
+
+/**
+ * Clear email verification state.
+ */
+
+userSchema.methods.clearEmailVerification =
+  function () {
+
+    this.emailVerificationCodeHash =
+      null;
+
+    this.emailVerificationCodeExpiresAt =
+      null;
+
+    this.emailVerificationAttempts =
+      0;
+
+    this.emailVerificationResendAt =
+      null;
+
+    return this;
+
+  };
+
+
+/**
+ * Determine whether another email OTP can be requested.
+ */
+
+userSchema.methods.canRequestEmailVerification =
+  function () {
+
+    if (
+      !this.emailVerificationResendAt
+    ) {
+
+      return true;
+
+    }
+
+
+    return (
+      this.emailVerificationResendAt.getTime() <=
+      Date.now()
+    );
+
+  };
+
+
+/**
+ * Return remaining resend cooldown in seconds.
+ */
+
+userSchema.methods.getEmailVerificationResendRemaining =
+  function () {
+
+    if (
+      !this.emailVerificationResendAt
+    ) {
+
+      return 0;
+
+    }
+
+
+    const remaining =
+      this.emailVerificationResendAt.getTime() -
+      Date.now();
+
+
+    return Math.max(
+      0,
+      Math.ceil(
+        remaining / 1000
+      )
+    );
+
+  };
+
+
+/**
+ * Return OTP expiration remaining in seconds.
+ */
+
+userSchema.methods.getEmailVerificationRemaining =
+  function () {
+
+    if (
+      !this.emailVerificationCodeExpiresAt
+    ) {
+
+      return 0;
+
+    }
+
+
+    const remaining =
+      this.emailVerificationCodeExpiresAt.getTime() -
+      Date.now();
+
+
+    return Math.max(
+      0,
+      Math.ceil(
+        remaining / 1000
+      )
+    );
+
+  };
+
+
+/* ============================================================
+   LOGIN SECURITY
    ============================================================ */
 
 /**
  * Record a failed login attempt.
- *
- * After MAX_LOGIN_ATTEMPTS, the account is temporarily
- * locked.
  */
+
 userSchema.methods.recordFailedLogin =
   async function () {
+
     this.failedLoginAttempts =
       Math.max(
+
         0,
+
         Number(
           this.failedLoginAttempts || 0
         )
+
       ) + 1;
+
 
     if (
       this.failedLoginAttempts >=
       MAX_LOGIN_ATTEMPTS
     ) {
+
       this.lockedUntil =
         new Date(
           Date.now() +
             LOGIN_LOCK_DURATION_MS
         );
 
-      /*
-       * Reset counter after lock is established.
-       * The lock itself is the source of truth.
-       */
-      this.failedLoginAttempts = 0;
+
+      this.failedLoginAttempts =
+        0;
+
     }
+
 
     await this.save();
 
     return this;
+
   };
 
+
 /**
- * Clear failed-login state after
- * a successful authentication.
+ * Reset login security after successful login.
  */
+
 userSchema.methods.resetLoginSecurity =
   async function () {
-    this.failedLoginAttempts = 0;
 
-    this.lockedUntil = null;
+    this.failedLoginAttempts =
+      0;
+
+
+    this.lockedUntil =
+      null;
+
 
     this.lastLoginAt =
       new Date();
 
+
     await this.save();
 
     return this;
+
   };
 
+
 /**
- * Check whether the user is currently
- * prevented from logging in.
+ * Determine whether account is currently locked.
  */
+
 userSchema.methods.isCurrentlyLocked =
   function () {
+
     return Boolean(
+
       this.lockedUntil &&
-        this.lockedUntil.getTime() >
-          Date.now()
+
+      this.lockedUntil.getTime() >
+
+        Date.now()
+
     );
+
   };
+
 
 /**
- * Automatically clear an expired lock.
+ * Automatically clear expired lock.
  */
+
 userSchema.methods.clearExpiredLock =
   async function () {
+
     if (
+
       this.lockedUntil &&
+
       this.lockedUntil.getTime() <=
         Date.now()
-    ) {
-      this.lockedUntil = null;
 
-      this.failedLoginAttempts = 0;
+    ) {
+
+      this.lockedUntil =
+        null;
+
+      this.failedLoginAttempts =
+        0;
 
       await this.save();
+
     }
 
+
     return this;
+
   };
 
+
 /* ============================================================
-   ACCOUNT SECURITY METHODS
+   ACCOUNT SECURITY
    ============================================================ */
 
 /**
- * Check whether the account is allowed
- * to authenticate.
+ * Check whether account is allowed to authenticate.
  */
+
 userSchema.methods.canAuthenticate =
   function () {
+
     return (
-      this.status === "active" &&
+
+      this.status ===
+        "active" &&
+
       !this.isCurrentlyLocked()
+
     );
+
   };
+
 
 /* ============================================================
    STATIC HELPERS
    ============================================================ */
 
 /**
- * Find a customer by email.
+ * Find customer by normalized email.
  */
+
 userSchema.statics.findByEmail =
-  function (email) {
+  function (
+    email
+  ) {
+
     return this.findOne({
+
       email:
-        normalizeEmail(email),
+        normalizeEmail(
+          email
+        ),
+
     });
+
   };
 
+
 /**
- * Find a customer by email or username.
+ * Find customer by email or username.
  */
+
 userSchema.statics.findByIdentifier =
-  function (identifier) {
+  function (
+    identifier
+  ) {
+
     const value =
-      String(identifier ?? "")
+      String(
+        identifier ?? ""
+      )
         .trim()
         .toLowerCase();
 
+
     return this.findOne({
+
       $or: [
+
         {
-          email: value,
+          email:
+            value,
         },
+
         {
-          username: value,
+          username:
+            value,
         },
+
       ],
+
     });
+
   };
+
+
+/**
+ * Find customer by Google account ID.
+ */
+
+userSchema.statics.findByGoogleId =
+  function (
+    googleId
+  ) {
+
+    return this.findOne({
+
+      googleId:
+        String(
+          googleId ?? ""
+        ).trim(),
+
+    }).select(
+      "+googleId"
+    );
+
+  };
+
 
 /* ============================================================
    MODEL
@@ -680,4 +1518,26 @@ const User =
     userSchema
   );
 
-module.exports = User;
+
+module.exports =
+  User;
+
+
+/* ============================================================
+   EXPORTED CONFIGURATION
+   ============================================================ */
+
+module.exports.PASSWORD_MIN_LENGTH =
+  PASSWORD_MIN_LENGTH;
+
+module.exports.EMAIL_OTP_LENGTH =
+  EMAIL_OTP_LENGTH;
+
+module.exports.EMAIL_OTP_EXPIRATION_MS =
+  EMAIL_OTP_EXPIRATION_MS;
+
+module.exports.EMAIL_OTP_MAX_ATTEMPTS =
+  EMAIL_OTP_MAX_ATTEMPTS;
+
+module.exports.EMAIL_OTP_RESEND_COOLDOWN_MS =
+  EMAIL_OTP_RESEND_COOLDOWN_MS;

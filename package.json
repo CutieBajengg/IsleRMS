@@ -3,12 +3,12 @@
   "version": "1.0.0",
   "main": "index.js",
   "scripts": {
-  "dev": "nodemon server.js",
-  "start": "node server.js",
-  "seed:catalog": "node scripts/seedCatalog.js",
-  "test": "echo \"Error: no test specified\" && exit 1",
-  "build": "nest build"
-},
+    "dev": "nodemon server.js",
+    "start": "node server.js",
+    "seed:catalog": "node scripts/seedCatalog.js",
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "build": "nest build"
+  },
   "keywords": [],
   "author": "",
   "license": "ISC",
@@ -22,7 +22,8 @@
     "ejs": "^4.0.1",
     "express": "^5.2.1",
     "express-session": "^1.19.0",
-    "mongoose": "^9.2.2"
+    "mongoose": "^9.2.2",
+    "nodemailer": "^10.0.12"
   },
   "devDependencies": {
     "nodemon": "^3.1.14"
