@@ -1,26 +1,16 @@
 "use strict";
 
 const path = require("path");
-
 const crypto = require("crypto");
-
 const express = require("express");
-
 const mongoose = require("mongoose");
-
 const session = require("express-session");
-
 const dotenv = require("dotenv");
-
 const MongoStore = require("connect-mongo");
-
 const nodemailer = require("nodemailer");
 
 const User = require("./models/User");
-
 const Admin = require("./models/Admin");
-
-// ✅ GALLERY CHANGE: SiteSettings is no longer used by the gallery system.
 
 const userRoutes =
   require("./routes/userRoutes");
@@ -39,6 +29,10 @@ const {
 dotenv.config();
 
 const app = express();
+
+/* ============================================================
+   ENVIRONMENT
+============================================================ */
 
 const NODE_ENV =
   String(
@@ -79,15 +73,10 @@ const RAW_MONGO_URI =
   ).trim();
 
 const PLACEHOLDER_MONGO_VALUES = [
-
   "your_existing_mongodb_connection",
-
   "your_mongodb_connection_string",
-
   "mongodb_connection_string",
-
   "your_existing_mongodb_uri",
-
 ];
 
 const MONGO_URI =
@@ -162,7 +151,8 @@ const EMAIL_OTP_ENABLED =
       "true"
   )
     .trim()
-    .toLowerCase() !== "false";
+    .toLowerCase() !==
+  "false";
 
 const GOOGLE_CLIENT_ID =
   String(
@@ -203,6 +193,10 @@ const URLENCODED_LIMIT =
   process.env.URLENCODED_LIMIT ||
   "1mb";
 
+/* ============================================================
+   SESSION SECURITY
+============================================================ */
+
 const USER_IDLE_TIMEOUT_MINUTES =
   Math.max(
     1,
@@ -221,6 +215,51 @@ const USER_ACTIVITY_WRITE_INTERVAL_MS =
   60 *
   1000;
 
+const ADMIN_IDLE_TIMEOUT_MINUTES =
+  Math.max(
+    1,
+    Number(
+      process.env.ADMIN_IDLE_TIMEOUT_MINUTES ||
+        30
+    )
+  );
+
+const ADMIN_IDLE_TIMEOUT_MS =
+  ADMIN_IDLE_TIMEOUT_MINUTES *
+  60 *
+  1000;
+
+const ADMIN_ACTIVITY_WRITE_INTERVAL_MS =
+  60 *
+  1000;
+
+/*
+ * A different secret is used for administrator sessions.
+ *
+ * This keeps the two authentication surfaces cryptographically
+ * separated even though both ultimately use the same base
+ * application secret.
+ */
+const EFFECTIVE_SESSION_SECRET =
+  SESSION_SECRET ||
+  "dev-only-puffer-isle-session-secret-change-me";
+
+const ADMIN_SESSION_SECRET =
+  String(
+    process.env.ADMIN_SESSION_SECRET ||
+      ""
+  ).trim() ||
+  crypto
+    .createHash("sha256")
+    .update(
+      `${EFFECTIVE_SESSION_SECRET}:admin`
+    )
+    .digest("hex");
+
+/* ============================================================
+   OTP / OAUTH SECURITY
+============================================================ */
+
 const OTP_REQUEST_WINDOW_MS =
   15 *
   60 *
@@ -229,157 +268,142 @@ const OTP_REQUEST_WINDOW_MS =
 const OTP_MAX_REQUESTS_PER_WINDOW =
   5;
 
+const GOOGLE_OAUTH_STATE_MAX_AGE_MS =
+  10 *
+  60 *
+  1000;
+
 const otpRequestTracker =
   new Map();
 
-function validateEnvironment() {
+/* ============================================================
+   ENVIRONMENT VALIDATION
+============================================================ */
 
+function validateEnvironment() {
   const errors = [];
 
   if (
-    !Number.isInteger(PORT) ||
+    !Number.isInteger(
+      PORT
+    ) ||
     PORT < 1 ||
     PORT > 65535
   ) {
-
     errors.push(
       "PORT must be a valid TCP port."
     );
-
   }
 
   if (!MONGO_URI) {
-
-    if (IS_PRODUCTION) {
-
+    if (
+      IS_PRODUCTION
+    ) {
       errors.push(
         "MONGO_URI is required in production."
       );
-
     }
-
   } else if (
-
     !MONGO_URI.startsWith(
       "mongodb://"
     ) &&
-
     !MONGO_URI.startsWith(
       "mongodb+srv://"
     )
-
   ) {
-
     errors.push(
       "MONGO_URI must start with mongodb:// or mongodb+srv://."
     );
-
   }
 
-  if (!SESSION_SECRET) {
-
-    if (IS_PRODUCTION) {
-
+  if (
+    !SESSION_SECRET
+  ) {
+    if (
+      IS_PRODUCTION
+    ) {
       errors.push(
         "SESSION_SECRET is required in production."
       );
-
     }
-
   } else if (
-
     IS_PRODUCTION &&
-    SESSION_SECRET.length < 32
-
+    SESSION_SECRET.length <
+      32
   ) {
-
     errors.push(
       "SESSION_SECRET must contain at least 32 characters in production."
     );
-
   }
 
   if (
     IS_PRODUCTION &&
     !ADMIN_USERNAME
   ) {
-
     console.warn(
       "⚠️ ADMIN_USERNAME is not configured. Default admin creation will be skipped."
     );
-
   }
 
   if (
     IS_PRODUCTION &&
     !ADMIN_PASSWORD
   ) {
-
     console.warn(
       "⚠️ ADMIN_PASSWORD is not configured. Default admin creation will be skipped."
     );
-
   }
 
   if (
     RAW_MONGO_URI &&
     !MONGO_URI
   ) {
-
     console.warn(
       "⚠️ Placeholder MongoDB URI detected. Using local MongoDB instead."
     );
-
   }
 
-  if (errors.length > 0) {
-
-    const message =
+  if (
+    errors.length >
+    0
+  ) {
+    throw new Error(
       [
-
         "Environment validation failed:",
-
         ...errors.map(
-          (error) =>
+          (
+            error
+          ) =>
             `- ${error}`
         ),
-
-      ].join("\n");
-
-    throw new Error(
-      message
+      ].join("\n")
     );
-
   }
 }
 
 validateEnvironment();
 
 if (!MONGO_URI) {
-
   console.warn(
     "ℹ️ MONGO_URI was not provided. Using local MongoDB:",
     DEFAULT_LOCAL_MONGO_URI
   );
-
 }
 
-const EFFECTIVE_SESSION_SECRET =
-  SESSION_SECRET ||
-  "dev-only-puffer-isle-session-secret-change-me";
+/* ============================================================
+   EXPRESS CONFIGURATION
+============================================================ */
 
 app.disable(
   "x-powered-by"
 );
 
-if (IS_PRODUCTION) {
-
-  app.set(
-    "trust proxy",
-    1
-  );
-
-}
+app.set(
+  "trust proxy",
+  IS_PRODUCTION
+    ? 1
+    : false
+);
 
 app.set(
   "view engine",
@@ -394,37 +418,138 @@ app.set(
   )
 );
 
+/* ============================================================
+   REQUEST ID + SECURITY HEADERS
+============================================================ */
+
+function isAdminPath(
+  req
+) {
+  const pathname =
+    String(
+      req.path ||
+        ""
+    );
+
+  return (
+    pathname ===
+      "/admin" ||
+    pathname.startsWith(
+      "/admin/"
+    )
+  );
+}
+
+function createRequestId() {
+  return crypto
+    .randomBytes(
+      12
+    )
+    .toString(
+      "hex"
+    );
+}
+
+function sanitizeRequestId(
+  value
+) {
+  const candidate =
+    String(
+      value ||
+        ""
+    )
+      .trim()
+      .slice(
+        0,
+        100
+      );
+
+  return /^[A-Za-z0-9._:-]+$/.test(
+    candidate
+  )
+    ? candidate
+    : null;
+}
+
+app.use(
+  (
+    req,
+    res,
+    next
+  ) => {
+    req.requestId =
+      sanitizeRequestId(
+        req.get(
+          "X-Request-ID"
+        )
+      ) ||
+      createRequestId();
+
+    res.setHeader(
+      "X-Request-ID",
+      req.requestId
+    );
+
+    res.setHeader(
+      "X-Content-Type-Options",
+      "nosniff"
+    );
+
+    res.setHeader(
+      "Referrer-Policy",
+      "strict-origin-when-cross-origin"
+    );
+
+    res.setHeader(
+      "X-Frame-Options",
+      "SAMEORIGIN"
+    );
+
+    if (
+      IS_PRODUCTION
+    ) {
+      res.setHeader(
+        "Strict-Transport-Security",
+        "max-age=31536000; includeSubDomains"
+      );
+    }
+
+    next();
+  }
+);
+
+/* ============================================================
+   BODY PARSERS
+============================================================ */
+
 app.use(
   express.urlencoded({
-
     extended:
       true,
 
     limit:
       URLENCODED_LIMIT,
-
   })
 );
 
 app.use(
   express.json({
-
     limit:
       JSON_LIMIT,
-
   })
 );
 
+/* ============================================================
+   STATIC FILES
+============================================================ */
+
 app.use(
   express.static(
-
     path.join(
       __dirname,
       "public"
     ),
-
     {
-
       index:
         false,
 
@@ -435,15 +560,16 @@ app.use(
         IS_PRODUCTION
           ? "7d"
           : 0,
-
     }
-
   )
 );
 
 app.use(
-  (req, res, next) => {
-
+  (
+    req,
+    res,
+    next
+  ) => {
     res.locals.requestMethod =
       req.method;
 
@@ -451,13 +577,22 @@ app.use(
       req.path;
 
     next();
-
   }
 );
 
-const sessionStore =
-  MongoStore.create({
+/* ============================================================
+   MONGODB SESSION STORES
+============================================================ */
 
+/*
+ * User and administrator sessions intentionally use separate
+ * collections.
+ *
+ * This prevents the authentication surfaces from sharing the
+ * same session dataset.
+ */
+const userSessionStore =
+  MongoStore.create({
     mongoUrl:
       EFFECTIVE_MONGO_URI,
 
@@ -478,29 +613,43 @@ const sessionStore =
 
     stringify:
       false,
-
   });
 
-app.get(
-  "/admin-logout",
-  (req, res) => {
+const adminSessionStore =
+  MongoStore.create({
+    mongoUrl:
+      EFFECTIVE_MONGO_URI,
 
-    return res.redirect(
-      303,
-      "/admin/logout"
-    );
+    collectionName:
+      "admin_sessions",
 
-  }
-);
+    ttl:
+      Math.floor(
+        SESSION_MAX_AGE /
+          1000
+      ),
+
+    autoRemove:
+      "native",
+
+    touchAfter:
+      60 * 5,
+
+    stringify:
+      false,
+  });
+
+/* ============================================================
+   ADMIN SESSION
+============================================================ */
 
 const adminSessionMiddleware =
   session({
-
     name:
       ADMIN_SESSION_NAME,
 
     secret:
-      EFFECTIVE_SESSION_SECRET,
+      ADMIN_SESSION_SECRET,
 
     resave:
       false,
@@ -512,10 +661,9 @@ const adminSessionMiddleware =
       true,
 
     store:
-      sessionStore,
+      adminSessionStore,
 
     cookie: {
-
       httpOnly:
         true,
 
@@ -530,20 +678,372 @@ const adminSessionMiddleware =
 
       path:
         "/admin",
-
     },
-
   });
+
+/* ============================================================
+   COMMON SESSION HELPERS
+============================================================ */
+
+function regenerateSession(
+  req
+) {
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+      if (
+        !req.session
+      ) {
+        return reject(
+          new Error(
+            "Session middleware is unavailable."
+          )
+        );
+      }
+
+      req.session.regenerate(
+        (
+          error
+        ) => {
+          if (
+            error
+          ) {
+            return reject(
+              error
+            );
+          }
+
+          resolve();
+        }
+      );
+    }
+  );
+}
+
+function saveSession(
+  req
+) {
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+      if (
+        !req.session
+      ) {
+        return reject(
+          new Error(
+            "Session middleware is unavailable."
+          )
+        );
+      }
+
+      req.session.save(
+        (
+          error
+        ) => {
+          if (
+            error
+          ) {
+            return reject(
+              error
+            );
+          }
+
+          resolve();
+        }
+      );
+    }
+  );
+}
+
+function destroySession(
+  req
+) {
+  return new Promise(
+    (
+      resolve,
+      reject
+    ) => {
+      if (
+        !req.session
+      ) {
+        return resolve();
+      }
+
+      req.session.destroy(
+        (
+          error
+        ) => {
+          if (
+            error
+          ) {
+            return reject(
+              error
+            );
+          }
+
+          resolve();
+        }
+      );
+    }
+  );
+}
+
+function clearSessionCookie(
+  res
+) {
+  res.clearCookie(
+    SESSION_NAME,
+    {
+      httpOnly:
+        true,
+
+      sameSite:
+        "lax",
+
+      secure:
+        IS_PRODUCTION,
+
+      path:
+        "/",
+    }
+  );
+}
+
+function clearAdminSessionCookie(
+  res
+) {
+  res.clearCookie(
+    ADMIN_SESSION_NAME,
+    {
+      httpOnly:
+        true,
+
+      sameSite:
+        "lax",
+
+      secure:
+        IS_PRODUCTION,
+
+      path:
+        "/admin",
+    }
+  );
+}
+
+function getSessionUserId(
+  req
+) {
+  return (
+    req.session?.user?.id ||
+    req.session?.user?._id ||
+    null
+  );
+}
+
+/* ============================================================
+   USER SESSION MOUNTING
+============================================================ */
+
+const userSessionMiddleware =
+  session({
+    name:
+      SESSION_NAME,
+
+    secret:
+      EFFECTIVE_SESSION_SECRET,
+
+    resave:
+      false,
+
+    saveUninitialized:
+      false,
+
+    rolling:
+      true,
+
+    store:
+      userSessionStore,
+
+    cookie: {
+      httpOnly:
+        true,
+
+      secure:
+        IS_PRODUCTION,
+
+      sameSite:
+        "lax",
+
+      maxAge:
+        SESSION_MAX_AGE,
+
+      path:
+        "/",
+    },
+  });
+
+/*
+ * Admin requests NEVER enter the user session middleware.
+ */
+app.use(
+  (
+    req,
+    res,
+    next
+  ) => {
+    if (
+      isAdminPath(req)
+    ) {
+      return next();
+    }
+
+    return userSessionMiddleware(
+      req,
+      res,
+      next
+    );
+  }
+);
+
+/* ============================================================
+   ADMIN SESSION ACTIVITY
+============================================================ */
+
+function adminActivityMiddleware(
+  req,
+  res,
+  next
+) {
+  const admin =
+    req.session?.admin;
+
+  if (!admin) {
+    return next();
+  }
+
+  const now =
+    Date.now();
+
+  const lastActivity =
+    Number(
+      req.session
+        .adminLastActivityAt ||
+        0
+    );
+
+  if (
+    lastActivity &&
+    now -
+      lastActivity >
+      ADMIN_IDLE_TIMEOUT_MS
+  ) {
+    return destroySession(
+      req
+    )
+      .catch(
+        (
+          error
+        ) =>
+          console.error(
+            "ADMIN IDLE SESSION DESTROY ERROR:",
+            error
+          )
+      )
+      .finally(
+        () => {
+          clearAdminSessionCookie(
+            res
+          );
+
+          if (
+            res.headersSent
+          ) {
+            return;
+          }
+
+          if (
+            req.path.startsWith(
+              "/api/"
+            ) ||
+            req.xhr ||
+            String(
+              req.headers.accept ||
+                ""
+            ).includes(
+              "application/json"
+            )
+          ) {
+            return res
+              .status(401)
+              .json({
+                success:
+                  false,
+
+                code:
+                  "ADMIN_SESSION_IDLE_TIMEOUT",
+
+                message:
+                  "Your administrator session expired due to inactivity. Please log in again.",
+
+                requestId:
+                  req.requestId,
+              });
+          }
+
+          return res.redirect(
+            303,
+            "/admin/login?error=" +
+              encodeURIComponent(
+                "Your administrator session expired due to inactivity."
+              )
+          );
+        }
+      );
+  }
+
+  if (
+    !lastActivity ||
+    now -
+      lastActivity >=
+      ADMIN_ACTIVITY_WRITE_INTERVAL_MS
+  ) {
+    req.session.adminLastActivityAt =
+      now;
+  }
+
+  next();
+}
+
+/* ============================================================
+   ADMIN ROUTER MOUNT
+============================================================ */
+
+app.get(
+  "/admin-logout",
+  (
+    req,
+    res
+  ) =>
+    res.redirect(
+      303,
+      "/admin/logout"
+    )
+);
 
 app.use(
   "/admin",
-
   adminSessionMiddleware,
-
   attachCsrfToken,
-
-  (req, res, next) => {
-
+  adminActivityMiddleware,
+  (
+    req,
+    res,
+    next
+  ) => {
     const currentAdmin =
       req.session?.admin ||
       null;
@@ -564,111 +1064,225 @@ app.use(
       null;
 
     next();
-
   },
-
   galleryRoutes,
-
   adminRoutes
 );
 
-app.use(
-  session({
-
-    name:
-      SESSION_NAME,
-
-    secret:
-      EFFECTIVE_SESSION_SECRET,
-
-    resave:
-      false,
-
-    saveUninitialized:
-      false,
-
-    rolling:
-      true,
-
-    store:
-      sessionStore,
-
-    cookie: {
-
-      httpOnly:
-        true,
-
-      secure:
-        IS_PRODUCTION,
-
-      sameSite:
-        "lax",
-
-      maxAge:
-        SESSION_MAX_AGE,
-
-      path:
-        "/",
-
-    },
-
-  })
-);
+/* ============================================================
+   CUSTOMER CSRF TOKEN
+============================================================ */
 
 app.use(
-  attachCsrfToken
-);
-
-const csrfProtectedPostPaths =
-  new Set([
-
-    "/login",
-
-    "/signup",
-
-    "/signup/request-otp",
-
-    "/signup/verify-otp",
-
-    "/signup/resend-otp",
-
-    "/logout",
-
-  ]);
-
-app.use(
-  (req, res, next) => {
-
+  (
+    req,
+    res,
+    next
+  ) => {
     if (
-      req.method === "POST" &&
-      csrfProtectedPostPaths.has(
-        req.path
-      )
+      isAdminPath(req)
     ) {
-
-      return verifyCsrfToken(
-        req,
-        res,
-        next
-      );
-
+      return next();
     }
 
-    next();
-
+    return attachCsrfToken(
+      req,
+      res,
+      next
+    );
   }
 );
 
-app.use(
-  (req, res, next) => {
+/* ============================================================
+   CUSTOMER IDLE SESSION
+============================================================ */
 
+app.use(
+  (
+    req,
+    res,
+    next
+  ) => {
+    if (
+      isAdminPath(req)
+    ) {
+      return next();
+    }
+
+    const user =
+      req.session?.user;
+
+    if (!user) {
+      return next();
+    }
+
+    const now =
+      Date.now();
+
+    const lastActivity =
+      Number(
+        req.session
+          .lastActivityAt ||
+          0
+      );
+
+    if (
+      lastActivity &&
+      now -
+        lastActivity >
+        USER_IDLE_TIMEOUT_MS
+    ) {
+      return destroySession(
+        req
+      )
+        .catch(
+          (
+            error
+          ) =>
+            console.error(
+              "USER IDLE SESSION DESTROY ERROR:",
+              error
+            )
+        )
+        .finally(
+          () => {
+            clearSessionCookie(
+              res
+            );
+
+            if (
+              res.headersSent
+            ) {
+              return;
+            }
+
+            const wantsJson =
+              req.path.startsWith(
+                "/api/"
+              ) ||
+              req.xhr ||
+              String(
+                req.headers.accept ||
+                  ""
+              ).includes(
+                "application/json"
+              );
+
+            if (
+              wantsJson
+            ) {
+              return res
+                .status(401)
+                .json({
+                  success:
+                    false,
+
+                  code:
+                    "SESSION_IDLE_TIMEOUT",
+
+                  message:
+                    "Your session expired due to inactivity. Please log in again.",
+
+                  requestId:
+                    req.requestId,
+                });
+            }
+
+            return res.redirect(
+              303,
+              "/?auth=login&error=" +
+                encodeURIComponent(
+                  "Your session expired due to inactivity. Please log in again."
+                )
+            );
+          }
+        );
+    }
+
+    if (
+      !lastActivity ||
+      now -
+        lastActivity >=
+        USER_ACTIVITY_WRITE_INTERVAL_MS
+    ) {
+      req.session.lastActivityAt =
+        now;
+    }
+
+    next();
+  }
+);
+
+/* ============================================================
+   CSRF PROTECTION
+============================================================ */
+
+/*
+ * All customer state-changing requests are now protected.
+ *
+ * Admin state-changing requests are handled inside adminRoutes
+ * by requireAdminMutation().
+ *
+ * GET remains intentionally available for compatibility routes
+ * such as /logout.
+ */
+app.use(
+  (
+    req,
+    res,
+    next
+  ) => {
+    if (
+      isAdminPath(req)
+    ) {
+      return next();
+    }
+
+    const protectedMethods =
+      new Set([
+        "POST",
+        "PUT",
+        "PATCH",
+        "DELETE",
+      ]);
+
+    if (
+      !protectedMethods.has(
+        req.method
+      )
+    ) {
+      return next();
+    }
+
+    return verifyCsrfToken(
+      req,
+      res,
+      next
+    );
+  }
+);
+
+/* ============================================================
+   GLOBAL VIEW LOCALS
+============================================================ */
+
+app.use(
+  (
+    req,
+    res,
+    next
+  ) => {
     const currentUser =
-      req.session?.user ||
-      null;
+      isAdminPath(req)
+        ? null
+        : req.session?.user ||
+          null;
 
     const currentAdmin =
-      req.session?.admin ||
-      null;
+      isAdminPath(req)
+        ? req.session?.admin ||
+          null
+        : null;
 
     res.locals.currentUser =
       currentUser;
@@ -713,18 +1327,18 @@ app.use(
       null;
 
     next();
-
   }
 );
+
+/* ============================================================
+   SESSION SERIALIZATION
+============================================================ */
 
 function createUserSessionData(
   user
 ) {
-
   if (!user) {
-
     return null;
-
   }
 
   const id =
@@ -767,7 +1381,6 @@ function createUserSessionData(
     ).trim();
 
   return {
-
     id,
 
     _id:
@@ -796,19 +1409,14 @@ function createUserSessionData(
     authProvider:
       user.authProvider ||
       "local",
-
   };
-
 }
 
 function createAdminSessionData(
   admin
 ) {
-
   if (!admin) {
-
     return null;
-
   }
 
   const id =
@@ -822,7 +1430,6 @@ function createAdminSessionData(
         );
 
   return {
-
     id,
 
     _id:
@@ -837,174 +1444,32 @@ function createAdminSessionData(
         .toLowerCase(),
 
     role:
-      admin.role ||
-      "admin",
-
+      String(
+        admin.role ||
+          "admin"
+      )
+        .trim()
+        .toLowerCase(),
   };
-
 }
 
-function regenerateSession(
-  req
-) {
-
-  return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
-
-      req.session.regenerate(
-        (error) => {
-
-          if (error) {
-
-            return reject(
-              error
-            );
-
-          }
-
-          resolve();
-
-        }
-      );
-
-    }
-  );
-
-}
-
-function saveSession(
-  req
-) {
-
-  return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
-
-      req.session.save(
-        (error) => {
-
-          if (error) {
-
-            return reject(
-              error
-            );
-
-          }
-
-          resolve();
-
-        }
-      );
-
-    }
-  );
-
-}
-
-function destroySession(
-  req
-) {
-
-  return new Promise(
-    (
-      resolve,
-      reject
-    ) => {
-
-      if (!req.session) {
-
-        return resolve();
-
-      }
-
-      req.session.destroy(
-        (error) => {
-
-          if (error) {
-
-            return reject(
-              error
-            );
-
-          }
-
-          resolve();
-
-        }
-      );
-
-    }
-  );
-
-}
-
-function clearSessionCookie(
-  res
-) {
-
-  res.clearCookie(
-
-    SESSION_NAME,
-
-    {
-
-      httpOnly:
-        true,
-
-      sameSite:
-        "lax",
-
-      secure:
-        IS_PRODUCTION,
-
-      path:
-        "/",
-
-    }
-
-  );
-
-}
-
-function getSessionUserId(
-  req
-) {
-
-  return (
-
-    req.session?.user?.id ||
-
-    req.session?.user?._id ||
-
-    null
-
-  );
-
-}
+/* ============================================================
+   AUTH HELPERS
+============================================================ */
 
 function redirectAuthError(
   res,
   mode,
   message
 ) {
-
   return res.redirect(
-
     303,
-
     `/?auth=${encodeURIComponent(
       mode
     )}&error=${encodeURIComponent(
       message
     )}`
-
   );
-
 }
 
 function redirectAuthSuccess(
@@ -1012,86 +1477,77 @@ function redirectAuthSuccess(
   mode,
   message
 ) {
-
   return res.redirect(
-
     303,
-
     `/?auth=${encodeURIComponent(
       mode
     )}&success=${encodeURIComponent(
       message
     )}`
-
   );
-
 }
 
 function normalizeString(
   value
 ) {
-
   return String(
-    value ?? ""
+    value ??
+      ""
   )
     .trim()
     .replace(
       /\s+/g,
       " "
     );
-
 }
 
 function normalizeEmail(
   value
 ) {
-
   return String(
-    value ?? ""
+    value ??
+      ""
   )
     .trim()
     .toLowerCase();
-
 }
 
 function normalizeIdentifier(
   value
 ) {
-
   return String(
-    value ?? ""
+    value ??
+      ""
   )
     .trim()
     .toLowerCase();
-
 }
 
 function normalizeUsername(
   value
 ) {
-
-  const username =
+  return (
     String(
-      value ?? ""
+      value ??
+        ""
     )
       .trim()
       .toLowerCase()
       .replace(
         /\s+/g,
         ""
-      );
-
-  return username || "";
-
+      ) ||
+    ""
+  );
 }
 
 function normalizePhone(
   value
 ) {
-
-  let phone =
+  const phone =
     String(
-      value ?? ""
+      value ??
+        ""
     )
       .trim()
       .replace(
@@ -1100,9 +1556,7 @@ function normalizePhone(
       );
 
   if (!phone) {
-
     return "";
-
   }
 
   if (
@@ -1110,11 +1564,9 @@ function normalizePhone(
       phone
     )
   ) {
-
     return `0${phone.slice(
       3
     )}`;
-
   }
 
   if (
@@ -1122,52 +1574,47 @@ function normalizePhone(
       phone
     )
   ) {
-
     return `0${phone.slice(
       2
     )}`;
-
   }
 
   return phone;
-
 }
 
 function isValidEmail(
   email
 ) {
-
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(
     email
   );
-
 }
 
 function isValidUsername(
   username
 ) {
-
   return /^[a-z0-9._-]+$/i.test(
     username
   );
-
 }
 
 function isDuplicateKeyError(
   error
 ) {
-
   return Boolean(
     error &&
-    error.code === 11000
+      error.code ===
+        11000
   );
-
 }
+
+/* ============================================================
+   SIGNUP VALIDATION
+============================================================ */
 
 function validateSignupInput(
   body
 ) {
-
   const fullname =
     normalizeString(
       body?.fullname ||
@@ -1212,34 +1659,28 @@ function validateSignupInput(
     !password ||
     !confirmPassword
   ) {
-
     return {
-
       valid:
         false,
 
       message:
         "Full name, email, password and password confirmation are required.",
-
     };
-
   }
 
   if (
-    fullname.length < 2 ||
-    fullname.length > 100
+    fullname.length <
+      2 ||
+    fullname.length >
+      100
   ) {
-
     return {
-
       valid:
         false,
 
       message:
         "Full name must contain between 2 and 100 characters.",
-
     };
-
   }
 
   if (
@@ -1247,70 +1688,57 @@ function validateSignupInput(
       email
     )
   ) {
-
     return {
-
       valid:
         false,
 
       message:
         "Please provide a valid email address.",
-
     };
-
   }
 
   if (
     password.length <
     PASSWORD_MIN_LENGTH
   ) {
-
     return {
-
       valid:
         false,
 
       message:
         `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
-
     };
-
   }
 
   if (
     password !==
     confirmPassword
   ) {
-
     return {
-
       valid:
         false,
 
       message:
         "Passwords do not match.",
-
     };
-
   }
 
-  if (username) {
-
+  if (
+    username
+  ) {
     if (
-      username.length < 3 ||
-      username.length > 50
+      username.length <
+        3 ||
+      username.length >
+        50
     ) {
-
       return {
-
         valid:
           false,
 
         message:
           "Username must contain between 3 and 50 characters.",
-
       };
-
     }
 
     if (
@@ -1318,19 +1746,14 @@ function validateSignupInput(
         username
       )
     ) {
-
       return {
-
         valid:
           false,
 
         message:
           "Username may only contain letters, numbers, dots, underscores, and hyphens.",
-
       };
-
     }
-
   }
 
   if (
@@ -1339,26 +1762,20 @@ function validateSignupInput(
       phone
     )
   ) {
-
     return {
-
       valid:
         false,
 
       message:
         "Please provide a valid Philippine mobile number.",
-
     };
-
   }
 
   return {
-
     valid:
       true,
 
     data: {
-
       fullname,
 
       email,
@@ -1370,70 +1787,55 @@ function validateSignupInput(
       confirmPassword,
 
       phone,
-
     },
-
   };
-
 }
+
+/* ============================================================
+   EMAIL / OTP
+============================================================ */
 
 let mailTransporter =
   null;
 
 function getMailTransporter() {
-
   if (
-    !EMAIL_OTP_ENABLED
-  ) {
-
-    return null;
-
-  }
-
-  if (
+    !EMAIL_OTP_ENABLED ||
     !MAIL_USER ||
     !MAIL_APP_PASSWORD
   ) {
-
     return null;
-
   }
 
   if (
     mailTransporter
   ) {
-
     return mailTransporter;
-
   }
 
   mailTransporter =
-    nodemailer.createTransport({
+    nodemailer.createTransport(
+      {
+        service:
+          "gmail",
 
-      service:
-        "gmail",
+        auth: {
+          user:
+            MAIL_USER,
 
-      auth: {
-
-        user:
-          MAIL_USER,
-
-        pass:
-          MAIL_APP_PASSWORD,
-
-      },
-
-    });
+          pass:
+            MAIL_APP_PASSWORD,
+        },
+      }
+    );
 
   return mailTransporter;
-
 }
 
 function buildVerificationEmail(
   code,
   expiresInSeconds
 ) {
-
   const minutes =
     Math.max(
       1,
@@ -1441,7 +1843,8 @@ function buildVerificationEmail(
         Number(
           expiresInSeconds ||
             600
-        ) / 60
+        ) /
+          60
       )
     );
 
@@ -1452,7 +1855,6 @@ function buildVerificationEmail(
     );
 
   return {
-
     subject:
       `${MAIL_FROM_NAME} - Email Verification Code`,
 
@@ -1479,9 +1881,7 @@ function buildVerificationEmail(
 
       <head>
 
-        <meta
-          charset="utf-8"
-        >
+        <meta charset="utf-8">
 
         <meta
           name="viewport"
@@ -1653,9 +2053,7 @@ function buildVerificationEmail(
 
       </html>
       `,
-
   };
-
 }
 
 async function sendVerificationEmail(
@@ -1663,16 +2061,15 @@ async function sendVerificationEmail(
   code,
   expiresInSeconds
 ) {
-
   const transporter =
     getMailTransporter();
 
-  if (!transporter) {
-
+  if (
+    !transporter
+  ) {
     throw new Error(
       "Gmail email delivery is not configured. Set MAIL_USER and MAIL_APP_PASSWORD in your environment."
     );
-
   }
 
   const message =
@@ -1681,35 +2078,28 @@ async function sendVerificationEmail(
       expiresInSeconds
     );
 
-  const result =
-    await transporter.sendMail({
+  return transporter.sendMail({
+    from:
+      `"${MAIL_FROM_NAME}" <${MAIL_USER}>`,
 
-      from:
-        `"${MAIL_FROM_NAME}" <${MAIL_USER}>`,
+    to:
+      email,
 
-      to:
-        email,
+    subject:
+      message.subject,
 
-      subject:
-        message.subject,
+    text:
+      message.text,
 
-      text:
-        message.text,
-
-      html:
-        message.html,
-
-    });
-
-  return result;
-
+    html:
+      message.html,
+  });
 }
 
 function checkOtpRequestRateLimit(
   req,
   email
 ) {
-
   const ip =
     String(
       req.ip ||
@@ -1733,48 +2123,36 @@ function checkOtpRequestRateLimit(
       existing.windowStartedAt >
       OTP_REQUEST_WINDOW_MS
   ) {
-
     otpRequestTracker.set(
-
       key,
-
       {
-
         windowStartedAt:
           now,
 
         count:
           1,
-
       }
-
     );
 
     return {
-
       allowed:
         true,
 
       retryAfter:
         0,
-
     };
-
   }
 
   if (
     existing.count >=
     OTP_MAX_REQUESTS_PER_WINDOW
   ) {
-
     return {
-
       allowed:
         false,
 
       retryAfter:
         Math.ceil(
-
           (
             OTP_REQUEST_WINDOW_MS -
             (
@@ -1782,75 +2160,61 @@ function checkOtpRequestRateLimit(
               existing.windowStartedAt
             )
           ) /
-          1000
-
+            1000
         ),
-
     };
-
   }
 
-  existing.count += 1;
+  existing.count +=
+    1;
 
   return {
-
     allowed:
       true,
 
     retryAfter:
       0,
-
   };
-
 }
 
 setInterval(
   () => {
-
     const now =
       Date.now();
 
     for (
       const [
         key,
-        entry
-      ]
-      of otpRequestTracker.entries()
+        entry,
+      ] of otpRequestTracker.entries()
     ) {
-
       if (
         now -
           entry.windowStartedAt >
           OTP_REQUEST_WINDOW_MS
       ) {
-
         otpRequestTracker.delete(
           key
         );
-
       }
-
     }
-
   },
-
   10 *
-  60 *
-  1000
-
+    60 *
+    1000
 ).unref();
 
 async function prepareSignupVerification(
   signupData
 ) {
-
   const {
     fullname,
     email,
     username,
     password,
     phone,
-  } = signupData;
+  } =
+    signupData;
 
   let user =
     await User.findByEmail(
@@ -1859,22 +2223,20 @@ async function prepareSignupVerification(
 
   if (
     user &&
-    user.emailVerified === true
+    user.emailVerified ===
+      true
   ) {
-
     throw new Error(
       "An account with that email already exists."
     );
-
   }
 
-  if (username) {
-
+  if (
+    username
+  ) {
     const usernameUser =
       await User.findOne({
-
         username,
-
       });
 
     if (
@@ -1886,23 +2248,18 @@ async function prepareSignupVerification(
         )
       )
     ) {
-
       throw new Error(
         "That username is already in use."
       );
-
     }
-
   }
 
   let createdNewUser =
     false;
 
   if (!user) {
-
     user =
       new User({
-
         fullname,
 
         email,
@@ -1916,49 +2273,35 @@ async function prepareSignupVerification(
 
         emailVerified:
           false,
-
       });
 
     createdNewUser =
       true;
-
   } else {
-
     user.fullname =
       fullname;
 
-    if (phone) {
-
-      user.phone =
-        phone;
-
-    } else {
-
-      user.phone =
-        undefined;
-
-    }
+    user.phone =
+      phone ||
+      undefined;
 
     user.authProvider =
       "local";
 
     user.emailVerified =
       false;
-
   }
 
-  if (username) {
-
+  if (
+    username
+  ) {
     user.username =
       username;
-
   } else if (
     createdNewUser
   ) {
-
     user.username =
       undefined;
-
   }
 
   await user.setPassword(
@@ -1971,38 +2314,35 @@ async function prepareSignupVerification(
   await user.save();
 
   return {
-
     user,
 
     verificationCode,
 
     createdNewUser,
-
   };
-
 }
+
+/* ============================================================
+   CUSTOMER AUTH COMPATIBILITY MIDDLEWARE
+============================================================ */
 
 function requireUser(
   req,
   res,
   next
 ) {
-
   const sessionUser =
     req.session?.user;
 
-  if (!sessionUser) {
-
+  if (
+    !sessionUser
+  ) {
     return res.redirect(
-
       "/?auth=login&error=" +
-
-      encodeURIComponent(
-        "Please log in to continue."
-      )
-
+        encodeURIComponent(
+          "Please log in to continue."
+        )
     );
-
   }
 
   if (
@@ -2010,82 +2350,190 @@ function requireUser(
     sessionUser.status !==
       "active"
   ) {
-
     return destroySession(
       req
     )
       .catch(
-        (error) => {
-
+        (
+          error
+        ) =>
           console.error(
             "SESSION CLEANUP ERROR:",
             error
-          );
-
-        }
+          )
       )
       .finally(
         () => {
-
           clearSessionCookie(
             res
           );
 
           res.redirect(
-
             "/?auth=login&error=" +
-
-            encodeURIComponent(
-              "Your account is currently unavailable."
-            )
-
+              encodeURIComponent(
+                "Your account is currently unavailable."
+              )
           );
-
         }
       );
-
   }
 
   next();
-
 }
 
-function requireAdmin(
+/*
+ * Exported compatibility middleware.
+ *
+ * Actual admin route authorization is handled by adminRoutes.js,
+ * which performs a live MongoDB admin status check.
+ */
+async function requireAdmin(
   req,
   res,
   next
 ) {
+  try {
+    const adminId =
+      req.session?.admin?.id ||
+      req.session?.admin?._id;
 
-  if (
-    !req.session?.admin
-  ) {
-
-    return res.redirect(
-
-      "/admin/login?error=" +
-
-      encodeURIComponent(
-        "Administrator login required."
+    if (
+      !adminId ||
+      !mongoose.Types.ObjectId.isValid(
+        adminId
       )
+    ) {
+      clearAdminSessionCookie(
+        res
+      );
 
+      return res.redirect(
+        "/admin/login?error=" +
+          encodeURIComponent(
+            "Administrator login required."
+          )
+      );
+    }
+
+    const admin =
+      await Admin.findById(
+        adminId
+      )
+        .select(
+          "username role status active"
+        )
+        .lean();
+
+    if (
+      !admin
+    ) {
+      await destroySession(
+        req
+      ).catch(
+        () => {}
+      );
+
+      clearAdminSessionCookie(
+        res
+      );
+
+      return res.redirect(
+        "/admin/login?error=" +
+          encodeURIComponent(
+            "Your administrator session is no longer valid."
+          )
+      );
+    }
+
+    if (
+      admin.status &&
+      String(
+        admin.status
+      )
+        .toLowerCase() !==
+        "active"
+    ) {
+      await destroySession(
+        req
+      ).catch(
+        () => {}
+      );
+
+      clearAdminSessionCookie(
+        res
+      );
+
+      return res.redirect(
+        "/admin/login?error=" +
+          encodeURIComponent(
+            "Your administrator account is currently unavailable."
+          )
+      );
+    }
+
+    if (
+      admin.active ===
+      false
+    ) {
+      await destroySession(
+        req
+      ).catch(
+        () => {}
+      );
+
+      clearAdminSessionCookie(
+        res
+      );
+
+      return res.redirect(
+        "/admin/login?error=" +
+          encodeURIComponent(
+            "Your administrator account is currently unavailable."
+          )
+      );
+    }
+
+    req.session.admin =
+      {
+        ...req.session.admin,
+
+        ...createAdminSessionData(
+          admin
+        ),
+      };
+
+    next();
+  } catch (
+    error
+  ) {
+    console.error(
+      "SERVER requireAdmin ERROR:",
+      error
     );
 
+    return res
+      .status(500)
+      .send(
+        "Unable to validate administrator access."
+      );
   }
-
-  next();
-
 }
+
+/* ============================================================
+   HEALTH
+============================================================ */
 
 app.get(
   "/health",
-  (req, res) => {
-
+  (
+    req,
+    res
+  ) => {
     const mongoReady =
       mongoose.connection.readyState ===
       1;
 
     const payload = {
-
       success:
         mongoReady,
 
@@ -2109,14 +2557,13 @@ app.get(
 
       timestamp:
         new Date().toISOString(),
-
     };
 
-    if (!IS_PRODUCTION) {
-
+    if (
+      !IS_PRODUCTION
+    ) {
       payload.environment =
         NODE_ENV;
-
     }
 
     return res
@@ -2128,26 +2575,25 @@ app.get(
       .json(
         payload
       );
-
   }
 );
 
 app.get(
   "/ready",
-  (req, res) => {
-
+  (
+    req,
+    res
+  ) => {
     const mongoReady =
       mongoose.connection.readyState ===
       1;
 
-    if (!mongoReady) {
-
+    if (
+      !mongoReady
+    ) {
       return res
-
         .status(503)
-
         .json({
-
           success:
             false,
 
@@ -2156,13 +2602,10 @@ app.get(
 
           database:
             "disconnected",
-
         });
-
     }
 
     return res.json({
-
       success:
         true,
 
@@ -2171,22 +2614,26 @@ app.get(
 
       database:
         "connected",
-
     });
-
   }
 );
 
+/* ============================================================
+   USER LOGIN
+============================================================ */
+
 app.get(
   "/login",
-  (req, res) => {
-
-    if (req.session?.user) {
-
+  (
+    req,
+    res
+  ) => {
+    if (
+      req.session?.user
+    ) {
       return res.redirect(
         "/profile"
       );
-
     }
 
     const query =
@@ -2197,50 +2644,46 @@ app.get(
       "login"
     );
 
-    if (req.query?.error) {
-
+    if (
+      req.query?.error
+    ) {
       query.set(
         "error",
         String(
           req.query.error
         )
       );
-
     }
 
-    if (req.query?.success) {
-
+    if (
+      req.query?.success
+    ) {
       query.set(
         "success",
         String(
           req.query.success
         )
       );
-
     }
 
     return res.redirect(
       `/?${query.toString()}`
     );
-
   }
 );
 
 app.post(
   "/login",
-  async (req, res) => {
-
+  async (
+    req,
+    res
+  ) => {
     try {
-
       const identifier =
         normalizeIdentifier(
-
           req.body?.email ||
-
-          req.body?.username ||
-
-          ""
-
+            req.body?.username ||
+            ""
         );
 
       const password =
@@ -2253,39 +2696,28 @@ app.post(
         !identifier ||
         !password
       ) {
-
         return redirectAuthError(
-
           res,
-
           "login",
-
           "Email/username and password are required."
-
         );
-
       }
 
       const user =
         await User.findByIdentifier(
           identifier
-        )
-        .select(
+        ).select(
           "+password +googleId"
         );
 
-      if (!user) {
-
+      if (
+        !user
+      ) {
         return redirectAuthError(
-
           res,
-
           "login",
-
           "Invalid username/email or password."
-
         );
-
       }
 
       if (
@@ -2294,16 +2726,12 @@ app.post(
         user.lockedUntil.getTime() <=
           Date.now()
       ) {
-
         if (
           typeof user.clearExpiredLock ===
           "function"
         ) {
-
           await user.clearExpiredLock();
-
         } else {
-
           user.lockedUntil =
             null;
 
@@ -2311,9 +2739,7 @@ app.post(
             0;
 
           await user.save();
-
         }
-
       }
 
       if (
@@ -2321,17 +2747,11 @@ app.post(
           "function" &&
         user.isCurrentlyLocked()
       ) {
-
         return redirectAuthError(
-
           res,
-
           "login",
-
           "Invalid username/email or password."
-
         );
-
       }
 
       if (
@@ -2339,17 +2759,11 @@ app.post(
         user.status !==
           "active"
       ) {
-
         return redirectAuthError(
-
           res,
-
           "login",
-
           "Invalid username/email or password."
-
         );
-
       }
 
       if (
@@ -2357,50 +2771,36 @@ app.post(
           "google" &&
         !user.password
       ) {
-
         return redirectAuthError(
-
           res,
-
           "login",
-
           "This account uses Google Sign-In. Please continue with Google."
-
         );
-
       }
 
       const passwordValid =
         typeof user.comparePassword ===
         "function"
-
           ? await user.comparePassword(
               password
             )
-
           : false;
 
-      if (!passwordValid) {
-
+      if (
+        !passwordValid
+      ) {
         if (
           typeof user.recordFailedLogin ===
           "function"
         ) {
-
           await user.recordFailedLogin();
-
         }
 
         return redirectAuthError(
-
           res,
-
           "login",
-
           "Invalid username/email or password."
-
         );
-
       }
 
       if (
@@ -2409,28 +2809,23 @@ app.post(
         user.emailVerified ===
           false
       ) {
-
         return redirectAuthError(
-
           res,
-
           "login",
-
           "Please verify your email address before signing in."
-
         );
-
       }
 
       if (
         typeof user.resetLoginSecurity ===
         "function"
       ) {
-
         await user.resetLoginSecurity();
-
       }
 
+      /*
+       * Session fixation protection.
+       */
       await regenerateSession(
         req
       );
@@ -2440,6 +2835,9 @@ app.post(
           user
         );
 
+      req.session.lastActivityAt =
+        Date.now();
+
       await saveSession(
         req
       );
@@ -2448,39 +2846,41 @@ app.post(
         303,
         "/profile"
       );
-
-    } catch (error) {
-
+    } catch (
+      error
+    ) {
       console.error(
-        "USER LOGIN ERROR:",
+        `USER LOGIN ERROR requestId=${
+          req.requestId
+        }:`,
         error
       );
 
       return redirectAuthError(
-
         res,
-
         "login",
-
         "Unable to process login. Please try again."
-
       );
-
     }
-
   }
 );
 
+/* ============================================================
+   USER SIGNUP
+============================================================ */
+
 app.get(
   "/signup",
-  (req, res) => {
-
-    if (req.session?.user) {
-
+  (
+    req,
+    res
+  ) => {
+    if (
+      req.session?.user
+    ) {
       return res.redirect(
         "/profile"
       );
-
     }
 
     const query =
@@ -2491,55 +2891,53 @@ app.get(
       "signup"
     );
 
-    if (req.query?.error) {
-
+    if (
+      req.query?.error
+    ) {
       query.set(
         "error",
         String(
           req.query.error
         )
       );
-
     }
 
-    if (req.query?.success) {
-
+    if (
+      req.query?.success
+    ) {
       query.set(
         "success",
         String(
           req.query.success
         )
       );
-
     }
 
     return res.redirect(
       `/?${query.toString()}`
     );
-
   }
 );
 
 app.post(
   "/signup/request-otp",
-  async (req, res) => {
-
+  async (
+    req,
+    res
+  ) => {
     try {
-
-      if (!EMAIL_OTP_ENABLED) {
-
+      if (
+        !EMAIL_OTP_ENABLED
+      ) {
         return res
           .status(503)
           .json({
-
             success:
               false,
 
             message:
               "Email verification is currently unavailable.",
-
           });
-
       }
 
       const validation =
@@ -2547,45 +2945,32 @@ app.post(
           req.body
         );
 
-      if (!validation.valid) {
-
+      if (
+        !validation.valid
+      ) {
         return res
           .status(400)
           .json({
-
             success:
               false,
 
             message:
               validation.message,
-
           });
-
       }
-
-      const {
-        fullname,
-        email,
-        username,
-        password,
-        confirmPassword,
-        phone,
-      } = validation.data;
 
       const rateLimit =
         checkOtpRequestRateLimit(
           req,
-          email
+          validation.data.email
         );
 
       if (
         !rateLimit.allowed
       ) {
-
         return res
           .status(429)
           .json({
-
             success:
               false,
 
@@ -2594,90 +2979,61 @@ app.post(
 
             retryAfter:
               rateLimit.retryAfter,
-
           });
-
       }
 
       const prepared =
-        await prepareSignupVerification({
-
-          fullname,
-
-          email,
-
-          username,
-
-          password,
-
-          confirmPassword,
-
-          phone,
-
-        });
+        await prepareSignupVerification(
+          validation.data
+        );
 
       const expiresIn =
         (
-          typeof prepared.user
-            .getEmailVerificationRemaining ===
-            "function"
-
+          typeof prepared.user.getEmailVerificationRemaining ===
+          "function"
             ? prepared.user.getEmailVerificationRemaining()
-
             : 600
-
         ) || 600;
 
       try {
-
         await sendVerificationEmail(
-
-          email,
-
+          validation.data.email,
           prepared.verificationCode,
-
           expiresIn
-
         );
-
-      } catch (mailError) {
-
+      } catch (
+        mailError
+      ) {
         console.error(
           "VERIFICATION EMAIL SEND ERROR:",
           mailError
         );
 
         try {
-
           prepared.user.clearEmailVerification();
 
           await prepared.user.save();
-
-        } catch (cleanupError) {
-
+        } catch (
+          cleanupError
+        ) {
           console.error(
             "OTP CLEANUP ERROR:",
             cleanupError
           );
-
         }
 
         return res
           .status(503)
           .json({
-
             success:
               false,
 
             message:
               "We could not send the verification email. Please check the email service configuration and try again.",
-
           });
-
       }
 
       return res.json({
-
         success:
           true,
 
@@ -2688,11 +3044,10 @@ app.post(
           60,
 
         expiresIn,
-
       });
-
-    } catch (error) {
-
+    } catch (
+      error
+    ) {
       console.error(
         "SIGNUP OTP REQUEST ERROR:",
         error
@@ -2703,45 +3058,38 @@ app.post(
           error
         )
       ) {
-
         return res
           .status(409)
           .json({
-
             success:
               false,
 
             message:
               "An account with that email or username already exists.",
-
           });
-
       }
 
       return res
         .status(400)
         .json({
-
           success:
             false,
 
           message:
             error.message ||
             "Unable to send a verification code.",
-
         });
-
     }
-
   }
 );
 
 app.post(
   "/signup/verify-otp",
-  async (req, res) => {
-
+  async (
+    req,
+    res
+  ) => {
     try {
-
       const email =
         normalizeEmail(
           req.body?.email ||
@@ -2759,19 +3107,15 @@ app.post(
           email
         )
       ) {
-
         return res
           .status(400)
           .json({
-
             success:
               false,
 
             message:
               "Please provide a valid email address.",
-
           });
-
       }
 
       if (
@@ -2779,56 +3123,46 @@ app.post(
           otp
         )
       ) {
-
         return res
           .status(400)
           .json({
-
             success:
               false,
 
             message:
               "Please enter the 6-digit verification code.",
-
           });
-
       }
 
       const user =
         await User.findByEmail(
           email
         ).select(
-
           "+emailVerificationCodeHash " +
-          "+emailVerificationCodeExpiresAt " +
-          "+emailVerificationAttempts " +
-          "+emailVerificationResendAt"
-
+            "+emailVerificationCodeExpiresAt " +
+            "+emailVerificationAttempts " +
+            "+emailVerificationResendAt"
         );
 
-      if (!user) {
-
+      if (
+        !user
+      ) {
         return res
           .status(400)
           .json({
-
             success:
               false,
 
             message:
               "The verification code is invalid or expired.",
-
           });
-
       }
 
       if (
         user.emailVerified ===
         true
       ) {
-
         return res.json({
-
           success:
             true,
 
@@ -2837,20 +3171,16 @@ app.post(
 
           redirect:
             "/profile",
-
         });
-
       }
 
       if (
         typeof user.verifyEmailVerificationCode !==
         "function"
       ) {
-
         throw new Error(
           "User email verification service is unavailable."
         );
-
       }
 
       const result =
@@ -2858,8 +3188,9 @@ app.post(
           otp
         );
 
-      if (!result.success) {
-
+      if (
+        !result.success
+      ) {
         await user.save();
 
         let message =
@@ -2869,31 +3200,24 @@ app.post(
           result.reason ===
           "expired"
         ) {
-
           message =
             "The verification code has expired. Please request a new code.";
-
         } else if (
           result.reason ===
           "attempts"
         ) {
-
           message =
             "Too many verification attempts. Please request a new code.";
-
         }
 
         return res
           .status(400)
           .json({
-
             success:
               false,
 
             message,
-
           });
-
       }
 
       await user.save();
@@ -2907,12 +3231,14 @@ app.post(
           user
         );
 
+      req.session.lastActivityAt =
+        Date.now();
+
       await saveSession(
         req
       );
 
       return res.json({
-
         success:
           true,
 
@@ -2921,11 +3247,10 @@ app.post(
 
         redirect:
           "/profile",
-
       });
-
-    } catch (error) {
-
+    } catch (
+      error
+    ) {
       console.error(
         "SIGNUP OTP VERIFY ERROR:",
         error
@@ -2934,40 +3259,35 @@ app.post(
       return res
         .status(500)
         .json({
-
           success:
             false,
 
           message:
             "Unable to verify your email right now. Please try again.",
-
         });
-
     }
-
   }
 );
 
 app.post(
   "/signup/resend-otp",
-  async (req, res) => {
-
+  async (
+    req,
+    res
+  ) => {
     try {
-
-      if (!EMAIL_OTP_ENABLED) {
-
+      if (
+        !EMAIL_OTP_ENABLED
+      ) {
         return res
           .status(503)
           .json({
-
             success:
               false,
 
             message:
               "Email verification is currently unavailable.",
-
           });
-
       }
 
       const email =
@@ -2981,19 +3301,15 @@ app.post(
           email
         )
       ) {
-
         return res
           .status(400)
           .json({
-
             success:
               false,
 
             message:
               "Please provide a valid email address.",
-
           });
-
       }
 
       const rateLimit =
@@ -3005,11 +3321,9 @@ app.post(
       if (
         !rateLimit.allowed
       ) {
-
         return res
           .status(429)
           .json({
-
             success:
               false,
 
@@ -3018,31 +3332,28 @@ app.post(
 
             retryAfter:
               rateLimit.retryAfter,
-
           });
-
       }
 
       const user =
         await User.findByEmail(
           email
         ).select(
-
           "+emailVerificationCodeHash " +
-          "+emailVerificationCodeExpiresAt " +
-          "+emailVerificationAttempts " +
-          "+emailVerificationResendAt"
-
+            "+emailVerificationCodeExpiresAt " +
+            "+emailVerificationAttempts " +
+            "+emailVerificationResendAt"
         );
 
+      /*
+       * Deliberately avoid account enumeration here.
+       */
       if (
         !user ||
         user.emailVerified ===
           true
       ) {
-
         return res.json({
-
           success:
             true,
 
@@ -3051,33 +3362,27 @@ app.post(
 
           resendAfter:
             60,
-
         });
-
       }
 
       let verificationCode;
 
       try {
-
         verificationCode =
           await user.createEmailVerificationCode();
-
-      } catch (cooldownError) {
-
+      } catch (
+        cooldownError
+      ) {
         return res
           .status(429)
           .json({
-
             success:
               false,
 
             message:
               cooldownError.message ||
               "Please wait before requesting another code.",
-
           });
-
       }
 
       await user.save();
@@ -3086,27 +3391,19 @@ app.post(
         (
           typeof user.getEmailVerificationRemaining ===
           "function"
-
             ? user.getEmailVerificationRemaining()
-
             : 600
-
         ) || 600;
 
       try {
-
         await sendVerificationEmail(
-
           email,
-
           verificationCode,
-
           expiresIn
-
         );
-
-      } catch (mailError) {
-
+      } catch (
+        mailError
+      ) {
         console.error(
           "RESEND VERIFICATION EMAIL ERROR:",
           mailError
@@ -3119,19 +3416,15 @@ app.post(
         return res
           .status(503)
           .json({
-
             success:
               false,
 
             message:
               "We could not send the verification email right now.",
-
           });
-
       }
 
       return res.json({
-
         success:
           true,
 
@@ -3142,11 +3435,10 @@ app.post(
           60,
 
         expiresIn,
-
       });
-
-    } catch (error) {
-
+    } catch (
+      error
+    ) {
       console.error(
         "RESEND OTP ERROR:",
         error
@@ -3155,43 +3447,36 @@ app.post(
       return res
         .status(500)
         .json({
-
           success:
             false,
 
           message:
             "Unable to resend the verification code.",
-
         });
-
     }
-
   }
 );
 
 app.post(
   "/signup",
-  async (req, res) => {
-
+  async (
+    req,
+    res
+  ) => {
     try {
-
       const validation =
         validateSignupInput(
           req.body
         );
 
-      if (!validation.valid) {
-
+      if (
+        !validation.valid
+      ) {
         return redirectAuthError(
-
           res,
-
           "signup",
-
           validation.message
-
         );
-
       }
 
       const prepared =
@@ -3201,30 +3486,21 @@ app.post(
 
       const expiresIn =
         (
-          typeof prepared.user
-            .getEmailVerificationRemaining ===
-            "function"
-
+          typeof prepared.user.getEmailVerificationRemaining ===
+          "function"
             ? prepared.user.getEmailVerificationRemaining()
-
             : 600
-
         ) || 600;
 
       try {
-
         await sendVerificationEmail(
-
           validation.data.email,
-
           prepared.verificationCode,
-
           expiresIn
-
         );
-
-      } catch (mailError) {
-
+      } catch (
+        mailError
+      ) {
         console.error(
           "LEGACY SIGNUP EMAIL ERROR:",
           mailError
@@ -3235,29 +3511,20 @@ app.post(
         await prepared.user.save();
 
         return redirectAuthError(
-
           res,
-
           "signup",
-
           "Unable to send your verification email right now."
-
         );
-
       }
 
       return redirectAuthSuccess(
-
         res,
-
         "signup",
-
         "Verification code sent. Please complete email verification."
-
       );
-
-    } catch (error) {
-
+    } catch (
+      error
+    ) {
       console.error(
         "USER SIGNUP ERROR:",
         error
@@ -3268,53 +3535,38 @@ app.post(
           error
         )
       ) {
-
         return redirectAuthError(
-
           res,
-
           "signup",
-
           "An account with that email or username already exists."
-
         );
-
       }
 
       return redirectAuthError(
-
         res,
-
         "signup",
-
         error.message ||
-        "Unable to create your account."
-
+          "Unable to create your account."
       );
-
     }
-
   }
 );
 
+/* ============================================================
+   GOOGLE OAUTH
+============================================================ */
+
 function isGoogleOAuthConfigured() {
-
   return Boolean(
-
     GOOGLE_CLIENT_ID &&
-
-    GOOGLE_CLIENT_SECRET &&
-
-    GOOGLE_CALLBACK_URL
-
+      GOOGLE_CLIENT_SECRET &&
+      GOOGLE_CALLBACK_URL
   );
-
 }
 
 function sanitizeReturnTo(
   value
 ) {
-
   const fallback =
     "/";
 
@@ -3325,29 +3577,27 @@ function sanitizeReturnTo(
     ).trim();
 
   if (!input) {
-
     return fallback;
-
   }
 
   if (
-    !input.startsWith("/") ||
-    input.startsWith("//")
+    !input.startsWith(
+      "/"
+    ) ||
+    input.startsWith(
+      "//"
+    )
   ) {
-
     return fallback;
-
   }
 
   return input;
-
 }
 
 function safeCompareStrings(
   left,
   right
 ) {
-
   const a =
     Buffer.from(
       String(
@@ -3368,38 +3618,31 @@ function safeCompareStrings(
     a.length !==
     b.length
   ) {
-
     return false;
-
   }
 
   return crypto.timingSafeEqual(
     a,
     b
   );
-
 }
 
 app.get(
   "/auth/google",
-  async (req, res) => {
-
+  async (
+    req,
+    res
+  ) => {
     try {
-
       if (
         !isGoogleOAuthConfigured()
       ) {
-
         return res.redirect(
-
           "/?auth=login&error=" +
-
-          encodeURIComponent(
-            "Google Sign-In is not configured yet."
-          )
-
+            encodeURIComponent(
+              "Google Sign-In is not configured yet."
+            )
         );
-
       }
 
       const state =
@@ -3419,6 +3662,9 @@ app.get(
       req.session.googleOAuthState =
         state;
 
+      req.session.googleOAuthStateCreatedAt =
+        Date.now();
+
       req.session.googleOAuthReturnTo =
         returnTo;
 
@@ -3428,7 +3674,6 @@ app.get(
 
       const params =
         new URLSearchParams({
-
           client_id:
             GOOGLE_CLIENT_ID,
 
@@ -3448,59 +3693,46 @@ app.get(
 
           prompt:
             "select_account",
-
         });
 
       return res.redirect(
-
         302,
-
         `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
-
       );
-
-    } catch (error) {
-
+    } catch (
+      error
+    ) {
       console.error(
         "GOOGLE AUTH START ERROR:",
         error
       );
 
       return res.redirect(
-
         "/?auth=login&error=" +
-
-        encodeURIComponent(
-          "Unable to start Google Sign-In."
-        )
-
+          encodeURIComponent(
+            "Unable to start Google Sign-In."
+          )
       );
-
     }
-
   }
 );
 
 app.get(
   "/auth/google/callback",
-  async (req, res) => {
-
+  async (
+    req,
+    res
+  ) => {
     try {
-
       if (
         !isGoogleOAuthConfigured()
       ) {
-
         return res.redirect(
-
           "/?auth=login&error=" +
-
-          encodeURIComponent(
-            "Google Sign-In is not configured."
-          )
-
+            encodeURIComponent(
+              "Google Sign-In is not configured."
+            )
         );
-
       }
 
       const state =
@@ -3517,18 +3749,32 @@ app.get(
 
       const storedState =
         String(
-          req.session?.googleOAuthState ||
+          req.session
+            ?.googleOAuthState ||
             ""
+        );
+
+      const createdAt =
+        Number(
+          req.session
+            ?.googleOAuthStateCreatedAt ||
+            0
         );
 
       const returnTo =
         sanitizeReturnTo(
-          req.session?.googleOAuthReturnTo
+          req.session
+            ?.googleOAuthReturnTo
         );
 
-      delete req.session.googleOAuthState;
+      delete req.session
+        .googleOAuthState;
 
-      delete req.session.googleOAuthReturnTo;
+      delete req.session
+        .googleOAuthStateCreatedAt;
+
+      delete req.session
+        .googleOAuthReturnTo;
 
       if (
         !state ||
@@ -3536,55 +3782,47 @@ app.get(
         !safeCompareStrings(
           state,
           storedState
+        ) ||
+        (
+          createdAt &&
+          Date.now() -
+            createdAt >
+            GOOGLE_OAUTH_STATE_MAX_AGE_MS
         )
       ) {
-
         return res.redirect(
-
           "/?auth=login&error=" +
-
-          encodeURIComponent(
-            "Google authentication could not be verified."
-          )
-
+            encodeURIComponent(
+              "Google authentication could not be verified."
+            )
         );
-
       }
 
-      if (!code) {
-
+      if (
+        !code
+      ) {
         return res.redirect(
-
           "/?auth=login&error=" +
-
-          encodeURIComponent(
-            "Google authentication was cancelled or did not return a code."
-          )
-
+            encodeURIComponent(
+              "Google authentication was cancelled or did not return a code."
+            )
         );
-
       }
 
       const tokenResponse =
         await fetch(
-
           "https://oauth2.googleapis.com/token",
-
           {
-
             method:
               "POST",
 
             headers: {
-
               "Content-Type":
                 "application/x-www-form-urlencoded",
-
             },
 
             body:
               new URLSearchParams({
-
                 code,
 
                 client_id:
@@ -3598,40 +3836,29 @@ app.get(
 
                 grant_type:
                   "authorization_code",
-
               }),
 
             signal:
               AbortSignal.timeout(
                 10000
               ),
-
           }
-
         );
 
       if (
         !tokenResponse.ok
       ) {
-
-        const tokenText =
-          await tokenResponse.text();
-
         console.error(
           "GOOGLE TOKEN ERROR:",
-          tokenText
+          await tokenResponse.text()
         );
 
         return res.redirect(
-
           "/?auth=login&error=" +
-
-          encodeURIComponent(
-            "Google authentication could not be completed."
-          )
-
+            encodeURIComponent(
+              "Google authentication could not be completed."
+            )
         );
-
       }
 
       const tokenData =
@@ -3643,71 +3870,53 @@ app.get(
             ""
         );
 
-      if (!accessToken) {
-
+      if (
+        !accessToken
+      ) {
         return res.redirect(
-
           "/?auth=login&error=" +
-
-          encodeURIComponent(
-            "Google did not provide a valid authentication token."
-          )
-
+            encodeURIComponent(
+              "Google did not provide a valid authentication token."
+            )
         );
-
       }
 
       const profileResponse =
         await fetch(
-
           "https://www.googleapis.com/oauth2/v3/userinfo",
-
           {
-
             method:
               "GET",
 
             headers: {
-
               Authorization:
                 `Bearer ${accessToken}`,
 
               Accept:
                 "application/json",
-
             },
 
             signal:
               AbortSignal.timeout(
                 10000
               ),
-
           }
-
         );
 
       if (
         !profileResponse.ok
       ) {
-
-        const profileText =
-          await profileResponse.text();
-
         console.error(
           "GOOGLE PROFILE ERROR:",
-          profileText
+          await profileResponse.text()
         );
 
         return res.redirect(
-
           "/?auth=login&error=" +
-
-          encodeURIComponent(
-            "Unable to retrieve your Google account information."
-          )
-
+            encodeURIComponent(
+              "Unable to retrieve your Google account information."
+            )
         );
-
       }
 
       const googleProfile =
@@ -3731,13 +3940,9 @@ app.get(
 
       const fullname =
         normalizeString(
-
           googleProfile?.name ||
-
-          googleProfile?.given_name ||
-
-          "Google Guest"
-
+            googleProfile?.given_name ||
+            "Google Guest"
         );
 
       const avatarUrl =
@@ -3748,20 +3953,17 @@ app.get(
 
       if (
         !googleId ||
-        !isValidEmail(email) ||
+        !isValidEmail(
+          email
+        ) ||
         !googleEmailVerified
       ) {
-
         return res.redirect(
-
           "/?auth=login&error=" +
-
-          encodeURIComponent(
-            "Google could not verify this email address."
-          )
-
+            encodeURIComponent(
+              "Google could not verify this email address."
+            )
         );
-
       }
 
       let user =
@@ -3769,20 +3971,20 @@ app.get(
           googleId
         );
 
-      if (!user) {
-
+      if (
+        !user
+      ) {
         user =
           await User.findByEmail(
             email
           );
-
       }
 
-      if (!user) {
-
+      if (
+        !user
+      ) {
         user =
           new User({
-
             fullname,
 
             email,
@@ -3804,13 +4006,10 @@ app.get(
 
             status:
               "active",
-
           });
 
         await user.save();
-
       } else {
-
         user.googleId =
           googleId;
 
@@ -3825,24 +4024,19 @@ app.get(
         if (
           !user.emailVerifiedAt
         ) {
-
           user.emailVerifiedAt =
             new Date();
-
         }
 
         if (
           user.authProvider !==
-            "google"
+          "google"
         ) {
-
           user.authProvider =
             "hybrid";
-
         }
 
         await user.save();
-
       }
 
       if (
@@ -3850,17 +4044,12 @@ app.get(
         user.status !==
           "active"
       ) {
-
         return res.redirect(
-
           "/?auth=login&error=" +
-
-          encodeURIComponent(
-            "Your account is currently unavailable."
-          )
-
+            encodeURIComponent(
+              "Your account is currently unavailable."
+            )
         );
-
       }
 
       await regenerateSession(
@@ -3872,6 +4061,9 @@ app.get(
           user
         );
 
+      req.session.lastActivityAt =
+        Date.now();
+
       await saveSession(
         req
       );
@@ -3879,37 +4071,37 @@ app.get(
       return res.redirect(
         303,
         returnTo ||
-        "/profile"
+          "/profile"
       );
-
-    } catch (error) {
-
+    } catch (
+      error
+    ) {
       console.error(
         "GOOGLE CALLBACK ERROR:",
         error
       );
 
       return res.redirect(
-
         "/?auth=login&error=" +
-
-        encodeURIComponent(
-          "Google Sign-In could not be completed. Please try again."
-        )
-
+          encodeURIComponent(
+            "Google Sign-In could not be completed. Please try again."
+          )
       );
-
     }
-
   }
 );
+
+/* ============================================================
+   USER LOGOUT
+============================================================ */
 
 app.post(
   "/logout",
-  async (req, res) => {
-
+  async (
+    req,
+    res
+  ) => {
     try {
-
       await destroySession(
         req
       );
@@ -3919,21 +4111,17 @@ app.post(
       );
 
       return res.redirect(
-
         303,
-
         "/?auth=login&success=" +
-
-        encodeURIComponent(
-          "You have been logged out."
-        )
-
+          encodeURIComponent(
+            "You have been logged out."
+          )
       );
-
-    } catch (error) {
-
+    } catch (
+      error
+    ) {
       console.error(
-        "USER LOGOUT ERROR:",
+        `USER LOGOUT ERROR requestId=${req.requestId}:`,
         error
       );
 
@@ -3945,18 +4133,20 @@ app.post(
         303,
         "/"
       );
-
     }
-
   }
 );
 
+/*
+ * Legacy GET compatibility.
+ */
 app.get(
   "/logout",
-  async (req, res) => {
-
+  async (
+    req,
+    res
+  ) => {
     try {
-
       await destroySession(
         req
       );
@@ -3966,21 +4156,17 @@ app.get(
       );
 
       return res.redirect(
-
         303,
-
         "/?auth=login&success=" +
-
-        encodeURIComponent(
-          "You have been logged out."
-        )
-
+          encodeURIComponent(
+            "You have been logged out."
+          )
       );
-
-    } catch (error) {
-
+    } catch (
+      error
+    ) {
       console.error(
-        "USER GET LOGOUT ERROR:",
+        `USER GET LOGOUT ERROR requestId=${req.requestId}:`,
         error
       );
 
@@ -3992,39 +4178,43 @@ app.get(
         303,
         "/"
       );
-
     }
-
   }
 );
+
+/* ============================================================
+   ADMIN LOGIN COMPATIBILITY
+============================================================ */
 
 app.get(
   "/adminlogin",
-  (req, res) => {
-
+  (
+    req,
+    res
+  ) => {
     const query =
       new URLSearchParams();
 
-    if (req.query?.error) {
-
+    if (
+      req.query?.error
+    ) {
       query.set(
         "error",
         String(
           req.query.error
         )
       );
-
     }
 
-    if (req.query?.success) {
-
+    if (
+      req.query?.success
+    ) {
       query.set(
         "success",
         String(
           req.query.success
         )
       );
-
     }
 
     const suffix =
@@ -4035,135 +4225,144 @@ app.get(
     return res.redirect(
       `/admin/login${suffix}`
     );
-
   }
 );
 
-app.use(
-  (req, res, next) => {
+/* ============================================================
+   LEGACY BOOKING ROUTE CANONICALIZATION
+============================================================ */
 
+app.use(
+  (
+    req,
+    res,
+    next
+  ) => {
     if (
+      !isAdminPath(req) &&
       req.method ===
         "POST" &&
       req.path ===
         "/booking/submit"
     ) {
-
+      /*
+       * Canonical customer booking endpoint.
+       *
+       * CSRF sees /appointment/submit as the request URL after
+       * this middleware because this middleware is mounted before
+       * the global mutation guard below.
+       */
       req.url =
         "/appointment/submit";
-
-      return next();
-
     }
 
     next();
-
   }
 );
+
+/* ============================================================
+   CUSTOMER ROUTES
+============================================================ */
 
 app.use(
   "/",
   userRoutes
 );
 
+/* ============================================================
+   HOME
+============================================================ */
+
 app.get(
   "/",
-  (req, res) => {
-
+  (
+    req,
+    res
+  ) => {
     return res.render(
-
       "index",
-
       {
-
         title:
           "Puffer Isle Resort",
-
       }
-
     );
-
   }
 );
 
-// ✅ GALLERY CHANGE: Removed the old SiteSettings-based /gallery route.
-// /gallery is now handled by routes/userRoutes.js using models/Gallery.js.
+/* ============================================================
+   RESORT RULES
+============================================================ */
 
 app.get(
   "/rules",
-  (req, res) => {
-
+  (
+    req,
+    res
+  ) => {
     return res.render(
-
       "rules",
-
       {
-
         title:
           "Resort Rules | Puffer Isle Resort",
-
       }
-
     );
-
   }
 );
+
+/* ============================================================
+   404 HELPERS
+============================================================ */
 
 function isApiRequest(
   req
 ) {
-
   return (
-
     req.path.startsWith(
       "/api/"
     ) ||
-
     req.path.startsWith(
       "/admin/api/"
     ) ||
-
     req.path ===
       "/health" ||
-
     req.path ===
       "/ready"
-
   );
-
 }
 
-app.use(
-  (req, res) => {
+/* ============================================================
+   404 HANDLER
+============================================================ */
 
+app.use(
+  (
+    req,
+    res
+  ) => {
     if (
       isApiRequest(
         req
       )
     ) {
-
       return res
         .status(404)
         .json({
-
           success:
             false,
 
           message:
             "Resource not found.",
 
+          requestId:
+            req.requestId,
         });
-
     }
 
     return res
       .status(404)
       .render(
-
         "error",
-
         {
-
           title:
             "Page Not Found | Puffer Isle Resort",
 
@@ -4172,13 +4371,14 @@ app.use(
 
           error:
             "The page you requested could not be found.",
-
         }
-
       );
-
   }
 );
+
+/* ============================================================
+   ERROR HANDLER
+============================================================ */
 
 app.use(
   (
@@ -4187,20 +4387,20 @@ app.use(
     res,
     next
   ) => {
-
     console.error(
-      "UNHANDLED APPLICATION ERROR:",
+      `UNHANDLED APPLICATION ERROR requestId=${
+        req.requestId ||
+        "none"
+      }:`,
       error
     );
 
     if (
       res.headersSent
     ) {
-
       return next(
         error
       );
-
     }
 
     if (
@@ -4208,29 +4408,25 @@ app.use(
         req
       )
     ) {
-
       return res
         .status(500)
         .json({
-
           success:
             false,
 
           message:
             "Internal server error.",
 
+          requestId:
+            req.requestId,
         });
-
     }
 
     return res
       .status(500)
       .render(
-
         "error",
-
         {
-
           title:
             "Server Error | Puffer Isle Resort",
 
@@ -4238,33 +4434,27 @@ app.use(
             500,
 
           error:
-
             IS_PRODUCTION
-
               ? "Something went wrong while processing your request."
-
               : error.message ||
                 "Something went wrong.",
-
         }
-
       );
-
   }
 );
 
-async function connectDatabase() {
+/* ============================================================
+   DATABASE
+============================================================ */
 
+async function connectDatabase() {
   console.log(
     "🔌 Connecting to MongoDB..."
   );
 
   await mongoose.connect(
-
     EFFECTIVE_MONGO_URI,
-
     {
-
       serverSelectionTimeoutMS:
         10000,
 
@@ -4286,66 +4476,58 @@ async function connectDatabase() {
 
       autoIndex:
         !IS_PRODUCTION,
-
     }
-
   );
 
   console.log(
-
     `✅ MongoDB connected: ${mongoose.connection.name}`
-
   );
-
 }
 
 mongoose.connection.on(
   "connected",
   () => {
-
     console.log(
       "🟢 Mongoose connection established."
     );
-
   }
 );
 
 mongoose.connection.on(
   "error",
-  (error) => {
-
+  (
+    error
+  ) => {
     console.error(
       "🔴 MongoDB connection error:",
       error
     );
-
   }
 );
 
 mongoose.connection.on(
   "disconnected",
   () => {
-
     console.warn(
       "🟡 MongoDB disconnected."
     );
-
   }
 );
 
-async function ensureDefaultAdmin() {
+/* ============================================================
+   DEFAULT ADMIN
+============================================================ */
 
+async function ensureDefaultAdmin() {
   if (
     !ADMIN_USERNAME ||
     !ADMIN_PASSWORD
   ) {
-
     console.warn(
       "⚠️ ADMIN_USERNAME / ADMIN_PASSWORD not configured. Default admin creation skipped."
     );
 
     return;
-
   }
 
   const normalizedUsername =
@@ -4354,41 +4536,33 @@ async function ensureDefaultAdmin() {
       .toLowerCase();
 
   try {
-
     let admin =
       await Admin.findOne({
-
         username:
           normalizedUsername,
-
       }).select(
         "+password"
       );
 
-    if (!admin) {
-
+    if (
+      !admin
+    ) {
       admin =
         new Admin({
-
           username:
             normalizedUsername,
-
         });
 
       if (
         typeof admin.setPassword ===
         "function"
       ) {
-
         await admin.setPassword(
           ADMIN_PASSWORD
         );
-
       } else {
-
         admin.password =
           ADMIN_PASSWORD;
-
       }
 
       await admin.save();
@@ -4398,38 +4572,39 @@ async function ensureDefaultAdmin() {
       );
 
       return;
-
     }
 
     console.log(
       `ℹ️ Admin account already exists: ${normalizedUsername}`
     );
-
-  } catch (error) {
-
+  } catch (
+    error
+  ) {
     console.error(
       "❌ Unable to ensure default admin:",
       error
     );
 
-    if (IS_PRODUCTION) {
-
+    if (
+      IS_PRODUCTION
+    ) {
       throw error;
-
     }
-
   }
-
 }
+
+/* ============================================================
+   SERVER STARTUP
+============================================================ */
 
 let httpServer =
   null;
 
 async function startServer() {
-
   try {
-
-    console.log("");
+    console.log(
+      ""
+    );
 
     console.log(
       "=============================================="
@@ -4473,20 +4648,26 @@ async function startServer() {
       }`
     );
 
+    console.log(
+      `🛡️ User idle timeout: ${USER_IDLE_TIMEOUT_MINUTES} minutes`
+    );
+
+    console.log(
+      `🛡️ Admin idle timeout: ${ADMIN_IDLE_TIMEOUT_MINUTES} minutes`
+    );
+
     await connectDatabase();
 
     await ensureDefaultAdmin();
 
     httpServer =
       app.listen(
-
         PORT,
-
         HOST,
-
         () => {
-
-          console.log("");
+          console.log(
+            ""
+          );
 
           console.log(
             "✅ SERVER STARTED"
@@ -4500,17 +4681,13 @@ async function startServer() {
             HOST ===
             "127.0.0.1"
           ) {
-
             console.log(
               `🌐 Local: http://localhost:${PORT}`
             );
-
           } else {
-
             console.log(
               `🌐 Listening on ${HOST}:${PORT}`
             );
-
           }
 
           console.log(
@@ -4545,15 +4722,17 @@ async function startServer() {
             "=============================================="
           );
 
-          console.log("");
-
+          console.log(
+            ""
+          );
         }
-
       );
-
-  } catch (error) {
-
-    console.error("");
+  } catch (
+    error
+  ) {
+    console.error(
+      ""
+    );
 
     console.error(
       "❌ SERVER STARTUP FAILED"
@@ -4582,11 +4761,9 @@ async function startServer() {
         "ECONNREFUSED"
       )
     ) {
-
       console.error(
         "💡 Make sure MongoDB is running."
       );
-
     }
 
     if (
@@ -4596,18 +4773,20 @@ async function startServer() {
           "authentication failed"
         )
     ) {
-
       console.error(
         "💡 Check your MongoDB credentials."
       );
-
     }
 
-    process.exit(1);
-
+    process.exit(
+      1
+    );
   }
-
 }
+
+/* ============================================================
+   GRACEFUL SHUTDOWN
+============================================================ */
 
 let shuttingDown =
   false;
@@ -4615,46 +4794,44 @@ let shuttingDown =
 async function gracefulShutdown(
   signal
 ) {
-
-  if (shuttingDown) {
-
+  if (
+    shuttingDown
+  ) {
     return;
-
   }
 
   shuttingDown =
     true;
 
-  console.log("");
+  console.log(
+    ""
+  );
 
   console.log(
     `🛑 ${signal} received. Starting graceful shutdown...`
   );
 
-  if (httpServer) {
-
+  if (
+    httpServer
+  ) {
     await new Promise(
-      (resolve) => {
-
+      (
+        resolve
+      ) => {
         httpServer.close(
           () => {
-
             console.log(
               "🌐 HTTP server closed."
             );
 
             resolve();
-
           }
         );
-
       }
     );
-
   }
 
   try {
-
     await mongoose.connection.close(
       false
     );
@@ -4662,62 +4839,57 @@ async function gracefulShutdown(
     console.log(
       "🗄️ MongoDB connection closed."
     );
-
-  } catch (error) {
-
+  } catch (
+    error
+  ) {
     console.error(
       "Error closing MongoDB:",
       error
     );
-
   }
 
   console.log(
     "✅ Shutdown complete."
   );
 
-  process.exit(0);
-
+  process.exit(
+    0
+  );
 }
 
 process.on(
   "SIGINT",
-  () => {
-
+  () =>
     gracefulShutdown(
       "SIGINT"
-    );
-
-  }
+    )
 );
 
 process.on(
   "SIGTERM",
-  () => {
-
+  () =>
     gracefulShutdown(
       "SIGTERM"
-    );
-
-  }
+    )
 );
 
 process.on(
   "unhandledRejection",
-  (reason) => {
-
+  (
+    reason
+  ) => {
     console.error(
       "UNHANDLED PROMISE REJECTION:",
       reason
     );
-
   }
 );
 
 process.on(
   "uncaughtException",
-  (error) => {
-
+  (
+    error
+  ) => {
     console.error(
       "UNCAUGHT EXCEPTION:",
       error
@@ -4726,14 +4898,19 @@ process.on(
     gracefulShutdown(
       "UNCAUGHT_EXCEPTION"
     ).catch(
-      () => process.exit(1)
+      () =>
+        process.exit(
+          1
+        )
     );
-
   }
 );
 
-module.exports = {
+/* ============================================================
+   EXPORTS
+============================================================ */
 
+module.exports = {
   app,
 
   startServer,
@@ -4753,14 +4930,11 @@ module.exports = {
   destroySession,
 
   getSessionUserId,
-
 };
 
 if (
   require.main ===
   module
 ) {
-
   startServer();
-
 }

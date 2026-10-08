@@ -1,7 +1,9 @@
 "use strict";
 
 /**
- * Puffer Isle Resort | IsleRMS | Customer Routes
+ * ============================================================
+ * PUFFER ISLE RESORT | IsleRMS | Customer Routes
+ *
  * Mounted by server.js at "/".
  *
  * Responsibilities:
@@ -16,6 +18,19 @@
  * - Customer resources are always scoped by userId.
  * - Client totalPrice is never trusted.
  * - Appointment adminNotes are never exposed to customers.
+ * - Booking inventory is checked server-side.
+ * - Booking creation uses the shared MongoDB-backed room lock.
+ * - Cancellation is serialized with booking/status operations.
+ *
+ * IMPORTANT:
+ * Availability logic lives in:
+ *
+ *   services/bookingAvailability.js
+ *
+ * Do not recreate another room-conflict algorithm here.
+ * Customer booking and admin booking operations should use
+ * the same shared availability service.
+ * ============================================================
  */
 
 const express = require("express");
@@ -29,18 +44,38 @@ const Notification = require("../models/Notification");
 const Room = require("../models/Room");
 const AddOn = require("../models/AddOn");
 
-// ✅ GALLERY CHANGE: Added the dedicated Gallery model.
+// Dedicated 360° gallery.
 const Gallery = require("../models/Gallery");
+
+// Shared booking/inventory engine.
+// IMPORTANT: This is the single source of truth for availability.
+const {
+  withRoomLock,
+  findAvailabilityConflict,
+} = require("../services/bookingAvailability");
+
+/* ============================================================
+   CONSTANTS
+============================================================ */
 
 const BLOCKING_STATUSES =
   typeof Appointment.getBlockingStatuses === "function"
     ? Appointment.getBlockingStatuses()
-    : ["pending", "accepted", "confirmed", "checked-in"];
+    : [
+        "pending",
+        "accepted",
+        "confirmed",
+        "checked-in",
+      ];
 
 const CANCELLABLE_STATUSES =
   typeof Appointment.getCancellableStatuses === "function"
     ? Appointment.getCancellableStatuses()
-    : ["pending", "accepted", "confirmed"];
+    : [
+        "pending",
+        "accepted",
+        "confirmed",
+      ];
 
 const ALL_BOOKING_STATUSES =
   typeof Appointment.getAllStatuses === "function"
@@ -60,9 +95,39 @@ const ALL_BOOKING_STATUSES =
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 20;
 const MAX_LIMIT = 100;
+
 const MAX_BOOKING_NIGHTS = 365;
 const MAX_SPECIAL_REQUESTS = 1000;
 const MAX_CONTACT_LENGTH = 40;
+
+/*
+ * Prevent accidental duplicate reservations caused by:
+ *
+ * - double clicking submit
+ * - browser retries
+ * - impatient refreshes
+ * - duplicate fetch requests
+ *
+ * This does NOT replace real availability protection.
+ * It is an additional idempotency safety layer.
+ */
+const DUPLICATE_BOOKING_WINDOW_MS =
+  2 * 60 * 1000;
+
+/*
+ * A room lock should normally be held for milliseconds,
+ * not minutes.
+ *
+ * The service has its own defaults. These values simply give
+ * the booking workflow explicit operational expectations.
+ */
+const BOOKING_LOCK_OPTIONS = {
+  leaseMs:
+    5 * 60 * 1000,
+
+  waitMs:
+    15 * 1000,
+};
 
 /* ============================================================
    GENERIC HELPERS
@@ -72,28 +137,52 @@ function isValidObjectId(value) {
   return mongoose.Types.ObjectId.isValid(value);
 }
 
-function clean(value, max = 500) {
+function clean(
+  value,
+  max = 500
+) {
   return String(value ?? "")
     .trim()
     .replace(/\s+/g, " ")
     .slice(0, max);
 }
 
-function number(value, fallback = 0) {
+function number(
+  value,
+  fallback = 0
+) {
   const parsed = Number(value);
-  return Number.isFinite(parsed) ? parsed : fallback;
+
+  return Number.isFinite(parsed)
+    ? parsed
+    : fallback;
 }
 
-function integer(value, fallback = 0) {
-  return Math.floor(number(value, fallback));
+function integer(
+  value,
+  fallback = 0
+) {
+  return Math.floor(
+    number(
+      value,
+      fallback
+    )
+  );
 }
 
 function boolean(value) {
-  if (typeof value === "boolean") {
+  if (
+    typeof value === "boolean"
+  ) {
     return value;
   }
 
-  return ["true", "1", "yes", "on"].includes(
+  return [
+    "true",
+    "1",
+    "yes",
+    "on",
+  ].includes(
     String(value ?? "")
       .trim()
       .toLowerCase()
@@ -103,7 +192,10 @@ function boolean(value) {
 function page(value) {
   return Math.max(
     1,
-    integer(value, DEFAULT_PAGE)
+    integer(
+      value,
+      DEFAULT_PAGE
+    )
   );
 }
 
@@ -112,14 +204,19 @@ function limit(value) {
     MAX_LIMIT,
     Math.max(
       1,
-      integer(value, DEFAULT_LIMIT)
+      integer(
+        value,
+        DEFAULT_LIMIT
+      )
     )
   );
 }
 
 function wantsJson(req) {
   return Boolean(
-    req.path.startsWith("/api/") ||
+    req.path.startsWith(
+      "/api/"
+    ) ||
       req.xhr ||
       req.headers.accept?.includes(
         "application/json"
@@ -156,29 +253,45 @@ function jsonError(
   return res
     .status(status)
     .json({
-      success: false,
-      ...(code ? { code } : {}),
+      success:
+        false,
+
+      ...(code
+        ? { code }
+        : {}),
+
       message,
     });
 }
 
 function destroySession(req) {
-  return new Promise((resolve) => {
-    if (!req.session) {
-      return resolve();
-    }
+  return new Promise(
+    (resolve) => {
+      if (
+        !req.session
+      ) {
+        return resolve();
+      }
 
-    req.session.destroy(() => resolve());
-  });
+      req.session.destroy(
+        () => resolve()
+      );
+    }
+  );
 }
 
 function saveSession(req) {
   return new Promise(
-    (resolve, reject) => {
+    (
+      resolve,
+      reject
+    ) => {
       req.session.save(
         (error) => {
           if (error) {
-            return reject(error);
+            return reject(
+              error
+            );
           }
 
           resolve();
@@ -190,18 +303,26 @@ function saveSession(req) {
 
 function safeSessionUser(user) {
   return {
-    id: String(user._id),
+    id:
+      String(
+        user._id
+      ),
 
     username:
       user.username ||
       (
         user.email
-          ? String(user.email).split("@")[0]
+          ? String(
+              user.email
+            ).split(
+              "@"
+            )[0]
           : "guest"
       ),
 
     email:
-      user.email || "",
+      user.email ||
+      "",
 
     name:
       user.fullname ||
@@ -212,32 +333,43 @@ function safeSessionUser(user) {
 
 function serializeUser(user) {
   return {
-    id: String(user._id),
+    id:
+      String(
+        user._id
+      ),
 
     fullname:
-      user.fullname || "",
+      user.fullname ||
+      "",
 
     username:
-      user.username || "",
+      user.username ||
+      "",
 
     email:
-      user.email || "",
+      user.email ||
+      "",
 
     phone:
-      user.phone || "",
+      user.phone ||
+      "",
 
     status:
-      user.status || "active",
+      user.status ||
+      "active",
 
     emailVerified:
-      Boolean(user.emailVerified),
+      Boolean(
+        user.emailVerified
+      ),
 
     memberLevel:
       user.memberLevel ||
       "Resort Member",
 
     createdAt:
-      user.createdAt || null,
+      user.createdAt ||
+      null,
   };
 }
 
@@ -252,10 +384,14 @@ function serializeAppointment(
     typeof appointment.toObject ===
     "function"
       ? appointment.toObject()
-      : { ...appointment };
+      : {
+          ...appointment,
+        };
 
-  // Internal staff information must not
-  // be exposed to customers.
+  /*
+   * Internal staff information must NEVER
+   * be exposed to customers.
+   */
   delete data.adminNotes;
 
   delete data.userId;
@@ -273,7 +409,9 @@ function requireLogin(
   next
 ) {
   const id =
-    sessionUserId(req);
+    sessionUserId(
+      req
+    );
 
   if (
     !req.session?.user ||
@@ -307,13 +445,17 @@ async function currentUser(
   res
 ) {
   const id =
-    sessionUserId(req);
+    sessionUserId(
+      req
+    );
 
   if (
     !id ||
     !isValidObjectId(id)
   ) {
-    await destroySession(req);
+    await destroySession(
+      req
+    );
 
     if (
       wantsJson(req)
@@ -337,12 +479,18 @@ async function currentUser(
   }
 
   const user =
-    await User.findById(id)
-      .select("-password")
+    await User.findById(
+      id
+    )
+      .select(
+        "-password"
+      )
       .lean();
 
   if (!user) {
-    await destroySession(req);
+    await destroySession(
+      req
+    );
 
     if (
       wantsJson(req)
@@ -354,7 +502,9 @@ async function currentUser(
         "INVALID_SESSION"
       );
     } else {
-      res.redirect("/");
+      res.redirect(
+        "/"
+      );
     }
 
     return null;
@@ -367,12 +517,16 @@ async function currentUser(
     ).toLowerCase();
 
   if (
-    status !== "active"
+    status !==
+    "active"
   ) {
-    await destroySession(req);
+    await destroySession(
+      req
+    );
 
     const message =
-      status === "suspended"
+      status ===
+      "suspended"
         ? "Your account is currently suspended."
         : "Your account is currently unavailable.";
 
@@ -398,6 +552,29 @@ async function currentUser(
     return null;
   }
 
+  /*
+   * Keep the session identity synchronized with the current
+   * database record. Only safe public identity data is stored.
+   *
+   * This also makes changes to the customer's name/email/status
+   * visible to the current session without putting sensitive
+   * fields in session storage.
+   */
+  if (
+    req.session?.user
+  ) {
+    const safeUser =
+      safeSessionUser(
+        user
+      );
+
+    req.session.user =
+      {
+        ...req.session.user,
+        ...safeUser,
+      };
+  }
+
   return user;
 }
 
@@ -417,12 +594,15 @@ function parseBookingDate(
   }
 
   /*
-   * Booking forms normally submit
-   * YYYY-MM-DD. Parse this explicitly
-   * to avoid timezone surprises.
+   * Booking forms normally submit YYYY-MM-DD.
+   *
+   * Keep the current date representation for compatibility
+   * with existing IsleRMS appointment records.
    */
   if (
-    /^\d{4}-\d{2}-\d{2}$/.test(raw)
+    /^\d{4}-\d{2}-\d{2}$/.test(
+      raw
+    )
   ) {
     const [
       year,
@@ -483,7 +663,9 @@ function validateDates(
     !end
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       message:
         "Please provide valid check-in and check-out dates.",
     };
@@ -493,7 +675,9 @@ function validateDates(
     end <= start
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       message:
         "Check-out must be after check-in.",
     };
@@ -517,7 +701,9 @@ function validateDates(
     nights < 1
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       message:
         "Your stay must be at least one night.",
     };
@@ -528,16 +714,22 @@ function validateDates(
     MAX_BOOKING_NIGHTS
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       message:
         `Reservations cannot exceed ${MAX_BOOKING_NIGHTS} nights online.`,
     };
   }
 
   return {
-    valid: true,
+    valid:
+      true,
+
     start,
+
     end,
+
     nights,
   };
 }
@@ -578,9 +770,14 @@ function dateLabel(
   return date.toLocaleDateString(
     "en-US",
     {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+      month:
+        "short",
+
+      day:
+        "numeric",
+
+      year:
+        "numeric",
     }
   );
 }
@@ -610,15 +807,20 @@ function validateContact(
       15
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       message:
         "Please provide a valid contact number.",
     };
   }
 
   return {
-    valid: true,
-    value: contact,
+    valid:
+      true,
+
+    value:
+      contact,
   };
 }
 
@@ -626,26 +828,43 @@ function validateContact(
    PUBLIC 360° GALLERY
 ============================================================ */
 
-// ✅ GALLERY CHANGE: Added the public /gallery page route.
 router.get(
   "/gallery",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const gallery =
         await Gallery.getOrCreateDefault();
 
       const galleryImages =
-        Array.isArray(gallery.images)
+        Array.isArray(
+          gallery.images
+        )
           ? gallery.images
-              .map((item) =>
-                typeof item.toObject === "function"
-                  ? item.toObject()
-                  : { ...item }
+              .map(
+                (item) =>
+                  typeof item.toObject ===
+                  "function"
+                    ? item.toObject()
+                    : {
+                        ...item,
+                      }
               )
               .sort(
-                (a, b) =>
-                  Number(a.order || 0) -
-                  Number(b.order || 0)
+                (
+                  a,
+                  b
+                ) =>
+                  Number(
+                    a.order ||
+                      0
+                  ) -
+                  Number(
+                    b.order ||
+                      0
+                  )
               )
           : [];
 
@@ -695,11 +914,15 @@ router.get(
 
 async function getActiveRooms() {
   return Room.find({
-    active: true,
+    active:
+      true,
   })
     .sort({
-      sortOrder: 1,
-      name: 1,
+      sortOrder:
+        1,
+
+      name:
+        1,
     })
     .lean();
 }
@@ -726,8 +949,11 @@ async function findRoom(
   ) {
     const room =
       await Room.findOne({
-        _id: requested,
-        active: true,
+        _id:
+          requested,
+
+        active:
+          true,
       }).lean();
 
     if (room) {
@@ -736,12 +962,15 @@ async function findRoom(
   }
 
   return Room.findOne({
-    active: true,
+    active:
+      true,
+
     $or: [
       {
         slug:
           requested.toLowerCase(),
       },
+
       {
         name:
           requested,
@@ -750,19 +979,32 @@ async function findRoom(
   }).lean();
 }
 
-function roomResponse(room) {
+function roomResponse(
+  room
+) {
   return {
-    _id: String(room._id),
-    id: String(room._id),
+    _id:
+      String(
+        room._id
+      ),
+
+    id:
+      String(
+        room._id
+      ),
 
     name:
-      room.name || "",
+      room.name ||
+      "",
 
     slug:
-      room.slug || "",
+      room.slug ||
+      "",
 
     price:
-      number(room.price),
+      number(
+        room.price
+      ),
 
     maxGuests:
       Math.max(
@@ -783,13 +1025,16 @@ function roomResponse(room) {
       ),
 
     image:
-      room.image || "",
+      room.image ||
+      "",
 
     description:
-      room.description || "",
+      room.description ||
+      "",
 
     active:
-      room.active !== false,
+      room.active !==
+      false,
 
     sortOrder:
       integer(
@@ -801,11 +1046,15 @@ function roomResponse(room) {
 
 async function getActiveAddOns() {
   return AddOn.find({
-    active: true,
+    active:
+      true,
   })
     .sort({
-      sortOrder: 1,
-      name: 1,
+      sortOrder:
+        1,
+
+      name:
+        1,
     })
     .lean();
 }
@@ -832,8 +1081,11 @@ async function findAddOn(
   ) {
     const addOn =
       await AddOn.findOne({
-        _id: requested,
-        active: true,
+        _id:
+          requested,
+
+        active:
+          true,
       }).lean();
 
     if (addOn) {
@@ -842,13 +1094,15 @@ async function findAddOn(
   }
 
   return AddOn.findOne({
-    active: true,
+    active:
+      true,
 
     $or: [
       {
         slug:
           requested.toLowerCase(),
       },
+
       {
         name:
           requested,
@@ -862,29 +1116,38 @@ function addOnResponse(
 ) {
   return {
     id:
-      String(addOn._id),
+      String(
+        addOn._id
+      ),
 
     name:
-      addOn.name || "",
+      addOn.name ||
+      "",
 
     slug:
-      addOn.slug || "",
+      addOn.slug ||
+      "",
 
     price:
-      number(addOn.price),
+      number(
+        addOn.price
+      ),
 
     pricingType:
       addOn.pricingType ||
       "once",
 
     image:
-      addOn.image || "",
+      addOn.image ||
+      "",
 
     description:
-      addOn.description || "",
+      addOn.description ||
+      "",
 
     active:
-      addOn.active !== false,
+      addOn.active !==
+      false,
 
     sortOrder:
       integer(
@@ -897,7 +1160,8 @@ function addOnResponse(
 function normalizeAddOnSelections(
   body
 ) {
-  const values = [];
+  const values =
+    [];
 
   for (
     const item of [
@@ -909,7 +1173,9 @@ function normalizeAddOnSelections(
     ]
   ) {
     if (
-      Array.isArray(item)
+      Array.isArray(
+        item
+      )
     ) {
       values.push(
         ...item
@@ -919,21 +1185,32 @@ function normalizeAddOnSelections(
         undefined &&
       item !==
         null &&
-      String(item).trim()
-        !== ""
+      String(
+        item
+      ).trim() !==
+        ""
     ) {
       values.push(
-        ...String(item)
-          .split(",")
+        ...String(
+          item
+        ).split(",")
       );
     }
   }
 
+  /*
+   * De-duplicate by the raw normalized selection.
+   *
+   * The actual AddOn document is resolved later by
+   * calculateBookingPrice().
+   */
   return [
     ...new Set(
       values
         .map(
-          (value) =>
+          (
+            value
+          ) =>
             clean(
               value,
               150
@@ -963,7 +1240,9 @@ async function resolveLegacyCottage(
   }
 
   return AddOn.findOne({
-    active: true,
+    active:
+      true,
+
     $or: [
       {
         slug: {
@@ -973,6 +1252,7 @@ async function resolveLegacyCottage(
           ],
         },
       },
+
       {
         name: {
           $regex:
@@ -982,221 +1262,39 @@ async function resolveLegacyCottage(
     ],
   })
     .sort({
-      sortOrder: 1,
-      name: 1,
+      sortOrder:
+        1,
+
+      name:
+        1,
     })
     .lean();
 }
 
 /* ============================================================
-   AVAILABILITY
+   NOTE ABOUT AVAILABILITY
 ============================================================ */
 
-async function findAvailabilityConflict({
-  room,
-  checkin,
-  checkout,
-  excludeAppointmentId = null,
-}) {
-  if (!room?._id) {
-    return null;
-  }
-
-  const quantity =
-    room.quantity ===
-      undefined ||
-    room.quantity ===
-      null
-      ? 1
-      : integer(
-          room.quantity,
-          0
-        );
-
-  if (
-    quantity <= 0
-  ) {
-    return {
-      reason:
-        "NO_INVENTORY",
-    };
-  }
-
-  const roomRegex =
-    room.name
-      ? new RegExp(
-          `^${String(room.name).replace(
-            /[.*+?^${}()|[\]\\]/g,
-            "\\$&"
-          )}$`,
-          "i"
-        )
-      : null;
-
-  const roomConditions = [
-    {
-      roomId:
-        room._id,
-    },
-  ];
-
-  if (
-    roomRegex
-  ) {
-    roomConditions.push(
-      {
-        room:
-          roomRegex,
-      },
-      {
-        roomType:
-          roomRegex,
-      },
-      {
-        accommodation:
-          roomRegex,
-      },
-      {
-        roomName:
-          roomRegex,
-      }
-    );
-  }
-
-  const query = {
-    status: {
-      $in:
-        BLOCKING_STATUSES,
-    },
-
-    checkin: {
-      $lt:
-        checkout,
-    },
-
-    checkout: {
-      $gt:
-        checkin,
-    },
-
-    $or:
-      roomConditions,
-  };
-
-  if (
-    excludeAppointmentId &&
-    isValidObjectId(
-      excludeAppointmentId
-    )
-  ) {
-    query._id = {
-      $ne:
-        excludeAppointmentId,
-    };
-  }
-
-  const appointments =
-    await Appointment.find(
-      query
-    )
-      .select(
-        "_id roomId room roomType accommodation roomName checkin checkout status"
-      )
-      .sort({
-        checkin: 1,
-        checkout: 1,
-      })
-      .lean();
-
-  const events = [];
-
-  for (
-    const appointment of
-      appointments
-  ) {
-    const start =
-      new Date(
-        appointment.checkin
-      );
-
-    const end =
-      new Date(
-        appointment.checkout
-      );
-
-    if (
-      Number.isNaN(
-        start.getTime()
-      ) ||
-      Number.isNaN(
-        end.getTime()
-      ) ||
-      end <= start
-    ) {
-      continue;
-    }
-
-    const overlapStart =
-      start > checkin
-        ? start
-        : checkin;
-
-    const overlapEnd =
-      end < checkout
-        ? end
-        : checkout;
-
-    if (
-      overlapEnd <=
-      overlapStart
-    ) {
-      continue;
-    }
-
-    events.push({
-      time:
-        overlapStart.getTime(),
-
-      delta: 1,
-
-      appointment,
-    });
-
-    events.push({
-      time:
-        overlapEnd.getTime(),
-
-      delta: -1,
-
-      appointment,
-    });
-  }
-
-  events.sort(
-    (a, b) =>
-      a.time !== b.time
-        ? a.time - b.time
-        : a.delta - b.delta
-  );
-
-  let occupancy = 0;
-
-  for (
-    const event of events
-  ) {
-    occupancy +=
-      event.delta;
-
-    if (
-      occupancy >=
-      quantity
-    ) {
-      return event.appointment;
-    }
-  }
-
-  return null;
-}
+/*
+ * The old local findAvailabilityConflict() implementation
+ * has intentionally been removed.
+ *
+ * The shared service:
+ *
+ *   services/bookingAvailability.js
+ *
+ * now handles:
+ *
+ * - roomId matching
+ * - legacy room-name matching
+ * - blocking statuses
+ * - date overlap
+ * - Room.quantity
+ * - inventory occupancy
+ *
+ * This ensures the customer and admin systems cannot silently
+ * develop different booking rules.
+ */
 
 /* ============================================================
    PRICING / NOTIFICATIONS
@@ -1213,7 +1311,9 @@ async function calculateBookingPrice({
     "function"
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       error:
         "Booking pricing is not configured correctly.",
     };
@@ -1229,16 +1329,24 @@ async function calculateBookingPrice({
     nights < 1
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       error:
         "Your stay must be at least one night.",
     };
   }
 
+  /*
+   * Resolve add-ons immediately before creating the
+   * Appointment so the server never trusts client prices.
+   */
   const resolved =
     await Promise.all(
       addOnSelections.map(
-        (selection) =>
+        (
+          selection
+        ) =>
           findAddOn(
             selection
           )
@@ -1247,24 +1355,33 @@ async function calculateBookingPrice({
 
   if (
     resolved.some(
-      (addOn) =>
-        !addOn
+      (
+        addOn
+      ) => !addOn
     )
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       error:
         "One of the selected add-ons is no longer available.",
     };
   }
 
+  /*
+   * Prevent duplicate add-ons from being charged twice.
+   */
   const unique =
     new Map(
       resolved.map(
-        (addOn) => [
+        (
+          addOn
+        ) => [
           String(
             addOn._id
           ),
+
           addOn,
         ]
       )
@@ -1274,7 +1391,9 @@ async function calculateBookingPrice({
     [
       ...unique.values(),
     ].map(
-      (addOn) => ({
+      (
+        addOn
+      ) => ({
         addOnId:
           addOn._id,
 
@@ -1290,7 +1409,8 @@ async function calculateBookingPrice({
           addOn.pricingType ||
           "once",
 
-        quantity: 1,
+        quantity:
+          1,
       })
     );
 
@@ -1310,25 +1430,64 @@ async function calculateBookingPrice({
       }
     );
 
+  /*
+   * Normalize money to two decimal places for consistent
+   * API responses and historical snapshots.
+   *
+   * This does not change the room/add-on pricing model.
+   */
+  const roomPrice =
+    Math.round(
+      number(
+        pricing.roomPrice
+      ) *
+        100
+    ) /
+    100;
+
+  const roomSubtotal =
+    Math.round(
+      number(
+        pricing.roomSubtotal
+      ) *
+        100
+    ) /
+    100;
+
+  const addOnSubtotal =
+    Math.round(
+      number(
+        pricing.addOnSubtotal
+      ) *
+        100
+    ) /
+    100;
+
+  const totalPrice =
+    Math.round(
+      number(
+        pricing.totalPrice
+      ) *
+        100
+    ) /
+    100;
+
   return {
-    valid: true,
+    valid:
+      true,
 
     nights,
 
-    roomPrice:
-      pricing.roomPrice,
+    roomPrice,
 
-    roomSubtotal:
-      pricing.roomSubtotal,
+    roomSubtotal,
 
     addOns:
       pricing.addOns,
 
-    addOnSubtotal:
-      pricing.addOnSubtotal,
+    addOnSubtotal,
 
-    totalPrice:
-      pricing.totalPrice,
+    totalPrice,
   };
 }
 
@@ -1360,7 +1519,8 @@ async function createAppointmentNotification({
   event,
   title,
   message,
-  priority = "normal",
+  priority =
+    "normal",
   metadata,
 }) {
   try {
@@ -1393,40 +1553,42 @@ async function createAppointmentNotification({
       );
     }
 
-    return await Notification.create({
-      userId,
+    return await Notification.create(
+      {
+        userId,
 
-      appointmentId:
-        appointmentId ||
-        null,
+        appointmentId:
+          appointmentId ||
+          null,
 
-      bookingId:
-        appointmentId ||
-        null,
+        bookingId:
+          appointmentId ||
+          null,
 
-      type:
-        "appointment",
+        type:
+          "appointment",
 
-      event,
+        event,
 
-      title,
+        title,
 
-      message,
+        message,
 
-      priority,
+        priority,
 
-      actionLabel:
-        "View My Bookings",
+        actionLabel:
+          "View My Bookings",
 
-      actionUrl:
-        "/profile#bookings",
+        actionUrl:
+          "/profile#bookings",
 
-      metadata,
-    });
+        metadata,
+      }
+    );
   } catch (error) {
     /*
-     * A notification failure must not
-     * break the primary business action.
+     * Notification failure must NEVER undo the primary
+     * booking/status business action.
      */
     console.error(
       "Notification creation error:",
@@ -1438,13 +1600,152 @@ async function createAppointmentNotification({
 }
 
 /* ============================================================
+   DUPLICATE BOOKING PROTECTION
+============================================================ */
+
+/**
+ * Looks for a recently-created pending booking that appears
+ * to be an accidental duplicate submission from the same user.
+ *
+ * This is intentionally narrow:
+ *
+ * - same customer
+ * - same room
+ * - same check-in
+ * - same check-out
+ * - same pending state
+ * - created within a short window
+ *
+ * The room lock MUST already be held when this function runs.
+ */
+async function findRecentDuplicateBooking({
+  userId,
+  roomId,
+  checkin,
+  checkout,
+}) {
+  const since =
+    new Date(
+      Date.now() -
+        DUPLICATE_BOOKING_WINDOW_MS
+    );
+
+  return Appointment.findOne(
+    {
+      userId,
+
+      roomId,
+
+      status:
+        "pending",
+
+      checkin,
+
+      checkout,
+
+      createdAt: {
+        $gte:
+          since,
+      },
+    },
+    null,
+    {
+      sort: {
+        createdAt:
+          -1,
+      },
+    }
+  )
+    .select(
+      "-adminNotes"
+    )
+    .lean();
+}
+
+function duplicateBookingResponse(
+  res,
+  json,
+  existing
+) {
+  const booking = {
+    id:
+      String(
+        existing._id
+      ),
+
+    room:
+      existing.room,
+
+    roomId:
+      existing.roomId
+        ? String(
+            existing.roomId
+          )
+        : null,
+
+    checkin:
+      existing.checkin,
+
+    checkout:
+      existing.checkout,
+
+    guests:
+      existing.guests,
+
+    numberOfNights:
+      existing.numberOfNights,
+
+    addOns:
+      existing.addOns ||
+      [],
+
+    totalPrice:
+      existing.totalPrice,
+
+    status:
+      existing.status,
+
+    createdAt:
+      existing.createdAt,
+  };
+
+  if (json) {
+    return res
+      .status(200)
+      .json({
+        success:
+          true,
+
+        duplicate:
+          true,
+
+        message:
+          "A reservation request for the same accommodation and dates was already submitted recently.",
+
+        booking,
+      });
+  }
+
+  return res.redirect(
+    queryRedirect(
+      "/profile",
+      "success",
+      "Your reservation request was already submitted and is being processed."
+    )
+  );
+}
+
+/* ============================================================
    BOOKING PAGE
 ============================================================ */
 
 router.get(
   "/booking",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -1460,23 +1761,27 @@ router.get(
         appointments,
         rooms,
         addOns,
-      ] = await Promise.all([
-        Appointment.find({
-          userId:
-            user._id,
-        })
-          .select(
-            "-adminNotes"
-          )
-          .sort({
-            createdAt: -1,
-          })
-          .lean(),
+      ] =
+        await Promise.all(
+          [
+            Appointment.find({
+              userId:
+                user._id,
+            })
+              .select(
+                "-adminNotes"
+              )
+              .sort({
+                createdAt:
+                  -1,
+              })
+              .lean(),
 
-        getActiveRooms(),
+            getActiveRooms(),
 
-        getActiveAddOns(),
-      ]);
+            getActiveAddOns(),
+          ]
+        );
 
       return res.render(
         "appointments",
@@ -1500,7 +1805,9 @@ router.get(
 
           cottage:
             addOns.find(
-              (addOn) =>
+              (
+                addOn
+              ) =>
                 /cottage/i.test(
                   addOn.name ||
                     ""
@@ -1550,7 +1857,10 @@ router.get(
 router.get(
   "/profile",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -1567,49 +1877,58 @@ router.get(
         notifications,
         totalBookings,
         unreadNotifications,
-      ] = await Promise.all([
-        Appointment.find({
-          userId:
-            user._id,
-        })
-          .select(
-            "-adminNotes"
-          )
-          .sort({
-            createdAt: -1,
-          })
-          .limit(100)
-          .lean(),
+      ] =
+        await Promise.all(
+          [
+            Appointment.find({
+              userId:
+                user._id,
+            })
+              .select(
+                "-adminNotes"
+              )
+              .sort({
+                createdAt:
+                  -1,
+              })
+              .limit(100)
+              .lean(),
 
-        Notification.find({
-          userId:
-            user._id,
+            Notification.find({
+              userId:
+                user._id,
 
-          archived:
-            false,
-        })
-          .sort({
-            createdAt: -1,
-          })
-          .limit(100)
-          .lean(),
+              archived:
+                false,
+            })
+              .sort({
+                createdAt:
+                  -1,
+              })
+              .limit(100)
+              .lean(),
 
-        Appointment.countDocuments({
-          userId:
-            user._id,
-        }),
+            Appointment.countDocuments(
+              {
+                userId:
+                  user._id,
+              }
+            ),
 
-        Notification.countDocuments({
-          userId:
-            user._id,
+            Notification.countDocuments(
+              {
+                userId:
+                  user._id,
 
-          archived:
-            false,
+                archived:
+                  false,
 
-          read:
-            false,
-        }),
-      ]);
+                read:
+                  false,
+              }
+            ),
+          ]
+        );
 
       return res.render(
         "profile",
@@ -1663,7 +1982,10 @@ router.get(
 router.get(
   "/profile/:id",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     const requested =
       String(
         req.params.id ||
@@ -1855,12 +2177,18 @@ async function submitBooking(
           );
     }
 
-    const room =
+    /*
+     * Initial room lookup.
+     *
+     * We only use this to identify the room to lock.
+     * The room is deliberately re-read AFTER the lock is acquired.
+     */
+    const selectedRoom =
       await findRoom(
         roomSelection
       );
 
-    if (!room) {
+    if (!selectedRoom) {
       const message =
         "The selected accommodation is not available.";
 
@@ -1880,336 +2208,475 @@ async function submitBooking(
           );
     }
 
-    const quantity =
-      room.quantity ===
-        undefined ||
-      room.quantity ===
-        null
-        ? 1
-        : integer(
-            room.quantity,
-            0
-          );
-
-    if (
-      quantity <= 0
-    ) {
-      const message =
-        "The selected accommodation is currently unavailable.";
-
-      return json
-        ? jsonError(
-            res,
-            409,
-            message,
-            "NO_INVENTORY"
-          )
-        : res.redirect(
-            queryRedirect(
-              "/booking",
-              "error",
-              message
-            )
-          );
-    }
-
-    const maxGuests =
-      Math.max(
-        1,
-        integer(
-          room.maxGuests,
-          1
-        )
-      );
-
-    if (
-      guests >
-      maxGuests
-    ) {
-      const message =
-        `The selected room allows a maximum of ${maxGuests} guests.`;
-
-      return json
-        ? jsonError(
-            res,
-            400,
-            message,
-            "INVALID_GUEST_COUNT"
-          )
-        : res.redirect(
-            queryRedirect(
-              "/booking",
-              "error",
-              message
-            )
-          );
-    }
-
-    let addOnSelections =
-      normalizeAddOnSelections(
-        req.body ||
-          {}
-      );
-
     /*
-     * Legacy cottage support.
+     * =========================================================
+     * CRITICAL BOOKING PROTECTION
+     * =========================================================
+     *
+     * From this point until Appointment.save():
+     *
+     * 1. The room is exclusively locked.
+     * 2. Room data is refreshed.
+     * 3. Duplicate booking is checked.
+     * 4. Inventory is checked.
+     * 5. Add-ons are resolved from the database.
+     * 6. Pricing is calculated server-side.
+     * 7. Appointment is saved.
+     *
+     * Another booking request for this same room cannot
+     * perform the same final check concurrently.
      */
-    const legacyCottage =
-      await resolveLegacyCottage(
-        req.body ||
-          {}
-      );
+    const bookingResult =
+      await withRoomLock(
+        selectedRoom,
+        async () => {
+          /*
+           * Re-read the room after acquiring the lock.
+           *
+           * This prevents stale availability/pricing if an
+           * administrator changed the room immediately before
+           * this request acquired the mutex.
+           */
+          const room =
+            await Room.findOne({
+              _id:
+                selectedRoom._id,
 
-    if (
-      legacyCottage
-    ) {
-      const duplicate =
-        addOnSelections.some(
-          (selection) =>
-            String(
-              selection
-            ).toLowerCase() ===
+              active:
+                true,
+            }).lean();
+
+          if (!room) {
+            const error =
+              new Error(
+                "The selected accommodation is no longer available."
+              );
+
+            error.code =
+              "INVALID_ROOM";
+
+            throw error;
+          }
+
+          /*
+           * Inventory quantity is always re-read from MongoDB.
+           */
+          const quantity =
+            room.quantity ===
+              undefined ||
+            room.quantity ===
+              null
+              ? 1
+              : integer(
+                  room.quantity,
+                  0
+                );
+
+          if (
+            quantity <= 0
+          ) {
+            const error =
+              new Error(
+                "The selected accommodation is currently unavailable."
+              );
+
+            error.code =
+              "NO_INVENTORY";
+
+            throw error;
+          }
+
+          /*
+           * Validate guest capacity against the refreshed room.
+           */
+          const maxGuests =
+            Math.max(
+              1,
+              integer(
+                room.maxGuests,
+                1
+              )
+            );
+
+          if (
+            guests >
+            maxGuests
+          ) {
+            const error =
+              new Error(
+                `The selected room allows a maximum of ${maxGuests} guests.`
+              );
+
+            error.code =
+              "INVALID_GUEST_COUNT";
+
+            throw error;
+          }
+
+          /*
+           * =====================================================
+           * ACCIDENTAL DUPLICATE SUBMISSION PROTECTION
+           * =====================================================
+           */
+          const duplicate =
+            await findRecentDuplicateBooking(
+              {
+                userId:
+                  user._id,
+
+                roomId:
+                  room._id,
+
+                checkin:
+                  dates.start,
+
+                checkout:
+                  dates.end,
+              }
+            );
+
+          if (
+            duplicate
+          ) {
+            return {
+              duplicate:
+                true,
+
+              appointment:
+                duplicate,
+            };
+          }
+
+          /*
+           * =====================================================
+           * FINAL INVENTORY CHECK
+           * =====================================================
+           *
+           * This check happens INSIDE the room lock.
+           *
+           * That is the critical difference from the old
+           * check-then-save design.
+           */
+          const conflict =
+            await findAvailabilityConflict(
+              {
+                room,
+
+                checkin:
+                  dates.start,
+
+                checkout:
+                  dates.end,
+              }
+            );
+
+          if (
+            conflict
+          ) {
+            const error =
+              new Error(
+                conflict.reason ===
+                  "NO_INVENTORY"
+                  ? "The selected accommodation is currently unavailable."
+                  : "This accommodation is already reserved for your selected dates. Please choose different dates."
+              );
+
+            error.code =
+              conflict.reason ===
+              "NO_INVENTORY"
+                ? "NO_INVENTORY"
+                : "ROOM_UNAVAILABLE";
+
+            error.conflict =
+              conflict.conflict ||
+              null;
+
+            throw error;
+          }
+
+          /*
+           * Re-resolve legacy cottage selection while the booking
+           * request is still being finalized.
+           */
+          let addOnSelections =
+            normalizeAddOnSelections(
+              req.body ||
+                {}
+            );
+
+          const legacyCottage =
+            await resolveLegacyCottage(
+              req.body ||
+                {}
+            );
+
+          if (
+            legacyCottage
+          ) {
+            const legacyId =
               String(
                 legacyCottage._id
-              ).toLowerCase() ||
+              ).toLowerCase();
 
-            String(
-              selection
-            ).toLowerCase() ===
+            const legacySlug =
               String(
                 legacyCottage.slug ||
                   ""
-              ).toLowerCase() ||
+              ).toLowerCase();
 
-            String(
-              selection
-            ).toLowerCase() ===
+            const legacyName =
               String(
                 legacyCottage.name ||
                   ""
-              ).toLowerCase()
-        );
+              ).toLowerCase();
 
-      if (
-        !duplicate
-      ) {
-        addOnSelections.push(
-          String(
-            legacyCottage._id
-          )
-        );
-      }
-    }
+            const duplicateLegacy =
+              addOnSelections.some(
+                (
+                  selection
+                ) => {
+                  const value =
+                    String(
+                      selection
+                    ).toLowerCase();
 
-    /*
-     * Inventory validation.
-     */
-    const conflict =
-      await findAvailabilityConflict(
-        {
-          room,
+                  return (
+                    value ===
+                      legacyId ||
+                    value ===
+                      legacySlug ||
+                    value ===
+                      legacyName
+                  );
+                }
+              );
 
-          checkin:
-            dates.start,
+            if (
+              !duplicateLegacy
+            ) {
+              addOnSelections.push(
+                String(
+                  legacyCottage._id
+                )
+              );
+            }
+          }
 
-          checkout:
-            dates.end,
-        }
+          /*
+           * =====================================================
+           * SERVER-SIDE PRICING
+           * =====================================================
+           *
+           * NEVER trust req.body.totalPrice.
+           */
+          const pricing =
+            await calculateBookingPrice(
+              {
+                room,
+
+                addOnSelections,
+
+                checkin:
+                  dates.start,
+
+                checkout:
+                  dates.end,
+              }
+            );
+
+          if (
+            !pricing.valid
+          ) {
+            const error =
+              new Error(
+                pricing.error ||
+                  "Unable to calculate the reservation price."
+              );
+
+            error.code =
+              "PRICING_ERROR";
+
+            throw error;
+          }
+
+          const cottageSnapshot =
+            pricing.addOns.find(
+              (
+                addOn
+              ) =>
+                /cottage/i.test(
+                  String(
+                    addOn.name ||
+                      ""
+                  )
+                )
+            );
+
+          /*
+           * =====================================================
+           * HISTORICAL PRICING SNAPSHOT
+           * =====================================================
+           */
+          const appointment =
+            new Appointment({
+              userId:
+                user._id,
+
+              roomId:
+                room._id,
+
+              room:
+                room.name,
+
+              roomType:
+                room.name,
+
+              accommodation:
+                room.name,
+
+              roomName:
+                room.name,
+
+              roomPrice:
+                pricing.roomPrice,
+
+              numberOfNights:
+                pricing.nights,
+
+              roomSubtotal:
+                pricing.roomSubtotal,
+
+              addOns:
+                pricing.addOns,
+
+              addOnSubtotal:
+                pricing.addOnSubtotal,
+
+              /*
+               * Legacy cottage compatibility.
+               */
+              cottageAddon:
+                Boolean(
+                  cottageSnapshot
+                ),
+
+              cottagePrice:
+                cottageSnapshot?.price ||
+                0,
+
+              cottageSubtotal:
+                cottageSnapshot?.subtotal ||
+                0,
+
+              guests,
+
+              contact:
+                contact.value,
+
+              checkin:
+                dates.start,
+
+              checkout:
+                dates.end,
+
+              specialRequests,
+
+              totalPrice:
+                pricing.totalPrice,
+
+              status:
+                "pending",
+            });
+
+          /*
+           * This is the protected critical write.
+           *
+           * Because the room remains locked, another booking
+           * request cannot pass its own final inventory check
+           * concurrently for this room.
+           */
+          await appointment.save();
+
+          return {
+            duplicate:
+              false,
+
+            appointment,
+
+            room,
+          };
+        },
+        BOOKING_LOCK_OPTIONS
       );
 
+    /*
+     * If a recent equivalent booking already exists, return it
+     * without generating a second booking or duplicate notification.
+     */
     if (
-      conflict
+      bookingResult.duplicate
     ) {
-      const message =
-        conflict.reason ===
-        "NO_INVENTORY"
-          ? "The selected accommodation is currently unavailable."
-          : "This accommodation is already reserved for your selected dates. Please choose different dates.";
-
-      return json
-        ? jsonError(
-            res,
-            409,
-            message,
-            "ROOM_UNAVAILABLE"
-          )
-        : res.redirect(
-            queryRedirect(
-              "/booking",
-              "error",
-              message
-            )
-          );
+      return duplicateBookingResponse(
+        res,
+        json,
+        bookingResult.appointment
+      );
     }
 
-    /*
-     * Server-side pricing.
-     * req.body.totalPrice is intentionally ignored.
-     */
-    const pricing =
-      await calculateBookingPrice(
-        {
-          room,
-
-          addOnSelections,
-
-          checkin:
-            dates.start,
-
-          checkout:
-            dates.end,
-        }
-      );
-
-    if (
-      !pricing.valid
-    ) {
-      return json
-        ? jsonError(
-            res,
-            400,
-            pricing.error,
-            "PRICING_ERROR"
-          )
-        : res.redirect(
-            queryRedirect(
-              "/booking",
-              "error",
-              pricing.error
-            )
-          );
-    }
-
-    const cottageSnapshot =
-      pricing.addOns.find(
-        (addOn) =>
-          /cottage/i.test(
-            String(
-              addOn.name ||
-                ""
-            )
-          )
-      );
-
-    /*
-     * Create historical pricing snapshots.
-     */
     const appointment =
-      new Appointment({
+      bookingResult.appointment;
+
+    const room =
+      bookingResult.room;
+
+    /*
+     * Notification happens OUTSIDE the room lock.
+     *
+     * Notification delivery should never unnecessarily keep
+     * accommodation inventory locked.
+     */
+    await createAppointmentNotification(
+      {
         userId:
           user._id,
 
-        roomId:
-          room._id,
+        appointmentId:
+          appointment._id,
 
-        room:
-          room.name,
+        event:
+          "created",
 
-        roomType:
-          room.name,
+        title:
+          "Reservation Request Received",
 
-        accommodation:
-          room.name,
+        message:
+          `Your reservation request for ${room.name} ` +
+          `from ${dateLabel(
+            dates.start
+          )} to ${dateLabel(
+            dates.end
+          )} has been received and is awaiting confirmation.`,
 
-        roomName:
-          room.name,
+        metadata: {
+          roomName:
+            room.name,
 
-        roomPrice:
-          pricing.roomPrice,
+          checkin:
+            dates.start,
 
-        numberOfNights:
-          pricing.nights,
+          checkout:
+            dates.end,
 
-        roomSubtotal:
-          pricing.roomSubtotal,
+          guests,
 
-        addOns:
-          pricing.addOns,
+          totalPrice:
+            appointment.totalPrice,
 
-        addOnSubtotal:
-          pricing.addOnSubtotal,
-
-        /*
-         * Legacy cottage compatibility.
-         */
-        cottageAddon:
-          Boolean(
-            cottageSnapshot
-          ),
-
-        cottagePrice:
-          cottageSnapshot?.price ||
-          0,
-
-        cottageSubtotal:
-          cottageSnapshot?.subtotal ||
-          0,
-
-        guests,
-
-        contact:
-          contact.value,
-
-        checkin:
-          dates.start,
-
-        checkout:
-          dates.end,
-
-        specialRequests,
-
-        totalPrice:
-          pricing.totalPrice,
-
-        status:
-          "pending",
-      });
-
-    await appointment.save();
-
-    /*
-     * Customer confirmation notification.
-     */
-    await createAppointmentNotification({
-      userId:
-        user._id,
-
-      appointmentId:
-        appointment._id,
-
-      event:
-        "created",
-
-      title:
-        "Reservation Request Received",
-
-      message:
-        `Your reservation request for ${room.name} ` +
-        `from ${dateLabel(
-          dates.start
-        )} to ${dateLabel(
-          dates.end
-        )} has been received and is awaiting confirmation.`,
-
-      metadata: {
-        roomName:
-          room.name,
-
-        checkin:
-          dates.start,
-
-        checkout:
-          dates.end,
-
-        guests,
-
-        totalPrice:
-          appointment.totalPrice,
-
-        status:
-          appointment.status,
-      },
-    });
+          status:
+            appointment.status,
+        },
+      }
+    );
 
     const booking = {
       id:
@@ -2221,9 +2688,11 @@ async function submitBooking(
         appointment.room,
 
       roomId:
-        String(
-          appointment.roomId
-        ),
+        appointment.roomId
+          ? String(
+              appointment.roomId
+            )
+          : null,
 
       checkin:
         appointment.checkin,
@@ -2250,7 +2719,9 @@ async function submitBooking(
         appointment.createdAt,
     };
 
-    if (json) {
+    if (
+      json
+    ) {
       return res
         .status(201)
         .json({
@@ -2285,39 +2756,136 @@ async function submitBooking(
               {}
           )
             .map(
-              (entry) =>
+              (
+                entry
+              ) =>
                 entry.message
             )
-            .filter(Boolean)
+            .filter(
+              Boolean
+            )
             .join(" ")
         : null;
 
-    const message =
-      validationMessage ||
-      (
-        error?.code ===
-        11000
-          ? "This booking conflicts with a reservation created at the same time. Please choose different dates."
-          : "Failed to submit your booking. Please try again."
-      );
+    let message =
+      validationMessage;
 
-    const code =
-      error?.name ===
-      "ValidationError"
-        ? "VALIDATION_ERROR"
-        : error?.code ===
-          11000
-        ? "BOOKING_CONFLICT"
-        : "BOOKING_ERROR";
+    let code =
+      error?.code;
 
-    const statusCode =
-      error?.name ===
-      "ValidationError"
-        ? 400
-        : error?.code ===
-          11000
-        ? 409
-        : 500;
+    let statusCode =
+      500;
+
+    if (
+      validationMessage
+    ) {
+      message =
+        validationMessage;
+
+      code =
+        "VALIDATION_ERROR";
+
+      statusCode =
+        400;
+    } else if (
+      error?.code ===
+      "BOOKING_LOCK_TIMEOUT"
+    ) {
+      message =
+        "The accommodation is currently processing another reservation. Please try again in a moment.";
+
+      code =
+        "BOOKING_LOCK_TIMEOUT";
+
+      statusCode =
+        409;
+    } else if (
+      error?.code ===
+      "NO_INVENTORY"
+    ) {
+      message =
+        "The selected accommodation is currently unavailable for those dates.";
+
+      code =
+        "NO_INVENTORY";
+
+      statusCode =
+        409;
+    } else if (
+      error?.code ===
+      "ROOM_UNAVAILABLE"
+    ) {
+      message =
+        "This accommodation is already reserved for your selected dates. Please choose different dates.";
+
+      code =
+        "ROOM_UNAVAILABLE";
+
+      statusCode =
+        409;
+    } else if (
+      error?.code ===
+      "INVALID_ROOM"
+    ) {
+      message =
+        "The selected accommodation is no longer available.";
+
+      code =
+        "INVALID_ROOM";
+
+      statusCode =
+        409;
+    } else if (
+      error?.code ===
+      "INVALID_GUEST_COUNT"
+    ) {
+      message =
+        error.message ||
+        "The selected room cannot accommodate that many guests.";
+
+      code =
+        "INVALID_GUEST_COUNT";
+
+      statusCode =
+        400;
+    } else if (
+      error?.code ===
+      "PRICING_ERROR"
+    ) {
+      message =
+        error.message ||
+        "Unable to calculate the reservation price.";
+
+      code =
+        "PRICING_ERROR";
+
+      statusCode =
+        400;
+    } else if (
+      error?.code ===
+      11000
+    ) {
+      /*
+       * Covers unexpected duplicate-key protection from MongoDB.
+       */
+      message =
+        "This reservation could not be created because another reservation was created at the same time. Please review your bookings and try again.";
+
+      code =
+        "BOOKING_CONFLICT";
+
+      statusCode =
+        409;
+    } else {
+      message =
+        "Failed to submit your booking. Please try again.";
+
+      code =
+        "BOOKING_ERROR";
+
+      statusCode =
+        500;
+    }
 
     return json
       ? jsonError(
@@ -2355,7 +2923,10 @@ router.post(
 router.get(
   "/api/me",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -2398,7 +2969,10 @@ router.get(
 router.get(
   "/api/me/dashboard",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -2410,12 +2984,13 @@ router.get(
         return;
       }
 
-      const activeStatuses = [
-        "pending",
-        "accepted",
-        "confirmed",
-        "checked-in",
-      ];
+      const activeStatuses =
+        [
+          "pending",
+          "accepted",
+          "confirmed",
+          "checked-in",
+        ];
 
       const today =
         new Date();
@@ -2436,82 +3011,96 @@ router.get(
         recentBookings,
         recentNotifications,
       ] =
-        await Promise.all([
-          Appointment.countDocuments({
-            userId:
-              user._id,
-          }),
+        await Promise.all(
+          [
+            Appointment.countDocuments(
+              {
+                userId:
+                  user._id,
+              }
+            ),
 
-          Appointment.countDocuments({
-            userId:
-              user._id,
+            Appointment.countDocuments(
+              {
+                userId:
+                  user._id,
 
-            status: {
-              $in:
-                activeStatuses,
-            },
-          }),
+                status: {
+                  $in:
+                    activeStatuses,
+                },
+              }
+            ),
 
-          Appointment.countDocuments({
-            userId:
-              user._id,
+            Appointment.countDocuments(
+              {
+                userId:
+                  user._id,
 
-            status: {
-              $in:
-                activeStatuses,
-            },
+                status: {
+                  $in:
+                    activeStatuses,
+                },
 
-            checkin: {
-              $gte:
-                today,
-            },
-          }),
+                checkin: {
+                  $gte:
+                    today,
+                },
+              }
+            ),
 
-          Notification.countDocuments({
-            userId:
-              user._id,
+            Notification.countDocuments(
+              {
+                userId:
+                  user._id,
 
-            archived:
-              false,
+                archived:
+                  false,
 
-            read:
-              false,
-          }),
+                read:
+                  false,
+              }
+            ),
 
-          Notification.countDocuments({
-            userId:
-              user._id,
+            Notification.countDocuments(
+              {
+                userId:
+                  user._id,
 
-            archived:
-              false,
-          }),
+                archived:
+                  false,
+              }
+            ),
 
-          Appointment.find({
-            userId:
-              user._id,
-          })
-            .select(
-              "-adminNotes"
-            )
-            .sort({
-              createdAt: -1,
+            Appointment.find({
+              userId:
+                user._id,
             })
-            .limit(10)
-            .lean(),
+              .select(
+                "-adminNotes"
+              )
+              .sort({
+                createdAt:
+                  -1,
+              })
+              .limit(10)
+              .lean(),
 
-          Notification.find({
-            userId:
-              user._id,
+            Notification.find({
+              userId:
+                user._id,
 
-            archived:
-              false,
-          })
-            .sort({
-              createdAt: -1,
+              archived:
+                false,
             })
-            .limit(10)
-            .lean(),
-        ]);
+              .sort({
+                createdAt:
+                  -1,
+              })
+              .limit(10)
+              .lean(),
+          ]
+        );
 
       return res.json({
         success:
@@ -2563,7 +3152,10 @@ router.get(
 router.get(
   "/api/me/bookings",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -2620,32 +3212,36 @@ router.get(
       const [
         total,
         bookings,
-      ] = await Promise.all([
-        Appointment.countDocuments(
-          filter
-        ),
+      ] =
+        await Promise.all(
+          [
+            Appointment.countDocuments(
+              filter
+            ),
 
-        Appointment.find(
-          filter
-        )
-          .select(
-            "-adminNotes"
-          )
-          .sort({
-            createdAt: -1,
-          })
-          .skip(
-            (
-              currentPage -
-              1
-            ) *
-              currentLimit
-          )
-          .limit(
-            currentLimit
-          )
-          .lean(),
-      ]);
+            Appointment.find(
+              filter
+            )
+              .select(
+                "-adminNotes"
+              )
+              .sort({
+                createdAt:
+                  -1,
+              })
+              .skip(
+                (
+                  currentPage -
+                  1
+                ) *
+                  currentLimit
+              )
+              .limit(
+                currentLimit
+              )
+              .lean(),
+          ]
+        );
 
       const totalPages =
         Math.max(
@@ -2707,7 +3303,10 @@ router.get(
 router.get(
   "/api/me/notifications/unread-count",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -2725,16 +3324,18 @@ router.get(
           ? await Notification.getUnreadCount(
               user._id
             )
-          : await Notification.countDocuments({
-              userId:
-                user._id,
+          : await Notification.countDocuments(
+              {
+                userId:
+                  user._id,
 
-              archived:
-                false,
+                archived:
+                  false,
 
-              read:
-                false,
-            });
+                read:
+                  false,
+              }
+            );
 
       return res.json({
         success:
@@ -2760,7 +3361,10 @@ router.get(
 router.get(
   "/api/me/notifications",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -2791,7 +3395,8 @@ router.get(
 
       const unreadOnly =
         String(
-          req.query.unreadOnly
+          req.query
+            .unreadOnly
         ) ===
         "true";
 
@@ -2819,42 +3424,45 @@ router.get(
         unreadCount,
         notifications,
       ] =
-        await Promise.all([
-          Notification.countDocuments(
-            filter
-          ),
+        await Promise.all(
+          [
+            Notification.countDocuments(
+              filter
+            ),
 
-          Notification.countDocuments(
-            {
-              userId:
-                user._id,
+            Notification.countDocuments(
+              {
+                userId:
+                  user._id,
 
-              archived:
-                false,
+                archived:
+                  false,
 
-              read:
-                false,
-            }
-          ),
+                read:
+                  false,
+              }
+            ),
 
-          Notification.find(
-            filter
-          )
-            .sort({
-              createdAt: -1,
-            })
-            .skip(
-              (
-                currentPage -
-                1
-              ) *
+            Notification.find(
+              filter
+            )
+              .sort({
+                createdAt:
+                  -1,
+              })
+              .skip(
+                (
+                  currentPage -
+                  1
+                ) *
+                  currentLimit
+              )
+              .limit(
                 currentLimit
-            )
-            .limit(
-              currentLimit
-            )
-            .lean(),
-        ]);
+              )
+              .lean(),
+          ]
+        );
 
       const totalPages =
         Math.max(
@@ -2923,7 +3531,9 @@ async function ownedNotification(
     ).trim();
 
   if (
-    !isValidObjectId(id)
+    !isValidObjectId(
+      id
+    )
   ) {
     return null;
   }
@@ -2933,10 +3543,14 @@ async function ownedNotification(
    * The query always includes userId.
    * This prevents notification IDOR.
    */
-  return Notification.findOne({
-    _id: id,
-    userId,
-  });
+  return Notification.findOne(
+    {
+      _id:
+        id,
+
+      userId,
+    }
+  );
 }
 
 async function setNotificationRead(
@@ -2970,7 +3584,9 @@ async function setNotificationRead(
       );
     }
 
-    if (read) {
+    if (
+      read
+    ) {
       if (
         typeof notification.markAsRead ===
         "function"
@@ -3082,7 +3698,10 @@ router.post(
 router.post(
   "/api/me/notifications/read-all",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -3181,7 +3800,9 @@ async function setNotificationArchived(
       );
     }
 
-    if (archived) {
+    if (
+      archived
+    ) {
       if (
         typeof notification.archive ===
         "function"
@@ -3303,45 +3924,53 @@ async function buildLiveUpdates(
     totalBookings,
     unreadNotifications,
   ] =
-    await Promise.all([
-      Appointment.find({
-        userId,
-      })
-        .select(
-          "-adminNotes"
-        )
-        .sort({
-          createdAt: -1,
+    await Promise.all(
+      [
+        Appointment.find({
+          userId,
         })
-        .limit(100)
-        .lean(),
+          .select(
+            "-adminNotes"
+          )
+          .sort({
+            createdAt:
+              -1,
+          })
+          .limit(100)
+          .lean(),
 
-      Notification.find({
-        userId,
+        Notification.find({
+          userId,
 
-        archived:
-          false,
-      })
-        .sort({
-          createdAt: -1,
+          archived:
+            false,
         })
-        .limit(100)
-        .lean(),
+          .sort({
+            createdAt:
+              -1,
+          })
+          .limit(100)
+          .lean(),
 
-      Appointment.countDocuments({
-        userId,
-      }),
+        Appointment.countDocuments(
+          {
+            userId,
+          }
+        ),
 
-      Notification.countDocuments({
-        userId,
+        Notification.countDocuments(
+          {
+            userId,
 
-        archived:
-          false,
+            archived:
+              false,
 
-        read:
-          false,
-      }),
-    ]);
+            read:
+              false,
+          }
+        ),
+      ]
+    );
 
   return {
     appointments,
@@ -3359,7 +3988,10 @@ async function buildLiveUpdates(
 router.get(
   "/userUpdates",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -3395,15 +4027,18 @@ router.get(
 );
 
 /*
- * Legacy endpoint retained for compatibility
- * with older profile implementations.
+ * Legacy endpoint retained for compatibility with older
+ * profile implementations.
  *
  * The supplied ID is NEVER trusted by itself.
  */
 router.get(
   "/userUpdates/:userId",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const requested =
         String(
@@ -3489,7 +4124,10 @@ router.get(
 router.post(
   "/appointment/cancel/:appointmentId",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -3520,16 +4158,29 @@ router.post(
         );
       }
 
+      /*
+       * First lookup is only used to identify the room lock.
+       * The appointment is deliberately fetched again after
+       * acquiring the lock.
+       */
       const existing =
-        await Appointment.findOne({
-          _id:
-            appointmentId,
+        await Appointment.findOne(
+          {
+            _id:
+              appointmentId,
 
-          userId:
-            user._id,
-        });
+            userId:
+              user._id,
+          }
+        )
+          .select(
+            "_id userId roomId room roomType accommodation roomName checkin checkout status"
+          )
+          .lean();
 
-      if (!existing) {
+      if (
+        !existing
+      ) {
         return jsonError(
           res,
           404,
@@ -3538,116 +4189,182 @@ router.post(
         );
       }
 
-      const status =
-        String(
-          existing.status ||
-            "pending"
-        ).toLowerCase();
-
-      if (
-        !CANCELLABLE_STATUSES.includes(
-          status
-        )
-      ) {
-        return jsonError(
-          res,
-          400,
-          `A booking with status "${existing.status}" cannot be cancelled.`,
-          "BOOKING_NOT_CANCELLABLE"
-        );
-      }
-
       /*
-       * Conditional update:
-       * even if another request changes the booking
-       * after the validation above, this update will
-       * only succeed while the status is cancellable.
+       * Lock the same room resource used by booking creation.
+       *
+       * This prevents a cancellation from racing with an admin
+       * acceptance/confirmation operation.
        */
-      const appointment =
-        await Appointment.findOneAndUpdate(
+      const result =
+        await withRoomLock(
           {
             _id:
-              appointmentId,
+              existing.roomId ||
+              null,
 
-            userId:
-              user._id,
-
-            status: {
-              $in:
-                CANCELLABLE_STATUSES,
-            },
+            name:
+              existing.room ||
+              existing.roomName ||
+              existing.roomType ||
+              existing.accommodation ||
+              "",
           },
-          {
-            $set: {
-              status:
-                "cancelled",
+          async () => {
+            const latest =
+              await Appointment.findOne(
+                {
+                  _id:
+                    appointmentId,
 
-              cancelledAt:
-                new Date(),
+                  userId:
+                    user._id,
+                }
+              )
+                .select(
+                  "-adminNotes"
+                );
 
-              cancelledBy:
-                "user",
-            },
+            if (
+              !latest
+            ) {
+              const error =
+                new Error(
+                  "Appointment not found."
+                );
+
+              error.code =
+                "APPOINTMENT_NOT_FOUND";
+
+              throw error;
+            }
+
+            const status =
+              String(
+                latest.status ||
+                  "pending"
+              ).toLowerCase();
+
+            if (
+              !CANCELLABLE_STATUSES.includes(
+                status
+              )
+            ) {
+              const error =
+                new Error(
+                  `A booking with status "${latest.status}" cannot be cancelled.`
+                );
+
+              error.code =
+                "BOOKING_NOT_CANCELLABLE";
+
+              throw error;
+            }
+
+            /*
+             * Conditional update is intentionally retained.
+             *
+             * The database itself verifies the booking is still
+             * in a cancellable state.
+             */
+            const appointment =
+              await Appointment.findOneAndUpdate(
+                {
+                  _id:
+                    appointmentId,
+
+                  userId:
+                    user._id,
+
+                  status: {
+                    $in:
+                      CANCELLABLE_STATUSES,
+                  },
+                },
+                {
+                  $set: {
+                    status:
+                      "cancelled",
+
+                    cancelledAt:
+                      new Date(),
+
+                    cancelledBy:
+                      "user",
+                  },
+                },
+                {
+                  new:
+                    true,
+
+                  runValidators:
+                    true,
+                }
+              ).select(
+                "-adminNotes"
+              );
+
+            if (
+              !appointment
+            ) {
+              const error =
+                new Error(
+                  "This booking was already updated and can no longer be cancelled."
+                );
+
+              error.code =
+                "BOOKING_STATE_CHANGED";
+
+              throw error;
+            }
+
+            return appointment;
           },
-          {
-            new:
-              true,
-
-            runValidators:
-              true,
-          }
-        )
-          .select(
-            "-adminNotes"
-          );
-
-      if (!appointment) {
-        return jsonError(
-          res,
-          409,
-          "This booking was already updated and can no longer be cancelled.",
-          "BOOKING_STATE_CHANGED"
+          BOOKING_LOCK_OPTIONS
         );
-      }
 
-      await createAppointmentNotification({
-        userId:
-          user._id,
+      /*
+       * Notification is deliberately outside the lock.
+       */
+      await createAppointmentNotification(
+        {
+          userId:
+            user._id,
 
-        appointmentId:
-          appointment._id,
+          appointmentId:
+            result._id,
 
-        event:
-          "cancelled",
+          event:
+            "cancelled",
 
-        title:
-          "Reservation Cancelled",
+          title:
+            "Reservation Cancelled",
 
-        message:
-          `Your reservation for ${appointment.room} ` +
-          `from ${dateLabel(
-            appointment.checkin
-          )} to ${dateLabel(
-            appointment.checkout
-          )} has been cancelled successfully.`,
+          message:
+            `Your reservation for ${result.room} ` +
+            `from ${dateLabel(
+              result.checkin
+            )} to ${dateLabel(
+              result.checkout
+            )} has been cancelled successfully.`,
 
-        priority:
-          "high",
+          priority:
+            "high",
 
-        metadata: {
-          roomName:
-            appointment.room,
+          metadata: {
+            roomName:
+              result.room,
 
-          checkin:
-            appointment.checkin,
+            checkin:
+              result.checkin,
 
-          checkout:
-            appointment.checkout,
+            checkout:
+              result.checkout,
 
-          status:
-            appointment.status,
-        },
-      });
+            status:
+              result.status,
+          },
+        }
+      );
 
       return res.json({
         success:
@@ -3658,7 +4375,7 @@ router.post(
 
         appointment:
           serializeAppointment(
-            appointment
+            result
           ),
       });
     } catch (error) {
@@ -3667,13 +4384,65 @@ router.post(
         error
       );
 
+      if (
+        error?.code ===
+        "APPOINTMENT_NOT_FOUND"
+      ) {
+        return jsonError(
+          res,
+          404,
+          "Appointment not found.",
+          "APPOINTMENT_NOT_FOUND"
+        );
+      }
+
+      if (
+        error?.code ===
+        "BOOKING_NOT_CANCELLABLE"
+      ) {
+        return jsonError(
+          res,
+          400,
+          error.message,
+          "BOOKING_NOT_CANCELLABLE"
+        );
+      }
+
+      if (
+        error?.code ===
+        "BOOKING_STATE_CHANGED"
+      ) {
+        return jsonError(
+          res,
+          409,
+          error.message,
+          "BOOKING_STATE_CHANGED"
+        );
+      }
+
+      if (
+        error?.code ===
+        "BOOKING_LOCK_TIMEOUT"
+      ) {
+        return jsonError(
+          res,
+          409,
+          "This reservation is currently being updated. Please try again in a moment.",
+          "BOOKING_LOCK_TIMEOUT"
+        );
+      }
+
       return jsonError(
         res,
         error?.name ===
           "ValidationError"
           ? 400
           : 500,
-        "Failed to cancel the appointment."
+        "Failed to cancel the appointment.",
+        error?.name ===
+          "ValidationError"
+          ? "VALIDATION_ERROR"
+          : "CANCELLATION_ERROR"
       );
     }
   }
@@ -3686,7 +4455,10 @@ router.post(
 router.get(
   "/api/user-catalog",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -3702,11 +4474,13 @@ router.get(
         rooms,
         addOns,
       ] =
-        await Promise.all([
-          getActiveRooms(),
+        await Promise.all(
+          [
+            getActiveRooms(),
 
-          getActiveAddOns(),
-        ]);
+            getActiveAddOns(),
+          ]
+        );
 
       return res.json({
         success:
@@ -3744,7 +4518,10 @@ router.get(
 router.post(
   "/profile/update-password",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     const json =
       wantsJson(req);
 
@@ -3799,7 +4576,9 @@ router.post(
           "+password +passwordResetTokenHash +passwordResetExpires"
         );
 
-      if (!user) {
+      if (
+        !user
+      ) {
         await destroySession(
           req
         );
@@ -3941,8 +4720,8 @@ router.post(
       }
 
       /*
-       * Invalidate an outstanding reset token
-       * whenever the password is changed.
+       * Invalidate an outstanding reset token whenever the
+       * password is changed.
        */
       if (
         user.schema.path(
@@ -3976,7 +4755,7 @@ router.post(
 
       /*
        * Refresh only the safe session identity.
-       * Never put the password into the session.
+       * Never put the password into session storage.
        */
       req.session.user =
         safeSessionUser(
@@ -3987,7 +4766,9 @@ router.post(
         req
       );
 
-      if (json) {
+      if (
+        json
+      ) {
         return res.json({
           success:
             true,
@@ -4014,7 +4795,8 @@ router.post(
         ? jsonError(
             res,
             500,
-            "Unable to update your password right now. Please try again."
+            "Unable to update your password right now. Please try again.",
+            "PASSWORD_UPDATE_ERROR"
           )
         : res.redirect(
             queryRedirect(
@@ -4031,4 +4813,5 @@ router.post(
    EXPORT
 ============================================================ */
 
-module.exports = router;
+module.exports =
+  router;

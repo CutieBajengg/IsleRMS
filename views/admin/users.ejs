@@ -9,11 +9,20 @@
  * Expected server-side variables (defensively optional):
  *   users, admin, csrfToken
  *
- * The page intentionally accepts several possible booking-summary
- * property names so it remains compatible with your current route.
+ * Important compatibility notes:
+ * - EJS is intentionally kept OUT of the executable JavaScript block.
+ * - Customer data is serialized through hidden <textarea> elements.
+ * - The page uses booking VALUE terminology rather than claiming
+ *   that reservations represent money actually paid.
  * ============================================================ */
 
-const sourceUsers = Array.isArray(users) ? users : [];
+const sourceUsers =
+  typeof users !== "undefined" && Array.isArray(users) ? users : [];
+
+const adminSource =
+  typeof admin !== "undefined" && admin && typeof admin === "object"
+    ? admin
+    : {};
 
 function clean(value, fallback = "—") {
   if (value === null || value === undefined) return fallback;
@@ -23,7 +32,11 @@ function clean(value, fallback = "—") {
 
 function firstValue(...values) {
   for (const value of values) {
-    if (value !== undefined && value !== null && String(value).trim() !== "") {
+    if (
+      value !== undefined &&
+      value !== null &&
+      String(value).trim() !== ""
+    ) {
       return value;
     }
   }
@@ -49,80 +62,130 @@ function isoDate(value) {
   return date ? date.toISOString() : "";
 }
 
-function normalizeStatus(value) {
-  return clean(value, "unknown").toLowerCase().replace(/[_\s]+/g, "-");
+function normalizeStatus(value, fallback = "active") {
+  return clean(value, fallback)
+    .toLowerCase()
+    .replace(/[_\s]+/g, "-");
 }
 
 function normalizeUser(user) {
   const source = user && typeof user === "object" ? user : {};
-  const summary = source.bookingSummary || source.summary || source.bookingStats || source.stats || {};
+  const summary =
+    source.bookingSummary ||
+    source.summary ||
+    source.bookingStats ||
+    source.stats ||
+    {};
   const bookingArray = Array.isArray(source.bookings) ? source.bookings : [];
 
-  const firstName = clean(firstValue(source.firstName, source.givenName), "");
-  const lastName = clean(firstValue(source.lastName, source.familyName), "");
-  const constructedName = [firstName !== "—" ? firstName : "", lastName !== "—" ? lastName : ""]
+  const firstName = clean(
+    firstValue(source.firstName, source.givenName),
+    ""
+  );
+  const lastName = clean(
+    firstValue(source.lastName, source.familyName),
+    ""
+  );
+
+  const constructedName = [
+    firstName && firstName !== "—" ? firstName : "",
+    lastName && lastName !== "—" ? lastName : ""
+  ]
     .filter(Boolean)
     .join(" ")
     .trim();
 
   const fullname = clean(
-    firstValue(source.fullname, source.fullName, source.name, constructedName, source.username, source.email),
+    firstValue(
+      source.fullname,
+      source.fullName,
+      source.name,
+      constructedName,
+      source.username,
+      source.email
+    ),
     "Guest"
   );
 
   const totalBookings = Math.max(
     0,
-    Math.round(firstNumber(
-      summary.totalBookings,
-      summary.bookingCount,
-      summary.count,
-      source.totalBookings,
-      source.bookingCount,
-      source.bookingsCount,
-      bookingArray.length
-    ))
+    Math.round(
+      firstNumber(
+        summary.totalBookings,
+        summary.bookingCount,
+        summary.count,
+        source.totalBookings,
+        source.bookingCount,
+        source.bookingsCount,
+        bookingArray.length
+      )
+    )
   );
 
-  const totalSpent = Math.max(0, firstNumber(
-    summary.totalSpent,
-    summary.totalSpend,
-    summary.totalRevenue,
-    summary.spent,
-    summary.amountSpent,
-    source.totalSpent,
-    source.totalSpend,
-    source.bookingValue,
-    source.totalBookingValue,
-    source.totalRevenue
-  ));
+  const totalSpent = Math.max(
+    0,
+    firstNumber(
+      summary.totalSpent,
+      summary.totalSpend,
+      summary.totalBookingValue,
+      summary.totalRevenue,
+      summary.bookingValue,
+      summary.spent,
+      summary.amountSpent,
+      source.totalSpent,
+      source.totalSpend,
+      source.bookingValue,
+      source.totalBookingValue,
+      source.totalRevenue
+    )
+  );
 
-  const completedBookings = Math.max(0, Math.round(firstNumber(
-    summary.completedBookings,
-    summary.completed,
-    source.completedBookings
-  )));
+  const completedBookings = Math.max(
+    0,
+    Math.round(
+      firstNumber(
+        summary.completedBookings,
+        summary.completed,
+        source.completedBookings
+      )
+    )
+  );
 
-  const cancelledBookings = Math.max(0, Math.round(firstNumber(
-    summary.cancelledBookings,
-    summary.cancelled,
-    source.cancelledBookings
-  )));
+  const cancelledBookings = Math.max(
+    0,
+    Math.round(
+      firstNumber(
+        summary.cancelledBookings,
+        summary.cancelled,
+        source.cancelledBookings
+      )
+    )
+  );
 
-  const pendingBookings = Math.max(0, Math.round(firstNumber(
-    summary.pendingBookings,
-    summary.pending,
-    source.pendingBookings
-  )));
+  const pendingBookings = Math.max(
+    0,
+    Math.round(
+      firstNumber(
+        summary.pendingBookings,
+        summary.pending,
+        source.pendingBookings
+      )
+    )
+  );
 
-  const activeBookings = Math.max(0, Math.round(firstNumber(
-    summary.activeBookings,
-    summary.active,
-    source.activeBookings
-  )));
+  const activeBookings = Math.max(
+    0,
+    Math.round(
+      firstNumber(
+        summary.activeBookings,
+        summary.active,
+        source.activeBookings
+      )
+    )
+  );
 
-  const averageBookingValue = totalBookings > 0
-    ? totalSpent / totalBookings
-    : 0;
+  const averageBookingValue =
+    totalBookings > 0 ? totalSpent / totalBookings : 0;
 
   const lastBooking = firstValue(
     summary.lastBooking,
@@ -134,14 +197,21 @@ function normalizeUser(user) {
     source.updatedAt
   );
 
-  const memberLevel = clean(firstValue(
-    source.memberLevel,
-    source.membershipLevel,
-    source.tier,
-    source.level
-  ), "Guest");
+  const memberLevel = clean(
+    firstValue(
+      source.memberLevel,
+      source.membershipLevel,
+      source.tier,
+      source.level
+    ),
+    "Guest"
+  );
 
-  const status = normalizeStatus(firstValue(source.status, source.accountStatus), "active");
+  const rawStatus = firstValue(source.status, source.accountStatus);
+  const accountFallback =
+    source.active === false || source.isActive === false ? "inactive" : "active";
+  const status = normalizeStatus(rawStatus, accountFallback);
+
   const emailVerified = Boolean(
     source.emailVerified === true ||
     source.emailVerified === "true" ||
@@ -153,7 +223,10 @@ function normalizeUser(user) {
     id: clean(firstValue(source._id, source.id, source.userId), ""),
     fullname,
     email: clean(source.email, "No email"),
-    phone: clean(firstValue(source.phone, source.contact, source.mobile), "Not provided"),
+    phone: clean(
+      firstValue(source.phone, source.contact, source.mobile),
+      "Not provided"
+    ),
     username: clean(source.username, "Not set"),
     status,
     memberLevel,
@@ -166,38 +239,71 @@ function normalizeUser(user) {
     activeBookings,
     averageBookingValue,
     lastBookingAt: isoDate(lastBooking),
-    createdAt: isoDate(firstValue(source.createdAt, source.registeredAt, source.joinedAt)),
+    createdAt: isoDate(
+      firstValue(source.createdAt, source.registeredAt, source.joinedAt)
+    ),
     lastLoginAt: isoDate(firstValue(source.lastLoginAt, source.lastLogin)),
-    failedLoginAttempts: Math.max(0, Math.round(firstNumber(source.failedLoginAttempts))),
+    failedLoginAttempts: Math.max(
+      0,
+      Math.round(firstNumber(source.failedLoginAttempts))
+    ),
     lockedUntil: isoDate(source.lockedUntil),
-    avatar: clean(firstValue(source.avatar, source.profileImage, source.photo), ""),
-    bookingCountLabel: totalBookings === 1 ? "1 booking" : `${totalBookings} bookings`
+    avatar: clean(
+      firstValue(source.avatar, source.profileImage, source.photo),
+      ""
+    ),
+    bookingCountLabel:
+      totalBookings === 1 ? "1 booking" : `${totalBookings} bookings`
   };
 }
 
-const userRows = sourceUsers.map(normalizeUser).filter((user) => user.id || user.email || user.fullname);
+const userRows = sourceUsers
+  .map(normalizeUser)
+  .filter((user) => user.id || user.email || user.fullname);
 
-const overview = userRows.reduce((acc, user) => {
-  acc.customers += 1;
-  if (user.status === "active") acc.active += 1;
-  if (user.emailVerified) acc.verified += 1;
-  acc.bookings += user.totalBookings;
-  acc.spent += user.totalSpent;
-  if (user.totalBookings >= 2) acc.returning += 1;
-  return acc;
-}, { customers: 0, active: 0, verified: 0, bookings: 0, spent: 0, returning: 0 });
+const overview = userRows.reduce(
+  (acc, user) => {
+    acc.customers += 1;
+    if (user.status === "active") acc.active += 1;
+    if (user.emailVerified) acc.verified += 1;
+    acc.bookings += user.totalBookings;
+    acc.spent += user.totalSpent;
+    if (user.totalBookings >= 2) acc.returning += 1;
+    return acc;
+  },
+  {
+    customers: 0,
+    active: 0,
+    verified: 0,
+    bookings: 0,
+    spent: 0,
+    returning: 0
+  }
+);
 
-const avgPerCustomer = overview.customers > 0 ? overview.spent / overview.customers : 0;
-const avgBookingValue = overview.bookings > 0 ? overview.spent / overview.bookings : 0;
-const currentAdminName = clean(firstValue(admin && admin.username, admin && admin.name, admin && admin.email), "Administrator");
-const initialCsrfToken = clean(typeof csrfToken !== "undefined" ? csrfToken : "", "");
+const avgPerCustomer =
+  overview.customers > 0 ? overview.spent / overview.customers : 0;
+const avgBookingValue =
+  overview.bookings > 0 ? overview.spent / overview.bookings : 0;
+
+const currentAdminName = clean(
+  firstValue(adminSource.username, adminSource.name, adminSource.email),
+  "Administrator"
+);
+
+const initialCsrfToken = clean(
+  typeof csrfToken !== "undefined" ? csrfToken : "",
+  ""
+);
 
 function php(value) {
   const amount = Number(value) || 0;
-  return `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+  return `₱${amount.toLocaleString("en-PH", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2
+  })}`;
 }
 %>
-
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -205,13 +311,12 @@ function php(value) {
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#071416">
   <meta name="color-scheme" content="dark">
+  <meta name="csrf-token" content="<%= initialCsrfToken %>">
   <title>Customers | IsleRMS Admin</title>
-
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
-
   <style>
     :root {
       --bg: #061114;
@@ -240,7 +345,9 @@ function php(value) {
     }
 
     * { box-sizing: border-box; }
+
     html { scroll-behavior: smooth; }
+
     body {
       margin: 0;
       min-height: 100vh;
@@ -256,7 +363,9 @@ function php(value) {
     body.modal-open { overflow: hidden; }
 
     a { color: inherit; text-decoration: none; }
+
     button, input, select { font: inherit; }
+
     button { color: inherit; }
 
     .page-shell {
@@ -293,6 +402,7 @@ function php(value) {
     }
 
     h1, h2, h3 { margin: 0; }
+
     h1 {
       font-family: "Playfair Display", serif;
       font-size: clamp(2rem, 3vw, 3.3rem);
@@ -345,8 +455,15 @@ function php(value) {
       font-weight: 800;
     }
 
-    .button.gold:hover { background: linear-gradient(135deg, #efbc4d, #ffdc7b); }
-    .button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+    .button.gold:hover {
+      background: linear-gradient(135deg, #efbc4d, #ffdc7b);
+    }
+
+    .button:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+      transform: none;
+    }
 
     .metric-grid {
       display: grid;
@@ -467,7 +584,13 @@ function php(value) {
     }
 
     .insight-copy strong { display: block; font-size: 0.9rem; }
-    .insight-copy span { display: block; color: var(--muted); font-size: 0.76rem; margin-top: 3px; }
+
+    .insight-copy span {
+      display: block;
+      color: var(--muted);
+      font-size: 0.76rem;
+      margin-top: 3px;
+    }
 
     .panel {
       border: 1px solid var(--border);
@@ -514,9 +637,7 @@ function php(value) {
       background: rgba(0,0,0,0.1);
     }
 
-    .field {
-      position: relative;
-    }
+    .field { position: relative; }
 
     .field.search-field i {
       position: absolute;
@@ -541,7 +662,9 @@ function php(value) {
     }
 
     .search-field .control { padding-left: 39px; }
+
     .control::placeholder { color: #687a7a; }
+
     .control:focus,
     .select-control:focus {
       border-color: rgba(45,199,189,0.42);
@@ -597,6 +720,7 @@ function php(value) {
     }
 
     tbody tr:hover { background: rgba(45,199,189,0.035); }
+
     tbody tr:focus-within { background: rgba(242,191,72,0.035); }
 
     .user-cell {
@@ -620,11 +744,13 @@ function php(value) {
       overflow: hidden;
     }
 
-    .avatar img { width: 100%; height: 100%; object-fit: cover; }
-
-    .user-primary {
-      min-width: 0;
+    .avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
     }
+
+    .user-primary { min-width: 0; }
 
     .user-primary strong {
       display: block;
@@ -646,8 +772,17 @@ function php(value) {
       max-width: 260px;
     }
 
-    .stacked-value strong { display: block; font-size: 0.85rem; }
-    .stacked-value span { display: block; margin-top: 4px; color: var(--muted); font-size: 0.72rem; }
+    .stacked-value strong {
+      display: block;
+      font-size: 0.85rem;
+    }
+
+    .stacked-value span {
+      display: block;
+      margin-top: 4px;
+      color: var(--muted);
+      font-size: 0.72rem;
+    }
 
     .money {
       color: var(--gold-bright);
@@ -682,7 +817,9 @@ function php(value) {
 
     .pill.suspended,
     .pill.inactive,
-    .pill.cancelled {
+    .pill.cancelled,
+    .pill.rejected,
+    .pill.declined {
       color: #ffb7bd;
       border-color: rgba(255,125,134,0.2);
       background: rgba(255,125,134,0.07);
@@ -696,7 +833,9 @@ function php(value) {
     }
 
     .pill.confirmed,
-    .pill.accepted {
+    .pill.accepted,
+    .pill.checked-in,
+    .pill.checked-out {
       color: #a8d1ff;
       border-color: rgba(127,181,255,0.2);
       background: rgba(127,181,255,0.07);
@@ -714,10 +853,12 @@ function php(value) {
       transition: 160ms ease;
     }
 
-    .row-action:hover {
+    .row-action:hover,
+    .row-action:focus-visible {
       color: var(--gold-bright);
       border-color: rgba(242,191,72,0.28);
       background: rgba(242,191,72,0.06);
+      outline: none;
     }
 
     .empty-state {
@@ -738,7 +879,11 @@ function php(value) {
       font-size: 1.25rem;
     }
 
-    .empty-state strong { display: block; color: var(--text); margin-bottom: 5px; }
+    .empty-state strong {
+      display: block;
+      color: var(--text);
+      margin-bottom: 5px;
+    }
 
     .pagination {
       padding: 14px 16px;
@@ -750,8 +895,15 @@ function php(value) {
       background: rgba(0,0,0,0.1);
     }
 
-    .pagination-copy { color: var(--muted); font-size: 0.76rem; }
-    .pagination-actions { display: flex; gap: 8px; }
+    .pagination-copy {
+      color: var(--muted);
+      font-size: 0.76rem;
+    }
+
+    .pagination-actions {
+      display: flex;
+      gap: 8px;
+    }
 
     .modal-backdrop {
       position: fixed;
@@ -812,9 +964,14 @@ function php(value) {
       flex: 0 0 auto;
     }
 
-    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+    .profile-avatar img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+    }
 
     .profile-meta { min-width: 0; }
+
     .profile-meta h2 {
       font-family: "Playfair Display", serif;
       font-size: 1.45rem;
@@ -832,7 +989,11 @@ function php(value) {
       max-width: 650px;
     }
 
-    .profile-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+    .profile-badges {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
 
     .close-modal {
       width: 40px;
@@ -842,6 +1003,13 @@ function php(value) {
       border-radius: 11px;
       cursor: pointer;
       flex: 0 0 auto;
+    }
+
+    .close-modal:hover,
+    .close-modal:focus-visible {
+      border-color: rgba(242,191,72,0.28);
+      color: var(--gold-bright);
+      outline: none;
     }
 
     .modal-body {
@@ -854,6 +1022,7 @@ function php(value) {
       display: grid;
       place-items: center;
       color: var(--muted);
+      text-align: center;
     }
 
     .spinner {
@@ -863,7 +1032,7 @@ function php(value) {
       border: 3px solid rgba(255,255,255,0.12);
       border-top-color: var(--gold);
       animation: spin 800ms linear infinite;
-      margin-bottom: 10px;
+      margin: 0 auto 10px;
     }
 
     @keyframes spin { to { transform: rotate(360deg); } }
@@ -915,7 +1084,10 @@ function php(value) {
       margin-bottom: 13px;
     }
 
-    .info-list { display: grid; gap: 11px; }
+    .info-list {
+      display: grid;
+      gap: 11px;
+    }
 
     .info-item {
       display: flex;
@@ -925,9 +1097,21 @@ function php(value) {
       border-bottom: 1px solid rgba(255,255,255,0.05);
     }
 
-    .info-item:last-child { border-bottom: 0; padding-bottom: 0; }
-    .info-item span { color: var(--muted); font-size: 0.75rem; }
-    .info-item strong { font-size: 0.77rem; text-align: right; word-break: break-word; }
+    .info-item:last-child {
+      border-bottom: 0;
+      padding-bottom: 0;
+    }
+
+    .info-item span {
+      color: var(--muted);
+      font-size: 0.75rem;
+    }
+
+    .info-item strong {
+      font-size: 0.77rem;
+      text-align: right;
+      word-break: break-word;
+    }
 
     .booking-list-wrap {
       border: 1px solid var(--border);
@@ -946,11 +1130,18 @@ function php(value) {
     }
 
     .booking-list-head strong { font-size: 0.9rem; }
-    .booking-list-head span { font-size: 0.72rem; color: var(--muted); }
+
+    .booking-list-head span {
+      font-size: 0.72rem;
+      color: var(--muted);
+    }
 
     .mini-table { min-width: 760px; }
+
     .mini-table th { position: static; }
-    .mini-table td, .mini-table th { padding: 12px 14px; }
+
+    .mini-table td,
+    .mini-table th { padding: 12px 14px; }
 
     .skeleton {
       height: 16px;
@@ -992,9 +1183,21 @@ function php(value) {
     .toast-icon { color: var(--teal); margin-top: 2px; }
     .toast.error .toast-icon { color: var(--red); }
     .toast strong { display: block; font-size: 0.8rem; }
-    .toast span { display: block; margin-top: 2px; color: var(--muted); font-size: 0.73rem; line-height: 1.45; }
 
-    @keyframes toastIn { to { transform: translateY(0); opacity: 1; } }
+    .toast span {
+      display: block;
+      margin-top: 2px;
+      color: var(--muted);
+      font-size: 0.73rem;
+      line-height: 1.45;
+    }
+
+    @keyframes toastIn {
+      to {
+        transform: translateY(0);
+        opacity: 1;
+      }
+    }
 
     .sr-only {
       position: absolute !important;
@@ -1011,16 +1214,33 @@ function php(value) {
     .muted { color: var(--muted); }
     .nowrap { white-space: nowrap; }
 
+    .data-source {
+      display: none !important;
+    }
+
     @media (max-width: 1150px) {
       .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-      .toolbar { grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(140px, 1fr)); }
+
+      .toolbar {
+        grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(140px, 1fr));
+      }
+
       .toolbar > :last-child { grid-column: span 1; }
+
       .detail-grid { grid-template-columns: 1fr; }
     }
 
     @media (max-width: 800px) {
-      .page-shell { width: min(100% - 22px, 1500px); padding-top: 22px; }
-      .page-header { align-items: flex-start; flex-direction: column; }
+      .page-shell {
+        width: min(100% - 22px, 1500px);
+        padding-top: 22px;
+      }
+
+      .page-header {
+        align-items: flex-start;
+        flex-direction: column;
+      }
+
       .header-actions { justify-content: flex-start; }
       .insight-strip { grid-template-columns: 1fr; }
       .toolbar { grid-template-columns: 1fr 1fr; }
@@ -1035,16 +1255,32 @@ function php(value) {
       .search-field { grid-column: auto; }
       .detail-kpis { grid-template-columns: 1fr; }
       .modal-backdrop { padding: 9px; }
-      .modal-head, .modal-body { padding-left: 15px; padding-right: 15px; }
+      .modal-head,
+      .modal-body {
+        padding-left: 15px;
+        padding-right: 15px;
+      }
+
       .profile-head { align-items: flex-start; }
       .profile-meta h2 { white-space: normal; }
       .profile-meta p { white-space: normal; }
-      .pagination { align-items: flex-start; flex-direction: column; }
+
+      .pagination {
+        align-items: flex-start;
+        flex-direction: column;
+      }
     }
   </style>
 </head>
 <body>
   <%- include("../partials/navadmin") %>
+
+  <!--
+    Keep EJS data outside executable JavaScript so VS Code's JavaScript
+    language service does not interpret <%- ... %> as invalid JavaScript.
+  -->
+  <textarea id="initialUsersData" class="data-source" hidden><%- JSON.stringify(userRows).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026") %></textarea>
+  <textarea id="initialCsrfData" class="data-source" hidden><%- JSON.stringify(initialCsrfToken) %></textarea>
 
   <main class="page-shell">
     <header class="page-header">
@@ -1055,13 +1291,12 @@ function php(value) {
           A high-level view of your Puffer Isle guests, reservation history, booking value, engagement, and account activity — built for fast front-desk decisions and management review.
         </p>
       </div>
-
       <div class="header-actions">
-        <button class="button" id="refreshUsers" type="button">
+        <button class="button" id="refreshUsers" type="button" title="Reload the customer directory">
           <i class="fa-solid fa-rotate"></i>
           Refresh
         </button>
-        <button class="button" id="exportUsers" type="button">
+        <button class="button" id="exportUsers" type="button" title="Export the currently filtered customer list">
           <i class="fa-solid fa-file-arrow-down"></i>
           Export CSV
         </button>
@@ -1173,7 +1408,7 @@ function php(value) {
           <label class="sr-only" for="sortFilter">Sort customers</label>
           <select class="select-control" id="sortFilter">
             <option value="recent">Most recent</option>
-            <option value="spent">Highest spend</option>
+            <option value="spent">Highest booking value</option>
             <option value="bookings">Most bookings</option>
             <option value="name">Name A–Z</option>
             <option value="joined">Newest accounts</option>
@@ -1211,8 +1446,12 @@ function php(value) {
       <div class="pagination">
         <div class="pagination-copy" id="paginationCopy">—</div>
         <div class="pagination-actions">
-          <button class="button" id="prevPage" type="button"><i class="fa-solid fa-chevron-left"></i> Previous</button>
-          <button class="button" id="nextPage" type="button">Next <i class="fa-solid fa-chevron-right"></i></button>
+          <button class="button" id="prevPage" type="button">
+            <i class="fa-solid fa-chevron-left"></i> Previous
+          </button>
+          <button class="button" id="nextPage" type="button">
+            Next <i class="fa-solid fa-chevron-right"></i>
+          </button>
         </div>
       </div>
     </section>
@@ -1226,6 +1465,7 @@ function php(value) {
           <i class="fa-solid fa-xmark"></i>
         </button>
       </div>
+
       <div class="modal-body" id="profileBody">
         <div class="modal-loading">
           <div>
@@ -1242,8 +1482,20 @@ function php(value) {
   <script>
     "use strict";
 
-    const INITIAL_USERS = <%- JSON.stringify(userRows).replace(/</g, "\\u003c") %>;
-    const INITIAL_CSRF = <%- JSON.stringify(initialCsrfToken) %>;
+    const readJsonTextarea = (id, fallback) => {
+      const element = document.getElementById(id);
+      if (!element) return fallback;
+
+      try {
+        return JSON.parse(element.value || element.textContent || "");
+      } catch (error) {
+        console.error(`IsleRMS: unable to parse ${id}:`, error);
+        return fallback;
+      }
+    };
+
+    const INITIAL_USERS = readJsonTextarea("initialUsersData", []);
+    const INITIAL_CSRF = readJsonTextarea("initialCsrfData", "");
     const PAGE_SIZE = 12;
 
     const state = {
@@ -1251,7 +1503,8 @@ function php(value) {
       filtered: [],
       page: 1,
       loading: false,
-      activeUserId: null
+      activeUserId: null,
+      lastFocusedElement: null
     };
 
     const el = {
@@ -1285,7 +1538,12 @@ function php(value) {
       }).format(number);
     };
 
-    const integer = (value) => Number(value || 0).toLocaleString("en-PH");
+    const integer = (value) => {
+      const number = Number(value);
+      return Number.isFinite(number)
+        ? number.toLocaleString("en-PH")
+        : "0";
+    };
 
     const escapeHtml = (value) => String(value ?? "")
       .replaceAll("&", "&amp;")
@@ -1294,10 +1552,26 @@ function php(value) {
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
 
+    const safeImageUrl = (value) => {
+      const raw = String(value || "").trim();
+      if (!raw) return "";
+
+      try {
+        const base = window.location.origin;
+        const url = new URL(raw, base);
+        const protocolAllowed = url.protocol === "http:" || url.protocol === "https:";
+        if (!protocolAllowed) return "";
+        return url.href;
+      } catch (error) {
+        return "";
+      }
+    };
+
     const dateTime = (value) => {
       if (!value) return "No recent activity";
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return "No recent activity";
+
       return new Intl.DateTimeFormat("en-PH", {
         month: "short",
         day: "numeric",
@@ -1311,6 +1585,7 @@ function php(value) {
       if (!value) return "—";
       const date = new Date(value);
       if (Number.isNaN(date.getTime())) return "—";
+
       return new Intl.DateTimeFormat("en-PH", {
         month: "short",
         day: "numeric",
@@ -1319,8 +1594,24 @@ function php(value) {
     };
 
     const statusClass = (status) => {
-      const normalized = String(status || "unknown").toLowerCase().replace(/[_\s]+/g, "-");
-      return ["active", "inactive", "suspended", "pending", "accepted", "confirmed", "completed", "cancelled"].includes(normalized)
+      const normalized = String(status || "unknown")
+        .toLowerCase()
+        .replace(/[_\s]+/g, "-");
+
+      return [
+        "active",
+        "inactive",
+        "suspended",
+        "pending",
+        "accepted",
+        "confirmed",
+        "completed",
+        "cancelled",
+        "rejected",
+        "declined",
+        "checked-in",
+        "checked-out"
+      ].includes(normalized)
         ? normalized
         : "guest";
     };
@@ -1328,35 +1619,65 @@ function php(value) {
     const initials = (name) => {
       const text = String(name || "Guest").trim();
       const pieces = text.split(/\s+/).filter(Boolean);
+
       if (!pieces.length) return "G";
-      return (pieces.length === 1 ? pieces[0].slice(0, 2) : `${pieces[0][0]}${pieces[pieces.length - 1][0]}`).toUpperCase();
+
+      if (pieces.length === 1) {
+        return pieces[0].slice(0, 2).toUpperCase();
+      }
+
+      return `${pieces[0][0]}${pieces[pieces.length - 1][0]}`.toUpperCase();
     };
 
     const showToast = (title, message = "", type = "success") => {
       const node = document.createElement("div");
       node.className = `toast ${type}`;
       node.innerHTML = `
-        <div class="toast-icon"><i class="fa-solid ${type === "success" ? "fa-circle-check" : "fa-circle-exclamation"}"></i></div>
-        <div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(message)}</span></div>
+        <div class="toast-icon">
+          <i class="fa-solid ${type === "success" ? "fa-circle-check" : "fa-circle-exclamation"}"></i>
+        </div>
+        <div>
+          <strong>${escapeHtml(title)}</strong>
+          <span>${escapeHtml(message)}</span>
+        </div>
       `;
+
       el.toastStack.appendChild(node);
       window.setTimeout(() => node.remove(), 3600);
     };
 
     const getCsrfToken = () => {
-      const domToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ||
+      const domToken =
+        document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ||
         document.getElementById("adminCsrfToken")?.value ||
         document.querySelector('input[name="_csrf"]')?.value ||
         window.IsleRMS?.csrfToken ||
         INITIAL_CSRF;
+
       return domToken || "";
     };
 
     const normalizeDetailPayload = (payload) => {
       const root = payload && typeof payload === "object" ? payload : {};
-      const user = root.user || root.customer || root.data?.user || root.data?.customer || {};
-      const bookings = root.bookings || root.appointments || root.data?.bookings || root.data?.appointments || [];
-      const summary = root.summary || root.bookingSummary || root.bookingStats || root.data?.summary || {};
+      const user =
+        root.user ||
+        root.customer ||
+        root.data?.user ||
+        root.data?.customer ||
+        {};
+      const bookings =
+        root.bookings ||
+        root.appointments ||
+        root.data?.bookings ||
+        root.data?.appointments ||
+        [];
+      const summary =
+        root.summary ||
+        root.bookingSummary ||
+        root.bookingStats ||
+        root.data?.summary ||
+        {};
+
       return {
         user: user && typeof user === "object" ? user : {},
         bookings: Array.isArray(bookings) ? bookings : [],
@@ -1366,75 +1687,173 @@ function php(value) {
 
     const resolveUserField = (user, ...keys) => {
       for (const key of keys) {
-        const value = key.split(".").reduce((acc, part) => acc?.[part], user);
-        if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+        const value = key
+          .split(".")
+          .reduce((acc, part) => acc?.[part], user);
+
+        if (
+          value !== undefined &&
+          value !== null &&
+          String(value).trim() !== ""
+        ) {
+          return value;
+        }
       }
+
       return "—";
     };
 
-    const resolveBookingAmount = (booking) => Number(
-      booking?.totalPrice ??
-      booking?.totalAmount ??
-      booking?.amount ??
-      booking?.price ??
-      0
-    ) || 0;
+    const resolveBookingAmount = (booking) => {
+      const amount = Number(
+        booking?.totalPrice ??
+        booking?.totalAmount ??
+        booking?.amount ??
+        booking?.price ??
+        booking?.total ??
+        0
+      );
+
+      return Number.isFinite(amount) && amount >= 0 ? amount : 0;
+    };
 
     const resolveBookingRoom = (booking) => String(
-      booking?.room ??
       booking?.roomName ??
+      booking?.room ??
       booking?.roomType ??
       booking?.accommodation ??
       booking?.roomId?.name ??
       "Reservation"
     );
 
-    const resolveBookingStatus = (booking) => String(booking?.status || "unknown").toLowerCase().replace(/[_\s]+/g, "-");
+    const resolveBookingStatus = (booking) => String(
+      booking?.status || "unknown"
+    )
+      .toLowerCase()
+      .replace(/[_\s]+/g, "-");
 
-    const resolveBookingId = (booking) => booking?._id || booking?.id || booking?.appointmentId || "";
+    const resolveBookingId = (booking) =>
+      booking?._id ||
+      booking?.id ||
+      booking?.appointmentId ||
+      "";
 
     const normalizeDetail = (payload, fallbackUser) => {
       const data = normalizeDetailPayload(payload);
       const user = data.user || {};
       const summary = data.summary || {};
       const bookings = data.bookings;
-
       const fallback = fallbackUser || {};
-      const totalSpent = Number(
-        summary.totalSpent ?? summary.totalSpend ?? summary.totalBookingValue ?? summary.bookingValue ??
-        fallback.totalSpent ?? bookings.reduce((sum, booking) => sum + resolveBookingAmount(booking), 0)
-      ) || 0;
 
-      const totalBookings = Number(
-        summary.totalBookings ?? summary.bookingCount ?? bookings.length ?? fallback.totalBookings
-      ) || 0;
+      const totalSpentRaw =
+        summary.totalSpent ??
+        summary.totalSpend ??
+        summary.totalBookingValue ??
+        summary.bookingValue ??
+        fallback.totalSpent;
+
+      const calculatedBookingValue = bookings.reduce(
+        (sum, booking) => sum + resolveBookingAmount(booking),
+        0
+      );
+
+      const parsedTotalSpent = Number(totalSpentRaw);
+      const totalSpent = Number.isFinite(parsedTotalSpent)
+        ? Math.max(0, parsedTotalSpent)
+        : calculatedBookingValue;
+
+      const totalBookingsRaw =
+        summary.totalBookings ??
+        summary.bookingCount ??
+        summary.count ??
+        fallback.totalBookings;
+
+      const parsedTotalBookings = Number(totalBookingsRaw);
+      const totalBookings = Number.isFinite(parsedTotalBookings)
+        ? Math.max(0, Math.round(parsedTotalBookings))
+        : bookings.length;
 
       const completed = Number(
-        summary.completedBookings ?? summary.completed ??
-        bookings.filter((booking) => ["completed", "checked-out", "checked_out"].includes(resolveBookingStatus(booking))).length
+        summary.completedBookings ??
+        summary.completed ??
+        bookings.filter((booking) =>
+          ["completed", "checked-out"].includes(resolveBookingStatus(booking))
+        ).length
       ) || 0;
 
       const cancelled = Number(
-        summary.cancelledBookings ?? summary.cancelled ??
-        bookings.filter((booking) => resolveBookingStatus(booking) === "cancelled").length
+        summary.cancelledBookings ??
+        summary.cancelled ??
+        bookings.filter((booking) =>
+          ["cancelled", "rejected", "declined"].includes(resolveBookingStatus(booking))
+        ).length
       ) || 0;
 
       const active = Number(
-        summary.activeBookings ?? summary.active ??
-        bookings.filter((booking) => ["pending", "accepted", "confirmed", "checked-in", "checked_in"].includes(resolveBookingStatus(booking))).length
+        summary.activeBookings ??
+        summary.active ??
+        bookings.filter((booking) =>
+          [
+            "pending",
+            "accepted",
+            "confirmed",
+            "checked-in"
+          ].includes(resolveBookingStatus(booking))
+        ).length
       ) || 0;
 
-      const memberLevel = resolveUserField(user, "memberLevel", "membershipLevel", "tier", "level");
-      const fullname = resolveUserField(user, "fullname", "fullName", "name", "username", "email");
+      const memberLevel = resolveUserField(
+        user,
+        "memberLevel",
+        "membershipLevel",
+        "tier",
+        "level"
+      );
+
+      const fullname = resolveUserField(
+        user,
+        "fullname",
+        "fullName",
+        "name",
+        "username",
+        "email"
+      );
+
       const email = resolveUserField(user, "email");
       const phone = resolveUserField(user, "phone", "contact", "mobile");
-      const status = String(resolveUserField(user, "status", "accountStatus", "active") || "active").toLowerCase();
-      const avatar = resolveUserField(user, "avatar", "profileImage", "photo");
 
-      const lastBooking = bookings
-        .map((booking) => booking?.createdAt || booking?.checkin || booking?.checkIn)
+      const fallbackStatus =
+        user.active === false || user.isActive === false
+          ? "inactive"
+          : "active";
+
+      const rawStatus = firstNonEmptyValue(
+        user.status,
+        user.accountStatus,
+        fallbackStatus
+      );
+
+      const status = String(rawStatus || "active")
+        .toLowerCase()
+        .replace(/[_\s]+/g, "-");
+
+      const avatar = resolveUserField(
+        user,
+        "avatar",
+        "profileImage",
+        "photo"
+      );
+
+      const bookingDates = bookings
+        .map((booking) =>
+          booking?.createdAt ||
+          booking?.checkin ||
+          booking?.checkIn ||
+          booking?.checkInDate
+        )
         .filter(Boolean)
-        .sort((a, b) => new Date(b) - new Date(a))[0] || fallback.lastBookingAt;
+        .sort((a, b) => new Date(b) - new Date(a));
+
+      const lastBooking = bookingDates[0] || fallback.lastBookingAt || "";
 
       return {
         user,
@@ -1456,10 +1875,29 @@ function php(value) {
       };
     };
 
+    const firstNonEmptyValue = (...values) => {
+      for (const value of values) {
+        if (
+          value !== undefined &&
+          value !== null &&
+          String(value).trim() !== ""
+        ) {
+          return value;
+        }
+      }
+      return null;
+    };
+
     const renderProfileHeader = (detail) => {
-      const verified = detail.user.emailVerified === true || detail.user.verified === true || detail.user.isVerified === true;
-      const avatarHtml = detail.avatar && detail.avatar !== "—"
-        ? `<img src="${escapeHtml(detail.avatar)}" alt="${escapeHtml(detail.fullname)}">`
+      const verified =
+        detail.user.emailVerified === true ||
+        detail.user.emailVerified === "true" ||
+        detail.user.verified === true ||
+        detail.user.isVerified === true;
+
+      const avatarUrl = safeImageUrl(detail.avatar);
+      const avatarHtml = avatarUrl
+        ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(detail.fullname)}" loading="lazy" referrerpolicy="no-referrer">`
         : escapeHtml(initials(detail.fullname));
 
       el.profileHeader.innerHTML = `
@@ -1468,19 +1906,39 @@ function php(value) {
           <h2 id="profileModalTitle">${escapeHtml(detail.fullname)}</h2>
           <p>${escapeHtml(detail.email)}</p>
           <div class="profile-badges">
-            <span class="pill ${statusClass(detail.status)}"><i class="fa-solid fa-circle"></i>${escapeHtml(detail.status)}</span>
-            <span class="pill guest"><i class="fa-solid fa-crown"></i>${escapeHtml(detail.memberLevel)}</span>
-            ${verified ? '<span class="pill verified"><i class="fa-solid fa-check"></i>Email verified</span>' : ''}
+            <span class="pill ${statusClass(detail.status)}">
+              <i class="fa-solid fa-circle"></i>${escapeHtml(detail.status)}
+            </span>
+            <span class="pill guest">
+              <i class="fa-solid fa-crown"></i>${escapeHtml(detail.memberLevel)}
+            </span>
+            ${verified ? `
+              <span class="pill verified">
+                <i class="fa-solid fa-check"></i>Email verified
+              </span>
+            ` : ""}
           </div>
         </div>
       `;
     };
 
     const renderProfileBody = (detail) => {
-      const user = detail.user;
+      const user = detail.user || {};
       const bookings = [...detail.bookings].sort((a, b) => {
-        const aDate = new Date(a?.createdAt || a?.checkin || 0).getTime();
-        const bDate = new Date(b?.createdAt || b?.checkin || 0).getTime();
+        const aDate = new Date(
+          a?.createdAt ||
+          a?.checkin ||
+          a?.checkIn ||
+          a?.checkInDate ||
+          0
+        ).getTime();
+        const bDate = new Date(
+          b?.createdAt ||
+          b?.checkin ||
+          b?.checkIn ||
+          b?.checkInDate ||
+          0
+        ).getTime();
         return bDate - aDate;
       });
 
@@ -1488,20 +1946,38 @@ function php(value) {
         ? bookings.map((booking) => {
             const status = resolveBookingStatus(booking);
             const room = resolveBookingRoom(booking);
-            const checkin = booking?.checkin || booking?.checkIn || booking?.checkInDate;
-            const checkout = booking?.checkout || booking?.checkOut || booking?.checkOutDate;
+            const checkin =
+              booking?.checkin ||
+              booking?.checkIn ||
+              booking?.checkInDate;
+            const checkout =
+              booking?.checkout ||
+              booking?.checkOut ||
+              booking?.checkOutDate;
             const amount = resolveBookingAmount(booking);
             const id = resolveBookingId(booking);
+            const shortId = id
+              ? `#${escapeHtml(String(id).slice(-8).toUpperCase())}`
+              : "Reservation";
+
             return `
               <tr>
                 <td>
                   <div class="stacked-value">
                     <strong>${escapeHtml(room)}</strong>
-                    <span>${id ? `#${escapeHtml(String(id).slice(-8).toUpperCase())}` : "Reservation"}</span>
+                    <span>${shortId}</span>
                   </div>
                 </td>
-                <td><span class="pill ${statusClass(status)}"><i class="fa-solid fa-circle"></i>${escapeHtml(status)}</span></td>
-                <td><span class="nowrap">${escapeHtml(dateOnly(checkin))}</span><span class="muted"> → </span><span class="nowrap">${escapeHtml(dateOnly(checkout))}</span></td>
+                <td>
+                  <span class="pill ${statusClass(status)}">
+                    <i class="fa-solid fa-circle"></i>${escapeHtml(status)}
+                  </span>
+                </td>
+                <td>
+                  <span class="nowrap">${escapeHtml(dateOnly(checkin))}</span>
+                  <span class="muted"> → </span>
+                  <span class="nowrap">${escapeHtml(dateOnly(checkout))}</span>
+                </td>
                 <td class="money">${escapeHtml(currency(amount))}</td>
               </tr>
             `;
@@ -1510,7 +1986,9 @@ function php(value) {
           <tr>
             <td colspan="4">
               <div class="empty-state" style="padding:28px 18px;">
-                <div class="empty-icon"><i class="fa-solid fa-calendar-xmark"></i></div>
+                <div class="empty-icon">
+                  <i class="fa-solid fa-calendar-xmark"></i>
+                </div>
                 <strong>No bookings recorded</strong>
                 <span>This guest has no reservation history yet.</span>
               </div>
@@ -1518,44 +1996,113 @@ function php(value) {
           </tr>
         `;
 
-      const createdAt = resolveUserField(user, "createdAt", "registeredAt", "joinedAt");
+      const createdAt = resolveUserField(
+        user,
+        "createdAt",
+        "registeredAt",
+        "joinedAt"
+      );
       const lastLogin = resolveUserField(user, "lastLoginAt", "lastLogin");
       const username = resolveUserField(user, "username");
-      const failedAttempts = Number(resolveUserField(user, "failedLoginAttempts")) || 0;
+      const failedAttempts = Math.max(
+        0,
+        Math.round(Number(resolveUserField(user, "failedLoginAttempts")) || 0)
+      );
       const lockedUntil = resolveUserField(user, "lockedUntil");
+      const verified =
+        user.emailVerified === true ||
+        user.emailVerified === "true" ||
+        user.verified === true ||
+        user.isVerified === true;
 
       el.profileBody.innerHTML = `
         <div class="detail-kpis">
-          <div class="detail-kpi"><span>Total booking value</span><strong class="money">${escapeHtml(currency(detail.totalSpent))}</strong></div>
-          <div class="detail-kpi"><span>Total bookings</span><strong>${escapeHtml(integer(detail.totalBookings))}</strong></div>
-          <div class="detail-kpi"><span>Completed stays</span><strong>${escapeHtml(integer(detail.completed))}</strong></div>
-          <div class="detail-kpi"><span>Average booking</span><strong>${escapeHtml(currency(detail.average))}</strong></div>
+          <div class="detail-kpi">
+            <span>Total booking value</span>
+            <strong class="money">${escapeHtml(currency(detail.totalSpent))}</strong>
+          </div>
+          <div class="detail-kpi">
+            <span>Total bookings</span>
+            <strong>${escapeHtml(integer(detail.totalBookings))}</strong>
+          </div>
+          <div class="detail-kpi">
+            <span>Completed stays</span>
+            <strong>${escapeHtml(integer(detail.completed))}</strong>
+          </div>
+          <div class="detail-kpi">
+            <span>Average booking</span>
+            <strong>${escapeHtml(currency(detail.average))}</strong>
+          </div>
         </div>
 
         <div class="detail-grid">
           <section class="detail-card">
             <h3>Guest Profile</h3>
             <div class="info-list">
-              <div class="info-item"><span>Full name</span><strong>${escapeHtml(detail.fullname)}</strong></div>
-              <div class="info-item"><span>Email</span><strong>${escapeHtml(detail.email)}</strong></div>
-              <div class="info-item"><span>Phone</span><strong>${escapeHtml(detail.phone)}</strong></div>
-              <div class="info-item"><span>Username</span><strong>${escapeHtml(username)}</strong></div>
-              <div class="info-item"><span>Membership</span><strong>${escapeHtml(detail.memberLevel)}</strong></div>
-              <div class="info-item"><span>Joined</span><strong>${escapeHtml(dateOnly(createdAt))}</strong></div>
+              <div class="info-item">
+                <span>Full name</span>
+                <strong>${escapeHtml(detail.fullname)}</strong>
+              </div>
+              <div class="info-item">
+                <span>Email</span>
+                <strong>${escapeHtml(detail.email)}</strong>
+              </div>
+              <div class="info-item">
+                <span>Phone</span>
+                <strong>${escapeHtml(detail.phone)}</strong>
+              </div>
+              <div class="info-item">
+                <span>Username</span>
+                <strong>${escapeHtml(username)}</strong>
+              </div>
+              <div class="info-item">
+                <span>Membership</span>
+                <strong>${escapeHtml(detail.memberLevel)}</strong>
+              </div>
+              <div class="info-item">
+                <span>Joined</span>
+                <strong>${escapeHtml(dateOnly(createdAt))}</strong>
+              </div>
             </div>
           </section>
 
           <section class="detail-card">
             <h3>Account & Activity</h3>
             <div class="info-list">
-              <div class="info-item"><span>Account status</span><strong>${escapeHtml(detail.status)}</strong></div>
-              <div class="info-item"><span>Email verified</span><strong>${user.emailVerified === true ? "Yes" : "Not verified"}</strong></div>
-              <div class="info-item"><span>Last login</span><strong>${escapeHtml(dateTime(lastLogin))}</strong></div>
-              <div class="info-item"><span>Latest booking</span><strong>${escapeHtml(dateTime(detail.lastBooking))}</strong></div>
-              <div class="info-item"><span>Active reservations</span><strong>${escapeHtml(integer(detail.active))}</strong></div>
-              <div class="info-item"><span>Cancelled bookings</span><strong>${escapeHtml(integer(detail.cancelled))}</strong></div>
-              <div class="info-item"><span>Failed login attempts</span><strong>${escapeHtml(integer(failedAttempts))}</strong></div>
-              ${lockedUntil && lockedUntil !== "—" ? `<div class="info-item"><span>Locked until</span><strong>${escapeHtml(dateTime(lockedUntil))}</strong></div>` : ""}
+              <div class="info-item">
+                <span>Account status</span>
+                <strong>${escapeHtml(detail.status)}</strong>
+              </div>
+              <div class="info-item">
+                <span>Email verified</span>
+                <strong>${verified ? "Yes" : "Not verified"}</strong>
+              </div>
+              <div class="info-item">
+                <span>Last login</span>
+                <strong>${escapeHtml(dateTime(lastLogin))}</strong>
+              </div>
+              <div class="info-item">
+                <span>Latest booking</span>
+                <strong>${escapeHtml(dateTime(detail.lastBooking))}</strong>
+              </div>
+              <div class="info-item">
+                <span>Active reservations</span>
+                <strong>${escapeHtml(integer(detail.active))}</strong>
+              </div>
+              <div class="info-item">
+                <span>Cancelled bookings</span>
+                <strong>${escapeHtml(integer(detail.cancelled))}</strong>
+              </div>
+              <div class="info-item">
+                <span>Failed login attempts</span>
+                <strong>${escapeHtml(integer(failedAttempts))}</strong>
+              </div>
+              ${lockedUntil && lockedUntil !== "—" ? `
+                <div class="info-item">
+                  <span>Locked until</span>
+                  <strong>${escapeHtml(dateTime(lockedUntil))}</strong>
+                </div>
+              ` : ""}
             </div>
           </section>
         </div>
@@ -1563,8 +2110,12 @@ function php(value) {
         <section class="booking-list-wrap">
           <div class="booking-list-head">
             <strong>Reservation History</strong>
-            <span>${escapeHtml(integer(bookings.length))} recorded reservation${bookings.length === 1 ? "" : "s"}</span>
+            <span>
+              ${escapeHtml(integer(bookings.length))}
+              recorded reservation${bookings.length === 1 ? "" : "s"}
+            </span>
           </div>
+
           <div class="table-wrap">
             <table class="mini-table">
               <thead>
@@ -1584,17 +2135,27 @@ function php(value) {
 
     const openProfile = async (user) => {
       if (!user) return;
+
       state.activeUserId = user.id || null;
+      state.lastFocusedElement = document.activeElement;
+
       el.modal.classList.add("open");
       document.body.classList.add("modal-open");
+      el.closeModal.focus({ preventScroll: true });
+
       el.profileHeader.innerHTML = `
         <div class="profile-avatar">${escapeHtml(initials(user.fullname))}</div>
         <div class="profile-meta">
           <h2 id="profileModalTitle">${escapeHtml(user.fullname)}</h2>
           <p>${escapeHtml(user.email)}</p>
-          <div class="profile-badges"><span class="pill guest"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading</span></div>
+          <div class="profile-badges">
+            <span class="pill guest">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>Loading
+            </span>
+          </div>
         </div>
       `;
+
       el.profileBody.innerHTML = `
         <div class="modal-loading">
           <div>
@@ -1605,39 +2166,68 @@ function php(value) {
       `;
 
       if (!user.id) {
-        const fallback = normalizeDetail({ user, bookings: [], summary: {} }, user);
+        const fallback = normalizeDetail(
+          { user, bookings: [], summary: {} },
+          user
+        );
         renderProfileHeader(fallback);
         renderProfileBody(fallback);
         return;
       }
 
+      const requestedUserId = String(user.id);
+
       try {
-        const response = await fetch(`/admin/users/${encodeURIComponent(user.id)}`, {
-          method: "GET",
-          headers: {
-            "Accept": "application/json",
-            "X-Requested-With": "XMLHttpRequest"
-          },
-          credentials: "same-origin",
-          cache: "no-store"
-        });
+        const response = await fetch(
+          `/admin/users/${encodeURIComponent(requestedUserId)}`,
+          {
+            method: "GET",
+            headers: {
+              Accept: "application/json",
+              "X-Requested-With": "XMLHttpRequest"
+            },
+            credentials: "same-origin",
+            cache: "no-store"
+          }
+        );
 
         const payload = await response.json().catch(() => ({}));
+
         if (!response.ok) {
-          throw new Error(payload?.message || payload?.error || "Unable to load this guest profile.");
+          throw new Error(
+            payload?.message ||
+            payload?.error ||
+            "Unable to load this guest profile."
+          );
         }
+
+        // A user may open another profile while this request is still in
+        // flight. Ignore stale responses so profile A can never overwrite
+        // profile B in the modal.
+        if (state.activeUserId !== requestedUserId) return;
 
         const detail = normalizeDetail(payload, user);
         renderProfileHeader(detail);
         renderProfileBody(detail);
       } catch (error) {
-        const fallback = normalizeDetail({ user, bookings: [], summary: {} }, user);
+        if (state.activeUserId !== requestedUserId) return;
+
+        const fallback = normalizeDetail(
+          { user, bookings: [], summary: {} },
+          user
+        );
+
         renderProfileHeader(fallback);
         el.profileBody.innerHTML = `
           <div class="empty-state">
-            <div class="empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="empty-icon">
+              <i class="fa-solid fa-triangle-exclamation"></i>
+            </div>
             <strong>Profile details could not be loaded</strong>
-            <span>${escapeHtml(error?.message || "Please refresh the page and try again.")}</span>
+            <span>${escapeHtml(
+              error?.message ||
+              "Please refresh the page and try again."
+            )}</span>
           </div>
         `;
       }
@@ -1647,6 +2237,17 @@ function php(value) {
       el.modal.classList.remove("open");
       document.body.classList.remove("modal-open");
       state.activeUserId = null;
+
+      const focused = state.lastFocusedElement;
+      state.lastFocusedElement = null;
+
+      if (focused && typeof focused.focus === "function") {
+        try {
+          focused.focus({ preventScroll: true });
+        } catch (error) {
+          focused.focus();
+        }
+      }
     };
 
     const getFilteredUsers = () => {
@@ -1656,13 +2257,18 @@ function php(value) {
       const sort = el.sort.value;
 
       const matches = state.users.filter((user) => {
-        const haystack = [user.fullname, user.email, user.phone, user.username, user.memberLevel]
+        const haystack = [
+          user.fullname,
+          user.email,
+          user.phone,
+          user.username,
+          user.memberLevel
+        ]
           .map((value) => String(value || "").toLowerCase())
           .join(" ");
 
         if (query && !haystack.includes(query)) return false;
         if (status !== "all" && user.status !== status) return false;
-
         if (activity === "returning" && user.totalBookings < 2) return false;
         if (activity === "one" && user.totalBookings !== 1) return false;
         if (activity === "none" && user.totalBookings !== 0) return false;
@@ -1674,9 +2280,34 @@ function php(value) {
       matches.sort((a, b) => {
         if (sort === "spent") return b.totalSpent - a.totalSpent;
         if (sort === "bookings") return b.totalBookings - a.totalBookings;
-        if (sort === "name") return a.fullname.localeCompare(b.fullname, undefined, { sensitivity: "base" });
-        if (sort === "joined") return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
-        return new Date(b.lastBookingAt || b.lastLoginAt || b.createdAt || 0) - new Date(a.lastBookingAt || a.lastLoginAt || a.createdAt || 0);
+        if (sort === "name") {
+          return a.fullname.localeCompare(
+            b.fullname,
+            undefined,
+            { sensitivity: "base" }
+          );
+        }
+        if (sort === "joined") {
+          return (
+            new Date(b.createdAt || 0).getTime() -
+            new Date(a.createdAt || 0).getTime()
+          );
+        }
+
+        return (
+          new Date(
+            b.lastBookingAt ||
+            b.lastLoginAt ||
+            b.createdAt ||
+            0
+          ).getTime() -
+          new Date(
+            a.lastBookingAt ||
+            a.lastLoginAt ||
+            a.createdAt ||
+            0
+          ).getTime()
+        );
       });
 
       return matches;
@@ -1684,9 +2315,12 @@ function php(value) {
 
     const renderTable = () => {
       state.filtered = getFilteredUsers();
+
       const total = state.filtered.length;
       const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+
       if (state.page > totalPages) state.page = totalPages;
+      if (state.page < 1) state.page = 1;
 
       const start = (state.page - 1) * PAGE_SIZE;
       const visible = state.filtered.slice(start, start + PAGE_SIZE);
@@ -1698,10 +2332,14 @@ function php(value) {
         const tr = document.createElement("tr");
         tr.tabIndex = 0;
         tr.setAttribute("role", "button");
-        tr.setAttribute("aria-label", `Open profile for ${user.fullname}`);
+        tr.setAttribute(
+          "aria-label",
+          `Open profile for ${user.fullname}`
+        );
 
-        const avatar = user.avatar
-          ? `<img src="${escapeHtml(user.avatar)}" alt="">`
+        const imageUrl = safeImageUrl(user.avatar);
+        const avatar = imageUrl
+          ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
           : escapeHtml(initials(user.fullname));
 
         tr.innerHTML = `
@@ -1716,8 +2354,12 @@ function php(value) {
           </td>
           <td>
             <div style="display:flex;flex-wrap:wrap;gap:6px;">
-              <span class="pill ${statusClass(user.status)}"><i class="fa-solid fa-circle"></i>${escapeHtml(user.status)}</span>
-              <span class="pill guest"><i class="fa-solid fa-crown"></i>${escapeHtml(user.memberLevel)}</span>
+              <span class="pill ${statusClass(user.status)}">
+                <i class="fa-solid fa-circle"></i>${escapeHtml(user.status)}
+              </span>
+              <span class="pill guest">
+                <i class="fa-solid fa-crown"></i>${escapeHtml(user.memberLevel)}
+              </span>
             </div>
           </td>
           <td>
@@ -1726,16 +2368,46 @@ function php(value) {
               <span>${user.totalBookings === 1 ? "reservation" : "reservations"}</span>
             </div>
           </td>
-          <td><span class="money">${escapeHtml(currency(user.totalSpent))}</span></td>
-          <td><span class="nowrap">${escapeHtml(currency(user.averageBookingValue))}</span></td>
-          <td><span class="nowrap">${escapeHtml(dateTime(user.lastBookingAt || user.lastLoginAt || user.createdAt))}</span></td>
-          <td><button class="row-action" type="button" aria-label="View ${escapeHtml(user.fullname)}"><i class="fa-solid fa-arrow-up-right-from-square"></i></button></td>
+          <td>
+            <span class="money">${escapeHtml(currency(user.totalSpent))}</span>
+          </td>
+          <td>
+            <span class="nowrap">${escapeHtml(currency(user.averageBookingValue))}</span>
+          </td>
+          <td>
+            <span class="nowrap">
+              ${escapeHtml(
+                dateTime(
+                  user.lastBookingAt ||
+                  user.lastLoginAt ||
+                  user.createdAt
+                )
+              )}
+            </span>
+          </td>
+          <td>
+            <button
+              class="row-action"
+              type="button"
+              aria-label="View ${escapeHtml(user.fullname)}"
+              title="Open customer profile"
+            >
+              <i class="fa-solid fa-arrow-up-right-from-square"></i>
+            </button>
+          </td>
         `;
 
-        tr.addEventListener("click", (event) => {
-          if (event.target.closest("button")) {
+        const actionButton = tr.querySelector(".row-action");
+
+        if (actionButton) {
+          actionButton.addEventListener("click", (event) => {
             event.stopPropagation();
-          }
+            openProfile(user);
+          });
+        }
+
+        tr.addEventListener("click", (event) => {
+          if (event.target.closest("button")) return;
           openProfile(user);
         });
 
@@ -1751,17 +2423,29 @@ function php(value) {
 
       const first = total ? start + 1 : 0;
       const last = Math.min(start + PAGE_SIZE, total);
+
       el.count.innerHTML = `Showing <strong>${integer(total)}</strong> customer${total === 1 ? "" : "s"}`;
-      el.paginationCopy.textContent = total ? `${first.toLocaleString("en-PH")}–${last.toLocaleString("en-PH")} of ${total.toLocaleString("en-PH")}` : "No results";
+      el.paginationCopy.textContent = total
+        ? `${first.toLocaleString("en-PH")}–${last.toLocaleString("en-PH")} of ${total.toLocaleString("en-PH")}`
+        : "No results";
+
       el.prev.disabled = state.page <= 1;
       el.next.disabled = state.page >= totalPages;
     };
 
     const recalcOverview = () => {
       const users = state.users;
-      const spent = users.reduce((sum, user) => sum + (Number(user.totalSpent) || 0), 0);
-      const bookings = users.reduce((sum, user) => sum + (Number(user.totalBookings) || 0), 0);
-      const returning = users.filter((user) => Number(user.totalBookings) >= 2).length;
+      const spent = users.reduce(
+        (sum, user) => sum + (Number(user.totalSpent) || 0),
+        0
+      );
+      const bookings = users.reduce(
+        (sum, user) => sum + (Number(user.totalBookings) || 0),
+        0
+      );
+      const returning = users.filter(
+        (user) => Number(user.totalBookings) >= 2
+      ).length;
 
       document.getElementById("metricCustomers").textContent = integer(users.length);
       document.getElementById("metricSpent").textContent = currency(spent);
@@ -1769,72 +2453,98 @@ function php(value) {
       document.getElementById("metricReturning").textContent = integer(returning);
     };
 
-    const fetchUsers = async () => {
+    const refreshUsers = () => {
       if (state.loading) return;
+
       state.loading = true;
       el.refresh.disabled = true;
       el.refresh.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Refreshing';
 
-      try {
-        const response = await fetch("/admin/users", {
-          method: "GET",
-          headers: {
-            "Accept": "text/html",
-            "X-Requested-With": "XMLHttpRequest"
-          },
-          credentials: "same-origin",
-          cache: "no-store"
-        });
-
-        if (!response.ok) throw new Error("The customer list could not be refreshed.");
+      window.setTimeout(() => {
         window.location.reload();
-      } catch (error) {
-        showToast("Refresh failed", error?.message || "Please try again.", "error");
-      } finally {
-        state.loading = false;
-        el.refresh.disabled = false;
-        el.refresh.innerHTML = '<i class="fa-solid fa-rotate"></i> Refresh';
-      }
+      }, 80);
     };
 
     const exportCsv = () => {
       const rows = state.filtered.length ? state.filtered : state.users;
-      const headers = ["Customer", "Email", "Phone", "Status", "Membership", "Verified", "Total Bookings", "Total Booking Value (PHP)", "Average Booking Value (PHP)", "Last Activity", "Joined"];
-      const escapeCsv = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+      const headers = [
+        "Customer",
+        "Email",
+        "Phone",
+        "Status",
+        "Membership",
+        "Verified",
+        "Total Bookings",
+        "Total Booking Value (PHP)",
+        "Average Booking Value (PHP)",
+        "Last Activity",
+        "Joined"
+      ];
+
+      const escapeCsv = (value) =>
+        `"${String(value ?? "").replaceAll('"', '""')}"`;
 
       const lines = [headers.map(escapeCsv).join(",")];
+
       rows.forEach((user) => {
-        lines.push([
-          user.fullname,
-          user.email,
-          user.phone,
-          user.status,
-          user.memberLevel,
-          user.emailVerified ? "Yes" : "No",
-          user.totalBookings,
-          Number(user.totalSpent || 0).toFixed(2),
-          Number(user.averageBookingValue || 0).toFixed(2),
-          user.lastBookingAt || user.lastLoginAt || "",
-          user.createdAt || ""
-        ].map(escapeCsv).join(","));
+        lines.push(
+          [
+            user.fullname,
+            user.email,
+            user.phone,
+            user.status,
+            user.memberLevel,
+            user.emailVerified ? "Yes" : "No",
+            user.totalBookings,
+            Number(user.totalSpent || 0).toFixed(2),
+            Number(user.averageBookingValue || 0).toFixed(2),
+            user.lastBookingAt || user.lastLoginAt || "",
+            user.createdAt || ""
+          ]
+            .map(escapeCsv)
+            .join(",")
+        );
       });
 
-      const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const blob = new Blob(
+        ["\ufeff" + lines.join("\n")],
+        { type: "text/csv;charset=utf-8;" }
+      );
       const url = URL.createObjectURL(blob);
       const link = document.createElement("a");
+
       link.href = url;
       link.download = `islerms-customers-${new Date().toISOString().slice(0, 10)}.csv`;
       document.body.appendChild(link);
       link.click();
       link.remove();
       URL.revokeObjectURL(url);
-      showToast("Customer export ready", `${rows.length.toLocaleString("en-PH")} customer records exported.`);
+
+      showToast(
+        "Customer export ready",
+        `${rows.length.toLocaleString("en-PH")} customer records exported.`
+      );
     };
 
-    el.search.addEventListener("input", () => { state.page = 1; renderTable(); });
-    el.status.addEventListener("change", () => { state.page = 1; renderTable(); });
-    el.activity.addEventListener("change", () => { state.page = 1; renderTable(); });
-    el.sort.addEventListener("change", () => { state.page = 1; renderTable(); });
+    el.search.addEventListener("input", () => {
+      state.page = 1;
+      renderTable();
+    });
+
+    el.status.addEventListener("change", () => {
+      state.page = 1;
+      renderTable();
+    });
+
+    el.activity.addEventListener("change", () => {
+      state.page = 1;
+      renderTable();
+    });
+
+    el.sort.addEventListener("change", () => {
+      state.page = 1;
+      renderTable();
+    });
 
     el.clear.addEventListener("click", () => {
       el.search.value = "";
@@ -1853,14 +2563,18 @@ function php(value) {
     });
 
     el.next.addEventListener("click", () => {
-      const pages = Math.max(1, Math.ceil(state.filtered.length / PAGE_SIZE));
+      const pages = Math.max(
+        1,
+        Math.ceil(state.filtered.length / PAGE_SIZE)
+      );
+
       if (state.page < pages) {
         state.page += 1;
         renderTable();
       }
     });
 
-    el.refresh.addEventListener("click", fetchUsers);
+    el.refresh.addEventListener("click", refreshUsers);
     el.export.addEventListener("click", exportCsv);
     el.closeModal.addEventListener("click", closeProfile);
 
@@ -1869,15 +2583,32 @@ function php(value) {
     });
 
     document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && el.modal.classList.contains("open")) closeProfile();
+      if (event.key === "Escape" && el.modal.classList.contains("open")) {
+        closeProfile();
+      }
     });
 
-    // Keep the token available to the existing admin page ecosystem without
-    // making GET-only customer operations depend on CSRF.
+    // Keep the token available to the existing admin page ecosystem.
+    // This does not make GET-only customer operations depend on CSRF.
     if (INITIAL_CSRF && !window.IsleRMS) {
       window.IsleRMS = { csrfToken: INITIAL_CSRF };
-    } else if (INITIAL_CSRF && window.IsleRMS && !window.IsleRMS.csrfToken) {
+    } else if (
+      INITIAL_CSRF &&
+      window.IsleRMS &&
+      !window.IsleRMS.csrfToken
+    ) {
       window.IsleRMS.csrfToken = INITIAL_CSRF;
+    }
+
+    // Make sure this helper remains available to any future page-side
+    // mutation code added to the existing admin workspace.
+    window.IsleRMS = window.IsleRMS || {};
+    window.IsleRMS.getCsrfToken = getCsrfToken;
+
+    // Used only for diagnostics in the browser console during development.
+    // It intentionally does not expose customer information.
+    if (!Array.isArray(INITIAL_USERS)) {
+      console.warn("IsleRMS: customer payload was not an array.");
     }
 
     recalcOverview();

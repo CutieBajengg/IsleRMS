@@ -5,7 +5,9 @@
  * PUFFER ISLE RESORT | IsleRMS
  * routes/adminRoutes.js
  *
- * Responsibility:
+ * Administrator routing / operations.
+ *
+ * Responsibilities:
  * - Administrator authentication
  * - Dashboard / analytics
  * - Booking management
@@ -15,18 +17,42 @@
  * - Add-on management
  * - Admin APIs
  * - Booking notifications
- * - Production hardening and staged admin mutation security hooks
+ * - Production hardening
  *
- * This router is mounted by server.js at:
+ * Mounted by server.js at:
  *   /admin
  *
- * Therefore route definitions here intentionally use paths such as:
+ * Therefore:
  *   /login
  *   /dashboard
  *   /checkin-manager
  *   /update-checkin
+ *   ...
  *
- * and NOT /admin/login, /admin/dashboard, etc.
+ * are intentionally NOT prefixed with /admin here.
+ *
+ * ============================================================
+ * BOOKING INTEGRITY
+ * ============================================================
+ *
+ * Booking and inventory operations use:
+ *
+ *   services/bookingAvailability.js
+ *
+ * and:
+ *
+ *   models/BookingMutex.js
+ *
+ * This makes the availability engine shared between:
+ *
+ *   Customer booking
+ *   Admin acceptance / confirmation
+ *   Customer cancellation
+ *   Room inventory changes
+ *
+ * The room mutex prevents two concurrent requests from both
+ * passing the final availability check and creating/activating
+ * conflicting reservations.
  * ============================================================
  */
 
@@ -36,8 +62,6 @@ const bcrypt = require("bcryptjs");
 const fs = require("fs");
 const path = require("path");
 const crypto = require("crypto");
-
-// ✅ GALLERY CHANGE: Multipart upload support for 360° panorama images.
 const multer = require("multer");
 
 const Appointment = require("../models/Appointment");
@@ -46,33 +70,59 @@ const Admin = require("../models/Admin");
 const Notification = require("../models/Notification");
 const Room = require("../models/Room");
 const AddOn = require("../models/AddOn");
-
-// ✅ GALLERY CHANGE: Dedicated 360° gallery model.
 const Gallery = require("../models/Gallery");
 
 const csrf = require("../middleware/csrf");
 
+const {
+  withRoomLock,
+  findAvailabilityConflict,
+  getPeakOccupancy,
+} = require("../services/bookingAvailability");
+
 const verifyCsrfToken =
-  csrf.verifyCsrfToken || csrf.verifyCsrf;
+  csrf.verifyCsrfToken ||
+  csrf.verifyCsrf;
 
-const router = express.Router();
+const router =
+  express.Router();
 
-if (typeof verifyCsrfToken !== "function") {
+if (
+  typeof verifyCsrfToken !==
+  "function"
+) {
   throw new Error(
     "CSRF middleware is missing a compatible verification function."
   );
 }
 
-/* Prevent sensitive admin pages from being cached. */
-router.use((req, res, next) => {
-  res.setHeader("Cache-Control", "no-store");
-  res.setHeader("Pragma", "no-cache");
-  next();
-});
+/* ============================================================
+   CACHE CONTROL
+============================================================ */
 
-// ============================================================
-// CONSTANTS
-// ============================================================
+router.use(
+  (
+    req,
+    res,
+    next
+  ) => {
+    res.setHeader(
+      "Cache-Control",
+      "no-store"
+    );
+
+    res.setHeader(
+      "Pragma",
+      "no-cache"
+    );
+
+    next();
+  }
+);
+
+/* ============================================================
+   CONSTANTS
+============================================================ */
 
 const BLOCKING_STATUSES = [
   "pending",
@@ -128,30 +178,46 @@ const STATUS_TRANSITIONS = {
 };
 
 /*
- * Admin mutation CSRF is intentionally staged.
+ * Admin CSRF remains configurable for compatibility with the
+ * current legacy admin templates.
  *
- * Set ADMIN_CSRF_REQUIRED=true after the admin views/forms send
- * the session CSRF token as `_csrf` or `X-CSRF-Token`.
+ * After every admin form/fetch sends `_csrf` or
+ * `X-CSRF-Token`, set:
  *
- * Keeping this false by default prevents the current legacy admin
- * forms from being broken before those templates are updated.
+ *   ADMIN_CSRF_REQUIRED=true
+ *
+ * in production.
  */
 const ADMIN_CSRF_REQUIRED =
   String(
-    process.env.ADMIN_CSRF_REQUIRED || "false"
+    process.env.ADMIN_CSRF_REQUIRED ||
+      "false"
   )
     .trim()
-    .toLowerCase() === "true";
+    .toLowerCase() ===
+  "true";
 
 /*
- * Room image upload configuration.
+ * Shared lock configuration.
  *
- * The upgraded rooms.ejs sends the selected image as the raw request body.
- * Express's built-in raw parser handles that request without adding a
- * multipart upload dependency.
+ * This should be short compared with real request duration.
  */
+const BOOKING_LOCK_OPTIONS = {
+  leaseMs:
+    5 * 60 * 1000,
+
+  waitMs:
+    15 * 1000,
+};
+
+/* ============================================================
+   IMAGE UPLOAD CONFIGURATION
+============================================================ */
+
 const ROOM_IMAGE_MAX_BYTES =
-  8 * 1024 * 1024;
+  8 *
+  1024 *
+  1024;
 
 const ROOM_IMAGE_UPLOAD_DIR =
   path.join(
@@ -174,28 +240,31 @@ const ROOM_IMAGE_CONTENT_TYPES = [
 try {
   fs.mkdirSync(
     ROOM_IMAGE_UPLOAD_DIR,
-    { recursive: true }
+    {
+      recursive: true,
+    }
   );
 } catch (error) {
   console.error(
     "Room image upload directory initialization failed:",
-    error.stack || error.message || error
+    error.stack ||
+      error.message ||
+      error
   );
 }
 
 const parseRoomImageBody =
   express.raw({
-    type: ROOM_IMAGE_CONTENT_TYPES,
-    limit: ROOM_IMAGE_MAX_BYTES,
+    type:
+      ROOM_IMAGE_CONTENT_TYPES,
+    limit:
+      ROOM_IMAGE_MAX_BYTES,
   });
 
-/*
- * Add-on image upload configuration.
- *
- * The upgraded add-ons.ejs sends the selected image as the raw request body.
- */
 const ADDON_IMAGE_MAX_BYTES =
-  8 * 1024 * 1024;
+  8 *
+  1024 *
+  1024;
 
 const ADDON_IMAGE_UPLOAD_DIR =
   path.join(
@@ -225,24 +294,28 @@ try {
 } catch (error) {
   console.error(
     "Add-on image upload directory initialization failed:",
-    error.stack || error.message || error
+    error.stack ||
+      error.message ||
+      error
   );
 }
 
 const parseAddOnImageBody =
   express.raw({
-    type: ADDON_IMAGE_CONTENT_TYPES,
-    limit: ADDON_IMAGE_MAX_BYTES,
+    type:
+      ADDON_IMAGE_CONTENT_TYPES,
+    limit:
+      ADDON_IMAGE_MAX_BYTES,
   });
 
 /* ============================================================
-   GALLERY IMAGE UPLOAD CONFIGURATION
+   GALLERY IMAGE UPLOAD
 ============================================================ */
 
-// ✅ GALLERY CHANGE: Dedicated storage rules for 360° panoramas.
-
 const GALLERY_IMAGE_MAX_BYTES =
-  25 * 1024 * 1024;
+  25 *
+  1024 *
+  1024;
 
 const GALLERY_IMAGE_UPLOAD_DIR =
   path.join(
@@ -271,14 +344,13 @@ try {
   );
 } catch (error) {
   console.error(
-    "Gallery image upload directory initialization failed:",
+    "Gallery upload directory initialization failed:",
     error.stack ||
       error.message ||
       error
   );
 }
 
-// ✅ GALLERY CHANGE: Keep uploaded panorama files in memory until validated.
 const galleryUpload =
   multer({
     storage:
@@ -293,136 +365,755 @@ const galleryUpload =
       fields: 20,
     },
 
-    fileFilter:
-      (
-        req,
-        file,
-        callback
-      ) => {
-        const contentType =
-          String(
-            file?.mimetype ||
-              ""
-          )
-            .trim()
-            .toLowerCase();
+    fileFilter: (
+      req,
+      file,
+      callback
+    ) => {
+      const contentType =
+        String(
+          file?.mimetype ||
+            ""
+        )
+          .trim()
+          .toLowerCase();
 
-        if (
-          GALLERY_IMAGE_CONTENT_TYPES.includes(
-            contentType
-          )
-        ) {
-          return callback(
-            null,
-            true
-          );
-        }
-
+      if (
+        GALLERY_IMAGE_CONTENT_TYPES.includes(
+          contentType
+        )
+      ) {
         return callback(
-          new Error(
-            "Unsupported gallery image type."
-          )
+          null,
+          true
         );
-      },
+      }
+
+      return callback(
+        new Error(
+          "Unsupported gallery image type."
+        )
+      );
+    },
   });
+
+/* ============================================================
+   LEGACY CATALOG FALLBACKS
+============================================================ */
 
 const LEGACY_ROOMS = [
   {
-    key: "Aircon Room",
-    name: "Aircon Room",
-    displayName: "Aircon Room",
-    price: 3500,
-    maxGuests: 8,
-    image: "/images/room1.jpg",
-    type: "room",
-    active: true,
+    key:
+      "Aircon Room",
+
+    name:
+      "Aircon Room",
+
+    displayName:
+      "Aircon Room",
+
+    price:
+      3500,
+
+    maxGuests:
+      8,
+
+    quantity:
+      1,
+
+    image:
+      "/images/room1.jpg",
+
+    type:
+      "room",
+
+    active:
+      true,
   },
 
   {
-    key: "Fan Room",
-    name: "Fan Room",
-    displayName: "Fan Room",
-    price: 2500,
-    maxGuests: 6,
-    image: "/images/room2.jpg",
-    type: "room",
-    active: true,
+    key:
+      "Fan Room",
+
+    name:
+      "Fan Room",
+
+    displayName:
+      "Fan Room",
+
+    price:
+      2500,
+
+    maxGuests:
+      6,
+
+    quantity:
+      1,
+
+    image:
+      "/images/room2.jpg",
+
+    type:
+      "room",
+
+    active:
+      true,
   },
 ];
 
 const LEGACY_COTTAGE = {
-  key: "Seaside Cottage",
-  name: "Seaside Cottage",
-  displayName: "Seaside Cottage",
-  price: 1200,
-  maxGuests: 6,
-  image: "/images/cottage.jpg",
-  type: "cottage",
-  active: true,
+  key:
+    "Seaside Cottage",
+
+  name:
+    "Seaside Cottage",
+
+  displayName:
+    "Seaside Cottage",
+
+  price:
+    1200,
+
+  maxGuests:
+    6,
+
+  quantity:
+    1,
+
+  image:
+    "/images/cottage.jpg",
+
+  type:
+    "cottage",
+
+  active:
+    true,
 };
 
-// ============================================================
-// ROOM IMAGE HELPERS
-// ============================================================
+/* ============================================================
+   GENERIC HELPERS
+============================================================ */
 
-function detectRoomImageType(buffer) {
-  if (!Buffer.isBuffer(buffer) || buffer.length < 12) {
+function normalizeString(
+  value,
+  maxLength = 500
+) {
+  if (
+    value ===
+      undefined ||
+    value ===
+      null
+  ) {
+    return "";
+  }
+
+  return String(value)
+    .trim()
+    .slice(
+      0,
+      maxLength
+    );
+}
+
+function normalizeUsername(
+  value
+) {
+  return normalizeString(
+    value,
+    120
+  ).toLowerCase();
+}
+
+function normalizeEmail(
+  value
+) {
+  return normalizeString(
+    value,
+    320
+  ).toLowerCase();
+}
+
+function isValidObjectId(
+  id
+) {
+  return (
+    Boolean(id) &&
+    mongoose.Types.ObjectId.isValid(
+      id
+    )
+  );
+}
+
+function parseNumber(
+  value,
+  fallback = 0
+) {
+  const parsed =
+    Number(value);
+
+  return Number.isFinite(
+    parsed
+  )
+    ? parsed
+    : fallback;
+}
+
+function parseInteger(
+  value,
+  fallback = 0
+) {
+  const parsed =
+    Number(value);
+
+  return Number.isInteger(
+    parsed
+  )
+    ? parsed
+    : fallback;
+}
+
+function asBoolean(
+  value
+) {
+  return (
+    value === true ||
+    value === "true" ||
+    value === "1" ||
+    value === "on" ||
+    value === "yes"
+  );
+}
+
+function startOfToday() {
+  const now =
+    new Date();
+
+  return new Date(
+    now.getFullYear(),
+    now.getMonth(),
+    now.getDate()
+  );
+}
+
+function endOfToday() {
+  const start =
+    startOfToday();
+
+  return new Date(
+    start.getFullYear(),
+    start.getMonth(),
+    start.getDate() +
+      1
+  );
+}
+
+function parseBookingDate(
+  value
+) {
+  if (!value) {
     return null;
   }
 
-  /* JPEG */
+  const stringValue =
+    String(value).trim();
+
   if (
-    buffer[0] === 0xff &&
-    buffer[1] === 0xd8 &&
-    buffer[2] === 0xff
+    /^\d{4}-\d{2}-\d{2}$/.test(
+      stringValue
+    )
+  ) {
+    const [
+      year,
+      month,
+      day,
+    ] =
+      stringValue
+        .split("-")
+        .map(Number);
+
+    const date =
+      new Date(
+        year,
+        month - 1,
+        day
+      );
+
+    if (
+      date.getFullYear() !==
+        year ||
+      date.getMonth() !==
+        month - 1 ||
+      date.getDate() !==
+        day
+    ) {
+      return null;
+    }
+
+    return date;
+  }
+
+  const date =
+    new Date(value);
+
+  return Number.isNaN(
+    date.getTime()
+  )
+    ? null
+    : date;
+}
+
+function calculateNights(
+  checkin,
+  checkout
+) {
+  const start =
+    parseBookingDate(
+      checkin
+    );
+
+  const end =
+    parseBookingDate(
+      checkout
+    );
+
+  if (
+    !start ||
+    !end ||
+    end <= start
+  ) {
+    return 0;
+  }
+
+  const startUtc =
+    Date.UTC(
+      start.getFullYear(),
+      start.getMonth(),
+      start.getDate()
+    );
+
+  const endUtc =
+    Date.UTC(
+      end.getFullYear(),
+      end.getMonth(),
+      end.getDate()
+    );
+
+  return Math.round(
+    (
+      endUtc -
+      startUtc
+    ) /
+      86400000
+  );
+}
+
+function validateBookingDates(
+  checkin,
+  checkout
+) {
+  const start =
+    parseBookingDate(
+      checkin
+    );
+
+  const end =
+    parseBookingDate(
+      checkout
+    );
+
+  if (
+    !start ||
+    !end
   ) {
     return {
-      extension: "jpg",
-      contentType: "image/jpeg",
+      valid:
+        false,
+
+      message:
+        "Invalid booking dates.",
     };
   }
 
-  /* PNG */
-  const pngSignature = Buffer.from([
-    0x89,
-    0x50,
-    0x4e,
-    0x47,
-    0x0d,
-    0x0a,
-    0x1a,
-    0x0a,
-  ]);
+  if (
+    end <= start
+  ) {
+    return {
+      valid:
+        false,
+
+      message:
+        "Check-out must be after check-in.",
+    };
+  }
+
+  return {
+    valid:
+      true,
+
+    start,
+
+    end,
+  };
+}
+
+function pickFirst(
+  record,
+  fields,
+  fallback =
+    undefined
+) {
+  for (
+    const field of fields
+  ) {
+    if (
+      record &&
+      record[field] !==
+        undefined &&
+      record[field] !==
+        null &&
+      record[field] !==
+        ""
+    ) {
+      return record[field];
+    }
+  }
+
+  return fallback;
+}
+
+function modelHasPath(
+  model,
+  field
+) {
+  return Boolean(
+    model &&
+      model.schema &&
+      typeof model.schema.path ===
+        "function" &&
+      model.schema.path(
+        field
+      )
+  );
+}
+
+function setModelValue(
+  document,
+  fieldNames,
+  value
+) {
+  if (
+    !document ||
+    !Array.isArray(
+      fieldNames
+    )
+  ) {
+    return false;
+  }
+
+  for (
+    const field of
+      fieldNames
+  ) {
+    if (
+      document.schema &&
+      document.schema.path(
+        field
+      )
+    ) {
+      document.set(
+        field,
+        value
+      );
+
+      return true;
+    }
+  }
+
+  return false;
+}
+
+function hasOwn(
+  body,
+  ...names
+) {
+  return names.some(
+    (
+      name
+    ) =>
+      Object.prototype.hasOwnProperty.call(
+        body || {},
+        name
+      )
+  );
+}
+
+function firstPresent(
+  body,
+  names
+) {
+  for (
+    const name of
+      names
+  ) {
+    if (
+      hasOwn(
+        body,
+        name
+      )
+    ) {
+      return body[name];
+    }
+  }
+
+  return undefined;
+}
+
+function wantsJson(
+  req
+) {
+  const accepted =
+    String(
+      req.headers?.accept ||
+        ""
+    ).toLowerCase();
+
+  return Boolean(
+    req.xhr ||
+      accepted.includes(
+        "application/json"
+      ) ||
+      req.path.startsWith(
+        "/api/"
+      ) ||
+      req.path.startsWith(
+        "/booking/"
+      ) ||
+      req.path.startsWith(
+        "/update-"
+      )
+  );
+}
+
+function getAdminSession(
+  req
+) {
+  return (
+    req.session?.admin ||
+    null
+  );
+}
+
+function getAdminId(
+  req
+) {
+  const id =
+    req.session?.admin?.id ||
+    req.session?.admin?._id;
+
+  return isValidObjectId(id)
+    ? String(id)
+    : null;
+}
+
+function getRequestId(
+  req
+) {
+  return (
+    String(
+      req.requestId ||
+        ""
+    ).trim() ||
+    null
+  );
+}
+
+function sendApiError(
+  res,
+  statusCode,
+  message,
+  code =
+    "REQUEST_FAILED",
+  requestId =
+    null
+) {
+  return res
+    .status(statusCode)
+    .json({
+      success:
+        false,
+
+      code,
+
+      message,
+
+      ...(requestId
+        ? {
+            requestId,
+          }
+        : {}),
+    });
+}
+
+function getBookingIdFromRequest(
+  req
+) {
+  return normalizeString(
+    req.body?.bookingId ||
+      req.body?.appointmentId ||
+      req.body?.id
+  );
+}
+
+function getResourceIdFromRequest(
+  req
+) {
+  return normalizeString(
+    req.params?.id ||
+      req.body?.id ||
+      req.body?._id
+  );
+}
+
+function renderAdminError(
+  res,
+  statusCode,
+  title,
+  message
+) {
+  return res
+    .status(statusCode)
+    .render(
+      "error",
+      {
+        title,
+
+        statusCode,
+
+        error:
+          message,
+
+        message,
+      }
+    );
+}
+
+function redirectWithMessage(
+  res,
+  route,
+  key,
+  value
+) {
+  const separator =
+    route.includes("?")
+      ? "&"
+      : "?";
+
+  return res.redirect(
+    `${route}${separator}${key}=${encodeURIComponent(
+      value
+    )}`
+  );
+}
+
+/* ============================================================
+   IMAGE HELPERS
+============================================================ */
+
+function detectRoomImageType(
+  buffer
+) {
+  if (
+    !Buffer.isBuffer(
+      buffer
+    ) ||
+    buffer.length <
+      12
+  ) {
+    return null;
+  }
 
   if (
-    buffer.length >= pngSignature.length &&
+    buffer[0] ===
+      0xff &&
+    buffer[1] ===
+      0xd8 &&
+    buffer[2] ===
+      0xff
+  ) {
+    return {
+      extension:
+        "jpg",
+
+      contentType:
+        "image/jpeg",
+    };
+  }
+
+  const pngSignature =
+    Buffer.from([
+      0x89,
+      0x50,
+      0x4e,
+      0x47,
+      0x0d,
+      0x0a,
+      0x1a,
+      0x0a,
+    ]);
+
+  if (
+    buffer.length >=
+      pngSignature.length &&
     buffer
-      .subarray(0, pngSignature.length)
-      .equals(pngSignature)
+      .subarray(
+        0,
+        pngSignature.length
+      )
+      .equals(
+        pngSignature
+      )
   ) {
     return {
-      extension: "png",
-      contentType: "image/png",
+      extension:
+        "png",
+
+      contentType:
+        "image/png",
     };
   }
 
-  /* WEBP: RIFF....WEBP */
   if (
-    buffer.toString("ascii", 0, 4) === "RIFF" &&
-    buffer.toString("ascii", 8, 12) === "WEBP"
+    buffer.toString(
+      "ascii",
+      0,
+      4
+    ) === "RIFF" &&
+    buffer.toString(
+      "ascii",
+      8,
+      12
+    ) === "WEBP"
   ) {
     return {
-      extension: "webp",
-      contentType: "image/webp",
+      extension:
+        "webp",
+
+      contentType:
+        "image/webp",
     };
   }
 
   return null;
 }
 
-function isManagedRoomImageUrl(value) {
+function isManagedRoomImageUrl(
+  value
+) {
   const normalized =
-    normalizeString(value, 500);
+    normalizeString(
+      value,
+      500
+    );
 
   if (
     !normalized ||
@@ -440,8 +1131,12 @@ function isManagedRoomImageUrl(value) {
 
   if (
     !filename ||
-    filename.includes("/") ||
-    filename.includes("\\")
+    filename.includes(
+      "/"
+    ) ||
+    filename.includes(
+      "\\"
+    )
   ) {
     return false;
   }
@@ -451,8 +1146,14 @@ function isManagedRoomImageUrl(value) {
   );
 }
 
-function roomImageAbsolutePathFromUrl(value) {
-  if (!isManagedRoomImageUrl(value)) {
+function roomImageAbsolutePathFromUrl(
+  value
+) {
+  if (
+    !isManagedRoomImageUrl(
+      value
+    )
+  ) {
     return null;
   }
 
@@ -473,7 +1174,8 @@ function roomImageAbsolutePathFromUrl(value) {
     );
 
   if (
-    absolutePath !== uploadRoot &&
+    absolutePath !==
+      uploadRoot &&
     !absolutePath.startsWith(
       `${uploadRoot}${path.sep}`
     )
@@ -484,9 +1186,13 @@ function roomImageAbsolutePathFromUrl(value) {
   return absolutePath;
 }
 
-async function removeManagedRoomImage(value) {
+async function removeManagedRoomImage(
+  value
+) {
   const filePath =
-    roomImageAbsolutePathFromUrl(value);
+    roomImageAbsolutePathFromUrl(
+      value
+    );
 
   if (!filePath) {
     return;
@@ -497,19 +1203,29 @@ async function removeManagedRoomImage(value) {
       filePath
     );
   } catch (error) {
-    if (error?.code !== "ENOENT") {
+    if (
+      error?.code !==
+      "ENOENT"
+    ) {
       console.warn(
         "Unable to remove previous room image:",
-        error.message || error
+        error.message ||
+          error
       );
     }
   }
 }
 
-function createRoomImageFilename(extension) {
-  return `room-${Date.now()}-${crypto
-    .randomBytes(16)
-    .toString("hex")}.${extension}`;
+function createRoomImageFilename(
+  extension
+) {
+  return (
+    `room-${Date.now()}-${crypto
+      .randomBytes(16)
+      .toString(
+        "hex"
+      )}.${extension}`
+  );
 }
 
 async function saveRoomImageBuffer(
@@ -519,7 +1235,8 @@ async function saveRoomImageBuffer(
   await fs.promises.mkdir(
     ROOM_IMAGE_UPLOAD_DIR,
     {
-      recursive: true,
+      recursive:
+        true,
     }
   );
 
@@ -537,13 +1254,16 @@ async function saveRoomImageBuffer(
   const tempPath =
     `${finalPath}.${crypto
       .randomBytes(6)
-      .toString("hex")}.tmp`;
+      .toString(
+        "hex"
+      )}.tmp`;
 
   await fs.promises.writeFile(
     tempPath,
     buffer,
     {
-      flag: "wx",
+      flag:
+        "wx",
     }
   );
 
@@ -557,9 +1277,7 @@ async function saveRoomImageBuffer(
       await fs.promises.unlink(
         tempPath
       );
-    } catch (_) {
-      /* Best-effort temporary-file cleanup. */
-    }
+    } catch (_) {}
 
     throw error;
   }
@@ -575,68 +1293,22 @@ async function saveRoomImageBuffer(
   };
 }
 
-// ============================================================
-// ADD-ON IMAGE HELPERS
-// ============================================================
-
-function detectAddOnImageType(buffer) {
-  if (!Buffer.isBuffer(buffer) || buffer.length < 12) {
-    return null;
-  }
-
-  /* JPEG */
-  if (
-    buffer[0] === 0xff &&
-    buffer[1] === 0xd8 &&
-    buffer[2] === 0xff
-  ) {
-    return {
-      extension: "jpg",
-      contentType: "image/jpeg",
-    };
-  }
-
-  /* PNG */
-  const pngSignature = Buffer.from([
-    0x89,
-    0x50,
-    0x4e,
-    0x47,
-    0x0d,
-    0x0a,
-    0x1a,
-    0x0a,
-  ]);
-
-  if (
-    buffer.length >= pngSignature.length &&
+function detectAddOnImageType(
+  buffer
+) {
+  return detectRoomImageType(
     buffer
-      .subarray(0, pngSignature.length)
-      .equals(pngSignature)
-  ) {
-    return {
-      extension: "png",
-      contentType: "image/png",
-    };
-  }
-
-  /* WEBP: RIFF....WEBP */
-  if (
-    buffer.toString("ascii", 0, 4) === "RIFF" &&
-    buffer.toString("ascii", 8, 12) === "WEBP"
-  ) {
-    return {
-      extension: "webp",
-      contentType: "image/webp",
-    };
-  }
-
-  return null;
+  );
 }
 
-function isManagedAddOnImageUrl(value) {
+function isManagedAddOnImageUrl(
+  value
+) {
   const normalized =
-    normalizeString(value, 500);
+    normalizeString(
+      value,
+      500
+    );
 
   if (
     !normalized ||
@@ -654,8 +1326,12 @@ function isManagedAddOnImageUrl(value) {
 
   if (
     !filename ||
-    filename.includes("/") ||
-    filename.includes("\\")
+    filename.includes(
+      "/"
+    ) ||
+    filename.includes(
+      "\\"
+    )
   ) {
     return false;
   }
@@ -665,7 +1341,9 @@ function isManagedAddOnImageUrl(value) {
   );
 }
 
-function addOnImageAbsolutePathFromUrl(value) {
+function addOnImageAbsolutePathFromUrl(
+  value
+) {
   if (
     !isManagedAddOnImageUrl(
       value
@@ -691,7 +1369,8 @@ function addOnImageAbsolutePathFromUrl(value) {
     );
 
   if (
-    absolutePath !== uploadRoot &&
+    absolutePath !==
+      uploadRoot &&
     !absolutePath.startsWith(
       `${uploadRoot}${path.sep}`
     )
@@ -735,9 +1414,13 @@ async function removeManagedAddOnImage(
 function createAddOnImageFilename(
   extension
 ) {
-  return `addon-${Date.now()}-${crypto
-    .randomBytes(16)
-    .toString("hex")}.${extension}`;
+  return (
+    `addon-${Date.now()}-${crypto
+      .randomBytes(16)
+      .toString(
+        "hex"
+      )}.${extension}`
+  );
 }
 
 async function saveAddOnImageBuffer(
@@ -747,7 +1430,8 @@ async function saveAddOnImageBuffer(
   await fs.promises.mkdir(
     ADDON_IMAGE_UPLOAD_DIR,
     {
-      recursive: true,
+      recursive:
+        true,
     }
   );
 
@@ -765,13 +1449,16 @@ async function saveAddOnImageBuffer(
   const tempPath =
     `${finalPath}.${crypto
       .randomBytes(6)
-      .toString("hex")}.tmp`;
+      .toString(
+        "hex"
+      )}.tmp`;
 
   await fs.promises.writeFile(
     tempPath,
     buffer,
     {
-      flag: "wx",
+      flag:
+        "wx",
     }
   );
 
@@ -785,9 +1472,7 @@ async function saveAddOnImageBuffer(
       await fs.promises.unlink(
         tempPath
       );
-    } catch (_) {
-      /* Best-effort temporary-file cleanup. */
-    }
+    } catch (_) {}
 
     throw error;
   }
@@ -803,81 +1488,12 @@ async function saveAddOnImageBuffer(
   };
 }
 
-// ✅ GALLERY CHANGE: Validate and safely save gallery panorama files.
-
 function detectGalleryImageType(
   buffer
 ) {
-  if (
-    !Buffer.isBuffer(buffer) ||
-    buffer.length < 12
-  ) {
-    return null;
-  }
-
-  // JPEG
-  if (
-    buffer[0] === 0xff &&
-    buffer[1] === 0xd8 &&
-    buffer[2] === 0xff
-  ) {
-    return {
-      extension: "jpg",
-      contentType: "image/jpeg",
-    };
-  }
-
-  // PNG
-  const pngSignature =
-    Buffer.from([
-      0x89,
-      0x50,
-      0x4e,
-      0x47,
-      0x0d,
-      0x0a,
-      0x1a,
-      0x0a,
-    ]);
-
-  if (
-    buffer.length >=
-      pngSignature.length &&
+  return detectRoomImageType(
     buffer
-      .subarray(
-        0,
-        pngSignature.length
-      )
-      .equals(
-        pngSignature
-      )
-  ) {
-    return {
-      extension: "png",
-      contentType: "image/png",
-    };
-  }
-
-  // WEBP
-  if (
-    buffer.toString(
-      "ascii",
-      0,
-      4
-    ) === "RIFF" &&
-    buffer.toString(
-      "ascii",
-      8,
-      12
-    ) === "WEBP"
-  ) {
-    return {
-      extension: "webp",
-      contentType: "image/webp",
-    };
-  }
-
-  return null;
+  );
 }
 
 function isManagedGalleryImageUrl(
@@ -905,8 +1521,12 @@ function isManagedGalleryImageUrl(
 
   if (
     !filename ||
-    filename.includes("/") ||
-    filename.includes("\\")
+    filename.includes(
+      "/"
+    ) ||
+    filename.includes(
+      "\\"
+    )
   ) {
     return false;
   }
@@ -992,7 +1612,9 @@ function createGalleryImageFilename(
   return (
     `pano-${Date.now()}-${crypto
       .randomBytes(16)
-      .toString("hex")}.${extension}`
+      .toString(
+        "hex"
+      )}.${extension}`
   );
 }
 
@@ -1003,7 +1625,8 @@ async function saveGalleryImageBuffer(
   await fs.promises.mkdir(
     GALLERY_IMAGE_UPLOAD_DIR,
     {
-      recursive: true,
+      recursive:
+        true,
     }
   );
 
@@ -1021,13 +1644,16 @@ async function saveGalleryImageBuffer(
   const tempPath =
     `${finalPath}.${crypto
       .randomBytes(6)
-      .toString("hex")}.tmp`;
+      .toString(
+        "hex"
+      )}.tmp`;
 
   await fs.promises.writeFile(
     tempPath,
     buffer,
     {
-      flag: "wx",
+      flag:
+        "wx",
     }
   );
 
@@ -1041,9 +1667,7 @@ async function saveGalleryImageBuffer(
       await fs.promises.unlink(
         tempPath
       );
-    } catch (_) {
-      // Best-effort cleanup.
-    }
+    } catch (_) {}
 
     throw error;
   }
@@ -1059,449 +1683,17 @@ async function saveGalleryImageBuffer(
   };
 }
 
-// ============================================================
-// BASIC HELPERS
-// ============================================================
-
-function normalizeString(
-  value,
-  maxLength = 500
-) {
-  if (
-    value === undefined ||
-    value === null
-  ) {
-    return "";
-  }
-
-  return String(value)
-    .trim()
-    .slice(0, maxLength);
-}
-
-function normalizeUsername(value) {
-  return normalizeString(
-    value,
-    120
-  ).toLowerCase();
-}
-
-function normalizeEmail(value) {
-  return normalizeString(
-    value,
-    320
-  ).toLowerCase();
-}
-
-function isValidObjectId(id) {
-  return (
-    Boolean(id) &&
-    mongoose.Types.ObjectId.isValid(id)
-  );
-}
-
-function parseNumber(
-  value,
-  fallback = 0
-) {
-  const parsed =
-    Number(value);
-
-  return Number.isFinite(parsed)
-    ? parsed
-    : fallback;
-}
-
-function parseInteger(
-  value,
-  fallback = 0
-) {
-  const parsed =
-    Number(value);
-
-  return Number.isInteger(parsed)
-    ? parsed
-    : fallback;
-}
-
-function asBoolean(value) {
-  return (
-    value === true ||
-    value === "true" ||
-    value === "1" ||
-    value === "on" ||
-    value === "yes"
-  );
-}
-
-function startOfToday() {
-  const now = new Date();
-
-  return new Date(
-    now.getFullYear(),
-    now.getMonth(),
-    now.getDate()
-  );
-}
-
-function endOfToday() {
-  const start =
-    startOfToday();
-
-  return new Date(
-    start.getFullYear(),
-    start.getMonth(),
-    start.getDate() + 1
-  );
-}
-
-function parseBookingDate(value) {
-  if (!value) {
-    return null;
-  }
-
-  const stringValue =
-    String(value).trim();
-
-  if (
-    /^\d{4}-\d{2}-\d{2}$/.test(
-      stringValue
-    )
-  ) {
-    const [
-      year,
-      month,
-      day,
-    ] = stringValue
-      .split("-")
-      .map(Number);
-
-    const date =
-      new Date(
-        year,
-        month - 1,
-        day
-      );
-
-    if (
-      date.getFullYear() !== year ||
-      date.getMonth() !==
-        month - 1 ||
-      date.getDate() !== day
-    ) {
-      return null;
-    }
-
-    return date;
-  }
-
-  const date =
-    new Date(value);
-
-  if (
-    Number.isNaN(
-      date.getTime()
-    )
-  ) {
-    return null;
-  }
-
-  return date;
-}
-
-function validateBookingDates(
-  checkin,
-  checkout
-) {
-  const start =
-    parseBookingDate(
-      checkin
-    );
-
-  const end =
-    parseBookingDate(
-      checkout
-    );
-
-  if (!start || !end) {
-    return {
-      valid: false,
-      message:
-        "Invalid booking dates.",
-    };
-  }
-
-  if (end <= start) {
-    return {
-      valid: false,
-      message:
-        "Check-out must be after check-in.",
-    };
-  }
-
-  return {
-    valid: true,
-    start,
-    end,
-  };
-}
-
-function calculateNights(
-  checkin,
-  checkout
-) {
-  const start =
-    parseBookingDate(
-      checkin
-    );
-
-  const end =
-    parseBookingDate(
-      checkout
-    );
-
-  if (
-    !start ||
-    !end ||
-    end <= start
-  ) {
-    return 0;
-  }
-
-  const startUtc =
-    Date.UTC(
-      start.getFullYear(),
-      start.getMonth(),
-      start.getDate()
-    );
-
-  const endUtc =
-    Date.UTC(
-      end.getFullYear(),
-      end.getMonth(),
-      end.getDate()
-    );
-
-  return Math.round(
-    (endUtc - startUtc) /
-      86400000
-  );
-}
-
-function pickFirst(
-  record,
-  fields,
-  fallback = undefined
-) {
-  for (
-    const field of fields
-  ) {
-    if (
-      record &&
-      record[field] !==
-        undefined &&
-      record[field] !==
-        null &&
-      record[field] !== ""
-    ) {
-      return record[field];
-    }
-  }
-
-  return fallback;
-}
-
-function modelHasPath(
-  model,
-  path
-) {
-  return Boolean(
-    model &&
-    model.schema &&
-    typeof model.schema.path ===
-      "function" &&
-    model.schema.path(path)
-  );
-}
-
-function setModelValue(
-  document,
-  fieldNames,
-  value
-) {
-  if (
-    !document ||
-    !Array.isArray(fieldNames)
-  ) {
-    return false;
-  }
-
-  for (
-    const field of
-      fieldNames
-  ) {
-    if (
-      document.schema &&
-      document.schema.path(field)
-    ) {
-      document.set(
-        field,
-        value
-      );
-
-      return true;
-    }
-  }
-
-  return false;
-}
-
-function wantsJson(req) {
-  const requested =
-    String(
-      req.headers?.accept ||
-        ""
-    ).toLowerCase();
-
-  return (
-    req.xhr ||
-    requested.includes(
-      "application/json"
-    ) ||
-    req.path.startsWith(
-      "/api/"
-    ) ||
-    req.path.startsWith(
-      "/booking/"
-    ) ||
-    req.path.startsWith(
-      "/update-"
-    )
-  );
-}
-
-function getAdminSession(req) {
-  return (
-    req.session?.admin ||
-    null
-  );
-}
-
-function getRequestId(req) {
-  return (
-    String(
-      req.requestId ||
-        ""
-    ).trim() ||
-    null
-  );
-}
-
-function sendApiError(
-  res,
-  statusCode,
-  message,
-  code = "REQUEST_FAILED",
-  requestId = null
-) {
-  return res
-    .status(statusCode)
-    .json({
-      success: false,
-      code,
-      message,
-      ...(requestId
-        ? { requestId }
-        : {}),
-    });
-}
-
-function getAdminId(req) {
-  const id =
-    req.session?.admin?.id ||
-    req.session?.admin?._id;
-
-  return isValidObjectId(id)
-    ? String(id)
-    : null;
-}
-
-/**
- * Front Desk checkin.ejs sends `bookingId`.
- *
- * We support:
- *   bookingId
- *   appointmentId
- *   id
- */
-function getBookingIdFromRequest(
-  req
-) {
-  return normalizeString(
-    req.body?.bookingId ||
-      req.body?.appointmentId ||
-      req.body?.id
-  );
-}
-
-function getResourceIdFromRequest(
-  req
-) {
-  return normalizeString(
-    req.params?.id ||
-      req.body?.id ||
-      req.body?._id
-  );
-}
-
-function renderAdminError(
-  res,
-  statusCode,
-  title,
-  message
-) {
-  return res
-    .status(statusCode)
-    .render(
-      "error",
-      {
-        title,
-        statusCode,
-        error: message,
-        message,
-      }
-    );
-}
-
-function redirectWithMessage(
-  res,
-  path,
-  key,
-  value
-) {
-  const separator =
-    path.includes("?")
-      ? "&"
-      : "?";
-
-  return res.redirect(
-    `${path}${separator}${key}=${encodeURIComponent(
-      value
-    )}`
-  );
-}
-
 /* ============================================================
-   GALLERY DATA HELPERS
+   GALLERY HELPERS
 ============================================================ */
-
-// ✅ GALLERY CHANGE: Keeps gallery scene indexes consistent.
 
 function normalizeGalleryImages(
   images
 ) {
   if (
-    !Array.isArray(images)
+    !Array.isArray(
+      images
+    )
   ) {
     return [];
   }
@@ -1532,8 +1724,10 @@ function normalizeGalleryImages(
               parsed
             ) ||
             parsed < 0 ||
-            parsed >= sceneCount ||
-            parsed === index
+            parsed >=
+              sceneCount ||
+            parsed ===
+              index
           ) {
             return null;
           }
@@ -1610,9 +1804,13 @@ function remapGalleryNavigationAfterDelete(
   deletedIndex
 ) {
   return images.map(
-    (image) => {
+    (
+      image
+    ) => {
       const remap =
-        (value) => {
+        (
+          value
+        ) => {
           if (
             !Number.isInteger(
               value
@@ -1632,7 +1830,9 @@ function remapGalleryNavigationAfterDelete(
             value >
             deletedIndex
           ) {
-            return value - 1;
+            return (
+              value - 1
+            );
           }
 
           return value;
@@ -1665,84 +1865,267 @@ function remapGalleryNavigationAfterDelete(
   );
 }
 
-// ============================================================
-// SESSION / AUTH MIDDLEWARE
-// ============================================================
+/* ============================================================
+   SESSION / AUTHENTICATION
+============================================================ */
+
+/**
+ * Revalidates the admin account against MongoDB.
+ *
+ * The session is NOT treated as permanent authorization.
+ *
+ * If an administrator is disabled after logging in, the live
+ * database state wins.
+ */
+async function getAuthenticatedAdmin(
+  req
+) {
+  const sessionAdmin =
+    req.session?.admin;
+
+  const adminId =
+    sessionAdmin?.id ||
+    sessionAdmin?._id;
+
+  if (
+    !isValidObjectId(
+      adminId
+    )
+  ) {
+    return null;
+  }
+
+  const admin =
+    await Admin.findById(
+      adminId
+    ).select(
+      "username role status active email failedLoginAttempts lockedUntil lastLoginAt"
+    );
+
+  if (
+    !admin
+  ) {
+    return null;
+  }
+
+  if (
+    modelHasPath(
+      Admin,
+      "status"
+    ) &&
+    admin.status &&
+    String(
+      admin.status
+    )
+      .trim()
+      .toLowerCase() !==
+      "active"
+  ) {
+    return null;
+  }
+
+  if (
+    modelHasPath(
+      Admin,
+      "active"
+    ) &&
+    admin.active ===
+      false
+  ) {
+    return null;
+  }
+
+  const role =
+    normalizeString(
+      admin.role ||
+        sessionAdmin.role ||
+        "admin",
+      80
+    ).toLowerCase();
+
+  /*
+   * Keep the session synchronized with the live account.
+   */
+  req.session.admin =
+    {
+      ...sessionAdmin,
+
+      id:
+        admin._id.toString(),
+
+      _id:
+        admin._id.toString(),
+
+      username:
+        normalizeUsername(
+          admin.username
+        ),
+
+      role,
+    };
+
+  return admin;
+}
 
 function requireAdmin(
   req,
   res,
   next
 ) {
-  const sessionAdmin =
-    req.session?.admin;
+  getAuthenticatedAdmin(
+    req
+  )
+    .then(
+      async (
+        admin
+      ) => {
+        if (
+          !admin
+        ) {
+          /*
+           * Clear the invalid admin session.
+           */
+          if (
+            req.session
+          ) {
+            await new Promise(
+              (
+                resolve
+              ) =>
+                req.session.destroy(
+                  () =>
+                    resolve()
+                )
+            );
+          }
 
-  const adminId =
-    sessionAdmin?.id ||
-    sessionAdmin?._id;
+          if (
+            wantsJson(
+              req
+            )
+          ) {
+            return sendApiError(
+              res,
+              401,
+              "Administrator authentication required.",
+              "AUTHENTICATION_REQUIRED",
+              getRequestId(
+                req
+              )
+            );
+          }
 
-  if (
-    !sessionAdmin ||
-    !isValidObjectId(
-      adminId
+          return res.redirect(
+            "/admin/login?error=" +
+              encodeURIComponent(
+                "Your administrator session is no longer valid."
+              )
+          );
+        }
+
+        res.locals.admin =
+          admin;
+
+        next();
+      }
     )
-  ) {
-    if (wantsJson(req)) {
+    .catch(
+      (
+        error
+      ) => {
+        console.error(
+          "Admin authentication validation error:",
+          error
+        );
+
+        return sendApiError(
+          res,
+          500,
+          "Unable to validate administrator access.",
+          "ADMIN_AUTH_VALIDATION_FAILED",
+          getRequestId(
+            req
+          )
+        );
+      }
+    );
+}
+
+async function requireAdminApiHandler(
+  req,
+  res,
+  next
+) {
+  try {
+    const admin =
+      await getAuthenticatedAdmin(
+        req
+      );
+
+    if (
+      !admin
+    ) {
+      if (
+        req.session
+      ) {
+        await new Promise(
+          (
+            resolve
+          ) =>
+            req.session.destroy(
+              () =>
+                resolve()
+            )
+        );
+      }
+
       return sendApiError(
         res,
         401,
         "Administrator authentication required.",
         "AUTHENTICATION_REQUIRED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
 
-    return res.redirect(
-      "/admin/login?error=" +
-        encodeURIComponent(
-          "Administrator login required."
-        )
+    res.locals.admin =
+      admin;
+
+    next();
+  } catch (error) {
+    console.error(
+      "Admin API authentication validation error:",
+      error
     );
-  }
 
-  next();
-}
-
-function requireAdminApi(
-  req,
-  res,
-  next
-) {
-  const sessionAdmin =
-    req.session?.admin;
-
-  const adminId =
-    sessionAdmin?.id ||
-    sessionAdmin?._id;
-
-  if (
-    !sessionAdmin ||
-    !isValidObjectId(
-      adminId
-    )
-  ) {
     return sendApiError(
       res,
-      401,
-      "Administrator authentication required.",
-      "AUTHENTICATION_REQUIRED",
-      getRequestId(req)
+      500,
+      "Unable to validate administrator access.",
+      "ADMIN_AUTH_VALIDATION_FAILED",
+      getRequestId(
+        req
+      )
     );
   }
-
-  next();
 }
+
+const requireAdminApi =
+  requireAdminApiHandler;
 
 function verifyAdminMutationCsrf(
   req,
   res,
   next
 ) {
+  /*
+   * Compatibility switch.
+   *
+   * Once the current admin templates all send the token,
+   * set ADMIN_CSRF_REQUIRED=true.
+   */
   if (
     !ADMIN_CSRF_REQUIRED
   ) {
@@ -1781,7 +2164,9 @@ function regenerateSession(
       resolve,
       reject
     ) => {
-      if (!req.session) {
+      if (
+        !req.session
+      ) {
         return reject(
           new Error(
             "Session middleware is unavailable."
@@ -1790,8 +2175,12 @@ function regenerateSession(
       }
 
       req.session.regenerate(
-        (error) => {
-          if (error) {
+        (
+          error
+        ) => {
+          if (
+            error
+          ) {
             return reject(
               error
             );
@@ -1804,13 +2193,17 @@ function regenerateSession(
   );
 }
 
-function saveSession(req) {
+function saveSession(
+  req
+) {
   return new Promise(
     (
       resolve,
       reject
     ) => {
-      if (!req.session) {
+      if (
+        !req.session
+      ) {
         return reject(
           new Error(
             "Session middleware is unavailable."
@@ -1819,8 +2212,12 @@ function saveSession(req) {
       }
 
       req.session.save(
-        (error) => {
-          if (error) {
+        (
+          error
+        ) => {
+          if (
+            error
+          ) {
             return reject(
               error
             );
@@ -1833,16 +2230,653 @@ function saveSession(req) {
   );
 }
 
-// ============================================================
-// NOTIFICATIONS
-// ============================================================
+/* ============================================================
+   ADMIN LOGIN SECURITY
+============================================================ */
+
+async function recordAdminLoginFailure(
+  admin
+) {
+  if (
+    !admin
+  ) {
+    return;
+  }
+
+  try {
+    if (
+      modelHasPath(
+        Admin,
+        "failedLoginAttempts"
+      )
+    ) {
+      admin.failedLoginAttempts =
+        Math.max(
+          0,
+          Number(
+            admin.failedLoginAttempts ||
+              0
+          )
+        ) + 1;
+    }
+
+    if (
+      modelHasPath(
+        Admin,
+        "lockedUntil"
+      ) &&
+      modelHasPath(
+        Admin,
+        "failedLoginAttempts"
+      )
+    ) {
+      const attempts =
+        Number(
+          admin.failedLoginAttempts ||
+            0
+        );
+
+      /*
+       * Five failed attempts:
+       * temporarily lock the account.
+       */
+      if (
+        attempts >=
+        5
+      ) {
+        admin.lockedUntil =
+          new Date(
+            Date.now() +
+              15 *
+                60 *
+                1000
+          );
+
+        if (
+          modelHasPath(
+            Admin,
+            "failedLoginAttempts"
+          )
+        ) {
+          admin.failedLoginAttempts =
+            0;
+        }
+      }
+    }
+
+    await admin.save();
+  } catch (error) {
+    console.error(
+      "Admin failed-login tracking error:",
+      error
+    );
+  }
+}
+
+async function recordAdminLoginSuccess(
+  admin
+) {
+  try {
+    let changed =
+      false;
+
+    if (
+      modelHasPath(
+        Admin,
+        "failedLoginAttempts"
+      )
+    ) {
+      admin.failedLoginAttempts =
+        0;
+
+      changed =
+        true;
+    }
+
+    if (
+      modelHasPath(
+        Admin,
+        "lockedUntil"
+      )
+    ) {
+      admin.lockedUntil =
+        null;
+
+      changed =
+        true;
+    }
+
+    if (
+      modelHasPath(
+        Admin,
+        "lastLoginAt"
+      )
+    ) {
+      admin.lastLoginAt =
+        new Date();
+
+      changed =
+        true;
+    }
+
+    if (
+      changed
+    ) {
+      await admin.save();
+    }
+  } catch (error) {
+    console.error(
+      "Admin successful-login tracking error:",
+      error
+    );
+  }
+}
+
+function renderAdminLogin(
+  req,
+  res,
+  {
+    statusCode =
+      200,
+
+    error =
+      null,
+
+    username =
+      "",
+  } = {}
+) {
+  const csrfToken =
+    res.locals?.csrfToken ||
+    res.locals?._csrf ||
+    "";
+
+  return res
+    .status(
+      statusCode
+    )
+    .render(
+      "admin/adminlogin",
+      {
+        title:
+          "Admin Portal",
+
+        error:
+          error ||
+          null,
+
+        username:
+          String(
+            username ||
+              ""
+          )
+            .trim()
+            .slice(
+              0,
+              120
+            ),
+
+        csrfToken:
+          String(
+            csrfToken ||
+              ""
+          ),
+      }
+    );
+}
+
+router.get(
+  "/login",
+  async (
+    req,
+    res
+  ) => {
+    const admin =
+      req.session?.admin;
+
+    if (
+      admin?.id &&
+      isValidObjectId(
+        admin.id
+      )
+    ) {
+      /*
+       * A session-shaped identity is not enough.
+       * Verify the live admin before redirecting.
+       */
+      const authenticatedAdmin =
+        await getAuthenticatedAdmin(
+          req
+        ).catch(
+          () => null
+        );
+
+      if (
+        authenticatedAdmin
+      ) {
+        return res.redirect(
+          "/admin/dashboard"
+        );
+      }
+
+      await new Promise(
+        (
+          resolve
+        ) => {
+          if (
+            !req.session
+          ) {
+            return resolve();
+          }
+
+          req.session.destroy(
+            () =>
+              resolve()
+          );
+        }
+      );
+    }
+
+    const queryError =
+      normalizeString(
+        req.query?.error,
+        500
+      );
+
+    return renderAdminLogin(
+      req,
+      res,
+      {
+        error:
+          queryError ||
+          null,
+      }
+    );
+  }
+);
+
+/* ============================================================
+   ADMIN LOGIN
+============================================================ */
+
+router.post(
+  "/login",
+  verifyAdminMutationCsrf,
+  async (
+    req,
+    res
+  ) => {
+    const rawUsername =
+      String(
+        req.body?.username ||
+          req.body?.email ||
+          ""
+      ).trim();
+
+    const displayUsername =
+      rawUsername.slice(
+        0,
+        120
+      );
+
+    const password =
+      String(
+        req.body?.password ||
+          ""
+      );
+
+    try {
+      if (
+        !rawUsername ||
+        !password
+      ) {
+        return renderAdminLogin(
+          req,
+          res,
+          {
+            statusCode:
+              400,
+
+            username:
+              displayUsername,
+
+            error:
+              "Username and password are required.",
+          }
+        );
+      }
+
+      if (
+        rawUsername.length >
+        120
+      ) {
+        return renderAdminLogin(
+          req,
+          res,
+          {
+            statusCode:
+              400,
+
+            username:
+              displayUsername,
+
+            error:
+              "Administrator username is invalid.",
+          }
+        );
+      }
+
+      const submittedUsername =
+        normalizeUsername(
+          rawUsername
+        );
+
+      if (
+        !submittedUsername
+      ) {
+        return renderAdminLogin(
+          req,
+          res,
+          {
+            statusCode:
+              400,
+
+            username:
+              displayUsername,
+
+            error:
+              "Administrator username is invalid.",
+          }
+        );
+      }
+
+      /*
+       * Username is the canonical administrator identifier.
+       *
+       * Email lookup is retained only if the Admin model actually
+       * contains an email field.
+       */
+      const loginQuery =
+        modelHasPath(
+          Admin,
+          "email"
+        ) &&
+        submittedUsername.includes(
+          "@"
+        )
+          ? {
+              $or: [
+                {
+                  username:
+                    submittedUsername,
+                },
+
+                {
+                  email:
+                    normalizeEmail(
+                      submittedUsername
+                    ),
+                },
+              ],
+            }
+          : {
+              username:
+                submittedUsername,
+            };
+
+      const admin =
+        await Admin.findOne(
+          loginQuery
+        ).select(
+          "+password"
+        );
+
+      /*
+       * Account lockout.
+       */
+      if (
+        admin &&
+        modelHasPath(
+          Admin,
+          "lockedUntil"
+        ) &&
+        admin.lockedUntil &&
+        new Date(
+          admin.lockedUntil
+        ) >
+          new Date()
+      ) {
+        logAdminAction(
+          req,
+          "login-blocked",
+          {
+            username:
+              submittedUsername,
+          }
+        );
+
+        return renderAdminLogin(
+          req,
+          res,
+          {
+            statusCode:
+              429,
+
+            username:
+              displayUsername,
+
+            error:
+              "Administrator account temporarily locked. Please try again later.",
+          }
+        );
+      }
+
+      let validPassword =
+        false;
+
+      if (
+        admin
+      ) {
+        if (
+          typeof admin.comparePassword ===
+          "function"
+        ) {
+          validPassword =
+            await admin.comparePassword(
+              password
+            );
+        } else if (
+          admin.password
+        ) {
+          validPassword =
+            await bcrypt.compare(
+              password,
+              admin.password
+            );
+        }
+      }
+
+      /*
+       * Validate current account state.
+       */
+      const adminStatus =
+        admin
+          ? String(
+              admin.status ||
+                "active"
+            )
+              .trim()
+              .toLowerCase()
+          : null;
+
+      const inactive =
+        admin &&
+        (
+          (
+            modelHasPath(
+              Admin,
+              "status"
+            ) &&
+            admin.status &&
+            adminStatus !==
+              "active"
+          ) ||
+          (
+            modelHasPath(
+              Admin,
+              "active"
+            ) &&
+            admin.active ===
+              false
+          )
+        );
+
+      if (
+        inactive
+      ) {
+        validPassword =
+          false;
+      }
+
+      if (
+        !admin ||
+        !validPassword
+      ) {
+        if (
+          admin &&
+          !inactive
+        ) {
+          await recordAdminLoginFailure(
+            admin
+          );
+        }
+
+        logAdminAction(
+          req,
+          "login-failed",
+          {
+            username:
+              submittedUsername,
+          }
+        );
+
+        return renderAdminLogin(
+          req,
+          res,
+          {
+            statusCode:
+              401,
+
+            username:
+              displayUsername,
+
+            error:
+              "Access denied. Invalid credentials.",
+          }
+        );
+      }
+
+      await recordAdminLoginSuccess(
+        admin
+      );
+
+      /*
+       * Session fixation protection.
+       *
+       * The existing session ID is replaced on successful
+       * administrator authentication.
+       */
+      await regenerateSession(
+        req
+      );
+
+      req.session.admin =
+        {
+          id:
+            admin._id.toString(),
+
+          _id:
+            admin._id.toString(),
+
+          username:
+            normalizeUsername(
+              admin.username
+            ),
+
+          role:
+            normalizeString(
+              admin.role ||
+                "admin",
+              80
+            ).toLowerCase(),
+        };
+
+      /*
+       * Never allow a customer session to survive as the active
+       * identity inside the same regenerated session.
+       */
+      delete req.session.user;
+
+      await saveSession(
+        req
+      );
+
+      logAdminAction(
+        req,
+        "login",
+        {
+          adminId:
+            admin._id,
+        }
+      );
+
+      return res.redirect(
+        303,
+        "/admin/dashboard"
+      );
+    } catch (error) {
+      console.error(
+        `[ADMIN LOGIN ERROR] requestId=${
+          getRequestId(
+            req
+          ) ||
+          "none"
+        }`,
+
+        error.stack ||
+          error.message ||
+          error
+      );
+
+      return renderAdminLogin(
+        req,
+        res,
+        {
+          statusCode:
+            500,
+
+          username:
+            displayUsername,
+
+          error:
+            "We were unable to process the administrator login. Please try again.",
+        }
+      );
+    }
+  }
+);
+
+/* ============================================================
+   NOTIFICATIONS
+============================================================ */
 
 async function notifyUser(
   userId,
   event,
   title,
   message,
-  bookingId = null
+  bookingId =
+    null
 ) {
   if (
     !isValidObjectId(
@@ -1853,21 +2887,12 @@ async function notifyUser(
   }
 
   try {
-    if (!Notification) {
-      return null;
-    }
-
-    /*
-     * Prefer the current Notification model's purpose-built helper.
-     */
     if (
-      typeof
-        Notification
-          .createAppointmentNotification ===
-        "function"
+      typeof Notification.createAppointmentNotification ===
+      "function"
     ) {
-      return await Notification
-        .createAppointmentNotification({
+      return await Notification.createAppointmentNotification(
+        {
           userId,
 
           appointmentId:
@@ -1884,8 +2909,10 @@ async function notifyUser(
           message,
 
           priority:
-            event === "declined" ||
-            event === "rejected"
+            event ===
+              "declined" ||
+            event ===
+              "rejected"
               ? "high"
               : "normal",
 
@@ -1906,10 +2933,12 @@ async function notifyUser(
                   )
                 )}`
               : undefined,
-        });
+        }
+      );
     }
 
-    const payload = {};
+    const payload =
+      {};
 
     if (
       modelHasPath(
@@ -1918,22 +2947,6 @@ async function notifyUser(
       )
     ) {
       payload.userId =
-        userId;
-    } else if (
-      modelHasPath(
-        Notification,
-        "recipient"
-      )
-    ) {
-      payload.recipient =
-        userId;
-    } else if (
-      modelHasPath(
-        Notification,
-        "recipientId"
-      )
-    ) {
-      payload.recipientId =
         userId;
     }
 
@@ -1980,14 +2993,6 @@ async function notifyUser(
     ) {
       payload.message =
         message;
-    } else if (
-      modelHasPath(
-        Notification,
-        "text"
-      )
-    ) {
-      payload.text =
-        message;
     }
 
     if (
@@ -2024,14 +3029,6 @@ async function notifyUser(
     ) {
       payload.read =
         false;
-    } else if (
-      modelHasPath(
-        Notification,
-        "isRead"
-      )
-    ) {
-      payload.isRead =
-        false;
     }
 
     return await Notification.create(
@@ -2045,13 +3042,17 @@ async function notifyUser(
         error
     );
 
+    /*
+     * Notification delivery is never allowed to break the
+     * primary booking operation.
+     */
     return null;
   }
 }
 
-// ============================================================
-// ROOM / CATALOG HELPERS
-// ============================================================
+/* ============================================================
+   ROOM / CATALOG HELPERS
+============================================================ */
 
 function normalizeRoomRecord(
   record
@@ -2082,23 +3083,28 @@ function normalizeRoomRecord(
       150
     );
 
-  if (!name) {
+  if (
+    !name
+  ) {
     return null;
   }
 
   const price =
-    parseNumber(
-      pickFirst(
-        plain,
-        [
-          "price",
-          "nightlyPrice",
-          "pricePerNight",
-          "rate",
-        ],
+    Math.max(
+      0,
+      parseNumber(
+        pickFirst(
+          plain,
+          [
+            "price",
+            "nightlyPrice",
+            "pricePerNight",
+            "rate",
+          ],
+          0
+        ),
         0
-      ),
-      0
+      )
     );
 
   const maxGuests =
@@ -2112,6 +3118,23 @@ function normalizeRoomRecord(
             "capacity",
             "guestLimit",
             "maxOccupancy",
+          ],
+          1
+        ),
+        1
+      )
+    );
+
+  const quantity =
+    Math.max(
+      1,
+      parseInteger(
+        pickFirst(
+          plain,
+          [
+            "quantity",
+            "units",
+            "inventory",
           ],
           1
         ),
@@ -2154,7 +3177,9 @@ function normalizeRoomRecord(
     ) ||
     name
       .toLowerCase()
-      .includes("cottage");
+      .includes(
+        "cottage"
+      );
 
   const activeValue =
     pickFirst(
@@ -2174,15 +3199,19 @@ function normalizeRoomRecord(
         ? plain._id.toString()
         : null,
 
-    key: name,
+    key:
+      name,
 
     name,
 
-    displayName: name,
+    displayName:
+      name,
 
     price,
 
     maxGuests,
+
+    quantity,
 
     image,
 
@@ -2197,23 +3226,6 @@ function normalizeRoomRecord(
           ""
         ),
         2000
-      ),
-
-    quantity:
-      Math.max(
-        1,
-        parseInteger(
-          pickFirst(
-            plain,
-            [
-              "quantity",
-              "units",
-              "inventory",
-            ],
-            1
-          ),
-          1
-        )
       ),
 
     sortOrder:
@@ -2239,7 +3251,8 @@ function normalizeRoomRecord(
         : "room",
 
     active:
-      activeValue !== false,
+      activeValue !==
+      false,
   };
 }
 
@@ -2248,9 +3261,14 @@ async function getDynamicRooms() {
     const records =
       await Room.find({})
         .sort({
-          sortOrder: 1,
-          name: 1,
-          createdAt: 1,
+          sortOrder:
+            1,
+
+          name:
+            1,
+
+          createdAt:
+            1,
         })
         .lean();
 
@@ -2258,7 +3276,9 @@ async function getDynamicRooms() {
       .map(
         normalizeRoomRecord
       )
-      .filter(Boolean);
+      .filter(
+        Boolean
+      );
   } catch (error) {
     console.error(
       "Room model read error:",
@@ -2274,16 +3294,21 @@ async function getConfiguredRooms() {
     await getDynamicRooms();
 
   if (
-    dynamicRooms.length > 0
+    dynamicRooms.length >
+    0
   ) {
     return dynamicRooms.filter(
-      (room) =>
+      (
+        room
+      ) =>
         room.active
     );
   }
 
   return LEGACY_ROOMS.map(
-    (room) => ({
+    (
+      room
+    ) => ({
       ...room,
     })
   );
@@ -2295,7 +3320,9 @@ async function getConfiguredCottage() {
 
   const dynamicCottage =
     dynamicRooms.find(
-      (room) =>
+      (
+        room
+      ) =>
         room.type ===
         "cottage"
     );
@@ -2329,55 +3356,90 @@ async function getConfiguredAccommodation(
       ...rooms,
       cottage,
     ].find(
-      (room) =>
-        room.name === requested ||
+      (
+        room
+      ) =>
+        room.name ===
+          requested ||
         room.displayName ===
           requested ||
-        room.key === requested
-    ) || null
+        room.key ===
+          requested
+    ) ||
+    null
   );
 }
 
 async function getRoomDocumentById(
   id
 ) {
-  if (!isValidObjectId(id)) {
+  if (
+    !isValidObjectId(
+      id
+    )
+  ) {
     return null;
   }
 
-  return Room.findById(id);
-}
-
-function hasOwn(
-  body,
-  ...names
-) {
-  return names.some(
-    (name) =>
-      Object.prototype.hasOwnProperty.call(
-        body || {},
-        name
-      )
+  return Room.findById(
+    id
   );
 }
 
-function firstPresent(
-  body,
-  names
+/**
+ * Loads the authoritative current Room document for an
+ * appointment.
+ *
+ * roomId is preferred.
+ *
+ * Legacy name matching remains available for older bookings.
+ */
+async function getRoomForAppointment(
+  appointment
 ) {
-  for (
-    const name of
-      names
+  if (
+    appointment?.roomId &&
+    isValidObjectId(
+      appointment.roomId
+    )
   ) {
+    const room =
+      await Room.findById(
+        appointment.roomId
+      ).lean();
+
     if (
-      hasOwn(body, name)
+      room
     ) {
-      return body[name];
+      return room;
     }
   }
 
-  return undefined;
+  return {
+    _id:
+      null,
+
+    name:
+      normalizeString(
+        appointment?.room ||
+          appointment?.roomName ||
+          appointment?.roomType ||
+          appointment?.accommodation ||
+          "",
+        150
+      ),
+
+    quantity:
+      1,
+
+    active:
+      true,
+  };
 }
+
+/* ============================================================
+   ROOM PAYLOADS
+============================================================ */
 
 function buildRoomCreatePayload(
   body
@@ -2476,7 +3538,7 @@ function buildRoomCreatePayload(
       ]
     );
 
-  const payload = {
+  return {
     name:
       normalizeString(
         rawName,
@@ -2540,23 +3602,20 @@ function buildRoomCreatePayload(
       ),
 
     active:
-      rawActive === undefined
+      rawActive ===
+      undefined
         ? true
         : asBoolean(
             rawActive
           ),
   };
-
-  payload.displayName =
-    payload.name;
-
-  return payload;
 }
 
 function buildRoomUpdatePayload(
   body
 ) {
-  const payload = {};
+  const payload =
+    {};
 
   if (
     hasOwn(
@@ -2583,9 +3642,6 @@ function buildRoomUpdatePayload(
         value,
         150
       );
-
-    payload.displayName =
-      payload.name;
   }
 
   if (
@@ -2784,9 +3840,9 @@ function buildRoomUpdatePayload(
   return payload;
 }
 
-// ============================================================
-// ADD-ON PAYLOAD / NORMALIZATION HELPERS
-// ============================================================
+/* ============================================================
+   ADD-ON HELPERS
+============================================================ */
 
 function normalizeAddOnPricingType(
   value
@@ -2819,142 +3875,116 @@ function normalizeAddOnPricingType(
 function buildAddOnCreatePayload(
   body
 ) {
-  const rawName =
-    firstPresent(
-      body,
-      [
-        "name",
-        "displayName",
-        "title",
-      ]
-    );
-
-  const rawPrice =
-    firstPresent(
-      body,
-      [
-        "price",
-        "amount",
-        "rate",
-      ]
-    );
-
-  const rawPricingType =
-    firstPresent(
-      body,
-      [
-        "pricingType",
-        "priceType",
-        "billingType",
-      ]
-    );
-
-  const rawSortOrder =
-    firstPresent(
-      body,
-      [
-        "sortOrder",
-        "displayOrder",
-        "order",
-      ]
-    );
-
-  const rawImage =
-    firstPresent(
-      body,
-      [
-        "image",
-        "imageUrl",
-        "photo",
-        "photoUrl",
-      ]
-    );
-
-  const rawDescription =
-    firstPresent(
-      body,
-      [
-        "description",
-        "details",
-      ]
-    );
-
-  const rawActive =
-    firstPresent(
-      body,
-      [
-        "active",
-        "isActive",
-        "available",
-        "enabled",
-      ]
+  const name =
+    normalizeString(
+      firstPresent(
+        body,
+        [
+          "name",
+          "displayName",
+          "title",
+        ]
+      ),
+      150
     );
 
   const price =
     Math.max(
       0,
       parseNumber(
-        rawPrice,
+        firstPresent(
+          body,
+          [
+            "price",
+            "amount",
+            "rate",
+          ]
+        ),
         0
       )
-    );
-
-  const sortOrder =
-    Math.max(
-      0,
-      parseInteger(
-        rawSortOrder,
-        0
-      )
-    );
-
-  const pricingType =
-    normalizeAddOnPricingType(
-      rawPricingType
-    );
-
-  const image =
-    normalizeString(
-      rawImage,
-      500
     );
 
   return {
-    name:
-      normalizeString(
-        rawName,
-        150
-      ),
-
-    displayName:
-      normalizeString(
-        rawName,
-        150
-      ),
+    name,
 
     price,
 
-    amount:
-      price,
+    pricingType:
+      normalizeAddOnPricingType(
+        firstPresent(
+          body,
+          [
+            "pricingType",
+            "priceType",
+            "billingType",
+          ]
+        )
+      ),
 
-    pricingType,
+    sortOrder:
+      Math.max(
+        0,
+        parseInteger(
+          firstPresent(
+            body,
+            [
+              "sortOrder",
+              "displayOrder",
+              "order",
+            ]
+          ),
+          0
+        )
+      ),
 
-    sortOrder,
-
-    image,
+    image:
+      normalizeString(
+        firstPresent(
+          body,
+          [
+            "image",
+            "imageUrl",
+            "photo",
+            "photoUrl",
+          ]
+        ),
+        500
+      ),
 
     description:
       normalizeString(
-        rawDescription,
+        firstPresent(
+          body,
+          [
+            "description",
+            "details",
+          ]
+        ),
         2000
       ),
 
     active:
-      rawActive ===
-      undefined
+      firstPresent(
+        body,
+        [
+          "active",
+          "isActive",
+          "available",
+          "enabled",
+        ]
+      ) ===
+        undefined
         ? true
         : asBoolean(
-            rawActive
+            firstPresent(
+              body,
+              [
+                "active",
+                "isActive",
+                "available",
+                "enabled",
+              ]
+            )
           ),
   };
 }
@@ -2962,7 +3992,8 @@ function buildAddOnCreatePayload(
 function buildAddOnUpdatePayload(
   body
 ) {
-  const payload = {};
+  const payload =
+    {};
 
   if (
     hasOwn(
@@ -2972,7 +4003,7 @@ function buildAddOnUpdatePayload(
       "title"
     )
   ) {
-    const name =
+    payload.name =
       normalizeString(
         firstPresent(
           body,
@@ -2984,12 +4015,6 @@ function buildAddOnUpdatePayload(
         ),
         150
       );
-
-    payload.name =
-      name;
-
-    payload.displayName =
-      name;
   }
 
   if (
@@ -3000,7 +4025,7 @@ function buildAddOnUpdatePayload(
       "rate"
     )
   ) {
-    const price =
+    payload.price =
       Math.max(
         0,
         parseNumber(
@@ -3015,12 +4040,6 @@ function buildAddOnUpdatePayload(
           0
         )
       );
-
-    payload.price =
-      price;
-
-    payload.amount =
-      price;
   }
 
   if (
@@ -3170,40 +4189,6 @@ function normalizeAddOnRecord(
     return null;
   }
 
-  const rawPricingType =
-    pickFirst(
-      plain,
-      [
-        "pricingType",
-        "priceType",
-        "billingType",
-      ],
-      "once"
-    );
-
-  const rawSortOrder =
-    pickFirst(
-      plain,
-      [
-        "sortOrder",
-        "displayOrder",
-        "order",
-      ],
-      0
-    );
-
-  const rawImage =
-    pickFirst(
-      plain,
-      [
-        "image",
-        "imageUrl",
-        "photo",
-        "photoUrl",
-      ],
-      ""
-    );
-
   const price =
     Math.max(
       0,
@@ -3232,18 +4217,7 @@ function normalizeAddOnRecord(
     name,
 
     displayName:
-      normalizeString(
-        pickFirst(
-          plain,
-          [
-            "displayName",
-            "name",
-            "title",
-          ],
-          name
-        ),
-        150
-      ),
+      name,
 
     price,
 
@@ -3252,21 +4226,46 @@ function normalizeAddOnRecord(
 
     pricingType:
       normalizeAddOnPricingType(
-        rawPricingType
+        pickFirst(
+          plain,
+          [
+            "pricingType",
+            "priceType",
+            "billingType",
+          ],
+          "once"
+        )
       ),
 
     sortOrder:
       Math.max(
         0,
         parseInteger(
-          rawSortOrder,
+          pickFirst(
+            plain,
+            [
+              "sortOrder",
+              "displayOrder",
+              "order",
+            ],
+            0
+          ),
           0
         )
       ),
 
     image:
       normalizeString(
-        rawImage,
+        pickFirst(
+          plain,
+          [
+            "image",
+            "imageUrl",
+            "photo",
+            "photoUrl",
+          ],
+          ""
+        ),
         500
       ),
 
@@ -3293,68 +4292,14 @@ function normalizeAddOnRecord(
           "enabled",
         ],
         true
-      ) !== false,
+      ) !==
+      false,
   };
 }
 
-// ============================================================
-// DOUBLE-BOOKING DETECTION
-// ============================================================
-
-async function findRoomConflict({
-  room,
-  checkin,
-  checkout,
-  excludeId = null,
-}) {
-  if (
-    !room ||
-    !checkin ||
-    !checkout
-  ) {
-    return null;
-  }
-
-  const query = {
-    room,
-
-    status: {
-      $in:
-        BLOCKING_STATUSES,
-    },
-
-    checkin: {
-      $lt: checkout,
-    },
-
-    checkout: {
-      $gt: checkin,
-    },
-  };
-
-  if (
-    excludeId &&
-    isValidObjectId(
-      excludeId
-    )
-  ) {
-    query._id = {
-      $ne: excludeId,
-    };
-  }
-
-  return Appointment.findOne(
-    query
-  )
-    .sort({
-      checkin: 1,
-    })
-    .lean();
-}
-
-// ============================================================
-// BOOKING STATUS HELPERS
-// ============================================================
+/* ============================================================
+   BOOKING STATUS
+============================================================ */
 
 function canTransitionStatus(
   from,
@@ -3363,12 +4308,7 @@ function canTransitionStatus(
   if (
     !ALL_STATUSES.includes(
       from
-    )
-  ) {
-    return false;
-  }
-
-  if (
+    ) ||
     !ALL_STATUSES.includes(
       to
     )
@@ -3377,7 +4317,8 @@ function canTransitionStatus(
   }
 
   if (
-    from === to
+    from ===
+    to
   ) {
     return true;
   }
@@ -3385,7 +4326,9 @@ function canTransitionStatus(
   return Boolean(
     STATUS_TRANSITIONS[
       from
-    ]?.includes(to)
+    ]?.includes(
+      to
+    )
   );
 }
 
@@ -3396,49 +4339,51 @@ function applyStatusTimestamps(
   const now =
     new Date();
 
-  const timestampFields = {
-    accepted: [
-      "acceptedAt",
-    ],
+  const timestampFields =
+    {
+      accepted: [
+        "acceptedAt",
+      ],
 
-    confirmed: [
-      "confirmedAt",
-    ],
+      confirmed: [
+        "confirmedAt",
+      ],
 
-    declined: [
-      "declinedAt",
-    ],
+      declined: [
+        "declinedAt",
+      ],
 
-    rejected: [
-      "rejectedAt",
-    ],
+      rejected: [
+        "rejectedAt",
+      ],
 
-    cancelled: [
-      "cancelledAt",
-    ],
+      cancelled: [
+        "cancelledAt",
+      ],
 
-    "checked-in": [
-      "checkedInAt",
-      "checkInTime",
-    ],
+      "checked-in": [
+        "checkedInAt",
+        "checkInTime",
+      ],
 
-    "checked-out": [
-      "checkedOutAt",
-      "checkOutTime",
-    ],
+      "checked-out": [
+        "checkedOutAt",
+        "checkOutTime",
+      ],
 
-    completed: [
-      "completedAt",
-    ],
-  };
+      completed: [
+        "completedAt",
+      ],
+    };
 
   const fields =
     timestampFields[
       status
-    ] || [];
+    ] ||
+    [];
 
   if (
-    fields.length > 0
+    fields.length
   ) {
     setModelValue(
       appointment,
@@ -3617,7 +4562,9 @@ function logAdminAction(
   details = {}
 ) {
   const admin =
-    getAdminSession(req);
+    getAdminSession(
+      req
+    );
 
   const adminId =
     admin?.id ||
@@ -3629,7 +4576,9 @@ function logAdminAction(
       details
     )
       .map(
-        ([key, value]) =>
+        (
+          [key, value]
+        ) =>
           `${key}=${String(
             value
           ).replace(
@@ -3644,16 +4593,50 @@ function logAdminAction(
       admin?.username ||
       "unknown"
     } requestId=${
-      getRequestId(req) ||
+      getRequestId(
+        req
+      ) ||
       "none"
     } ${detailText}`
   );
 }
 
+/* ============================================================
+   AUTHORITATIVE BOOKING STATUS UPDATE
+============================================================ */
+
+/**
+ * All administrator booking mutations are serialized by room.
+ *
+ * This is critical.
+ *
+ * Old approach:
+ *
+ *   find appointment
+ *   check status
+ *   check room
+ *   save
+ *
+ * Hardened approach:
+ *
+ *   find appointment
+ *   identify room
+ *   LOCK ROOM
+ *   re-read appointment
+ *   validate current status
+ *   re-read room
+ *   re-check inventory
+ *   save status
+ *   UNLOCK ROOM
+ *
+ * This keeps admin operations synchronized with customer booking
+ * and cancellation requests.
+ */
 async function updateStatusInternal({
   bookingId,
   status,
-  req = null,
+  req =
+    null,
 }) {
   if (
     !isValidObjectId(
@@ -3661,8 +4644,15 @@ async function updateStatusInternal({
     )
   ) {
     return {
-      ok: false,
-      statusCode: 400,
+      ok:
+        false,
+
+      statusCode:
+        400,
+
+      code:
+        "INVALID_BOOKING_ID",
+
       message:
         "Invalid booking ID.",
     };
@@ -3674,461 +4664,322 @@ async function updateStatusInternal({
     )
   ) {
     return {
-      ok: false,
-      statusCode: 400,
+      ok:
+        false,
+
+      statusCode:
+        400,
+
+      code:
+        "INVALID_STATUS",
+
       message:
         "Invalid booking status.",
     };
   }
 
-  const appointment =
+  /*
+   * Initial read only identifies which room resource to lock.
+   */
+  const initial =
     await Appointment.findById(
       bookingId
-    );
+    )
+      .select(
+        "_id userId roomId room roomType accommodation roomName checkin checkout status"
+      )
+      .lean();
 
-  if (!appointment) {
+  if (
+    !initial
+  ) {
     return {
-      ok: false,
-      statusCode: 404,
+      ok:
+        false,
+
+      statusCode:
+        404,
+
+      code:
+        "BOOKING_NOT_FOUND",
+
       message:
         "Booking not found.",
     };
   }
 
-  const currentStatus =
-    appointment.status ||
-    "pending";
+  const roomResource = {
+    _id:
+      initial.roomId ||
+      null,
 
-  if (
-    currentStatus ===
-    status
-  ) {
-    return {
-      ok: true,
-      appointment,
-      changed: false,
-      message:
-        "Booking already has this status.",
-    };
-  }
+    name:
+      initial.room ||
+      initial.roomName ||
+      initial.roomType ||
+      initial.accommodation ||
+      "",
+  };
 
-  if (
-    !canTransitionStatus(
-      currentStatus,
-      status
-    )
-  ) {
-    return {
-      ok: false,
-      statusCode: 400,
-      message:
-        `Invalid booking status transition: ${currentStatus} → ${status}.`,
-    };
-  }
+  try {
+    return await withRoomLock(
+      roomResource,
+      async () => {
+        /*
+         * Re-read the appointment after the lock is acquired.
+         */
+        const appointment =
+          await Appointment.findById(
+            bookingId
+          );
 
-  if (
-    BLOCKING_STATUSES.includes(
-      status
-    ) &&
-    appointment.room &&
-    appointment.checkin &&
-    appointment.checkout
-  ) {
-    const conflict =
-      await findRoomConflict({
-        room:
-          appointment.room,
+        if (
+          !appointment
+        ) {
+          return {
+            ok:
+              false,
 
-        checkin:
-          appointment.checkin,
+            statusCode:
+              404,
 
-        checkout:
-          appointment.checkout,
+            code:
+              "BOOKING_NOT_FOUND",
 
-        excludeId:
-          appointment._id,
-      });
+            message:
+              "Booking not found.",
+          };
+        }
 
-    if (conflict) {
-      return {
-        ok: false,
-        statusCode: 409,
-        message:
-          "This room is already occupied or reserved for an overlapping booking.",
-        conflict,
-      };
-    }
-  }
+        const currentStatus =
+          String(
+            appointment.status ||
+              "pending"
+          ).toLowerCase();
 
-  const previousStatus =
-    currentStatus;
+        /*
+         * Idempotent repeated request.
+         */
+        if (
+          currentStatus ===
+          status
+        ) {
+          return {
+            ok:
+              true,
 
-  appointment.status =
-    status;
+            appointment,
 
-  applyStatusTimestamps(
-    appointment,
-    status
-  );
+            changed:
+              false,
 
-  await appointment.save();
+            message:
+              "Booking already has this status.",
+          };
+        }
 
-  const notification =
-    statusNotification(
-      status
-    );
+        if (
+          !canTransitionStatus(
+            currentStatus,
+            status
+          )
+        ) {
+          return {
+            ok:
+              false,
 
-  await notifyUser(
-    appointment.userId,
-    notification.event,
-    notification.title,
-    notification.message,
-    appointment._id
-  );
+            statusCode:
+              400,
 
-  if (req) {
-    logAdminAction(
-      req,
-      "booking-status-change",
-      {
-        bookingId:
-          appointment._id,
+            code:
+              "INVALID_STATUS_TRANSITION",
 
-        from:
+            message:
+              `Invalid booking status transition: ${currentStatus} → ${status}.`,
+          };
+        }
+
+        /*
+         * ------------------------------------------------------
+         * INVENTORY CHECK
+         * ------------------------------------------------------
+         *
+         * Any target status that blocks inventory must be checked
+         * against current room capacity.
+         */
+        if (
+          BLOCKING_STATUSES.includes(
+            status
+          ) &&
+          appointment.checkin &&
+          appointment.checkout
+        ) {
+          const room =
+            await getRoomForAppointment(
+              appointment
+            );
+
+          /*
+           * A deleted/deactivated room should not silently make a
+           * new booking active if the room no longer exists.
+           */
+          if (
+            appointment.roomId &&
+            !room?._id
+          ) {
+            return {
+              ok:
+                false,
+
+              statusCode:
+                409,
+
+              code:
+                "ROOM_NOT_AVAILABLE",
+
+              message:
+                "The accommodation assigned to this booking is no longer available.",
+            };
+          }
+
+          const conflict =
+            await findAvailabilityConflict(
+              {
+                room,
+
+                checkin:
+                  appointment.checkin,
+
+                checkout:
+                  appointment.checkout,
+
+                excludeAppointmentId:
+                  appointment._id,
+              }
+            );
+
+          if (
+            conflict
+          ) {
+            return {
+              ok:
+                false,
+
+              statusCode:
+                409,
+
+              code:
+                "ROOM_ALREADY_BOOKED",
+
+              message:
+                "This accommodation has no remaining inventory for the selected dates.",
+
+              conflict:
+                conflict.conflict ||
+                null,
+            };
+          }
+        }
+
+        const previousStatus =
+          currentStatus;
+
+        appointment.status =
+          status;
+
+        applyStatusTimestamps(
+          appointment,
+          status
+        );
+
+        await appointment.save();
+
+        const notification =
+          statusNotification(
+            status
+          );
+
+        await notifyUser(
+          appointment.userId,
+          notification.event,
+          notification.title,
+          notification.message,
+          appointment._id
+        );
+
+        if (
+          req
+        ) {
+          logAdminAction(
+            req,
+            "booking-status-change",
+            {
+              bookingId:
+                appointment._id,
+
+              from:
+                previousStatus,
+
+              to:
+                status,
+            }
+          );
+        }
+
+        return {
+          ok:
+            true,
+
+          appointment,
+
+          changed:
+            true,
+
           previousStatus,
 
-        to:
-          status,
-      }
+          message:
+            `Booking status updated to ${status}.`,
+        };
+      },
+      BOOKING_LOCK_OPTIONS
     );
-  }
-
-  return {
-    ok: true,
-    appointment,
-    changed: true,
-    previousStatus,
-    message:
-      `Booking status updated to ${status}.`,
-  };
-}
-
-// ============================================================
-// ADMIN LOGIN PAGE
-// ============================================================
-
-function renderAdminLogin(
-  req,
-  res,
-  {
-    statusCode = 200,
-    error = null,
-    username = "",
-  } = {}
-) {
-  const csrfToken =
-    res.locals?.csrfToken ||
-    res.locals?._csrf ||
-    "";
-
-  return res
-    .status(statusCode)
-    .render(
-      "admin/adminlogin",
-      {
-        title:
-          "Admin Portal",
-
-        error:
-          error || null,
-
-        username:
-          String(
-            username || ""
-          )
-            .trim()
-            .slice(
-              0,
-              120
-            ),
-
-        csrfToken:
-          String(
-            csrfToken || ""
-          ),
-      }
-    );
-}
-
-router.get(
-  "/login",
-  (req, res) => {
+  } catch (
+    error
+  ) {
     if (
-      req.session?.admin?.id &&
-      isValidObjectId(
-        req.session.admin.id
-      )
+      error?.code ===
+      "BOOKING_LOCK_TIMEOUT"
     ) {
-      return res.redirect(
-        "/admin/dashboard"
-      );
-    }
+      return {
+        ok:
+          false,
 
-    const queryError =
-      normalizeString(
-        req.query?.error,
-        500
-      );
+        statusCode:
+          409,
 
-    return renderAdminLogin(
-      req,
-      res,
-      {
-        error:
-          queryError ||
-          null,
-      }
-    );
-  }
-);
+        code:
+          "BOOKING_LOCK_TIMEOUT",
 
-// ============================================================
-// ADMIN LOGIN
-// ============================================================
-
-router.post(
-  "/login",
-  verifyAdminMutationCsrf,
-  async (req, res) => {
-    const rawUsername =
-      String(
-        req.body?.username ||
-          req.body?.email ||
-          ""
-      ).trim();
-
-    const displayUsername =
-      rawUsername.slice(
-        0,
-        120
-      );
-
-    const password =
-      String(
-        req.body?.password ||
-          ""
-      );
-
-    try {
-      if (
-        !rawUsername ||
-        !password
-      ) {
-        return renderAdminLogin(
-          req,
-          res,
-          {
-            statusCode: 400,
-            username:
-              displayUsername,
-            error:
-              "Username and password are required.",
-          }
-        );
-      }
-
-      if (
-        rawUsername.length >
-        120
-      ) {
-        return renderAdminLogin(
-          req,
-          res,
-          {
-            statusCode: 400,
-            username:
-              displayUsername,
-            error:
-              "Administrator username is invalid.",
-          }
-        );
-      }
-
-      const submittedUsername =
-        normalizeUsername(
-          rawUsername
-        );
-
-      if (
-        !submittedUsername
-      ) {
-        return renderAdminLogin(
-          req,
-          res,
-          {
-            statusCode: 400,
-            username:
-              displayUsername,
-            error:
-              "Administrator username is invalid.",
-          }
-        );
-      }
-
-      const admin =
-        await Admin.findOne({
-          username:
-            submittedUsername,
-        }).select(
-          "+password"
-        );
-
-      let validPassword =
-        false;
-
-      if (admin) {
-        if (
-          typeof admin.comparePassword ===
-          "function"
-        ) {
-          validPassword =
-            await admin.comparePassword(
-              password
-            );
-        } else if (
-          admin.password
-        ) {
-          validPassword =
-            await bcrypt.compare(
-              password,
-              admin.password
-            );
-        }
-      }
-
-      if (
-        admin &&
-        modelHasPath(
-          Admin,
-          "status"
-        ) &&
-        admin.status &&
-        String(
-          admin.status
-        )
-          .trim()
-          .toLowerCase() !==
-          "active"
-      ) {
-        validPassword =
-          false;
-      }
-
-      if (
-        !admin ||
-        !validPassword
-      ) {
-        logAdminAction(
-          req,
-          "login-failed",
-          {
-            username:
-              submittedUsername,
-          }
-        );
-
-        return renderAdminLogin(
-          req,
-          res,
-          {
-            statusCode: 401,
-            username:
-              displayUsername,
-            error:
-              "Access denied. Invalid credentials.",
-          }
-        );
-      }
-
-      await regenerateSession(
-        req
-      );
-
-      req.session.admin = {
-        id:
-          admin._id.toString(),
-
-        _id:
-          admin._id.toString(),
-
-        username:
-          normalizeUsername(
-            admin.username
-          ),
-
-        role:
-          normalizeString(
-            admin.role ||
-              "admin",
-            80
-          ).toLowerCase(),
+        message:
+          "This reservation is currently being updated. Please try again in a moment.",
       };
-
-      delete req.session.user;
-
-      await saveSession(
-        req
-      );
-
-      logAdminAction(
-        req,
-        "login",
-        {
-          adminId:
-            admin._id,
-        }
-      );
-
-      return res.redirect(
-        303,
-        "/admin/dashboard"
-      );
-    } catch (error) {
-      console.error(
-        `[ADMIN LOGIN ERROR] requestId=${
-          getRequestId(req) ||
-          "none"
-        }`,
-        error.stack ||
-          error.message ||
-          error
-      );
-
-      return renderAdminLogin(
-        req,
-        res,
-        {
-          statusCode: 500,
-
-          username:
-            displayUsername,
-
-          error:
-            "We were unable to process the administrator login. Please try again.",
-        }
-      );
     }
-  }
-);
 
-// ============================================================
-// ADMIN DASHBOARD
-// ============================================================
+    throw error;
+  }
+}
+
+/* ============================================================
+   DASHBOARD
+============================================================ */
 
 router.get(
   "/dashboard",
   requireAdmin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const today =
         startOfToday();
@@ -4148,66 +4999,88 @@ router.get(
         arrivalsToday,
         recentBookings,
       ] =
-        await Promise.all([
-          Appointment.countDocuments(),
+        await Promise.all(
+          [
+            Appointment.countDocuments(),
 
-          Appointment.countDocuments({
-            status:
-              "pending",
-          }),
+            Appointment.countDocuments(
+              {
+                status:
+                  "pending",
+              }
+            ),
 
-          Appointment.countDocuments({
-            status:
-              "accepted",
-          }),
+            Appointment.countDocuments(
+              {
+                status:
+                  "accepted",
+              }
+            ),
 
-          Appointment.countDocuments({
-            status:
-              "confirmed",
-          }),
+            Appointment.countDocuments(
+              {
+                status:
+                  "confirmed",
+              }
+            ),
 
-          Appointment.countDocuments({
-            status:
-              "cancelled",
-          }),
+            Appointment.countDocuments(
+              {
+                status:
+                  "cancelled",
+              }
+            ),
 
-          Appointment.countDocuments({
-            status:
-              "checked-in",
-          }),
+            Appointment.countDocuments(
+              {
+                status:
+                  "checked-in",
+              }
+            ),
 
-          Appointment.countDocuments({
-            status:
-              "checked-out",
-          }),
+            Appointment.countDocuments(
+              {
+                status:
+                  "checked-out",
+              }
+            ),
 
-          User.countDocuments(),
+            User.countDocuments(),
 
-          Appointment.countDocuments({
-            status: {
-              $in: [
-                "accepted",
-                "confirmed",
-              ],
-            },
+            Appointment.countDocuments(
+              {
+                status: {
+                  $in: [
+                    "accepted",
+                    "confirmed",
+                  ],
+                },
 
-            checkin: {
-              $gte: today,
-              $lt: tomorrow,
-            },
-          }),
+                checkin: {
+                  $gte:
+                    today,
 
-          Appointment.find()
-            .populate(
-              "userId",
-              "fullname email phone"
-            )
-            .sort({
-              createdAt: -1,
-            })
-            .limit(8)
-            .lean(),
-        ]);
+                  $lt:
+                    tomorrow,
+                },
+              }
+            ),
+
+            Appointment.find()
+              .populate(
+                "userId",
+                "fullname email phone"
+              )
+              .sort({
+                createdAt:
+                  -1,
+              })
+              .limit(
+                8
+              )
+              .lean(),
+          ]
+        );
 
       return res.render(
         "admin/dashboard",
@@ -4216,7 +5089,9 @@ router.get(
             "Isle Command",
 
           admin:
-            getAdminSession(req),
+            getAdminSession(
+              req
+            ),
 
           totalBookings,
 
@@ -4242,7 +5117,9 @@ router.get(
           recentBookings,
         }
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Dashboard Error:",
         error
@@ -4258,15 +5135,26 @@ router.get(
   }
 );
 
-// ============================================================
-// ADMIN ANALYTICS
-// ============================================================
+/* ============================================================
+   ANALYTICS
+============================================================ */
 
 router.get(
   "/analytics",
   requireAdmin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
+      const bookingValueStatuses = [
+        "accepted",
+        "confirmed",
+        "checked-in",
+        "checked-out",
+        "completed",
+      ];
+
       const [
         totalBookings,
         pending,
@@ -4282,140 +5170,170 @@ router.get(
         roomBreakdown,
         recentActivity,
       ] =
-        await Promise.all([
-          Appointment.countDocuments(),
+        await Promise.all(
+          [
+            Appointment.countDocuments(),
 
-          Appointment.countDocuments({
-            status:
-              "pending",
-          }),
+            Appointment.countDocuments(
+              {
+                status:
+                  "pending",
+              }
+            ),
 
-          Appointment.countDocuments({
-            status:
-              "accepted",
-          }),
+            Appointment.countDocuments(
+              {
+                status:
+                  "accepted",
+              }
+            ),
 
-          Appointment.countDocuments({
-            status:
-              "confirmed",
-          }),
+            Appointment.countDocuments(
+              {
+                status:
+                  "confirmed",
+              }
+            ),
 
-          Appointment.countDocuments({
-            status: {
-              $in: [
-                "declined",
-                "rejected",
-              ],
-            },
-          }),
-
-          Appointment.countDocuments({
-            status:
-              "cancelled",
-          }),
-
-          Appointment.countDocuments({
-            status:
-              "checked-in",
-          }),
-
-          Appointment.countDocuments({
-            status:
-              "checked-out",
-          }),
-
-          Appointment.countDocuments({
-            status:
-              "completed",
-          }),
-
-          User.countDocuments(),
-
-          Appointment.aggregate([
-            {
-              $match: {
+            Appointment.countDocuments(
+              {
                 status: {
                   $in: [
-                    "accepted",
-                    "confirmed",
-                    "checked-in",
-                    "checked-out",
-                    "completed",
+                    "declined",
+                    "rejected",
                   ],
                 },
-              },
-            },
+              }
+            ),
 
-            {
-              $group: {
-                _id: null,
+            Appointment.countDocuments(
+              {
+                status:
+                  "cancelled",
+              }
+            ),
 
-                total: {
-                  $sum: {
-                    $ifNull: [
-                      "$totalPrice",
-                      0,
-                    ],
+            Appointment.countDocuments(
+              {
+                status:
+                  "checked-in",
+              }
+            ),
+
+            Appointment.countDocuments(
+              {
+                status:
+                  "checked-out",
+              }
+            ),
+
+            Appointment.countDocuments(
+              {
+                status:
+                  "completed",
+              }
+            ),
+
+            User.countDocuments(),
+
+            Appointment.aggregate(
+              [
+                {
+                  $match: {
+                    status: {
+                      $in:
+                        bookingValueStatuses,
+                    },
                   },
                 },
-              },
-            },
-          ]),
 
-          Appointment.aggregate([
-            {
-              $match: {
-                status: {
-                  $in: [
-                    "accepted",
-                    "confirmed",
-                    "checked-in",
-                    "checked-out",
-                    "completed",
-                  ],
-                },
-              },
-            },
+                {
+                  $group: {
+                    _id:
+                      null,
 
-            {
-              $group: {
-                _id: "$room",
-
-                bookings: {
-                  $sum: 1,
-                },
-
-                grossBookingValue: {
-                  $sum: {
-                    $ifNull: [
-                      "$totalPrice",
-                      0,
-                    ],
+                    total: {
+                      $sum: {
+                        $ifNull: [
+                          "$totalPrice",
+                          0,
+                        ],
+                      },
+                    },
                   },
                 },
-              },
-            },
+              ]
+            ),
 
-            {
-              $sort: {
-                bookings: -1,
-              },
-            },
-          ]),
+            Appointment.aggregate(
+              [
+                {
+                  $match: {
+                    status: {
+                      $in:
+                        bookingValueStatuses,
+                    },
+                  },
+                },
 
-          Appointment.find()
-            .populate(
-              "userId",
-              "fullname email phone"
-            )
-            .sort({
-              updatedAt: -1,
-              createdAt: -1,
-            })
-            .limit(20)
-            .lean(),
-        ]);
+                {
+                  $group: {
+                    _id:
+                      "$room",
 
+                    bookings: {
+                      $sum:
+                        1,
+                    },
+
+                    grossBookingValue:
+                      {
+                        $sum: {
+                          $ifNull:
+                            [
+                              "$totalPrice",
+                              0,
+                            ],
+                        },
+                      },
+                  },
+                },
+
+                {
+                  $sort: {
+                    bookings:
+                      -1,
+                  },
+                },
+              ]
+            ),
+
+            Appointment.find()
+              .populate(
+                "userId",
+                "fullname email phone"
+              )
+              .sort({
+                updatedAt:
+                  -1,
+
+                createdAt:
+                  -1,
+              })
+              .limit(
+                20
+              )
+              .lean(),
+          ]
+        );
+
+      /*
+       * This value is intentionally still exposed as `revenue`
+       * for compatibility with your existing analytics EJS.
+       *
+       * It represents BOOKING VALUE, not verified payment cash,
+       * because IsleRMS does not currently have a Payment model.
+       */
       const revenue =
         parseNumber(
           revenueResult?.[0]?.total,
@@ -4424,7 +5342,9 @@ router.get(
 
       const normalizedRoomBreakdown =
         roomBreakdown.map(
-          (entry) => ({
+          (
+            entry
+          ) => ({
             ...entry,
 
             revenue:
@@ -4442,7 +5362,9 @@ router.get(
             "Resort Analytics",
 
           admin:
-            getAdminSession(req),
+            getAdminSession(
+              req
+            ),
 
           totalBookings,
 
@@ -4466,13 +5388,21 @@ router.get(
 
           revenue,
 
+          /*
+           * New explicit name while keeping legacy `revenue`.
+           */
+          bookingValue:
+            revenue,
+
           roomBreakdown:
             normalizedRoomBreakdown,
 
           recentActivity,
         }
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Analytics Error:",
         error
@@ -4488,14 +5418,17 @@ router.get(
   }
 );
 
-// ============================================================
-// ADMIN HISTORY
-// ============================================================
+/* ============================================================
+   HISTORY
+============================================================ */
 
 router.get(
   "/history",
   requireAdmin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const allBookings =
         await Appointment.find()
@@ -4504,7 +5437,8 @@ router.get(
             "fullname email phone"
           )
           .sort({
-            createdAt: -1,
+            createdAt:
+              -1,
           })
           .lean();
 
@@ -4515,7 +5449,9 @@ router.get(
             "Isle Archive",
 
           admin:
-            getAdminSession(req),
+            getAdminSession(
+              req
+            ),
 
           allBookings,
 
@@ -4526,7 +5462,9 @@ router.get(
             allBookings,
         }
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "History Page Error:",
         error
@@ -4542,9 +5480,9 @@ router.get(
   }
 );
 
-// ============================================================
-// FRONT DESK CHECK-IN MANAGER
-// ============================================================
+/* ============================================================
+   FRONT DESK
+============================================================ */
 
 async function renderCheckinManager(
   req,
@@ -4555,41 +5493,57 @@ async function renderCheckinManager(
       arrivals,
       inHouse,
     ] =
-      await Promise.all([
-        Appointment.find({
-          status: {
-            $in: [
-              "accepted",
-              "confirmed",
-            ],
-          },
-        })
-          .populate(
-            "userId",
-            "fullname email phone"
+      await Promise.all(
+        [
+          Appointment.find(
+            {
+              status: {
+                $in: [
+                  "accepted",
+                  "confirmed",
+                ],
+              },
+            }
           )
-          .sort({
-            checkin: 1,
-            createdAt: -1,
-          })
-          .lean(),
+            .populate(
+              "userId",
+              "fullname email phone"
+            )
+            .sort({
+              checkin:
+                1,
 
-        Appointment.find({
-          status:
-            "checked-in",
-        })
-          .populate(
-            "userId",
-            "fullname email phone"
+              createdAt:
+                -1,
+            })
+            .lean(),
+
+          Appointment.find(
+            {
+              status:
+                "checked-in",
+            }
           )
-          .sort({
-            checkedInAt: -1,
-            checkin: 1,
-            checkout: 1,
-            createdAt: -1,
-          })
-          .lean(),
-      ]);
+            .populate(
+              "userId",
+              "fullname email phone"
+            )
+            .sort({
+              checkedInAt:
+                -1,
+
+              checkin:
+                1,
+
+              checkout:
+                1,
+
+              createdAt:
+                -1,
+            })
+            .lean(),
+        ]
+      );
 
     const bookings = [
       ...arrivals,
@@ -4603,7 +5557,9 @@ async function renderCheckinManager(
           "Front Desk Operations",
 
         admin:
-          getAdminSession(req),
+          getAdminSession(
+            req
+          ),
 
         arrivals,
 
@@ -4615,7 +5571,9 @@ async function renderCheckinManager(
           bookings,
       }
     );
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       "Check-in manager error:",
       error
@@ -4642,14 +5600,17 @@ router.get(
   renderCheckinManager
 );
 
-// ============================================================
-// FRONT DESK CHECK-IN UPDATE
-// ============================================================
+/* ============================================================
+   CHECK-IN
+============================================================ */
 
 router.post(
   "/update-checkin",
   requireAdminMutation,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const bookingId =
         getBookingIdFromRequest(
@@ -4657,28 +5618,39 @@ router.post(
         );
 
       const result =
-        await updateStatusInternal({
-          bookingId,
+        await updateStatusInternal(
+          {
+            bookingId,
 
-          status:
-            "checked-in",
+            status:
+              "checked-in",
 
-          req,
-        });
+            req,
+          }
+        );
 
-      if (!result.ok) {
+      if (
+        !result.ok
+      ) {
         return sendApiError(
           res,
           result.statusCode ||
             400,
+
           result.message,
-          "CHECKIN_FAILED",
-          getRequestId(req)
+
+          result.code ||
+            "CHECKIN_FAILED",
+
+          getRequestId(
+            req
+          )
         );
       }
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         message:
           result.changed
@@ -4702,10 +5674,14 @@ router.post(
             null,
         },
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         `[CHECK-IN UPDATE ERROR] requestId=${
-          getRequestId(req) ||
+          getRequestId(
+            req
+          ) ||
           "none"
         }`,
 
@@ -4719,20 +5695,25 @@ router.post(
         500,
         "Failed to update check-in status.",
         "CHECKIN_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// FRONT DESK CHECK-OUT UPDATE
-// ============================================================
+/* ============================================================
+   CHECK-OUT
+============================================================ */
 
 router.post(
   "/update-checkout",
   requireAdminMutation,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const bookingId =
         getBookingIdFromRequest(
@@ -4740,28 +5721,39 @@ router.post(
         );
 
       const result =
-        await updateStatusInternal({
-          bookingId,
+        await updateStatusInternal(
+          {
+            bookingId,
 
-          status:
-            "checked-out",
+            status:
+              "checked-out",
 
-          req,
-        });
+            req,
+          }
+        );
 
-      if (!result.ok) {
+      if (
+        !result.ok
+      ) {
         return sendApiError(
           res,
           result.statusCode ||
             400,
+
           result.message,
-          "CHECKOUT_FAILED",
-          getRequestId(req)
+
+          result.code ||
+            "CHECKOUT_FAILED",
+
+          getRequestId(
+            req
+          )
         );
       }
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         message:
           result.changed
@@ -4785,10 +5777,14 @@ router.post(
             null,
         },
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         `[CHECK-OUT UPDATE ERROR] requestId=${
-          getRequestId(req) ||
+          getRequestId(
+            req
+          ) ||
           "none"
         }`,
 
@@ -4802,20 +5798,25 @@ router.post(
         500,
         "Failed to update check-out status.",
         "CHECKOUT_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// ADMIN BOOKING STATUS UPDATE
-// ============================================================
+/* ============================================================
+   GENERAL BOOKING STATUS UPDATE
+============================================================ */
 
 router.post(
   "/booking/update-status",
   requireAdminMutation,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const bookingId =
         getBookingIdFromRequest(
@@ -4829,27 +5830,38 @@ router.post(
         ).toLowerCase();
 
       const result =
-        await updateStatusInternal({
-          bookingId,
+        await updateStatusInternal(
+          {
+            bookingId,
 
-          status,
+            status,
 
-          req,
-        });
+            req,
+          }
+        );
 
-      if (!result.ok) {
+      if (
+        !result.ok
+      ) {
         return sendApiError(
           res,
           result.statusCode ||
             400,
+
           result.message,
-          "BOOKING_STATUS_UPDATE_FAILED",
-          getRequestId(req)
+
+          result.code ||
+            "BOOKING_STATUS_UPDATE_FAILED",
+
+          getRequestId(
+            req
+          )
         );
       }
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         message:
           result.message,
@@ -4875,10 +5887,14 @@ router.post(
               .checkout,
         },
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         `[BOOKING STATUS UPDATE ERROR] requestId=${
-          getRequestId(req) ||
+          getRequestId(
+            req
+          ) ||
           "none"
         }`,
 
@@ -4892,20 +5908,25 @@ router.post(
         500,
         "Failed to update booking status.",
         "BOOKING_STATUS_UPDATE_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// QUICK ACCEPT
-// ============================================================
+/* ============================================================
+   QUICK ACCEPT
+============================================================ */
 
 router.post(
   "/booking/accept",
   requireAdminMutation,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const bookingId =
         getBookingIdFromRequest(
@@ -4913,28 +5934,39 @@ router.post(
         );
 
       const result =
-        await updateStatusInternal({
-          bookingId,
+        await updateStatusInternal(
+          {
+            bookingId,
 
-          status:
-            "accepted",
+            status:
+              "accepted",
 
-          req,
-        });
+            req,
+          }
+        );
 
-      if (!result.ok) {
+      if (
+        !result.ok
+      ) {
         return sendApiError(
           res,
           result.statusCode ||
             400,
+
           result.message,
-          "BOOKING_ACCEPT_FAILED",
-          getRequestId(req)
+
+          result.code ||
+            "BOOKING_ACCEPT_FAILED",
+
+          getRequestId(
+            req
+          )
         );
       }
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         message:
           "Booking accepted successfully.",
@@ -4949,10 +5981,14 @@ router.post(
               .status,
         },
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         `[QUICK ACCEPT ERROR] requestId=${
-          getRequestId(req) ||
+          getRequestId(
+            req
+          ) ||
           "none"
         }`,
 
@@ -4966,20 +6002,25 @@ router.post(
         500,
         "Failed to accept booking.",
         "BOOKING_ACCEPT_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// QUICK DECLINE
-// ============================================================
+/* ============================================================
+   QUICK DECLINE
+============================================================ */
 
 router.post(
   "/booking/decline",
   requireAdminMutation,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const bookingId =
         getBookingIdFromRequest(
@@ -4987,28 +6028,39 @@ router.post(
         );
 
       const result =
-        await updateStatusInternal({
-          bookingId,
+        await updateStatusInternal(
+          {
+            bookingId,
 
-          status:
-            "declined",
+            status:
+              "declined",
 
-          req,
-        });
+            req,
+          }
+        );
 
-      if (!result.ok) {
+      if (
+        !result.ok
+      ) {
         return sendApiError(
           res,
           result.statusCode ||
             400,
+
           result.message,
-          "BOOKING_DECLINE_FAILED",
-          getRequestId(req)
+
+          result.code ||
+            "BOOKING_DECLINE_FAILED",
+
+          getRequestId(
+            req
+          )
         );
       }
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         message:
           "Booking declined successfully.",
@@ -5023,10 +6075,14 @@ router.post(
               .status,
         },
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         `[QUICK DECLINE ERROR] requestId=${
-          getRequestId(req) ||
+          getRequestId(
+            req
+          ) ||
           "none"
         }`,
 
@@ -5040,42 +6096,26 @@ router.post(
         500,
         "Failed to decline booking.",
         "BOOKING_DECLINE_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// USERS / CUSTOMER MANAGEMENT
-// ============================================================
+/* ============================================================
+   USERS / CUSTOMER MANAGEMENT
+============================================================ */
 
 router.get(
   "/users",
   requireAdmin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
-      /*
-       * ========================================================
-       * CUSTOMER RESERVATION SUMMARY
-       * ========================================================
-       *
-       * totalBookingValue:
-       *   Value of accepted, confirmed, checked-in,
-       *   checked-out, and completed reservations.
-       *
-       * realizedValue:
-       *   Value of checked-out and completed stays.
-       *
-       * upcomingValue:
-       *   Value of accepted / confirmed reservations that
-       *   have not passed their checkout date.
-       *
-       * NOTE:
-       * These values are reservation totals stored in Appointment.
-       * They are not payment transaction totals.
-       */
-
       const realizedStatuses = [
         "checked-out",
         "completed",
@@ -5094,6 +6134,13 @@ router.get(
         "confirmed",
       ];
 
+      const activeStatuses = [
+        "pending",
+        "accepted",
+        "confirmed",
+        "checked-in",
+      ];
+
       const now =
         new Date();
 
@@ -5101,423 +6148,481 @@ router.get(
         users,
         bookingStats,
       ] =
-        await Promise.all([
-          /*
-           * ====================================================
-           * CUSTOMER RECORDS
-           * ====================================================
-           *
-           * Explicitly expose only fields needed by the
-           * administrator customer-management interface.
-           *
-           * Authentication secrets are intentionally excluded.
-           */
+        await Promise.all(
+          [
+            User.find()
+              .select(
+                "fullname username email phone status emailVerified " +
+                  "memberLevel failedLoginAttempts lockedUntil lastLoginAt " +
+                  "passwordChangedAt createdAt updatedAt"
+              )
+              .sort({
+                createdAt:
+                  -1,
+              })
+              .lean(),
 
-          User.find()
-            .select(
-              "fullname username email phone status emailVerified " +
-                "failedLoginAttempts lockedUntil lastLoginAt " +
-                "passwordChangedAt createdAt updatedAt"
-            )
-            .sort({
-              createdAt: -1,
-            })
-            .lean(),
+            Appointment.aggregate(
+              [
+                {
+                  $group: {
+                    _id:
+                      "$userId",
 
-          /*
-           * ====================================================
-           * RESERVATION AGGREGATION
-           * ====================================================
-           *
-           * Build one summary record for each customer.
-           */
+                    totalBookings: {
+                      $sum:
+                        1,
+                    },
 
-          Appointment.aggregate([
-            {
-              $group: {
-                _id: "$userId",
+                    activeBookings: {
+                      $sum: {
+                        $cond: [
+                          {
+                            $in: [
+                              "$status",
+                              activeStatuses,
+                            ],
+                          },
 
-                /*
-                 * ------------------------------------------------
-                 * RESERVATION COUNTS
-                 * ------------------------------------------------
-                 */
+                          1,
 
-                totalBookings: {
-                  $sum: 1,
-                },
-
-                completedStays: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          realizedStatuses,
+                          0,
                         ],
                       },
+                    },
 
-                      1,
+                    completedStays: {
+                      $sum: {
+                        $cond: [
+                          {
+                            $in: [
+                              "$status",
+                              realizedStatuses,
+                            ],
+                          },
 
-                      0,
-                    ],
-                  },
-                },
+                          1,
 
-                cancelledBookings: {
-                  $sum: {
-                    $cond: [
+                          0,
+                        ],
+                      },
+                    },
+
+                    cancelledBookings: {
+                      $sum: {
+                        $cond: [
+                          {
+                            $in: [
+                              "$status",
+                              [
+                                "cancelled",
+                                "declined",
+                                "rejected",
+                              ],
+                            ],
+                          },
+
+                          1,
+
+                          0,
+                        ],
+                      },
+                    },
+
+                    pendingRequests: {
+                      $sum: {
+                        $cond: [
+                          {
+                            $eq: [
+                              "$status",
+                              "pending",
+                            ],
+                          },
+
+                          1,
+
+                          0,
+                        ],
+                      },
+                    },
+
+                    bookingValueBookings: {
+                      $sum: {
+                        $cond: [
+                          {
+                            $in: [
+                              "$status",
+                              bookingValueStatuses,
+                            ],
+                          },
+
+                          1,
+
+                          0,
+                        ],
+                      },
+                    },
+
+                    totalBookingValue: {
+                      $sum: {
+                        $cond: [
+                          {
+                            $in: [
+                              "$status",
+                              bookingValueStatuses,
+                            ],
+                          },
+
+                          {
+                            $ifNull: [
+                              "$totalPrice",
+                              0,
+                            ],
+                          },
+
+                          0,
+                        ],
+                      },
+                    },
+
+                    realizedValue: {
+                      $sum: {
+                        $cond: [
+                          {
+                            $in: [
+                              "$status",
+                              realizedStatuses,
+                            ],
+                          },
+
+                          {
+                            $ifNull: [
+                              "$totalPrice",
+                              0,
+                            ],
+                          },
+
+                          0,
+                        ],
+                      },
+                    },
+
+                    upcomingValue: {
+                      $sum: {
+                        $cond: [
+                          {
+                            $and: [
+                              {
+                                $in: [
+                                  "$status",
+                                  upcomingStatuses,
+                                ],
+                              },
+
+                              {
+                                $gte: [
+                                  "$checkout",
+                                  now,
+                                ],
+                              },
+                            ],
+                          },
+
+                          {
+                            $ifNull: [
+                              "$totalPrice",
+                              0,
+                            ],
+                          },
+
+                          0,
+                        ],
+                      },
+                    },
+
+                    totalNights: {
+                      $sum: {
+                        $cond: [
+                          {
+                            $in: [
+                              "$status",
+                              realizedStatuses,
+                            ],
+                          },
+
+                          {
+                            $ifNull: [
+                              "$numberOfNights",
+                              0,
+                            ],
+                          },
+
+                          0,
+                        ],
+                      },
+                    },
+
+                    upcomingNights: {
+                      $sum: {
+                        $cond: [
+                          {
+                            $and: [
+                              {
+                                $in: [
+                                  "$status",
+                                  upcomingStatuses,
+                                ],
+                              },
+
+                              {
+                                $gte: [
+                                  "$checkout",
+                                  now,
+                                ],
+                              },
+                            ],
+                          },
+
+                          {
+                            $ifNull: [
+                              "$numberOfNights",
+                              0,
+                            ],
+                          },
+
+                          0,
+                        ],
+                      },
+                    },
+
+                    lastBookingAt: {
+                      $max:
+                        "$createdAt",
+                    },
+
+                    lastCheckout: {
+                      $max: {
+                        $cond: [
+                          {
+                            $in: [
+                              "$status",
+                              realizedStatuses,
+                            ],
+                          },
+
+                          "$checkout",
+
+                          null,
+                        ],
+                      },
+                    },
+
+                    nextCheckinCandidate:
                       {
-                        $in: [
-                          "$status",
-                          [
-                            "cancelled",
-                            "declined",
-                            "rejected",
+                        $min: {
+                          $cond: [
+                            {
+                              $and: [
+                                {
+                                  $in: [
+                                    "$status",
+                                    upcomingStatuses,
+                                  ],
+                                },
+
+                                {
+                                  $gte: [
+                                    "$checkout",
+                                    now,
+                                  ],
+                                },
+                              ],
+                            },
+
+                            "$checkin",
+
+                            new Date(
+                              "2999-12-31T23:59:59.999Z"
+                            ),
                           ],
-                        ],
+                        },
                       },
-
-                      1,
-
-                      0,
-                    ],
                   },
                 },
-
-                pendingRequests: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $eq: [
-                          "$status",
-                          "pending",
-                        ],
-                      },
-
-                      1,
-
-                      0,
-                    ],
-                  },
-                },
-
-                /*
-                 * ------------------------------------------------
-                 * FINANCIAL SUMMARY
-                 * ------------------------------------------------
-                 */
-
-                totalBookingValue: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          bookingValueStatuses,
-                        ],
-                      },
-
-                      {
-                        $ifNull: [
-                          "$totalPrice",
-                          0,
-                        ],
-                      },
-
-                      0,
-                    ],
-                  },
-                },
-
-                realizedValue: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          realizedStatuses,
-                        ],
-                      },
-
-                      {
-                        $ifNull: [
-                          "$totalPrice",
-                          0,
-                        ],
-                      },
-
-                      0,
-                    ],
-                  },
-                },
-
-                upcomingValue: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $in: [
-                              "$status",
-                              upcomingStatuses,
-                            ],
-                          },
-
-                          {
-                            $gte: [
-                              "$checkout",
-                              now,
-                            ],
-                          },
-                        ],
-                      },
-
-                      {
-                        $ifNull: [
-                          "$totalPrice",
-                          0,
-                        ],
-                      },
-
-                      0,
-                    ],
-                  },
-                },
-
-                /*
-                 * ------------------------------------------------
-                 * STAY DURATION
-                 * ------------------------------------------------
-                 */
-
-                totalNights: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          realizedStatuses,
-                        ],
-                      },
-
-                      {
-                        $ifNull: [
-                          "$numberOfNights",
-                          0,
-                        ],
-                      },
-
-                      0,
-                    ],
-                  },
-                },
-
-                upcomingNights: {
-                  $sum: {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $in: [
-                              "$status",
-                              upcomingStatuses,
-                            ],
-                          },
-
-                          {
-                            $gte: [
-                              "$checkout",
-                              now,
-                            ],
-                          },
-                        ],
-                      },
-
-                      {
-                        $ifNull: [
-                          "$numberOfNights",
-                          0,
-                        ],
-                      },
-
-                      0,
-                    ],
-                  },
-                },
-
-                /*
-                 * ------------------------------------------------
-                 * CUSTOMER ACTIVITY
-                 * ------------------------------------------------
-                 */
-
-                lastBookingAt: {
-                  $max: "$createdAt",
-                },
-
-                lastCheckout: {
-                  $max: {
-                    $cond: [
-                      {
-                        $in: [
-                          "$status",
-                          realizedStatuses,
-                        ],
-                      },
-
-                      "$checkout",
-
-                      null,
-                    ],
-                  },
-                },
-
-                /*
-                 * ------------------------------------------------
-                 * UPCOMING RESERVATION
-                 * ------------------------------------------------
-                 *
-                 * We use a far-future date for non-matching
-                 * records so $min does not incorrectly select null.
-                 */
-
-                nextCheckinCandidate: {
-                  $min: {
-                    $cond: [
-                      {
-                        $and: [
-                          {
-                            $in: [
-                              "$status",
-                              upcomingStatuses,
-                            ],
-                          },
-
-                          {
-                            $gte: [
-                              "$checkout",
-                              now,
-                            ],
-                          },
-                        ],
-                      },
-
-                      "$checkin",
-
-                      new Date(
-                        "2999-12-31T23:59:59.999Z"
-                      ),
-                    ],
-                  },
-                },
-              },
-            },
-          ]),
-        ]);
-
-      /*
-       * ========================================================
-       * BUILD USER -> RESERVATION SUMMARY MAP
-       * ========================================================
-       */
+              ]
+            ),
+          ]
+        );
 
       const statsByUser =
         new Map(
           bookingStats.map(
-            (entry) => [
-              String(
-                entry._id
-              ),
+            (
+              entry
+            ) => {
+              const totalBookings =
+                Number(
+                  entry.totalBookings ||
+                    0
+                );
 
-              {
-                totalBookings:
-                  Number(
-                    entry.totalBookings ||
-                      0
-                  ),
+              const totalBookingValue =
+                Number(
+                  entry.totalBookingValue ||
+                    0
+                );
 
-                completedStays:
-                  Number(
-                    entry.completedStays ||
-                      0
-                  ),
+              return [
+                String(
+                  entry._id
+                ),
 
-                cancelledBookings:
-                  Number(
-                    entry.cancelledBookings ||
-                      0
-                  ),
+                {
+                  totalBookings,
 
-                pendingRequests:
-                  Number(
-                    entry.pendingRequests ||
-                      0
-                  ),
+                  activeBookings:
+                    Number(
+                      entry.activeBookings ||
+                        0
+                    ),
 
-                totalBookingValue:
-                  Number(
-                    entry.totalBookingValue ||
-                      0
-                  ),
+                  completedStays:
+                    Number(
+                      entry.completedStays ||
+                        0
+                    ),
 
-                realizedValue:
-                  Number(
-                    entry.realizedValue ||
-                      0
-                  ),
+                  cancelledBookings:
+                    Number(
+                      entry.cancelledBookings ||
+                        0
+                    ),
 
-                upcomingValue:
-                  Number(
-                    entry.upcomingValue ||
-                      0
-                  ),
+                  pendingRequests:
+                    Number(
+                      entry.pendingRequests ||
+                        0
+                    ),
 
-                totalNights:
-                  Number(
-                    entry.totalNights ||
-                      0
-                  ),
+                  bookingValueBookings:
+                    Number(
+                      entry.bookingValueBookings ||
+                        0
+                    ),
 
-                upcomingNights:
-                  Number(
-                    entry.upcomingNights ||
-                      0
-                  ),
+                  totalBookingValue,
 
-                lastBookingAt:
-                  entry.lastBookingAt ||
-                  null,
+                  averageBookingValue:
+                    totalBookings >
+                    0
+                      ? Math.round(
+                          (
+                            totalBookingValue /
+                            totalBookings
+                          ) *
+                            100
+                        ) /
+                        100
+                      : 0,
 
-                lastCheckout:
-                  entry.lastCheckout ||
-                  null,
+                  realizedValue:
+                    Number(
+                      entry.realizedValue ||
+                        0
+                    ),
 
-                nextCheckin:
-                  entry.nextCheckinCandidate &&
-                  new Date(
-                    entry.nextCheckinCandidate
-                  ).getUTCFullYear() <
-                    2999
-                    ? entry.nextCheckinCandidate
-                    : null,
-              },
-            ]
+                  upcomingValue:
+                    Number(
+                      entry.upcomingValue ||
+                        0
+                    ),
+
+                  totalNights:
+                    Number(
+                      entry.totalNights ||
+                        0
+                    ),
+
+                  upcomingNights:
+                    Number(
+                      entry.upcomingNights ||
+                        0
+                    ),
+
+                  lastBookingAt:
+                    entry.lastBookingAt ||
+                    null,
+
+                  lastCheckout:
+                    entry.lastCheckout ||
+                    null,
+
+                  nextCheckin:
+                    entry.nextCheckinCandidate &&
+                    new Date(
+                      entry.nextCheckinCandidate
+                    ).getUTCFullYear() <
+                      2999
+                      ? entry.nextCheckinCandidate
+                      : null,
+                },
+              ];
+            }
           )
         );
 
-      /*
-       * ========================================================
-       * ENRICH CUSTOMERS
-       * ========================================================
-       *
-       * Customers without reservations receive a complete
-       * zero-value bookingStats structure.
-       */
+      const emptyStats = {
+        totalBookings:
+          0,
+
+        activeBookings:
+          0,
+
+        completedStays:
+          0,
+
+        cancelledBookings:
+          0,
+
+        pendingRequests:
+          0,
+
+        bookingValueBookings:
+          0,
+
+        totalBookingValue:
+          0,
+
+        averageBookingValue:
+          0,
+
+        realizedValue:
+          0,
+
+        upcomingValue:
+          0,
+
+        totalNights:
+          0,
+
+        upcomingNights:
+          0,
+
+        lastBookingAt:
+          null,
+
+        lastCheckout:
+          null,
+
+        nextCheckin:
+          null,
+      };
 
       const enrichedUsers =
         users.map(
-          (user) => ({
+          (
+            user
+          ) => ({
             ...user,
 
             bookingStats:
@@ -5526,34 +6631,85 @@ router.get(
                   user._id
                 )
               ) || {
-                totalBookings: 0,
-
-                completedStays: 0,
-
-                cancelledBookings: 0,
-
-                pendingRequests: 0,
-
-                totalBookingValue: 0,
-
-                realizedValue: 0,
-
-                upcomingValue: 0,
-
-                totalNights: 0,
-
-                upcomingNights: 0,
-
-                lastBookingAt:
-                  null,
-
-                lastCheckout:
-                  null,
-
-                nextCheckin:
-                  null,
+                ...emptyStats,
               },
           })
+        );
+
+      /*
+       * Overall customer-management metrics are useful to the
+       * new professional users.ejs without requiring client-side
+       * aggregation.
+       */
+      const customerSummary =
+        enrichedUsers.reduce(
+          (
+            summary,
+            user
+          ) => {
+            const stats =
+              user.bookingStats;
+
+            summary.totalUsers +=
+              1;
+
+            if (
+              stats.totalBookings >
+              0
+            ) {
+              summary.customersWithBookings +=
+                1;
+            }
+
+            if (
+              stats.totalBookings >
+              1
+            ) {
+              summary.returningCustomers +=
+                1;
+            }
+
+            if (
+              stats.totalBookingValue >=
+              10000
+            ) {
+              summary.highValueCustomers +=
+                1;
+            }
+
+            summary.totalBookingValue +=
+              Number(
+                stats.totalBookingValue ||
+                  0
+              );
+
+            summary.totalBookings +=
+              Number(
+                stats.totalBookings ||
+                  0
+              );
+
+            return summary;
+          },
+          {
+            totalUsers:
+              0,
+
+            customersWithBookings:
+              0,
+
+            returningCustomers:
+              0,
+
+            highValueCustomers:
+              0,
+
+            totalBookingValue:
+              0,
+
+            totalBookings:
+              0,
+          }
         );
 
       return res.render(
@@ -5563,16 +6719,24 @@ router.get(
             "User Management",
 
           admin:
-            getAdminSession(req),
+            getAdminSession(
+              req
+            ),
 
           users:
             enrichedUsers,
+
+          customerSummary,
         }
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         `[USERS PAGE ERROR] requestId=${
-          getRequestId(req) ||
+          getRequestId(
+            req
+          ) ||
           "none"
         }`,
 
@@ -5591,25 +6755,22 @@ router.get(
   }
 );
 
-// ============================================================
-// USER DETAIL API
-// ============================================================
+/* ============================================================
+   USER DETAIL API
+============================================================ */
 
 router.get(
   "/users/:id",
   requireAdminApi,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const userId =
         getResourceIdFromRequest(
           req
         );
-
-      /*
-       * --------------------------------------------------------
-       * VALIDATE USER ID
-       * --------------------------------------------------------
-       */
 
       if (
         !isValidObjectId(
@@ -5621,20 +6782,11 @@ router.get(
           400,
           "Invalid user ID.",
           "INVALID_USER_ID",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
-
-      /*
-       * --------------------------------------------------------
-       * LOAD USER
-       * --------------------------------------------------------
-       *
-       * Only return administrator-facing profile fields.
-       *
-       * Authentication credentials and secret fields are not
-       * returned by this API.
-       */
 
       const user =
         await User.findById(
@@ -5642,41 +6794,36 @@ router.get(
         )
           .select(
             "fullname username email phone status emailVerified " +
-              "failedLoginAttempts lockedUntil lastLoginAt " +
+              "memberLevel failedLoginAttempts lockedUntil lastLoginAt " +
               "passwordChangedAt createdAt updatedAt"
           )
           .lean();
 
-      if (!user) {
+      if (
+        !user
+      ) {
         return sendApiError(
           res,
           404,
           "User not found.",
           "USER_NOT_FOUND",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
-      /*
-       * --------------------------------------------------------
-       * LOAD CUSTOMER RESERVATIONS
-       * --------------------------------------------------------
-       */
-
       const bookings =
-        await Appointment.find({
-          userId,
-        })
+        await Appointment.find(
+          {
+            userId,
+          }
+        )
           .sort({
-            createdAt: -1,
+            createdAt:
+              -1,
           })
           .lean();
-
-      /*
-       * --------------------------------------------------------
-       * CUSTOMER SUMMARY
-       * --------------------------------------------------------
-       */
 
       const realizedStatuses =
         new Set([
@@ -5699,10 +6846,21 @@ router.get(
           "confirmed",
         ]);
 
+      const activeStatuses =
+        new Set([
+          "pending",
+          "accepted",
+          "confirmed",
+          "checked-in",
+        ]);
+
       const now =
         new Date();
 
       let totalBookings =
+        0;
+
+      let activeBookings =
         0;
 
       let completedStays =
@@ -5738,15 +6896,12 @@ router.get(
       let nextCheckin =
         null;
 
-      /*
-       * --------------------------------------------------------
-       * PROCESS RESERVATIONS
-       * --------------------------------------------------------
-       */
-
       bookings.forEach(
-        (booking) => {
-          totalBookings += 1;
+        (
+          booking
+        ) => {
+          totalBookings +=
+            1;
 
           const status =
             normalizeString(
@@ -5754,16 +6909,21 @@ router.get(
               50
             ).toLowerCase();
 
+          if (
+            activeStatuses.has(
+              status
+            )
+          ) {
+            activeBookings +=
+              1;
+          }
+
           const bookingTotal =
             parseNumber(
               booking?.totalPrice,
               0
             );
 
-          /*
-           * Prefer stored numberOfNights.
-           * If unavailable, calculate it from check-in/out dates.
-           */
           const storedNights =
             parseNumber(
               booking?.numberOfNights,
@@ -5777,7 +6937,8 @@ router.get(
             );
 
           const nights =
-            storedNights > 0
+            storedNights >
+            0
               ? storedNights
               : calculatedNights;
 
@@ -5802,18 +6963,13 @@ router.get(
                 )
               : null;
 
-          /*
-           * ====================================================
-           * REALIZED STAYS
-           * ====================================================
-           */
-
           if (
             realizedStatuses.has(
               status
             )
           ) {
-            completedStays += 1;
+            completedStays +=
+              1;
 
             totalNights +=
               nights;
@@ -5837,12 +6993,6 @@ router.get(
             }
           }
 
-          /*
-           * ====================================================
-           * CANCELLED / DECLINED / REJECTED
-           * ====================================================
-           */
-
           if (
             [
               "cancelled",
@@ -5856,12 +7006,6 @@ router.get(
               1;
           }
 
-          /*
-           * ====================================================
-           * PENDING
-           * ====================================================
-           */
-
           if (
             status ===
             "pending"
@@ -5869,12 +7013,6 @@ router.get(
             pendingRequests +=
               1;
           }
-
-          /*
-           * ====================================================
-           * TOTAL BOOKING VALUE
-           * ====================================================
-           */
 
           if (
             bookingValueStatuses.has(
@@ -5885,12 +7023,6 @@ router.get(
               bookingTotal;
           }
 
-          /*
-           * ====================================================
-           * UPCOMING
-           * ====================================================
-           */
-
           const isUpcoming =
             upcomingStatuses.has(
               status
@@ -5899,7 +7031,8 @@ router.get(
             !Number.isNaN(
               checkout.getTime()
             ) &&
-            checkout >= now;
+            checkout >=
+              now;
 
           if (
             isUpcoming
@@ -5926,12 +7059,6 @@ router.get(
             }
           }
 
-          /*
-           * ====================================================
-           * LAST BOOKING
-           * ====================================================
-           */
-
           if (
             createdAt &&
             !Number.isNaN(
@@ -5949,13 +7076,29 @@ router.get(
         }
       );
 
+      const averageBookingValue =
+        totalBookings >
+        0
+          ? Math.round(
+              (
+                totalBookingValue /
+                totalBookings
+              ) *
+                100
+            ) /
+            100
+          : 0;
+
       return res.json({
-        success: true,
+        success:
+          true,
 
         user,
 
         bookingStats: {
           totalBookings,
+
+          activeBookings,
 
           completedStays,
 
@@ -5964,6 +7107,8 @@ router.get(
           pendingRequests,
 
           totalBookingValue,
+
+          averageBookingValue,
 
           realizedValue,
 
@@ -5985,10 +7130,14 @@ router.get(
         appointments:
           bookings,
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         `[USER DETAIL ERROR] requestId=${
-          getRequestId(req) ||
+          getRequestId(
+            req
+          ) ||
           "none"
         }`,
 
@@ -6002,52 +7151,67 @@ router.get(
         500,
         "Unable to load user details.",
         "USER_DETAIL_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// ROOMS PAGE
-// ============================================================
+/* ============================================================
+   ROOMS PAGE
+============================================================ */
 
 router.get(
   "/rooms",
   requireAdmin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const [
         rooms,
         bookings,
       ] =
-        await Promise.all([
-          Room.find()
-            .sort({
-              sortOrder: 1,
-              name: 1,
-              createdAt: 1,
-            })
-            .lean(),
+        await Promise.all(
+          [
+            Room.find()
+              .sort({
+                sortOrder:
+                  1,
 
-          Appointment.find({
-            status: {
-              $in:
-                BLOCKING_STATUSES,
-            },
-          })
-            .select(
-              "room status checkin checkout userId"
+                name:
+                  1,
+
+                createdAt:
+                  1,
+              })
+              .lean(),
+
+            Appointment.find(
+              {
+                status: {
+                  $in:
+                    BLOCKING_STATUSES,
+                },
+              }
             )
-            .populate(
-              "userId",
-              "fullname email phone"
-            )
-            .sort({
-              checkin: 1,
-            })
-            .lean(),
-        ]);
+              .select(
+                "roomId room status checkin checkout userId"
+              )
+              .populate(
+                "userId",
+                "fullname email phone"
+              )
+              .sort({
+                checkin:
+                  1,
+              })
+              .lean(),
+          ]
+        );
 
       return res.render(
         "admin/rooms",
@@ -6056,14 +7220,18 @@ router.get(
             "Room Management",
 
           admin:
-            getAdminSession(req),
+            getAdminSession(
+              req
+            ),
 
           rooms,
 
           bookings,
         }
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Rooms Page Error:",
         error
@@ -6079,46 +7247,62 @@ router.get(
   }
 );
 
-// ============================================================
-// CREATE ROOM
-// ============================================================
+/* ============================================================
+   CREATE ROOM
+============================================================ */
 
 router.post(
   "/rooms/create",
   requireAdminMutation,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const payload =
         buildRoomCreatePayload(
           req.body
         );
 
-      if (!payload.name) {
+      if (
+        !payload.name
+      ) {
         return sendApiError(
           res,
           400,
           "Room name is required.",
           "INVALID_ROOM",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
-      if (
-        payload.price < 0
-      ) {
-        return sendApiError(
-          res,
-          400,
-          "Room price cannot be negative.",
-          "INVALID_ROOM",
-          getRequestId(req)
-        );
-      }
-
+      /*
+       * The current Room schema does not contain type/displayName,
+       * so only supported schema fields are assigned.
+       */
       const room =
-        new Room(
-          payload
-        );
+        new Room();
+
+      Object.entries(
+        payload
+      ).forEach(
+        (
+          [key, value]
+        ) => {
+          if (
+            room.schema.path(
+              key
+            )
+          ) {
+            room.set(
+              key,
+              value
+            );
+          }
+        }
+      );
 
       await room.save();
 
@@ -6131,17 +7315,22 @@ router.post(
         }
       );
 
-      return res.status(
-        201
-      ).json({
-        success: true,
+      return res
+        .status(
+          201
+        )
+        .json({
+          success:
+            true,
 
-        message:
-          "Room created successfully.",
+          message:
+            "Room created successfully.",
 
-        room,
-      });
-    } catch (error) {
+          room,
+        });
+    } catch (
+      error
+    ) {
       console.error(
         "Create Room Error:",
         error
@@ -6155,17 +7344,41 @@ router.post(
           res,
           400,
           Object.values(
-            error.errors || {}
+            error.errors ||
+              {}
           )
             .map(
-              (entry) =>
+              (
+                entry
+              ) =>
                 entry.message
             )
-            .filter(Boolean)
+            .filter(
+              Boolean
+            )
             .join(" ") ||
             "Some room information is invalid.",
+
           "VALIDATION_ERROR",
-          getRequestId(req)
+
+          getRequestId(
+            req
+          )
+        );
+      }
+
+      if (
+        error?.code ===
+        11000
+      ) {
+        return sendApiError(
+          res,
+          409,
+          "A room with the same name or slug already exists.",
+          "ROOM_ALREADY_EXISTS",
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -6174,55 +7387,44 @@ router.post(
         500,
         "Unable to create room.",
         "ROOM_CREATE_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// UPDATE ROOM
-// ============================================================
+/* ============================================================
+   UPDATE ROOM
+============================================================ */
 
 async function updateRoomHandler(
   req,
   res
 ) {
-  try {
-    const roomId =
-      getResourceIdFromRequest(
+  const roomId =
+    getResourceIdFromRequest(
+      req
+    );
+
+  if (
+    !isValidObjectId(
+      roomId
+    )
+  ) {
+    return sendApiError(
+      res,
+      400,
+      "Invalid room ID.",
+      "INVALID_ROOM_ID",
+      getRequestId(
         req
-      );
-
-    if (
-      !isValidObjectId(
-        roomId
       )
-    ) {
-      return sendApiError(
-        res,
-        400,
-        "Invalid room ID.",
-        "INVALID_ROOM_ID",
-        getRequestId(req)
-      );
-    }
+    );
+  }
 
-    const room =
-      await getRoomDocumentById(
-        roomId
-      );
-
-    if (!room) {
-      return sendApiError(
-        res,
-        404,
-        "Room not found.",
-        "ROOM_NOT_FOUND",
-        getRequestId(req)
-      );
-    }
-
+  try {
     const payload =
       buildRoomUpdatePayload(
         req.body
@@ -6231,59 +7433,171 @@ async function updateRoomHandler(
     if (
       Object.keys(
         payload
-      ).length === 0
+      ).length ===
+      0
     ) {
       return sendApiError(
         res,
         400,
         "No room changes were provided.",
         "NO_CHANGES",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
 
-    for (
-      const [
-        key,
-        value,
-      ] of Object.entries(
-        payload
-      )
-    ) {
-      if (
-        room.schema.path(
-          key
-        )
-      ) {
-        room.set(
-          key,
-          value
-        );
-      }
-    }
-
-    await room.save();
-
-    logAdminAction(
-      req,
-      "room-update",
+    /*
+     * Room updates are serialized with booking creation/status
+     * changes.
+     */
+    return await withRoomLock(
       {
-        roomId,
-      }
+        _id:
+          roomId,
+      },
+      async () => {
+        const room =
+          await Room.findById(
+            roomId
+          );
+
+        if (
+          !room
+        ) {
+          return sendApiError(
+            res,
+            404,
+            "Room not found.",
+            "ROOM_NOT_FOUND",
+            getRequestId(
+              req
+            )
+          );
+        }
+
+        const previousQuantity =
+          Math.max(
+            1,
+            parseInteger(
+              room.quantity,
+              1
+            )
+          );
+
+        const requestedQuantity =
+          Object.prototype.hasOwnProperty.call(
+            payload,
+            "quantity"
+          )
+            ? Math.max(
+                1,
+                parseInteger(
+                  payload.quantity,
+                  1
+                )
+              )
+            : previousQuantity;
+
+        /*
+         * ------------------------------------------------------
+         * INVENTORY SAFETY
+         * ------------------------------------------------------
+         *
+         * Never let an administrator lower quantity beneath the
+         * number of simultaneously occupied units required by
+         * existing future reservations.
+         */
+        if (
+          requestedQuantity <
+          previousQuantity
+        ) {
+          const peakOccupancy =
+            await getPeakOccupancy(
+              {
+                room,
+
+                fromDate:
+                  new Date(),
+              }
+            );
+
+          if (
+            requestedQuantity <
+            peakOccupancy
+          ) {
+            return sendApiError(
+              res,
+              409,
+              `Room quantity cannot be reduced to ${requestedQuantity}. Existing active/future reservations require up to ${peakOccupancy} units.`,
+              "ROOM_QUANTITY_TOO_LOW",
+              getRequestId(
+                req
+              )
+            );
+          }
+        }
+
+        /*
+         * Apply only fields supported by the schema.
+         *
+         * This preserves compatibility with your current Room.js,
+         * which does not currently persist `type` or `displayName`.
+         */
+        Object.entries(
+          payload
+        ).forEach(
+          (
+            [key, value]
+          ) => {
+            if (
+              room.schema.path(
+                key
+              )
+            ) {
+              room.set(
+                key,
+                value
+              );
+            }
+          }
+        );
+
+        await room.save();
+
+        logAdminAction(
+          req,
+          "room-update",
+          {
+            roomId,
+
+            previousQuantity,
+
+            newQuantity:
+              room.quantity,
+          }
+        );
+
+        return res.json({
+          success:
+            true,
+
+          message:
+            "Room updated successfully.",
+
+          room,
+        });
+      },
+      BOOKING_LOCK_OPTIONS
     );
-
-    return res.json({
-      success: true,
-
-      message:
-        "Room updated successfully.",
-
-      room,
-    });
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       `[UPDATE ROOM ERROR] requestId=${
-        getRequestId(req) ||
+        getRequestId(
+          req
+        ) ||
         "none"
       }`,
 
@@ -6293,6 +7607,21 @@ async function updateRoomHandler(
     );
 
     if (
+      error?.code ===
+      "BOOKING_LOCK_TIMEOUT"
+    ) {
+      return sendApiError(
+        res,
+        409,
+        "This room is currently being updated by another operation. Please try again in a moment.",
+        "BOOKING_LOCK_TIMEOUT",
+        getRequestId(
+          req
+        )
+      );
+    }
+
+    if (
       error?.name ===
       "ValidationError"
     ) {
@@ -6300,19 +7629,41 @@ async function updateRoomHandler(
         res,
         400,
         Object.values(
-          error.errors || {}
+          error.errors ||
+            {}
         )
           .map(
-            (entry) =>
+            (
+              entry
+            ) =>
               entry.message
           )
-          .filter(Boolean)
+          .filter(
+            Boolean
+          )
           .join(" ") ||
           "Some room information is invalid.",
 
         "VALIDATION_ERROR",
 
-        getRequestId(req)
+        getRequestId(
+          req
+        )
+      );
+    }
+
+    if (
+      error?.code ===
+      11000
+    ) {
+      return sendApiError(
+        res,
+        409,
+        "A room with the same name or slug already exists.",
+        "ROOM_ALREADY_EXISTS",
+        getRequestId(
+          req
+        )
       );
     }
 
@@ -6321,7 +7672,9 @@ async function updateRoomHandler(
       500,
       "Unable to update room.",
       "ROOM_UPDATE_FAILED",
-      getRequestId(req)
+      getRequestId(
+        req
+      )
     );
   }
 }
@@ -6338,32 +7691,30 @@ router.post(
   updateRoomHandler
 );
 
-// ============================================================
-// ROOM IMAGE UPLOAD
-// ============================================================
+/* ============================================================
+   ROOM IMAGE UPLOAD
+============================================================ */
 
 router.post(
   "/rooms/:id/image",
   requireAdminMutation,
 
-  (req, res, next) => {
+  (
+    req,
+    res,
+    next
+  ) => {
     parseRoomImageBody(
       req,
       res,
-      (error) => {
-        if (!error) {
+      (
+        error
+      ) => {
+        if (
+          !error
+        ) {
           return next();
         }
-
-        console.error(
-          `[ROOM IMAGE BODY ERROR] requestId=${
-            getRequestId(req) ||
-            "none"
-          }`,
-
-          error.message ||
-            error
-        );
 
         if (
           error?.type ===
@@ -6376,7 +7727,9 @@ router.post(
             413,
             "The selected image is larger than 8 MB.",
             "IMAGE_TOO_LARGE",
-            getRequestId(req)
+            getRequestId(
+              req
+            )
           );
         }
 
@@ -6385,13 +7738,18 @@ router.post(
           400,
           "Unable to read the uploaded image.",
           "IMAGE_BODY_INVALID",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
     );
   },
 
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     let savedFile =
       null;
 
@@ -6411,7 +7769,9 @@ router.post(
           400,
           "Invalid room ID.",
           "INVALID_ROOM_ID",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -6420,13 +7780,17 @@ router.post(
           roomId
         );
 
-      if (!room) {
+      if (
+        !room
+      ) {
         return sendApiError(
           res,
           404,
           "Room not found.",
           "ROOM_NOT_FOUND",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -6434,7 +7798,8 @@ router.post(
         String(
           req.headers[
             "content-type"
-          ] || ""
+          ] ||
+            ""
         )
           .split(
             ";",
@@ -6453,7 +7818,9 @@ router.post(
           415,
           "Unsupported image type. Please upload a JPG, PNG, or WEBP image.",
           "UNSUPPORTED_IMAGE_TYPE",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -6464,14 +7831,17 @@ router.post(
         !Buffer.isBuffer(
           buffer
         ) ||
-        buffer.length === 0
+        buffer.length ===
+          0
       ) {
         return sendApiError(
           res,
           400,
           "No image file was received.",
           "IMAGE_MISSING",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -6484,7 +7854,9 @@ router.post(
           413,
           "The selected image is larger than 8 MB.",
           "IMAGE_TOO_LARGE",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -6493,13 +7865,32 @@ router.post(
           buffer
         );
 
-      if (!imageType) {
+      if (
+        !imageType
+      ) {
         return sendApiError(
           res,
           400,
           "The uploaded file is not a supported JPG, PNG, or WEBP image.",
           "INVALID_IMAGE_FILE",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
+        );
+      }
+
+      if (
+        imageType.contentType !==
+        contentType
+      ) {
+        return sendApiError(
+          res,
+          400,
+          "The uploaded image type does not match its actual file contents.",
+          "IMAGE_TYPE_MISMATCH",
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -6548,7 +7939,9 @@ router.post(
           500,
           "This room model does not have a supported image field.",
           "ROOM_IMAGE_FIELD_MISSING",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -6582,7 +7975,8 @@ router.post(
       );
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         message:
           "Room image uploaded successfully.",
@@ -6595,7 +7989,9 @@ router.post(
             finalImageUrl,
         },
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       if (
         savedFile?.url
       ) {
@@ -6606,7 +8002,9 @@ router.post(
 
       console.error(
         `[ROOM IMAGE UPLOAD ERROR] requestId=${
-          getRequestId(req) ||
+          getRequestId(
+            req
+          ) ||
           "none"
         }`,
 
@@ -6615,168 +8013,226 @@ router.post(
           error
       );
 
-      if (
-        error?.name ===
-        "ValidationError"
-      ) {
-        return sendApiError(
-          res,
-          400,
-          Object.values(
-            error.errors || {}
-          )
-            .map(
-              (entry) =>
-                entry.message
-            )
-            .filter(Boolean)
-            .join(" ") ||
-            "The room image could not be saved.",
-          "ROOM_IMAGE_VALIDATION_FAILED",
-          getRequestId(req)
-        );
-      }
-
       return sendApiError(
         res,
         500,
         "Unable to upload the room image.",
         "ROOM_IMAGE_UPLOAD_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// DELETE / DEACTIVATE ROOM
-// ============================================================
+/* ============================================================
+   DELETE / DEACTIVATE ROOM
+============================================================ */
 
 router.post(
   "/rooms/delete/:id",
   requireAdminMutation,
-  async (req, res) => {
-    try {
-      const roomId =
-        getResourceIdFromRequest(
-          req
-        );
-
-      if (
-        !isValidObjectId(
-          roomId
-        )
-      ) {
-        return sendApiError(
-          res,
-          400,
-          "Invalid room ID.",
-          "INVALID_ROOM_ID",
-          getRequestId(req)
-        );
-      }
-
-      const room =
-        await getRoomDocumentById(
-          roomId
-        );
-
-      if (!room) {
-        return sendApiError(
-          res,
-          404,
-          "Room not found.",
-          "ROOM_NOT_FOUND",
-          getRequestId(req)
-        );
-      }
-
-      const roomIdentifiers =
-        [
-          room.name,
-          room.displayName,
-          room.key,
-        ]
-          .map(
-            (value) =>
-              normalizeString(
-                value,
-                150
-              )
-          )
-          .filter(Boolean);
-
-      const hasFutureOrActiveBookings =
-        roomIdentifiers.length >
-          0 &&
-        await Appointment.exists({
-          room: {
-            $in:
-              roomIdentifiers,
-          },
-
-          status: {
-            $in:
-              BLOCKING_STATUSES,
-          },
-
-          checkout: {
-            $gte:
-              new Date(),
-          },
-        });
-
-      if (
-        hasFutureOrActiveBookings
-      ) {
-        return sendApiError(
-          res,
-          409,
-          "This room has an active or future booking and cannot be deleted.",
-          "ROOM_HAS_ACTIVE_BOOKINGS",
-          getRequestId(req)
-        );
-      }
-
-      if (
-        modelHasPath(
-          Room,
-          "active"
-        )
-      ) {
-        room.active =
-          false;
-
-        await room.save();
-      } else if (
-        modelHasPath(
-          Room,
-          "isActive"
-        )
-      ) {
-        room.isActive =
-          false;
-
-        await room.save();
-      } else {
-        await room.deleteOne();
-      }
-
-      logAdminAction(
-        req,
-        "room-deactivate",
-        {
-          roomId,
-        }
+  async (
+    req,
+    res
+  ) => {
+    const roomId =
+      getResourceIdFromRequest(
+        req
       );
 
-      return res.json({
-        success: true,
+    if (
+      !isValidObjectId(
+        roomId
+      )
+    ) {
+      return sendApiError(
+        res,
+        400,
+        "Invalid room ID.",
+        "INVALID_ROOM_ID",
+        getRequestId(
+          req
+        )
+      );
+    }
 
-        message:
-          "Room removed from active inventory.",
-      });
-    } catch (error) {
+    try {
+      return await withRoomLock(
+        {
+          _id:
+            roomId,
+        },
+        async () => {
+          const room =
+            await getRoomDocumentById(
+              roomId
+            );
+
+          if (
+            !room
+          ) {
+            return sendApiError(
+              res,
+              404,
+              "Room not found.",
+              "ROOM_NOT_FOUND",
+              getRequestId(
+                req
+              )
+            );
+          }
+
+          /*
+           * Authoritative relationship: roomId.
+           *
+           * Legacy room-name fields are retained for old bookings
+           * that were created before roomId was introduced.
+           */
+          const roomNames =
+            [
+              room.name,
+              room.displayName,
+              room.key,
+            ]
+              .map(
+                (
+                  value
+                ) =>
+                  normalizeString(
+                    value,
+                    150
+                  )
+              )
+              .filter(
+                Boolean
+              );
+
+          const conditions =
+            [
+              {
+                roomId:
+                  room._id,
+              },
+            ];
+
+          if (
+            roomNames.length
+          ) {
+            conditions.push(
+              {
+                room: {
+                  $in:
+                    roomNames,
+                },
+              },
+              {
+                roomType: {
+                  $in:
+                    roomNames,
+                },
+              },
+              {
+                accommodation: {
+                  $in:
+                    roomNames,
+                },
+              },
+              {
+                roomName: {
+                  $in:
+                    roomNames,
+                },
+              }
+            );
+          }
+
+          const activeBooking =
+            await Appointment.exists(
+              {
+                $and: [
+                  {
+                    $or:
+                      conditions,
+                  },
+
+                  {
+                    status: {
+                      $in:
+                        BLOCKING_STATUSES,
+                    },
+                  },
+
+                  {
+                    checkout: {
+                      $gte:
+                        new Date(),
+                    },
+                  },
+                ],
+              }
+            );
+
+          if (
+            activeBooking
+          ) {
+            return sendApiError(
+              res,
+              409,
+              "This room has an active or future booking and cannot be removed.",
+              "ROOM_HAS_ACTIVE_BOOKINGS",
+              getRequestId(
+                req
+              )
+            );
+          }
+
+          if (
+            modelHasPath(
+              Room,
+              "active"
+            )
+          ) {
+            room.active =
+              false;
+
+            await room.save();
+          } else if (
+            modelHasPath(
+              Room,
+              "isActive"
+            )
+          ) {
+            room.isActive =
+              false;
+
+            await room.save();
+          } else {
+            await room.deleteOne();
+          }
+
+          logAdminAction(
+            req,
+            "room-deactivate",
+            {
+              roomId,
+            }
+          );
+
+          return res.json({
+            success:
+              true,
+
+            message:
+              "Room removed from active inventory.",
+          });
+        },
+        BOOKING_LOCK_OPTIONS
+      );
+    } catch (
+      error
+    ) {
       console.error(
         "Delete Room Error:",
         error
@@ -6787,48 +8243,65 @@ router.post(
         500,
         "Unable to remove room.",
         "ROOM_DELETE_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// ADD-ONS PAGE
-// ============================================================
+/* ============================================================
+   ADD-ONS PAGE
+============================================================ */
 
 router.get(
   "/add-ons",
   requireAdmin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const [
         rawAddOns,
         rooms,
       ] =
-        await Promise.all([
-          AddOn.find()
-            .sort({
-              sortOrder: 1,
-              name: 1,
-              createdAt: 1,
-            })
-            .lean(),
+        await Promise.all(
+          [
+            AddOn.find()
+              .sort({
+                sortOrder:
+                  1,
 
-          Room.find()
-            .sort({
-              sortOrder: 1,
-              name: 1,
-            })
-            .lean(),
-        ]);
+                name:
+                  1,
+
+                createdAt:
+                  1,
+              })
+              .lean(),
+
+            Room.find()
+              .sort({
+                sortOrder:
+                  1,
+
+                name:
+                  1,
+              })
+              .lean(),
+          ]
+        );
 
       const addOns =
         rawAddOns
           .map(
             normalizeAddOnRecord
           )
-          .filter(Boolean);
+          .filter(
+            Boolean
+          );
 
       return res.render(
         "admin/add-ons",
@@ -6837,14 +8310,18 @@ router.get(
             "Manage Add-ons",
 
           admin:
-            getAdminSession(req),
+            getAdminSession(
+              req
+            ),
 
           addOns,
 
           rooms,
         }
       );
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Add-ons Page Error:",
         error
@@ -6860,87 +8337,46 @@ router.get(
   }
 );
 
-// ============================================================
-// CREATE ADD-ON
-// ============================================================
+/* ============================================================
+   CREATE ADD-ON
+============================================================ */
 
 router.post(
   "/add-ons/create",
   requireAdminMutation,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const payload =
         buildAddOnCreatePayload(
           req.body
         );
 
-      if (!payload.name) {
+      if (
+        !payload.name
+      ) {
         return sendApiError(
           res,
           400,
           "Add-on name is required.",
           "INVALID_ADDON",
-          getRequestId(req)
-        );
-      }
-
-      /*
-       * Prevent silent failure when the upgraded frontend sends
-       * pricingType but the current schema does not support it.
-       */
-      if (
-        modelHasPath(
-          AddOn,
-          "pricingType"
-        ) === false &&
-        hasOwn(
-          req.body,
-          "pricingType",
-          "priceType",
-          "billingType"
-        )
-      ) {
-        return sendApiError(
-          res,
-          500,
-          "The AddOn model is missing the pricingType field required by the admin catalog.",
-          "ADDON_MODEL_FIELD_MISSING",
-          getRequestId(req)
-        );
-      }
-
-      /*
-       * Prevent silent failure when the upgraded frontend sends
-       * sortOrder but the current schema does not support it.
-       */
-      if (
-        modelHasPath(
-          AddOn,
-          "sortOrder"
-        ) === false &&
-        hasOwn(
-          req.body,
-          "sortOrder",
-          "displayOrder",
-          "order"
-        )
-      ) {
-        return sendApiError(
-          res,
-          500,
-          "The AddOn model is missing the sortOrder field required by the admin catalog.",
-          "ADDON_MODEL_FIELD_MISSING",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
       const addOn =
-        new AddOn({});
+        new AddOn();
 
       Object.entries(
         payload
       ).forEach(
-        ([key, value]) => {
+        (
+          [key, value]
+        ) => {
           if (
             addOn.schema.path(
               key
@@ -6966,19 +8402,26 @@ router.post(
       );
 
       return res
-        .status(201)
+        .status(
+          201
+        )
         .json({
-          success: true,
+          success:
+            true,
 
           message:
             "Add-on created successfully.",
 
           addOn,
         });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         `[CREATE ADD-ON ERROR] requestId=${
-          getRequestId(req) ||
+          getRequestId(
+            req
+          ) ||
           "none"
         }`,
 
@@ -6999,16 +8442,37 @@ router.post(
               {}
           )
             .map(
-              (entry) =>
+              (
+                entry
+              ) =>
                 entry.message
             )
-            .filter(Boolean)
+            .filter(
+              Boolean
+            )
             .join(" ") ||
             "Some add-on information is invalid.",
 
           "VALIDATION_ERROR",
 
-          getRequestId(req)
+          getRequestId(
+            req
+          )
+        );
+      }
+
+      if (
+        error?.code ===
+        11000
+      ) {
+        return sendApiError(
+          res,
+          409,
+          "An add-on with the same name or slug already exists.",
+          "ADDON_ALREADY_EXISTS",
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -7017,15 +8481,17 @@ router.post(
         500,
         "Unable to create add-on.",
         "ADDON_CREATE_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// UPDATE ADD-ON
-// ============================================================
+/* ============================================================
+   UPDATE ADD-ON
+============================================================ */
 
 async function updateAddOnHandler(
   req,
@@ -7047,7 +8513,9 @@ async function updateAddOnHandler(
         400,
         "Invalid add-on ID.",
         "INVALID_ADDON_ID",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
 
@@ -7056,13 +8524,17 @@ async function updateAddOnHandler(
         addOnId
       );
 
-    if (!addOn) {
+    if (
+      !addOn
+    ) {
       return sendApiError(
         res,
         404,
         "Add-on not found.",
         "ADDON_NOT_FOUND",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
 
@@ -7074,62 +8546,26 @@ async function updateAddOnHandler(
     if (
       Object.keys(
         payload
-      ).length === 0
+      ).length ===
+      0
     ) {
       return sendApiError(
         res,
         400,
         "No add-on changes were provided.",
         "NO_CHANGES",
-        getRequestId(req)
-      );
-    }
-
-    /*
-     * Check schema compatibility before saving.
-     */
-    if (
-      Object.prototype.hasOwnProperty.call(
-        payload,
-        "pricingType"
-      ) &&
-      modelHasPath(
-        AddOn,
-        "pricingType"
-      ) === false
-    ) {
-      return sendApiError(
-        res,
-        500,
-        "The AddOn model is missing the pricingType field required by the admin catalog.",
-        "ADDON_MODEL_FIELD_MISSING",
-        getRequestId(req)
-      );
-    }
-
-    if (
-      Object.prototype.hasOwnProperty.call(
-        payload,
-        "sortOrder"
-      ) &&
-      modelHasPath(
-        AddOn,
-        "sortOrder"
-      ) === false
-    ) {
-      return sendApiError(
-        res,
-        500,
-        "The AddOn model is missing the sortOrder field required by the admin catalog.",
-        "ADDON_MODEL_FIELD_MISSING",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
 
     Object.entries(
       payload
     ).forEach(
-      ([key, value]) => {
+      (
+        [key, value]
+      ) => {
         if (
           addOn.schema.path(
             key
@@ -7154,17 +8590,22 @@ async function updateAddOnHandler(
     );
 
     return res.json({
-      success: true,
+      success:
+        true,
 
       message:
         "Add-on updated successfully.",
 
       addOn,
     });
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       `[UPDATE ADD-ON ERROR] requestId=${
-        getRequestId(req) ||
+        getRequestId(
+          req
+        ) ||
         "none"
       }`,
 
@@ -7185,16 +8626,37 @@ async function updateAddOnHandler(
             {}
         )
           .map(
-            (entry) =>
+            (
+              entry
+            ) =>
               entry.message
           )
-          .filter(Boolean)
+          .filter(
+            Boolean
+          )
           .join(" ") ||
           "Some add-on information is invalid.",
 
         "VALIDATION_ERROR",
 
-        getRequestId(req)
+        getRequestId(
+          req
+        )
+      );
+    }
+
+    if (
+      error?.code ===
+      11000
+    ) {
+      return sendApiError(
+        res,
+        409,
+        "An add-on with the same name or slug already exists.",
+        "ADDON_ALREADY_EXISTS",
+        getRequestId(
+          req
+        )
       );
     }
 
@@ -7203,7 +8665,9 @@ async function updateAddOnHandler(
       500,
       "Unable to update add-on.",
       "ADDON_UPDATE_FAILED",
-      getRequestId(req)
+      getRequestId(
+        req
+      )
     );
   }
 }
@@ -7220,36 +8684,30 @@ router.post(
   updateAddOnHandler
 );
 
-// ============================================================
-// ADD-ON IMAGE UPLOAD
-// ============================================================
+/* ============================================================
+   ADD-ON IMAGE UPLOAD
+============================================================ */
 
 router.post(
   "/add-ons/:id/image",
-
   requireAdminMutation,
 
-  /*
-   * The upgraded add-ons.ejs sends the file as raw binary.
-   */
-  (req, res, next) => {
+  (
+    req,
+    res,
+    next
+  ) => {
     parseAddOnImageBody(
       req,
       res,
-      (error) => {
-        if (!error) {
+      (
+        error
+      ) => {
+        if (
+          !error
+        ) {
           return next();
         }
-
-        console.error(
-          `[ADD-ON IMAGE BODY ERROR] requestId=${
-            getRequestId(req) ||
-            "none"
-          }`,
-
-          error.message ||
-            error
-        );
 
         if (
           error?.type ===
@@ -7262,7 +8720,9 @@ router.post(
             413,
             "The selected image is larger than 8 MB.",
             "IMAGE_TOO_LARGE",
-            getRequestId(req)
+            getRequestId(
+              req
+            )
           );
         }
 
@@ -7271,7 +8731,9 @@ router.post(
           400,
           "Unable to read the uploaded add-on image.",
           "IMAGE_BODY_INVALID",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
     );
@@ -7300,7 +8762,9 @@ router.post(
           400,
           "Invalid add-on ID.",
           "INVALID_ADDON_ID",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -7309,13 +8773,17 @@ router.post(
           addOnId
         );
 
-      if (!addOn) {
+      if (
+        !addOn
+      ) {
         return sendApiError(
           res,
           404,
           "Add-on not found.",
           "ADDON_NOT_FOUND",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -7343,7 +8811,9 @@ router.post(
           415,
           "Unsupported image type. Please upload a JPG, PNG, or WEBP image.",
           "UNSUPPORTED_IMAGE_TYPE",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -7362,44 +8832,31 @@ router.post(
           400,
           "No image file was received.",
           "IMAGE_MISSING",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
-      if (
-        buffer.length >
-        ADDON_IMAGE_MAX_BYTES
-      ) {
-        return sendApiError(
-          res,
-          413,
-          "The selected image is larger than 8 MB.",
-          "IMAGE_TOO_LARGE",
-          getRequestId(req)
-        );
-      }
-
-      /*
-       * Validate actual file contents.
-       */
       const imageType =
         detectAddOnImageType(
           buffer
         );
 
-      if (!imageType) {
+      if (
+        !imageType
+      ) {
         return sendApiError(
           res,
           400,
           "The uploaded file is not a supported JPG, PNG, or WEBP image.",
           "INVALID_IMAGE_FILE",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
-      /*
-       * Validate MIME type against the detected signature.
-       */
       if (
         imageType.contentType !==
         contentType
@@ -7409,13 +8866,12 @@ router.post(
           400,
           "The uploaded image type does not match its actual file contents.",
           "IMAGE_TYPE_MISMATCH",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
-      /*
-       * Preserve the old image until the database save succeeds.
-       */
       const previousImage =
         pickFirst(
           addOn,
@@ -7428,18 +8884,12 @@ router.post(
           ""
         );
 
-      /*
-       * Save new file atomically.
-       */
       savedFile =
         await saveAddOnImageBuffer(
           buffer,
           imageType
         );
 
-      /*
-       * Update whichever image field exists in the current schema.
-       */
       const imageFieldWasSet =
         setModelValue(
           addOn,
@@ -7467,27 +8917,20 @@ router.post(
           500,
           "This add-on model does not have a supported image field.",
           "ADDON_IMAGE_FIELD_MISSING",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
       const finalImageUrl =
         savedFile.url;
 
-      /*
-       * Save DB record first.
-       */
       await addOn.save();
 
-      /*
-       * DB now references the new file.
-       */
       savedFile =
         null;
 
-      /*
-       * Remove previous image only if it was managed by IsleRMS.
-       */
       if (
         previousImage &&
         previousImage !==
@@ -7510,7 +8953,8 @@ router.post(
       );
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         message:
           "Add-on image uploaded successfully.",
@@ -7523,11 +8967,9 @@ router.post(
             finalImageUrl,
         },
       });
-    } catch (error) {
-      /*
-       * If DB save failed after file creation,
-       * clean the newly-created file.
-       */
+    } catch (
+      error
+    ) {
       if (
         savedFile?.url
       ) {
@@ -7538,7 +8980,9 @@ router.post(
 
       console.error(
         `[ADD-ON IMAGE UPLOAD ERROR] requestId=${
-          getRequestId(req) ||
+          getRequestId(
+            req
+          ) ||
           "none"
         }`,
 
@@ -7547,53 +8991,26 @@ router.post(
           error
       );
 
-      if (
-        error?.name ===
-        "ValidationError"
-      ) {
-        return sendApiError(
-          res,
-          400,
-          Object.values(
-            error.errors ||
-              {}
-          )
-            .map(
-              (entry) =>
-                entry.message
-            )
-            .filter(Boolean)
-            .join(" ") ||
-            "The add-on image could not be saved.",
-
-          "ADDON_IMAGE_VALIDATION_FAILED",
-
-          getRequestId(req)
-        );
-      }
-
       return sendApiError(
         res,
         500,
         "Unable to upload the add-on image.",
-
         "ADDON_IMAGE_UPLOAD_FAILED",
-
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// DELETE / DEACTIVATE ADD-ON
-// ============================================================
+/* ============================================================
+   DELETE / DEACTIVATE ADD-ON
+============================================================ */
 
 router.post(
   "/add-ons/delete/:id",
-
   requireAdminMutation,
-
   async (
     req,
     res
@@ -7614,7 +9031,9 @@ router.post(
           400,
           "Invalid add-on ID.",
           "INVALID_ADDON_ID",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
@@ -7623,19 +9042,22 @@ router.post(
           addOnId
         );
 
-      if (!addOn) {
+      if (
+        !addOn
+      ) {
         return sendApiError(
           res,
           404,
           "Add-on not found.",
           "ADDON_NOT_FOUND",
-          getRequestId(req)
+          getRequestId(
+            req
+          )
         );
       }
 
       /*
-       * Prefer deactivation so historical references are not
-       * destroyed accidentally.
+       * Deactivation preserves historical appointment snapshots.
        */
       if (
         modelHasPath(
@@ -7658,9 +9080,6 @@ router.post(
 
         await addOn.save();
       } else {
-        /*
-         * Legacy schema fallback.
-         */
         await addOn.deleteOne();
       }
 
@@ -7673,12 +9092,15 @@ router.post(
       );
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         message:
           "Add-on removed from active inventory.",
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Delete Add-on Error:",
         error
@@ -7689,20 +9111,25 @@ router.post(
         500,
         "Unable to remove add-on.",
         "ADDON_DELETE_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// ADMIN ROOM DATA API
-// ============================================================
+/* ============================================================
+   ADMIN ROOM DATA API
+============================================================ */
 
 router.get(
   "/api/rooms",
   requireAdminApi,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const rooms =
         await getConfiguredRooms();
@@ -7711,13 +9138,16 @@ router.get(
         await getConfiguredCottage();
 
       return res.json({
-        success: true,
+        success:
+          true,
 
         rooms,
 
         cottage,
       });
-    } catch (error) {
+    } catch (
+      error
+    ) {
       console.error(
         "Admin Room API Error:",
         error
@@ -7728,15 +9158,17 @@ router.get(
         500,
         "Unable to load room information.",
         "ROOM_API_FAILED",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
   }
 );
 
-// ============================================================
-// ADMIN LOGOUT
-// ============================================================
+/* ============================================================
+   ADMIN LOGOUT
+============================================================ */
 
 async function logoutAdminHandler(
   req,
@@ -7753,13 +9185,19 @@ async function logoutAdminHandler(
         resolve,
         reject
       ) => {
-        if (!req.session) {
+        if (
+          !req.session
+        ) {
           return resolve();
         }
 
         req.session.destroy(
-          (error) => {
-            if (error) {
+          (
+            error
+          ) => {
+            if (
+              error
+            ) {
               return reject(
                 error
               );
@@ -7772,12 +9210,19 @@ async function logoutAdminHandler(
     );
 
     /*
-     * Clear the canonical IsleRMS admin session cookie.
+     * IMPORTANT:
+     *
+     * server.js uses:
+     *
+     *   islerms.sid
+     *   islerms.admin.sid
+     *
+     * The admin logout MUST clear the admin cookie.
      */
-    res.clearCookie(
-      "islerms.sid",
+    const cookieOptions =
       {
-        httpOnly: true,
+        httpOnly:
+          true,
 
         sameSite:
           "lax",
@@ -7787,6 +9232,24 @@ async function logoutAdminHandler(
           "production",
 
         path:
+          "/admin",
+      };
+
+    res.clearCookie(
+      "islerms.admin.sid",
+      cookieOptions
+    );
+
+    /*
+     * Compatibility cleanup in case an older deployment used
+     * the root path for the admin cookie.
+     */
+    res.clearCookie(
+      "islerms.admin.sid",
+      {
+        ...cookieOptions,
+
+        path:
           "/",
       }
     );
@@ -7794,16 +9257,41 @@ async function logoutAdminHandler(
     return res.redirect(
       "/admin/login"
     );
-  } catch (error) {
+  } catch (
+    error
+  ) {
     console.error(
       `[ADMIN LOGOUT ERROR] requestId=${
-        getRequestId(req) ||
+        getRequestId(
+          req
+        ) ||
         "none"
       }`,
 
       error.stack ||
         error.message ||
         error
+    );
+
+    /*
+     * Still attempt to remove the canonical admin cookie.
+     */
+    res.clearCookie(
+      "islerms.admin.sid",
+      {
+        httpOnly:
+          true,
+
+        sameSite:
+          "lax",
+
+        secure:
+          process.env.NODE_ENV ===
+          "production",
+
+        path:
+          "/admin",
+      }
     );
 
     return res.redirect(
@@ -7819,21 +9307,25 @@ router.post(
 );
 
 /*
- * Temporary GET compatibility.
+ * GET remains for old links/bookmarks.
  *
- * POST /admin/logout is the canonical endpoint.
+ * POST is the canonical mutation.
  */
 router.get(
   "/logout",
   logoutAdminHandler
 );
 
-// ============================================================
-// ADMIN API 404
-// ============================================================
+/* ============================================================
+   ADMIN API 404
+============================================================ */
 
 router.use(
-  (req, res, next) => {
+  (
+    req,
+    res,
+    next
+  ) => {
     if (
       req.path.startsWith(
         "/api/"
@@ -7844,7 +9336,9 @@ router.use(
         404,
         "Admin API route not found.",
         "ROUTE_NOT_FOUND",
-        getRequestId(req)
+        getRequestId(
+          req
+        )
       );
     }
 
@@ -7852,8 +9346,9 @@ router.use(
   }
 );
 
-// ============================================================
-// ROUTER EXPORT
-// ============================================================
+/* ============================================================
+   EXPORT
+============================================================ */
 
-module.exports = router;
+module.exports =
+  router;
