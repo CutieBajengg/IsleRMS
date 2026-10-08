@@ -100,12 +100,33 @@ const MAX_BOOKING_NIGHTS = 365;
 const MAX_SPECIAL_REQUESTS = 1000;
 const MAX_CONTACT_LENGTH = 40;
 
+/*
+ * Prevent accidental duplicate reservations caused by:
+ *
+ * - double clicking submit
+ * - browser retries
+ * - impatient refreshes
+ * - duplicate fetch requests
+ *
+ * This does NOT replace real availability protection.
+ * It is an additional idempotency safety layer.
+ */
 const DUPLICATE_BOOKING_WINDOW_MS =
   2 * 60 * 1000;
 
+/*
+ * A room lock should normally be held for milliseconds,
+ * not minutes.
+ *
+ * The service has its own defaults. These values simply give
+ * the booking workflow explicit operational expectations.
+ */
 const BOOKING_LOCK_OPTIONS = {
-  leaseMs: 5 * 60 * 1000,
-  waitMs: 15 * 1000,
+  leaseMs:
+    5 * 60 * 1000,
+
+  waitMs:
+    15 * 1000,
 };
 
 /* ============================================================
@@ -116,14 +137,20 @@ function isValidObjectId(value) {
   return mongoose.Types.ObjectId.isValid(value);
 }
 
-function clean(value, max = 500) {
+function clean(
+  value,
+  max = 500
+) {
   return String(value ?? "")
     .trim()
     .replace(/\s+/g, " ")
     .slice(0, max);
 }
 
-function number(value, fallback = 0) {
+function number(
+  value,
+  fallback = 0
+) {
   const parsed = Number(value);
 
   return Number.isFinite(parsed)
@@ -131,14 +158,22 @@ function number(value, fallback = 0) {
     : fallback;
 }
 
-function integer(value, fallback = 0) {
+function integer(
+  value,
+  fallback = 0
+) {
   return Math.floor(
-    number(value, fallback)
+    number(
+      value,
+      fallback
+    )
   );
 }
 
 function boolean(value) {
-  if (typeof value === "boolean") {
+  if (
+    typeof value === "boolean"
+  ) {
     return value;
   }
 
@@ -157,7 +192,10 @@ function boolean(value) {
 function page(value) {
   return Math.max(
     1,
-    integer(value, DEFAULT_PAGE)
+    integer(
+      value,
+      DEFAULT_PAGE
+    )
   );
 }
 
@@ -166,20 +204,31 @@ function limit(value) {
     MAX_LIMIT,
     Math.max(
       1,
-      integer(value, DEFAULT_LIMIT)
+      integer(
+        value,
+        DEFAULT_LIMIT
+      )
     )
   );
 }
 
 function wantsJson(req) {
   return Boolean(
-    req.path.startsWith("/api/") ||
+    req.path.startsWith(
+      "/api/"
+    ) ||
       req.xhr ||
-      req.headers.accept?.includes("application/json")
+      req.headers.accept?.includes(
+        "application/json"
+      )
   );
 }
 
-function queryRedirect(path, key, message) {
+function queryRedirect(
+  path,
+  key,
+  message
+) {
   return (
     `${path}?${key}=` +
     encodeURIComponent(message)
@@ -195,11 +244,17 @@ function sessionUserId(req) {
   );
 }
 
-function jsonError(res, status, message, code) {
+function jsonError(
+  res,
+  status,
+  message,
+  code
+) {
   return res
     .status(status)
     .json({
-      success: false,
+      success:
+        false,
 
       ...(code
         ? { code }
@@ -210,47 +265,64 @@ function jsonError(res, status, message, code) {
 }
 
 function destroySession(req) {
-  return new Promise((resolve) => {
-    if (!req.session) {
-      return resolve();
-    }
+  return new Promise(
+    (resolve) => {
+      if (
+        !req.session
+      ) {
+        return resolve();
+      }
 
-    req.session.destroy(() => resolve());
-  });
+      req.session.destroy(
+        () => resolve()
+      );
+    }
+  );
 }
 
 function saveSession(req) {
   return new Promise(
-    (resolve, reject) => {
-      if (!req.session) {
-        return resolve();
-      }
+    (
+      resolve,
+      reject
+    ) => {
+      req.session.save(
+        (error) => {
+          if (error) {
+            return reject(
+              error
+            );
+          }
 
-      req.session.save((error) => {
-        if (error) {
-          return reject(error);
+          resolve();
         }
-
-        resolve();
-      });
+      );
     }
   );
 }
 
 function safeSessionUser(user) {
   return {
-    id: String(user._id),
+    id:
+      String(
+        user._id
+      ),
 
     username:
       user.username ||
       (
         user.email
-          ? String(user.email).split("@")[0]
+          ? String(
+              user.email
+            ).split(
+              "@"
+            )[0]
           : "guest"
       ),
 
     email:
-      user.email || "",
+      user.email ||
+      "",
 
     name:
       user.fullname ||
@@ -260,35 +332,36 @@ function safeSessionUser(user) {
 }
 
 function serializeUser(user) {
-  const emailVerified =
-    Boolean(
-      user.emailVerified ||
-      user.emailVerifiedAt
-    );
-
   return {
-    id: String(user._id),
+    id:
+      String(
+        user._id
+      ),
 
     fullname:
-      user.fullname || "",
+      user.fullname ||
+      "",
 
     username:
-      user.username || "",
+      user.username ||
+      "",
 
     email:
-      user.email || "",
+      user.email ||
+      "",
 
     phone:
-      user.phone || "",
+      user.phone ||
+      "",
 
     status:
-      user.status || "active",
+      user.status ||
+      "active",
 
-    emailVerified,
-
-    emailVerifiedAt:
-      user.emailVerifiedAt ||
-      null,
+    emailVerified:
+      Boolean(
+        user.emailVerified
+      ),
 
     memberLevel:
       user.memberLevel ||
@@ -300,13 +373,16 @@ function serializeUser(user) {
   };
 }
 
-function serializeAppointment(appointment) {
+function serializeAppointment(
+  appointment
+) {
   if (!appointment) {
     return null;
   }
 
   const data =
-    typeof appointment.toObject === "function"
+    typeof appointment.toObject ===
+    "function"
       ? appointment.toObject()
       : {
           ...appointment,
@@ -318,11 +394,6 @@ function serializeAppointment(appointment) {
    */
   delete data.adminNotes;
 
-  /*
-   * Customer endpoints already scope appointments
-   * by authenticated userId. There is no reason to
-   * expose the internal owner identifier back to the UI.
-   */
   delete data.userId;
 
   return data;
@@ -332,15 +403,24 @@ function serializeAppointment(appointment) {
    AUTHENTICATION
 ============================================================ */
 
-function requireLogin(req, res, next) {
-  const id = sessionUserId(req);
+function requireLogin(
+  req,
+  res,
+  next
+) {
+  const id =
+    sessionUserId(
+      req
+    );
 
   if (
     !req.session?.user ||
     !id ||
     !isValidObjectId(id)
   ) {
-    if (wantsJson(req)) {
+    if (
+      wantsJson(req)
+    ) {
       return jsonError(
         res,
         401,
@@ -360,16 +440,26 @@ function requireLogin(req, res, next) {
   next();
 }
 
-async function currentUser(req, res) {
-  const id = sessionUserId(req);
+async function currentUser(
+  req,
+  res
+) {
+  const id =
+    sessionUserId(
+      req
+    );
 
   if (
     !id ||
     !isValidObjectId(id)
   ) {
-    await destroySession(req);
+    await destroySession(
+      req
+    );
 
-    if (wantsJson(req)) {
+    if (
+      wantsJson(req)
+    ) {
       jsonError(
         res,
         401,
@@ -389,14 +479,22 @@ async function currentUser(req, res) {
   }
 
   const user =
-    await User.findById(id)
-      .select("-password")
+    await User.findById(
+      id
+    )
+      .select(
+        "-password"
+      )
       .lean();
 
   if (!user) {
-    await destroySession(req);
+    await destroySession(
+      req
+    );
 
-    if (wantsJson(req)) {
+    if (
+      wantsJson(req)
+    ) {
       jsonError(
         res,
         401,
@@ -404,7 +502,9 @@ async function currentUser(req, res) {
         "INVALID_SESSION"
       );
     } else {
-      res.redirect("/");
+      res.redirect(
+        "/"
+      );
     }
 
     return null;
@@ -412,18 +512,27 @@ async function currentUser(req, res) {
 
   const status =
     String(
-      user.status || "active"
+      user.status ||
+        "active"
     ).toLowerCase();
 
-  if (status !== "active") {
-    await destroySession(req);
+  if (
+    status !==
+    "active"
+  ) {
+    await destroySession(
+      req
+    );
 
     const message =
-      status === "suspended"
+      status ===
+      "suspended"
         ? "Your account is currently suspended."
         : "Your account is currently unavailable.";
 
-    if (wantsJson(req)) {
+    if (
+      wantsJson(req)
+    ) {
       jsonError(
         res,
         403,
@@ -444,16 +553,26 @@ async function currentUser(req, res) {
   }
 
   /*
-   * Keep only safe public identity data in the session.
+   * Keep the session identity synchronized with the current
+   * database record. Only safe public identity data is stored.
+   *
+   * This also makes changes to the customer's name/email/status
+   * visible to the current session without putting sensitive
+   * fields in session storage.
    */
-  if (req.session?.user) {
+  if (
+    req.session?.user
+  ) {
     const safeUser =
-      safeSessionUser(user);
+      safeSessionUser(
+        user
+      );
 
-    req.session.user = {
-      ...req.session.user,
-      ...safeUser,
-    };
+    req.session.user =
+      {
+        ...req.session.user,
+        ...safeUser,
+      };
   }
 
   return user;
@@ -463,9 +582,12 @@ async function currentUser(req, res) {
    DATES / CONTACT
 ============================================================ */
 
-function parseBookingDate(value) {
+function parseBookingDate(
+  value
+) {
   const raw =
-    String(value ?? "").trim();
+    String(value ?? "")
+      .trim();
 
   if (!raw) {
     return null;
@@ -478,14 +600,18 @@ function parseBookingDate(value) {
    * with existing IsleRMS appointment records.
    */
   if (
-    /^\d{4}-\d{2}-\d{2}$/.test(raw)
+    /^\d{4}-\d{2}-\d{2}$/.test(
+      raw
+    )
   ) {
     const [
       year,
       month,
       day,
     ] =
-      raw.split("-").map(Number);
+      raw
+        .split("-")
+        .map(Number);
 
     const date =
       new Date(
@@ -495,9 +621,12 @@ function parseBookingDate(value) {
       );
 
     if (
-      date.getFullYear() !== year ||
-      date.getMonth() !== month - 1 ||
-      date.getDate() !== day
+      date.getFullYear() !==
+        year ||
+      date.getMonth() !==
+        month - 1 ||
+      date.getDate() !==
+        day
     ) {
       return null;
     }
@@ -505,7 +634,8 @@ function parseBookingDate(value) {
     return date;
   }
 
-  const date = new Date(raw);
+  const date =
+    new Date(raw);
 
   return Number.isNaN(
     date.getTime()
@@ -519,22 +649,35 @@ function validateDates(
   checkoutValue
 ) {
   const start =
-    parseBookingDate(checkinValue);
+    parseBookingDate(
+      checkinValue
+    );
 
   const end =
-    parseBookingDate(checkoutValue);
+    parseBookingDate(
+      checkoutValue
+    );
 
-  if (!start || !end) {
+  if (
+    !start ||
+    !end
+  ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       message:
         "Please provide valid check-in and check-out dates.",
     };
   }
 
-  if (end <= start) {
+  if (
+    end <= start
+  ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       message:
         "Check-out must be after check-in.",
     };
@@ -554,33 +697,46 @@ function validateDates(
         )
     );
 
-  if (nights < 1) {
+  if (
+    nights < 1
+  ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       message:
         "Your stay must be at least one night.",
     };
   }
 
   if (
-    nights > MAX_BOOKING_NIGHTS
+    nights >
+    MAX_BOOKING_NIGHTS
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       message:
         `Reservations cannot exceed ${MAX_BOOKING_NIGHTS} nights online.`,
     };
   }
 
   return {
-    valid: true,
+    valid:
+      true,
+
     start,
+
     end,
+
     nights,
   };
 }
 
-function dateIsInPast(date) {
+function dateIsInPast(
+  date
+) {
   const now =
     new Date();
 
@@ -591,11 +747,17 @@ function dateIsInPast(date) {
       now.getDate()
     );
 
-  return date < todayStart;
+  return (
+    date <
+    todayStart
+  );
 }
 
-function dateLabel(value) {
-  const date = new Date(value);
+function dateLabel(
+  value
+) {
+  const date =
+    new Date(value);
 
   if (
     Number.isNaN(
@@ -608,14 +770,21 @@ function dateLabel(value) {
   return date.toLocaleDateString(
     "en-US",
     {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
+      month:
+        "short",
+
+      day:
+        "numeric",
+
+      year:
+        "numeric",
     }
   );
 }
 
-function validateContact(value) {
+function validateContact(
+  value
+) {
   const contact =
     clean(
       value,
@@ -626,22 +795,32 @@ function validateContact(value) {
     );
 
   const digits =
-    contact.replace(/\D/g, "");
+    contact.replace(
+      /\D/g,
+      ""
+    );
 
   if (
-    digits.length < 7 ||
-    digits.length > 15
+    digits.length <
+      7 ||
+    digits.length >
+      15
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       message:
         "Please provide a valid contact number.",
     };
   }
 
   return {
-    valid: true,
-    value: contact,
+    valid:
+      true,
+
+    value:
+      contact,
   };
 }
 
@@ -651,13 +830,18 @@ function validateContact(value) {
 
 router.get(
   "/gallery",
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const gallery =
         await Gallery.getOrCreateDefault();
 
       const galleryImages =
-        Array.isArray(gallery.images)
+        Array.isArray(
+          gallery.images
+        )
           ? gallery.images
               .map(
                 (item) =>
@@ -669,9 +853,18 @@ router.get(
                       }
               )
               .sort(
-                (a, b) =>
-                  Number(a.order || 0) -
-                  Number(b.order || 0)
+                (
+                  a,
+                  b
+                ) =>
+                  Number(
+                    a.order ||
+                      0
+                  ) -
+                  Number(
+                    b.order ||
+                      0
+                  )
               )
           : [];
 
@@ -701,7 +894,8 @@ router.get(
             title:
               "Gallery Error | Puffer Isle Resort",
 
-            statusCode: 500,
+            statusCode:
+              500,
 
             message:
               "Unable to load the resort gallery.",
@@ -720,30 +914,46 @@ router.get(
 
 async function getActiveRooms() {
   return Room.find({
-    active: true,
+    active:
+      true,
   })
     .sort({
-      sortOrder: 1,
-      name: 1,
+      sortOrder:
+        1,
+
+      name:
+        1,
     })
     .lean();
 }
 
-async function findRoom(selection) {
+async function findRoom(
+  selection
+) {
   const requested =
-    clean(selection, 150);
+    clean(
+      selection,
+      150
+    );
 
-  if (!requested) {
+  if (
+    !requested
+  ) {
     return null;
   }
 
   if (
-    isValidObjectId(requested)
+    isValidObjectId(
+      requested
+    )
   ) {
     const room =
       await Room.findOne({
-        _id: requested,
-        active: true,
+        _id:
+          requested,
+
+        active:
+          true,
       }).lean();
 
     if (room) {
@@ -752,100 +962,15 @@ async function findRoom(selection) {
   }
 
   return Room.findOne({
-    active: true,
-    $or: [
-      {
-        slug:
-          requested.toLowerCase(),
-      },
-      {
-        name: requested,
-      },
-    ],
-  }).lean();
-}
-
-function roomResponse(room) {
-  return {
-    _id: String(room._id),
-
-    id: String(room._id),
-
-    name:
-      room.name || "",
-
-    slug:
-      room.slug || "",
-
-    price:
-      number(room.price),
-
-    maxGuests:
-      Math.max(
-        1,
-        integer(room.maxGuests, 1)
-      ),
-
-    quantity:
-      Math.max(
-        0,
-        integer(room.quantity, 1)
-      ),
-
-    image:
-      room.image || "",
-
-    description:
-      room.description || "",
-
     active:
-      room.active !== false,
+      true,
 
-    sortOrder:
-      integer(room.sortOrder, 0),
-  };
-}
-
-async function getActiveAddOns() {
-  return AddOn.find({
-    active: true,
-  })
-    .sort({
-      sortOrder: 1,
-      name: 1,
-    })
-    .lean();
-}
-
-async function findAddOn(selection) {
-  const requested =
-    clean(selection, 150);
-
-  if (!requested) {
-    return null;
-  }
-
-  if (
-    isValidObjectId(requested)
-  ) {
-    const addOn =
-      await AddOn.findOne({
-        _id: requested,
-        active: true,
-      }).lean();
-
-    if (addOn) {
-      return addOn;
-    }
-  }
-
-  return AddOn.findOne({
-    active: true,
     $or: [
       {
         slug:
           requested.toLowerCase(),
       },
+
       {
         name:
           requested,
@@ -854,39 +979,189 @@ async function findAddOn(selection) {
   }).lean();
 }
 
-function addOnResponse(addOn) {
+function roomResponse(
+  room
+) {
   return {
-    id: String(addOn._id),
+    _id:
+      String(
+        room._id
+      ),
+
+    id:
+      String(
+        room._id
+      ),
 
     name:
-      addOn.name || "",
+      room.name ||
+      "",
 
     slug:
-      addOn.slug || "",
+      room.slug ||
+      "",
 
     price:
-      number(addOn.price),
+      number(
+        room.price
+      ),
+
+    maxGuests:
+      Math.max(
+        1,
+        integer(
+          room.maxGuests,
+          1
+        )
+      ),
+
+    quantity:
+      Math.max(
+        0,
+        integer(
+          room.quantity,
+          1
+        )
+      ),
+
+    image:
+      room.image ||
+      "",
+
+    description:
+      room.description ||
+      "",
+
+    active:
+      room.active !==
+      false,
+
+    sortOrder:
+      integer(
+        room.sortOrder,
+        0
+      ),
+  };
+}
+
+async function getActiveAddOns() {
+  return AddOn.find({
+    active:
+      true,
+  })
+    .sort({
+      sortOrder:
+        1,
+
+      name:
+        1,
+    })
+    .lean();
+}
+
+async function findAddOn(
+  selection
+) {
+  const requested =
+    clean(
+      selection,
+      150
+    );
+
+  if (
+    !requested
+  ) {
+    return null;
+  }
+
+  if (
+    isValidObjectId(
+      requested
+    )
+  ) {
+    const addOn =
+      await AddOn.findOne({
+        _id:
+          requested,
+
+        active:
+          true,
+      }).lean();
+
+    if (addOn) {
+      return addOn;
+    }
+  }
+
+  return AddOn.findOne({
+    active:
+      true,
+
+    $or: [
+      {
+        slug:
+          requested.toLowerCase(),
+      },
+
+      {
+        name:
+          requested,
+      },
+    ],
+  }).lean();
+}
+
+function addOnResponse(
+  addOn
+) {
+  return {
+    id:
+      String(
+        addOn._id
+      ),
+
+    name:
+      addOn.name ||
+      "",
+
+    slug:
+      addOn.slug ||
+      "",
+
+    price:
+      number(
+        addOn.price
+      ),
 
     pricingType:
       addOn.pricingType ||
       "once",
 
     image:
-      addOn.image || "",
+      addOn.image ||
+      "",
 
     description:
-      addOn.description || "",
+      addOn.description ||
+      "",
 
     active:
-      addOn.active !== false,
+      addOn.active !==
+      false,
 
     sortOrder:
-      integer(addOn.sortOrder, 0),
+      integer(
+        addOn.sortOrder,
+        0
+      ),
   };
 }
 
-function normalizeAddOnSelections(body) {
-  const values = [];
+function normalizeAddOnSelections(
+  body
+) {
+  const values =
+    [];
 
   for (
     const item of [
@@ -897,43 +1172,77 @@ function normalizeAddOnSelections(body) {
       body?.addon,
     ]
   ) {
-    if (Array.isArray(item)) {
-      values.push(...item);
-    } else if (
-      item !== undefined &&
-      item !== null &&
-      String(item).trim() !== ""
+    if (
+      Array.isArray(
+        item
+      )
     ) {
       values.push(
-        ...String(item).split(",")
+        ...item
+      );
+    } else if (
+      item !==
+        undefined &&
+      item !==
+        null &&
+      String(
+        item
+      ).trim() !==
+        ""
+    ) {
+      values.push(
+        ...String(
+          item
+        ).split(",")
       );
     }
   }
 
+  /*
+   * De-duplicate by the raw normalized selection.
+   *
+   * The actual AddOn document is resolved later by
+   * calculateBookingPrice().
+   */
   return [
     ...new Set(
       values
         .map(
-          (value) =>
-            clean(value, 150)
+          (
+            value
+          ) =>
+            clean(
+              value,
+              150
+            )
         )
-        .filter(Boolean)
+        .filter(
+          Boolean
+        )
     ),
   ];
 }
 
-async function resolveLegacyCottage(body) {
+async function resolveLegacyCottage(
+  body
+) {
   if (
     !(
-      boolean(body?.cottageAddon) ||
-      boolean(body?.cottage)
+      boolean(
+        body?.cottageAddon
+      ) ||
+      boolean(
+        body?.cottage
+      )
     )
   ) {
     return null;
   }
 
   return AddOn.findOne({
-    active: true,
+    active:
+      true,
+
     $or: [
       {
         slug: {
@@ -943,6 +1252,7 @@ async function resolveLegacyCottage(body) {
           ],
         },
       },
+
       {
         name: {
           $regex:
@@ -952,11 +1262,39 @@ async function resolveLegacyCottage(body) {
     ],
   })
     .sort({
-      sortOrder: 1,
-      name: 1,
+      sortOrder:
+        1,
+
+      name:
+        1,
     })
     .lean();
 }
+
+/* ============================================================
+   NOTE ABOUT AVAILABILITY
+============================================================ */
+
+/*
+ * The old local findAvailabilityConflict() implementation
+ * has intentionally been removed.
+ *
+ * The shared service:
+ *
+ *   services/bookingAvailability.js
+ *
+ * now handles:
+ *
+ * - roomId matching
+ * - legacy room-name matching
+ * - blocking statuses
+ * - date overlap
+ * - Room.quantity
+ * - inventory occupancy
+ *
+ * This ensures the customer and admin systems cannot silently
+ * develop different booking rules.
+ */
 
 /* ============================================================
    PRICING / NOTIFICATIONS
@@ -973,7 +1311,9 @@ async function calculateBookingPrice({
     "function"
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       error:
         "Booking pricing is not configured correctly.",
     };
@@ -985,39 +1325,63 @@ async function calculateBookingPrice({
       checkout
     );
 
-  if (nights < 1) {
+  if (
+    nights < 1
+  ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       error:
         "Your stay must be at least one night.",
     };
   }
 
+  /*
+   * Resolve add-ons immediately before creating the
+   * Appointment so the server never trusts client prices.
+   */
   const resolved =
     await Promise.all(
       addOnSelections.map(
-        (selection) =>
-          findAddOn(selection)
+        (
+          selection
+        ) =>
+          findAddOn(
+            selection
+          )
       )
     );
 
   if (
     resolved.some(
-      (addOn) => !addOn
+      (
+        addOn
+      ) => !addOn
     )
   ) {
     return {
-      valid: false,
+      valid:
+        false,
+
       error:
         "One of the selected add-ons is no longer available.",
     };
   }
 
+  /*
+   * Prevent duplicate add-ons from being charged twice.
+   */
   const unique =
     new Map(
       resolved.map(
-        (addOn) => [
-          String(addOn._id),
+        (
+          addOn
+        ) => [
+          String(
+            addOn._id
+          ),
+
           addOn,
         ]
       )
@@ -1027,7 +1391,9 @@ async function calculateBookingPrice({
     [
       ...unique.values(),
     ].map(
-      (addOn) => ({
+      (
+        addOn
+      ) => ({
         addOnId:
           addOn._id,
 
@@ -1035,13 +1401,16 @@ async function calculateBookingPrice({
           addOn.name,
 
         price:
-          number(addOn.price),
+          number(
+            addOn.price
+          ),
 
         pricingType:
           addOn.pricingType ||
           "once",
 
-        quantity: 1,
+        quantity:
+          1,
       })
     );
 
@@ -1049,7 +1418,9 @@ async function calculateBookingPrice({
     Appointment.calculateSnapshotPrice(
       {
         roomPrice:
-          number(room.price),
+          number(
+            room.price
+          ),
 
         numberOfNights:
           nights,
@@ -1059,36 +1430,51 @@ async function calculateBookingPrice({
       }
     );
 
+  /*
+   * Normalize money to two decimal places for consistent
+   * API responses and historical snapshots.
+   *
+   * This does not change the room/add-on pricing model.
+   */
   const roomPrice =
     Math.round(
       number(
         pricing.roomPrice
-      ) * 100
-    ) / 100;
+      ) *
+        100
+    ) /
+    100;
 
   const roomSubtotal =
     Math.round(
       number(
         pricing.roomSubtotal
-      ) * 100
-    ) / 100;
+      ) *
+        100
+    ) /
+    100;
 
   const addOnSubtotal =
     Math.round(
       number(
         pricing.addOnSubtotal
-      ) * 100
-    ) / 100;
+      ) *
+        100
+    ) /
+    100;
 
   const totalPrice =
     Math.round(
       number(
         pricing.totalPrice
-      ) * 100
-    ) / 100;
+      ) *
+        100
+    ) /
+    100;
 
   return {
-    valid: true,
+    valid:
+      true,
 
     nights,
 
@@ -1111,8 +1497,12 @@ function getNumberOfNights(
 ) {
   return Math.round(
     (
-      new Date(checkout).getTime() -
-      new Date(checkin).getTime()
+      new Date(
+        checkout
+      ).getTime() -
+      new Date(
+        checkin
+      ).getTime()
     ) /
       (
         1000 *
@@ -1129,7 +1519,8 @@ async function createAppointmentNotification({
   event,
   title,
   message,
-  priority = "normal",
+  priority =
+    "normal",
   metadata,
 }) {
   try {
@@ -1140,15 +1531,23 @@ async function createAppointmentNotification({
       return await Notification.createAppointmentNotification(
         {
           userId,
+
           appointmentId,
+
           event,
+
           title,
+
           message,
+
           priority,
+
           actionLabel:
             "View My Bookings",
+
           actionUrl:
             "/profile#bookings",
+
           metadata,
         }
       );
@@ -1187,6 +1586,10 @@ async function createAppointmentNotification({
       }
     );
   } catch (error) {
+    /*
+     * Notification failure must NEVER undo the primary
+     * booking/status business action.
+     */
     console.error(
       "Notification creation error:",
       error.message
@@ -1200,6 +1603,21 @@ async function createAppointmentNotification({
    DUPLICATE BOOKING PROTECTION
 ============================================================ */
 
+/**
+ * Looks for a recently-created pending booking that appears
+ * to be an accidental duplicate submission from the same user.
+ *
+ * This is intentionally narrow:
+ *
+ * - same customer
+ * - same room
+ * - same check-in
+ * - same check-out
+ * - same pending state
+ * - created within a short window
+ *
+ * The room lock MUST already be held when this function runs.
+ */
 async function findRecentDuplicateBooking({
   userId,
   roomId,
@@ -1251,14 +1669,18 @@ function duplicateBookingResponse(
 ) {
   const booking = {
     id:
-      String(existing._id),
+      String(
+        existing._id
+      ),
 
     room:
       existing.room,
 
     roomId:
       existing.roomId
-        ? String(existing.roomId)
+        ? String(
+            existing.roomId
+          )
         : null,
 
     checkin:
@@ -1291,9 +1713,11 @@ function duplicateBookingResponse(
     return res
       .status(200)
       .json({
-        success: true,
+        success:
+          true,
 
-        duplicate: true,
+        duplicate:
+          true,
 
         message:
           "A reservation request for the same accommodation and dates was already submitted recently.",
@@ -1318,7 +1742,10 @@ function duplicateBookingResponse(
 router.get(
   "/booking",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -1364,10 +1791,7 @@ router.get(
 
           user,
 
-          appointments:
-            appointments.map(
-              serializeAppointment
-            ),
+          appointments,
 
           rooms:
             rooms.map(
@@ -1381,7 +1805,9 @@ router.get(
 
           cottage:
             addOns.find(
-              (addOn) =>
+              (
+                addOn
+              ) =>
                 /cottage/i.test(
                   addOn.name ||
                     ""
@@ -1431,7 +1857,10 @@ router.get(
 router.get(
   "/profile",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -1509,15 +1938,13 @@ router.get(
 
           user,
 
-          appointments:
-            appointments.map(
-              serializeAppointment
-            ),
+          appointments,
 
           notifications,
 
           stats: {
             totalBookings,
+
             unreadNotifications,
           },
 
@@ -1555,14 +1982,20 @@ router.get(
 router.get(
   "/profile/:id",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     const requested =
       String(
-        req.params.id || ""
+        req.params.id ||
+          ""
       ).trim();
 
     const id =
-      sessionUserId(req);
+      sessionUserId(
+        req
+      );
 
     if (
       !isValidObjectId(
@@ -1644,29 +2077,12 @@ async function submitBooking(
         0
       );
 
-    /*
-     * Prefer the authenticated customer's saved phone.
-     *
-     * A legacy booking form may still submit a contact field,
-     * so a fallback is retained for older accounts that have
-     * no phone stored yet.
-     */
-    const savedContact =
-      validateContact(
-        user.phone
-      );
-
-    const submittedContact =
+    const contact =
       validateContact(
         req.body?.contact ||
           req.body?.phone ||
           req.body?.contactNumber
       );
-
-    const contact =
-      savedContact.valid
-        ? savedContact
-        : submittedContact;
 
     const checkinValue =
       req.body?.checkin ||
@@ -1718,7 +2134,9 @@ async function submitBooking(
         checkoutValue
       );
 
-    if (!dates.valid) {
+    if (
+      !dates.valid
+    ) {
       return json
         ? jsonError(
             res,
@@ -1790,12 +2208,34 @@ async function submitBooking(
           );
     }
 
+    /*
+     * =========================================================
+     * CRITICAL BOOKING PROTECTION
+     * =========================================================
+     *
+     * From this point until Appointment.save():
+     *
+     * 1. The room is exclusively locked.
+     * 2. Room data is refreshed.
+     * 3. Duplicate booking is checked.
+     * 4. Inventory is checked.
+     * 5. Add-ons are resolved from the database.
+     * 6. Pricing is calculated server-side.
+     * 7. Appointment is saved.
+     *
+     * Another booking request for this same room cannot
+     * perform the same final check concurrently.
+     */
     const bookingResult =
       await withRoomLock(
         selectedRoom,
         async () => {
           /*
            * Re-read the room after acquiring the lock.
+           *
+           * This prevents stale availability/pricing if an
+           * administrator changed the room immediately before
+           * this request acquired the mutex.
            */
           const room =
             await Room.findOne({
@@ -1818,11 +2258,14 @@ async function submitBooking(
             throw error;
           }
 
+          /*
+           * Inventory quantity is always re-read from MongoDB.
+           */
           const quantity =
             room.quantity ===
-                undefined ||
+              undefined ||
             room.quantity ===
-                null
+              null
               ? 1
               : integer(
                   room.quantity,
@@ -1843,6 +2286,9 @@ async function submitBooking(
             throw error;
           }
 
+          /*
+           * Validate guest capacity against the refreshed room.
+           */
           const maxGuests =
             Math.max(
               1,
@@ -1867,6 +2313,11 @@ async function submitBooking(
             throw error;
           }
 
+          /*
+           * =====================================================
+           * ACCIDENTAL DUPLICATE SUBMISSION PROTECTION
+           * =====================================================
+           */
           const duplicate =
             await findRecentDuplicateBooking(
               {
@@ -1884,15 +2335,28 @@ async function submitBooking(
               }
             );
 
-          if (duplicate) {
+          if (
+            duplicate
+          ) {
             return {
-              duplicate: true,
+              duplicate:
+                true,
 
               appointment:
                 duplicate,
             };
           }
 
+          /*
+           * =====================================================
+           * FINAL INVENTORY CHECK
+           * =====================================================
+           *
+           * This check happens INSIDE the room lock.
+           *
+           * That is the critical difference from the old
+           * check-then-save design.
+           */
           const conflict =
             await findAvailabilityConflict(
               {
@@ -1906,7 +2370,9 @@ async function submitBooking(
               }
             );
 
-          if (conflict) {
+          if (
+            conflict
+          ) {
             const error =
               new Error(
                 conflict.reason ===
@@ -1928,17 +2394,25 @@ async function submitBooking(
             throw error;
           }
 
+          /*
+           * Re-resolve legacy cottage selection while the booking
+           * request is still being finalized.
+           */
           let addOnSelections =
             normalizeAddOnSelections(
-              req.body || {}
+              req.body ||
+                {}
             );
 
           const legacyCottage =
             await resolveLegacyCottage(
-              req.body || {}
+              req.body ||
+                {}
             );
 
-          if (legacyCottage) {
+          if (
+            legacyCottage
+          ) {
             const legacyId =
               String(
                 legacyCottage._id
@@ -1958,7 +2432,9 @@ async function submitBooking(
 
             const duplicateLegacy =
               addOnSelections.some(
-                (selection) => {
+                (
+                  selection
+                ) => {
                   const value =
                     String(
                       selection
@@ -1986,6 +2462,13 @@ async function submitBooking(
             }
           }
 
+          /*
+           * =====================================================
+           * SERVER-SIDE PRICING
+           * =====================================================
+           *
+           * NEVER trust req.body.totalPrice.
+           */
           const pricing =
             await calculateBookingPrice(
               {
@@ -2001,7 +2484,9 @@ async function submitBooking(
               }
             );
 
-          if (!pricing.valid) {
+          if (
+            !pricing.valid
+          ) {
             const error =
               new Error(
                 pricing.error ||
@@ -2016,7 +2501,9 @@ async function submitBooking(
 
           const cottageSnapshot =
             pricing.addOns.find(
-              (addOn) =>
+              (
+                addOn
+              ) =>
                 /cottage/i.test(
                   String(
                     addOn.name ||
@@ -2025,6 +2512,11 @@ async function submitBooking(
                 )
             );
 
+          /*
+           * =====================================================
+           * HISTORICAL PRICING SNAPSHOT
+           * =====================================================
+           */
           const appointment =
             new Appointment({
               userId:
@@ -2060,6 +2552,9 @@ async function submitBooking(
               addOnSubtotal:
                 pricing.addOnSubtotal,
 
+              /*
+               * Legacy cottage compatibility.
+               */
               cottageAddon:
                 Boolean(
                   cottageSnapshot
@@ -2093,10 +2588,18 @@ async function submitBooking(
                 "pending",
             });
 
+          /*
+           * This is the protected critical write.
+           *
+           * Because the room remains locked, another booking
+           * request cannot pass its own final inventory check
+           * concurrently for this room.
+           */
           await appointment.save();
 
           return {
-            duplicate: false,
+            duplicate:
+              false,
 
             appointment,
 
@@ -2106,6 +2609,10 @@ async function submitBooking(
         BOOKING_LOCK_OPTIONS
       );
 
+    /*
+     * If a recent equivalent booking already exists, return it
+     * without generating a second booking or duplicate notification.
+     */
     if (
       bookingResult.duplicate
     ) {
@@ -2122,6 +2629,12 @@ async function submitBooking(
     const room =
       bookingResult.room;
 
+    /*
+     * Notification happens OUTSIDE the room lock.
+     *
+     * Notification delivery should never unnecessarily keep
+     * accommodation inventory locked.
+     */
     await createAppointmentNotification(
       {
         userId:
@@ -2206,7 +2719,9 @@ async function submitBooking(
         appointment.createdAt,
     };
 
-    if (json) {
+    if (
+      json
+    ) {
       return res
         .status(201)
         .json({
@@ -2237,13 +2752,18 @@ async function submitBooking(
       error?.name ===
       "ValidationError"
         ? Object.values(
-            error.errors || {}
+            error.errors ||
+              {}
           )
             .map(
-              (entry) =>
+              (
+                entry
+              ) =>
                 entry.message
             )
-            .filter(Boolean)
+            .filter(
+              Boolean
+            )
             .join(" ")
         : null;
 
@@ -2345,6 +2865,9 @@ async function submitBooking(
       error?.code ===
       11000
     ) {
+      /*
+       * Covers unexpected duplicate-key protection from MongoDB.
+       */
       message =
         "This reservation could not be created because another reservation was created at the same time. Please review your bookings and try again.";
 
@@ -2400,7 +2923,10 @@ router.post(
 router.get(
   "/api/me",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -2417,7 +2943,9 @@ router.get(
           true,
 
         user:
-          serializeUser(user),
+          serializeUser(
+            user
+          ),
       });
     } catch (error) {
       console.error(
@@ -2441,7 +2969,10 @@ router.get(
 router.get(
   "/api/me/dashboard",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -2453,12 +2984,13 @@ router.get(
         return;
       }
 
-      const activeStatuses = [
-        "pending",
-        "accepted",
-        "confirmed",
-        "checked-in",
-      ];
+      const activeStatuses =
+        [
+          "pending",
+          "accepted",
+          "confirmed",
+          "checked-in",
+        ];
 
       const today =
         new Date();
@@ -2575,13 +3107,19 @@ router.get(
           true,
 
         user:
-          serializeUser(user),
+          serializeUser(
+            user
+          ),
 
         stats: {
           totalBookings,
+
           activeBookings,
+
           upcomingBookings,
+
           unreadNotifications,
+
           totalNotifications,
         },
 
@@ -2614,7 +3152,10 @@ router.get(
 router.get(
   "/api/me/bookings",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -2627,17 +3168,23 @@ router.get(
       }
 
       const currentPage =
-        page(req.query.page);
+        page(
+          req.query.page
+        );
 
       const currentLimit =
-        limit(req.query.limit);
+        limit(
+          req.query.limit
+        );
 
       const filter = {
         userId:
           user._id,
       };
 
-      if (req.query.status) {
+      if (
+        req.query.status
+      ) {
         const status =
           String(
             req.query.status
@@ -2756,7 +3303,10 @@ router.get(
 router.get(
   "/api/me/notifications/unread-count",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -2811,7 +3361,10 @@ router.get(
 router.get(
   "/api/me/notifications",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -2824,20 +3377,28 @@ router.get(
       }
 
       const currentPage =
-        page(req.query.page);
+        page(
+          req.query.page
+        );
 
       const currentLimit =
-        limit(req.query.limit);
+        limit(
+          req.query.limit
+        );
 
       const includeArchived =
         String(
-          req.query.includeArchived
-        ) === "true";
+          req.query
+            .includeArchived
+        ) ===
+        "true";
 
       const unreadOnly =
         String(
-          req.query.unreadOnly
-        ) === "true";
+          req.query
+            .unreadOnly
+        ) ===
+        "true";
 
       const filter = {
         userId:
@@ -2970,17 +3531,26 @@ async function ownedNotification(
     ).trim();
 
   if (
-    !isValidObjectId(id)
+    !isValidObjectId(
+      id
+    )
   ) {
     return null;
   }
 
-  return Notification.findOne({
-    _id:
-      id,
+  /*
+   * IMPORTANT:
+   * The query always includes userId.
+   * This prevents notification IDOR.
+   */
+  return Notification.findOne(
+    {
+      _id:
+        id,
 
-    userId,
-  });
+      userId,
+    }
+  );
 }
 
 async function setNotificationRead(
@@ -3014,7 +3584,9 @@ async function setNotificationRead(
       );
     }
 
-    if (read) {
+    if (
+      read
+    ) {
       if (
         typeof notification.markAsRead ===
         "function"
@@ -3070,7 +3642,10 @@ async function setNotificationRead(
 router.patch(
   "/api/me/notifications/:notificationId/read",
   requireLogin,
-  (req, res) =>
+  (
+    req,
+    res
+  ) =>
     setNotificationRead(
       req,
       res,
@@ -3081,7 +3656,10 @@ router.patch(
 router.post(
   "/api/me/notifications/:notificationId/read",
   requireLogin,
-  (req, res) =>
+  (
+    req,
+    res
+  ) =>
     setNotificationRead(
       req,
       res,
@@ -3092,7 +3670,10 @@ router.post(
 router.patch(
   "/api/me/notifications/:notificationId/unread",
   requireLogin,
-  (req, res) =>
+  (
+    req,
+    res
+  ) =>
     setNotificationRead(
       req,
       res,
@@ -3103,7 +3684,10 @@ router.patch(
 router.post(
   "/api/me/notifications/:notificationId/unread",
   requireLogin,
-  (req, res) =>
+  (
+    req,
+    res
+  ) =>
     setNotificationRead(
       req,
       res,
@@ -3114,7 +3698,10 @@ router.post(
 router.post(
   "/api/me/notifications/read-all",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -3213,7 +3800,9 @@ async function setNotificationArchived(
       );
     }
 
-    if (archived) {
+    if (
+      archived
+    ) {
       if (
         typeof notification.archive ===
         "function"
@@ -3269,7 +3858,10 @@ async function setNotificationArchived(
 router.patch(
   "/api/me/notifications/:notificationId/archive",
   requireLogin,
-  (req, res) =>
+  (
+    req,
+    res
+  ) =>
     setNotificationArchived(
       req,
       res,
@@ -3280,7 +3872,10 @@ router.patch(
 router.post(
   "/api/me/notifications/:notificationId/archive",
   requireLogin,
-  (req, res) =>
+  (
+    req,
+    res
+  ) =>
     setNotificationArchived(
       req,
       res,
@@ -3291,7 +3886,10 @@ router.post(
 router.patch(
   "/api/me/notifications/:notificationId/unarchive",
   requireLogin,
-  (req, res) =>
+  (
+    req,
+    res
+  ) =>
     setNotificationArchived(
       req,
       res,
@@ -3302,7 +3900,10 @@ router.patch(
 router.post(
   "/api/me/notifications/:notificationId/unarchive",
   requireLogin,
-  (req, res) =>
+  (
+    req,
+    res
+  ) =>
     setNotificationArchived(
       req,
       res,
@@ -3372,10 +3973,7 @@ async function buildLiveUpdates(
     );
 
   return {
-    appointments:
-      appointments.map(
-        serializeAppointment
-      ),
+    appointments,
 
     notifications,
 
@@ -3390,7 +3988,10 @@ async function buildLiveUpdates(
 router.get(
   "/userUpdates",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -3425,10 +4026,19 @@ router.get(
   }
 );
 
+/*
+ * Legacy endpoint retained for compatibility with older
+ * profile implementations.
+ *
+ * The supplied ID is NEVER trusted by itself.
+ */
 router.get(
   "/userUpdates/:userId",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const requested =
         String(
@@ -3437,7 +4047,9 @@ router.get(
         ).trim();
 
       const id =
-        sessionUserId(req);
+        sessionUserId(
+          req
+        );
 
       if (
         !isValidObjectId(
@@ -3465,8 +4077,12 @@ router.get(
       }
 
       const user =
-        await User.findById(id)
-          .select("-password")
+        await User.findById(
+          id
+        )
+          .select(
+            "-password"
+          )
           .lean();
 
       if (!user) {
@@ -3508,10 +4124,10 @@ router.get(
 router.post(
   "/appointment/cancel/:appointmentId",
   requireLogin,
-  async (req, res) => {
-    const json =
-      wantsJson(req);
-
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -3534,22 +4150,19 @@ router.post(
           appointmentId
         )
       ) {
-        return json
-          ? jsonError(
-              res,
-              400,
-              "Invalid appointment ID.",
-              "INVALID_APPOINTMENT_ID"
-            )
-          : res.redirect(
-              queryRedirect(
-                "/profile",
-                "error",
-                "Invalid appointment ID."
-              )
-            );
+        return jsonError(
+          res,
+          400,
+          "Invalid appointment ID.",
+          "INVALID_APPOINTMENT_ID"
+        );
       }
 
+      /*
+       * First lookup is only used to identify the room lock.
+       * The appointment is deliberately fetched again after
+       * acquiring the lock.
+       */
       const existing =
         await Appointment.findOne(
           {
@@ -3565,23 +4178,23 @@ router.post(
           )
           .lean();
 
-      if (!existing) {
-        return json
-          ? jsonError(
-              res,
-              404,
-              "Appointment not found.",
-              "APPOINTMENT_NOT_FOUND"
-            )
-          : res.redirect(
-              queryRedirect(
-                "/profile",
-                "error",
-                "Appointment not found."
-              )
-            );
+      if (
+        !existing
+      ) {
+        return jsonError(
+          res,
+          404,
+          "Appointment not found.",
+          "APPOINTMENT_NOT_FOUND"
+        );
       }
 
+      /*
+       * Lock the same room resource used by booking creation.
+       *
+       * This prevents a cancellation from racing with an admin
+       * acceptance/confirmation operation.
+       */
       const result =
         await withRoomLock(
           {
@@ -3611,7 +4224,9 @@ router.post(
                   "-adminNotes"
                 );
 
-            if (!latest) {
+            if (
+              !latest
+            ) {
               const error =
                 new Error(
                   "Appointment not found."
@@ -3645,6 +4260,12 @@ router.post(
               throw error;
             }
 
+            /*
+             * Conditional update is intentionally retained.
+             *
+             * The database itself verifies the booking is still
+             * in a cancellable state.
+             */
             const appointment =
               await Appointment.findOneAndUpdate(
                 {
@@ -3682,7 +4303,9 @@ router.post(
                 "-adminNotes"
               );
 
-            if (!appointment) {
+            if (
+              !appointment
+            ) {
               const error =
                 new Error(
                   "This booking was already updated and can no longer be cancelled."
@@ -3699,6 +4322,9 @@ router.post(
           BOOKING_LOCK_OPTIONS
         );
 
+      /*
+       * Notification is deliberately outside the lock.
+       */
       await createAppointmentNotification(
         {
           userId:
@@ -3740,16 +4366,6 @@ router.post(
         }
       );
 
-      if (!json) {
-        return res.redirect(
-          queryRedirect(
-            "/profile",
-            "success",
-            "Your reservation has been cancelled successfully."
-          )
-        );
-      }
-
       return res.json({
         success:
           true,
@@ -3772,105 +4388,62 @@ router.post(
         error?.code ===
         "APPOINTMENT_NOT_FOUND"
       ) {
-        return json
-          ? jsonError(
-              res,
-              404,
-              "Appointment not found.",
-              "APPOINTMENT_NOT_FOUND"
-            )
-          : res.redirect(
-              queryRedirect(
-                "/profile",
-                "error",
-                "Appointment not found."
-              )
-            );
+        return jsonError(
+          res,
+          404,
+          "Appointment not found.",
+          "APPOINTMENT_NOT_FOUND"
+        );
       }
 
       if (
         error?.code ===
         "BOOKING_NOT_CANCELLABLE"
       ) {
-        return json
-          ? jsonError(
-              res,
-              400,
-              error.message,
-              "BOOKING_NOT_CANCELLABLE"
-            )
-          : res.redirect(
-              queryRedirect(
-                "/profile",
-                "error",
-                error.message
-              )
-            );
+        return jsonError(
+          res,
+          400,
+          error.message,
+          "BOOKING_NOT_CANCELLABLE"
+        );
       }
 
       if (
         error?.code ===
         "BOOKING_STATE_CHANGED"
       ) {
-        return json
-          ? jsonError(
-              res,
-              409,
-              error.message,
-              "BOOKING_STATE_CHANGED"
-            )
-          : res.redirect(
-              queryRedirect(
-                "/profile",
-                "error",
-                error.message
-              )
-            );
+        return jsonError(
+          res,
+          409,
+          error.message,
+          "BOOKING_STATE_CHANGED"
+        );
       }
 
       if (
         error?.code ===
         "BOOKING_LOCK_TIMEOUT"
       ) {
-        return json
-          ? jsonError(
-              res,
-              409,
-              "This reservation is currently being updated. Please try again in a moment.",
-              "BOOKING_LOCK_TIMEOUT"
-            )
-          : res.redirect(
-              queryRedirect(
-                "/profile",
-                "error",
-                "This reservation is currently being updated. Please try again in a moment."
-              )
-            );
+        return jsonError(
+          res,
+          409,
+          "This reservation is currently being updated. Please try again in a moment.",
+          "BOOKING_LOCK_TIMEOUT"
+        );
       }
 
-      const message =
-        "Failed to cancel the appointment.";
-
-      return json
-        ? jsonError(
-            res,
-            error?.name ===
-              "ValidationError"
-              ? 400
-              : 500,
-            message,
-            error?.name ===
-              "ValidationError"
-              ? "VALIDATION_ERROR"
-              : "CANCELLATION_ERROR"
-          )
-        : res.redirect(
-            queryRedirect(
-              "/profile",
-              "error",
-              message
-            )
-          );
+      return jsonError(
+        res,
+        error?.name ===
+          "ValidationError"
+          ? 400
+          : 500,
+        "Failed to cancel the appointment.",
+        error?.name ===
+          "ValidationError"
+          ? "VALIDATION_ERROR"
+          : "CANCELLATION_ERROR"
+      );
     }
   }
 );
@@ -3882,7 +4455,10 @@ router.post(
 router.get(
   "/api/user-catalog",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     try {
       const user =
         await currentUser(
@@ -3901,6 +4477,7 @@ router.get(
         await Promise.all(
           [
             getActiveRooms(),
+
             getActiveAddOns(),
           ]
         );
@@ -3941,7 +4518,10 @@ router.get(
 router.post(
   "/profile/update-password",
   requireLogin,
-  async (req, res) => {
+  async (
+    req,
+    res
+  ) => {
     const json =
       wantsJson(req);
 
@@ -3968,7 +4548,9 @@ router.post(
 
     try {
       const userId =
-        sessionUserId(req);
+        sessionUserId(
+          req
+        );
 
       if (
         !userId ||
@@ -3984,24 +4566,22 @@ router.post(
       }
 
       /*
-       * Password is normally select:false in the upgraded
-       * User model, so explicitly select it.
-       *
-       * Both reset-expiration names are selected for backward
-       * compatibility with older IsleRMS schemas.
+       * Password is select:false in the upgraded User model,
+       * so it must be explicitly selected for verification.
        */
       const user =
         await User.findById(
           userId
         ).select(
-          "+password " +
-            "+passwordResetTokenHash " +
-            "+passwordResetExpiresAt " +
-            "+passwordResetExpires"
+          "+password +passwordResetTokenHash +passwordResetExpires"
         );
 
-      if (!user) {
-        await destroySession(req);
+      if (
+        !user
+      ) {
+        await destroySession(
+          req
+        );
 
         return fail(
           "Your account session is no longer valid.",
@@ -4020,7 +4600,9 @@ router.post(
         accountStatus !==
         "active"
       ) {
-        await destroySession(req);
+        await destroySession(
+          req
+        );
 
         return fail(
           "Your account is not currently available for password changes.",
@@ -4133,21 +4715,13 @@ router.post(
         user.password =
           newPassword;
 
-        if (
-          user.schema.path(
-            "passwordChangedAt"
-          )
-        ) {
-          user.passwordChangedAt =
-            new Date();
-        }
+        user.passwordChangedAt =
+          new Date();
       }
 
       /*
-       * Invalidate any outstanding password-reset token.
-       *
-       * The new auth system uses passwordResetExpiresAt.
-       * The legacy name is cleared as well when present.
+       * Invalidate an outstanding reset token whenever the
+       * password is changed.
        */
       if (
         user.schema.path(
@@ -4155,15 +4729,6 @@ router.post(
         )
       ) {
         user.passwordResetTokenHash =
-          null;
-      }
-
-      if (
-        user.schema.path(
-          "passwordResetExpiresAt"
-        )
-      ) {
-        user.passwordResetExpiresAt =
           null;
       }
 
@@ -4197,9 +4762,13 @@ router.post(
           user
         );
 
-      await saveSession(req);
+      await saveSession(
+        req
+      );
 
-      if (json) {
+      if (
+        json
+      ) {
         return res.json({
           success:
             true,

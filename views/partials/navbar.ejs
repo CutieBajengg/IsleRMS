@@ -295,13 +295,14 @@
 <% if (!displayUser) { %>
 
   <div
-    id="authModal"
-    class="modal"
-    aria-hidden="true"
-    role="presentation"
-    data-csrf-token="<%= safeCsrfToken %>"
-    data-captcha-enabled="<%= authCaptchaSiteKey ? 'true' : 'false' %>"
-  >
+  id="authModal"
+  class="modal"
+  aria-hidden="true"
+  role="presentation"
+  data-csrf-token="<%= safeCsrfToken %>"
+  data-captcha-enabled="<%= authCaptchaSiteKey ? 'true' : 'false' %>"
+  data-captcha-site-key="<%= authCaptchaSiteKey %>"
+>
 
     <div
       class="modal-content auth-modal"
@@ -2276,8 +2277,8 @@
     const authTrustItems = $$('[data-auth-trust-step]', authModal || document);
 
     const clientCsrfToken = authModal?.dataset?.csrfToken || "";
-    const captchaEnabled = authModal?.dataset?.captchaEnabled === "true";
-    const captchaSiteKey = <%- JSON.stringify(authCaptchaSiteKey || "") %>;
+  const captchaEnabled = authModal?.dataset?.captchaEnabled === "true";
+const captchaSiteKey = authModal?.dataset?.captchaSiteKey || "";
 
     const sections = {
       login: $("#loginForm"),

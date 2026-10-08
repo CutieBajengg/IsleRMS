@@ -9,24 +9,19 @@ const dotenv = require("dotenv");
 const MongoStore = require("connect-mongo");
 const nodemailer = require("nodemailer");
 
+dotenv.config();
+
 const User = require("./models/User");
 const Admin = require("./models/Admin");
 
-const userRoutes =
-  require("./routes/userRoutes");
-
-const adminRoutes =
-  require("./routes/adminRoutes");
-
-const galleryRoutes =
-  require("./routes/galleryRoutes");
+const userRoutes = require("./routes/userRoutes");
+const adminRoutes = require("./routes/adminRoutes");
+const galleryRoutes = require("./routes/galleryRoutes");
 
 const {
   attachCsrfToken,
   verifyCsrfToken,
 } = require("./middleware/csrf");
-
-dotenv.config();
 
 const app = express();
 
@@ -34,43 +29,32 @@ const app = express();
    ENVIRONMENT
 ============================================================ */
 
-const NODE_ENV =
-  String(
-    process.env.NODE_ENV ||
-      "development"
-  )
-    .trim()
-    .toLowerCase();
+const NODE_ENV = String(
+  process.env.NODE_ENV || "development"
+)
+  .trim()
+  .toLowerCase();
 
 const IS_PRODUCTION =
   NODE_ENV === "production";
 
 const PORT =
-  Number(
-    process.env.PORT ||
-      5000
-  );
+  Number(process.env.PORT || 5000);
 
 const HOST =
-  String(
-    process.env.HOST ||
-      ""
-  ).trim() ||
-  (
-    IS_PRODUCTION
-      ? "0.0.0.0"
-      : "127.0.0.1"
-  );
+  String(process.env.HOST || "").trim() ||
+  (IS_PRODUCTION
+    ? "0.0.0.0"
+    : "127.0.0.1");
 
 const DEFAULT_LOCAL_MONGO_URI =
   "mongodb://localhost:27017/puffer_isle_resort";
 
-const RAW_MONGO_URI =
-  String(
-    process.env.MONGO_URI ||
-      process.env.MONGODB_URI ||
-      ""
-  ).trim();
+const RAW_MONGO_URI = String(
+  process.env.MONGO_URI ||
+    process.env.MONGODB_URI ||
+    ""
+).trim();
 
 const PLACEHOLDER_MONGO_VALUES = [
   "your_existing_mongodb_connection",
@@ -86,11 +70,17 @@ const MONGO_URI =
     ? ""
     : RAW_MONGO_URI;
 
-const SESSION_SECRET =
-  String(
-    process.env.SESSION_SECRET ||
-      ""
-  ).trim();
+const EFFECTIVE_MONGO_URI =
+  MONGO_URI ||
+  DEFAULT_LOCAL_MONGO_URI;
+
+const SESSION_SECRET = String(
+  process.env.SESSION_SECRET || ""
+).trim();
+
+const EFFECTIVE_SESSION_SECRET =
+  SESSION_SECRET ||
+  "dev-only-puffer-isle-session-secret-change-me";
 
 const SESSION_NAME =
   String(
@@ -106,95 +96,75 @@ const ADMIN_SESSION_NAME =
   ).trim() ||
   "islerms.admin.sid";
 
-const ADMIN_USERNAME =
-  String(
-    process.env.ADMIN_USERNAME ||
-      ""
-  ).trim();
+const ADMIN_USERNAME = String(
+  process.env.ADMIN_USERNAME || ""
+).trim();
 
-const ADMIN_PASSWORD =
-  String(
-    process.env.ADMIN_PASSWORD ||
-      ""
-  );
+const ADMIN_PASSWORD = String(
+  process.env.ADMIN_PASSWORD || ""
+);
 
-const MAIL_USER =
-  String(
-    process.env.MAIL_USER ||
-      process.env.GMAIL_USER ||
-      ""
-  )
-    .trim()
-    .toLowerCase();
+const MAIL_USER = String(
+  process.env.MAIL_USER ||
+    process.env.GMAIL_USER ||
+    ""
+)
+  .trim()
+  .toLowerCase();
 
-const MAIL_APP_PASSWORD =
-  String(
-    process.env.MAIL_APP_PASSWORD ||
-      process.env.GMAIL_APP_PASSWORD ||
-      ""
-  )
-    .trim()
-    .replace(
-      /\s+/g,
-      ""
-    );
+const MAIL_APP_PASSWORD = String(
+  process.env.MAIL_APP_PASSWORD ||
+    process.env.GMAIL_APP_PASSWORD ||
+    ""
+)
+  .trim()
+  .replace(/\s+/g, "");
 
-const MAIL_FROM_NAME =
-  String(
-    process.env.MAIL_FROM_NAME ||
-      "Puffer Isle Resort"
-  ).trim();
+const MAIL_FROM_NAME = String(
+  process.env.MAIL_FROM_NAME ||
+    "Puffer Isle Resort"
+).trim();
 
 const EMAIL_OTP_ENABLED =
   String(
-    process.env.EMAIL_OTP_ENABLED ??
-      "true"
+    process.env.EMAIL_OTP_ENABLED ?? "true"
   )
     .trim()
-    .toLowerCase() !==
-  "false";
+    .toLowerCase() !== "false";
 
-const GOOGLE_CLIENT_ID =
-  String(
-    process.env.GOOGLE_CLIENT_ID ||
-      ""
-  ).trim();
+const GOOGLE_CLIENT_ID = String(
+  process.env.GOOGLE_CLIENT_ID || ""
+).trim();
 
-const GOOGLE_CLIENT_SECRET =
-  String(
-    process.env.GOOGLE_CLIENT_SECRET ||
-      ""
-  ).trim();
+const GOOGLE_CLIENT_SECRET = String(
+  process.env.GOOGLE_CLIENT_SECRET || ""
+).trim();
 
-const GOOGLE_CALLBACK_URL =
-  String(
-    process.env.GOOGLE_CALLBACK_URL ||
-      ""
-  ).trim();
+const GOOGLE_CALLBACK_URL = String(
+  process.env.GOOGLE_CALLBACK_URL || ""
+).trim();
 
-const EFFECTIVE_MONGO_URI =
-  MONGO_URI ||
-  DEFAULT_LOCAL_MONGO_URI;
+const TURNSTILE_SITE_KEY = String(
+  process.env.TURNSTILE_SITE_KEY || ""
+).trim();
+
+const TURNSTILE_SECRET_KEY = String(
+  process.env.TURNSTILE_SECRET_KEY || ""
+).trim();
 
 const SESSION_MAX_AGE =
-  1000 *
-  60 *
-  60 *
-  8;
+  1000 * 60 * 60 * 8;
 
-const PASSWORD_MIN_LENGTH =
-  10;
+const PASSWORD_MIN_LENGTH = 10;
 
 const JSON_LIMIT =
-  process.env.JSON_LIMIT ||
-  "1mb";
+  process.env.JSON_LIMIT || "1mb";
 
 const URLENCODED_LIMIT =
-  process.env.URLENCODED_LIMIT ||
-  "1mb";
+  process.env.URLENCODED_LIMIT || "1mb";
 
 /* ============================================================
-   SESSION SECURITY
+   SECURITY / AUTH CONSTANTS
 ============================================================ */
 
 const USER_IDLE_TIMEOUT_MINUTES =
@@ -212,8 +182,7 @@ const USER_IDLE_TIMEOUT_MS =
   1000;
 
 const USER_ACTIVITY_WRITE_INTERVAL_MS =
-  60 *
-  1000;
+  60 * 1000;
 
 const ADMIN_IDLE_TIMEOUT_MINUTES =
   Math.max(
@@ -230,19 +199,7 @@ const ADMIN_IDLE_TIMEOUT_MS =
   1000;
 
 const ADMIN_ACTIVITY_WRITE_INTERVAL_MS =
-  60 *
-  1000;
-
-/*
- * A different secret is used for administrator sessions.
- *
- * This keeps the two authentication surfaces cryptographically
- * separated even though both ultimately use the same base
- * application secret.
- */
-const EFFECTIVE_SESSION_SECRET =
-  SESSION_SECRET ||
-  "dev-only-puffer-isle-session-secret-change-me";
+  60 * 1000;
 
 const ADMIN_SESSION_SECRET =
   String(
@@ -256,22 +213,25 @@ const ADMIN_SESSION_SECRET =
     )
     .digest("hex");
 
-/* ============================================================
-   OTP / OAUTH SECURITY
-============================================================ */
-
 const OTP_REQUEST_WINDOW_MS =
-  15 *
-  60 *
-  1000;
+  15 * 60 * 1000;
 
-const OTP_MAX_REQUESTS_PER_WINDOW =
-  5;
+const OTP_MAX_REQUESTS_PER_WINDOW = 5;
 
 const GOOGLE_OAUTH_STATE_MAX_AGE_MS =
-  10 *
-  60 *
-  1000;
+  10 * 60 * 1000;
+
+const GOOGLE_PROFILE_COMPLETION_MAX_AGE_MS =
+  10 * 60 * 1000;
+
+const PASSWORD_RESET_TOKEN_TTL_MS =
+  30 * 60 * 1000;
+
+const PASSWORD_RESET_REQUEST_WINDOW_MS =
+  60 * 60 * 1000;
+
+const PASSWORD_RESET_MAX_REQUESTS_PER_WINDOW =
+  5;
 
 const otpRequestTracker =
   new Map();
@@ -279,18 +239,8 @@ const otpRequestTracker =
 const passwordResetRequestTracker =
   new Map();
 
-const PASSWORD_RESET_REQUEST_WINDOW_MS =
-  60 *
-  60 *
-  1000;
+let mailTransporter = null;
 
-const PASSWORD_RESET_MAX_REQUESTS_PER_WINDOW =
-  5;
-
-const GOOGLE_PROFILE_COMPLETION_MAX_AGE_MS =
-  10 *
-  60 *
-  1000;
 /* ============================================================
    ENVIRONMENT VALIDATION
 ============================================================ */
@@ -299,9 +249,7 @@ function validateEnvironment() {
   const errors = [];
 
   if (
-    !Number.isInteger(
-      PORT
-    ) ||
+    !Number.isInteger(PORT) ||
     PORT < 1 ||
     PORT > 65535
   ) {
@@ -310,15 +258,15 @@ function validateEnvironment() {
     );
   }
 
-  if (!MONGO_URI) {
-    if (
-      IS_PRODUCTION
-    ) {
-      errors.push(
-        "MONGO_URI is required in production."
-      );
-    }
+  if (
+    !MONGO_URI &&
+    IS_PRODUCTION
+  ) {
+    errors.push(
+      "MONGO_URI is required in production."
+    );
   } else if (
+    MONGO_URI &&
     !MONGO_URI.startsWith(
       "mongodb://"
     ) &&
@@ -332,19 +280,15 @@ function validateEnvironment() {
   }
 
   if (
-    !SESSION_SECRET
+    !SESSION_SECRET &&
+    IS_PRODUCTION
   ) {
-    if (
-      IS_PRODUCTION
-    ) {
-      errors.push(
-        "SESSION_SECRET is required in production."
-      );
-    }
+    errors.push(
+      "SESSION_SECRET is required in production."
+    );
   } else if (
     IS_PRODUCTION &&
-    SESSION_SECRET.length <
-      32
+    SESSION_SECRET.length < 32
   ) {
     errors.push(
       "SESSION_SECRET must contain at least 32 characters in production."
@@ -379,17 +323,31 @@ function validateEnvironment() {
   }
 
   if (
-    errors.length >
-    0
+    IS_PRODUCTION &&
+    GOOGLE_CALLBACK_URL.includes(
+      "localhost"
+    )
   ) {
+    console.warn(
+      "⚠️ GOOGLE_CALLBACK_URL points to localhost while NODE_ENV=production."
+    );
+  }
+
+  if (
+    TURNSTILE_SITE_KEY &&
+    !TURNSTILE_SECRET_KEY
+  ) {
+    console.warn(
+      "⚠️ TURNSTILE_SITE_KEY is configured but TURNSTILE_SECRET_KEY is missing. Server-side CAPTCHA verification is disabled."
+    );
+  }
+
+  if (errors.length) {
     throw new Error(
       [
         "Environment validation failed:",
         ...errors.map(
-          (
-            error
-          ) =>
-            `- ${error}`
+          (error) => `- ${error}`
         ),
       ].join("\n")
     );
@@ -415,9 +373,7 @@ app.disable(
 
 app.set(
   "trust proxy",
-  IS_PRODUCTION
-    ? 1
-    : false
+  IS_PRODUCTION ? 1 : false
 );
 
 app.set(
@@ -434,21 +390,16 @@ app.set(
 );
 
 /* ============================================================
-   REQUEST ID + SECURITY HEADERS
+   REQUEST / SECURITY HELPERS
 ============================================================ */
 
-function isAdminPath(
-  req
-) {
-  const pathname =
-    String(
-      req.path ||
-        ""
-    );
+function isAdminPath(req) {
+  const pathname = String(
+    req.path || ""
+  );
 
   return (
-    pathname ===
-      "/admin" ||
+    pathname === "/admin" ||
     pathname.startsWith(
       "/admin/"
     )
@@ -457,27 +408,16 @@ function isAdminPath(
 
 function createRequestId() {
   return crypto
-    .randomBytes(
-      12
-    )
-    .toString(
-      "hex"
-    );
+    .randomBytes(12)
+    .toString("hex");
 }
 
-function sanitizeRequestId(
-  value
-) {
-  const candidate =
-    String(
-      value ||
-        ""
-    )
-      .trim()
-      .slice(
-        0,
-        100
-      );
+function sanitizeRequestId(value) {
+  const candidate = String(
+    value || ""
+  )
+    .trim()
+    .slice(0, 100);
 
   return /^[A-Za-z0-9._:-]+$/.test(
     candidate
@@ -520,9 +460,7 @@ app.use(
       "SAMEORIGIN"
     );
 
-    if (
-      IS_PRODUCTION
-    ) {
+    if (IS_PRODUCTION) {
       res.setHeader(
         "Strict-Transport-Security",
         "max-age=31536000; includeSubDomains"
@@ -539,18 +477,14 @@ app.use(
 
 app.use(
   express.urlencoded({
-    extended:
-      true,
-
-    limit:
-      URLENCODED_LIMIT,
+    extended: true,
+    limit: URLENCODED_LIMIT,
   })
 );
 
 app.use(
   express.json({
-    limit:
-      JSON_LIMIT,
+    limit: JSON_LIMIT,
   })
 );
 
@@ -565,12 +499,8 @@ app.use(
       "public"
     ),
     {
-      index:
-        false,
-
-      redirect:
-        false,
-
+      index: false,
+      redirect: false,
       maxAge:
         IS_PRODUCTION
           ? "7d"
@@ -596,16 +526,9 @@ app.use(
 );
 
 /* ============================================================
-   MONGODB SESSION STORES
+   SESSION STORES
 ============================================================ */
 
-/*
- * User and administrator sessions intentionally use separate
- * collections.
- *
- * This prevents the authentication surfaces from sharing the
- * same session dataset.
- */
 const userSessionStore =
   MongoStore.create({
     mongoUrl:
@@ -616,8 +539,7 @@ const userSessionStore =
 
     ttl:
       Math.floor(
-        SESSION_MAX_AGE /
-          1000
+        SESSION_MAX_AGE / 1000
       ),
 
     autoRemove:
@@ -640,8 +562,7 @@ const adminSessionStore =
 
     ttl:
       Math.floor(
-        SESSION_MAX_AGE /
-          1000
+        SESSION_MAX_AGE / 1000
       ),
 
     autoRemove:
@@ -655,8 +576,46 @@ const adminSessionStore =
   });
 
 /* ============================================================
-   ADMIN SESSION
+   SESSION MIDDLEWARE
 ============================================================ */
+
+const userSessionMiddleware =
+  session({
+    name:
+      SESSION_NAME,
+
+    secret:
+      EFFECTIVE_SESSION_SECRET,
+
+    resave:
+      false,
+
+    saveUninitialized:
+      false,
+
+    rolling:
+      true,
+
+    store:
+      userSessionStore,
+
+    cookie: {
+      httpOnly:
+        true,
+
+      secure:
+        IS_PRODUCTION,
+
+      sameSite:
+        "lax",
+
+      maxAge:
+        SESSION_MAX_AGE,
+
+      path:
+        "/",
+    },
+  });
 
 const adminSessionMiddleware =
   session({
@@ -697,20 +656,16 @@ const adminSessionMiddleware =
   });
 
 /* ============================================================
-   COMMON SESSION HELPERS
+   SESSION HELPERS
 ============================================================ */
 
-function regenerateSession(
-  req
-) {
+function regenerateSession(req) {
   return new Promise(
     (
       resolve,
       reject
     ) => {
-      if (
-        !req.session
-      ) {
+      if (!req.session) {
         return reject(
           new Error(
             "Session middleware is unavailable."
@@ -719,12 +674,8 @@ function regenerateSession(
       }
 
       req.session.regenerate(
-        (
-          error
-        ) => {
-          if (
-            error
-          ) {
+        (error) => {
+          if (error) {
             return reject(
               error
             );
@@ -737,17 +688,13 @@ function regenerateSession(
   );
 }
 
-function saveSession(
-  req
-) {
+function saveSession(req) {
   return new Promise(
     (
       resolve,
       reject
     ) => {
-      if (
-        !req.session
-      ) {
+      if (!req.session) {
         return reject(
           new Error(
             "Session middleware is unavailable."
@@ -756,12 +703,8 @@ function saveSession(
       }
 
       req.session.save(
-        (
-          error
-        ) => {
-          if (
-            error
-          ) {
+        (error) => {
+          if (error) {
             return reject(
               error
             );
@@ -774,27 +717,19 @@ function saveSession(
   );
 }
 
-function destroySession(
-  req
-) {
+function destroySession(req) {
   return new Promise(
     (
       resolve,
       reject
     ) => {
-      if (
-        !req.session
-      ) {
+      if (!req.session) {
         return resolve();
       }
 
       req.session.destroy(
-        (
-          error
-        ) => {
-          if (
-            error
-          ) {
+        (error) => {
+          if (error) {
             return reject(
               error
             );
@@ -859,50 +794,129 @@ function getSessionUserId(
   );
 }
 
+function createUserSessionData(
+  user
+) {
+  if (!user) {
+    return null;
+  }
+
+  const id =
+    user._id
+      ? String(
+          user._id
+        )
+      : String(
+          user.id || ""
+        );
+
+  const fullname =
+    String(
+      user.fullname ||
+        user.name ||
+        ""
+    ).trim();
+
+  const username =
+    String(
+      user.username ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const email =
+    String(
+      user.email ||
+        ""
+    )
+      .trim()
+      .toLowerCase();
+
+  const phone =
+    String(
+      user.phone ||
+        ""
+    ).trim();
+
+  return {
+    id,
+
+    _id:
+      id,
+
+    fullname,
+
+    name:
+      fullname,
+
+    username,
+
+    email,
+
+    phone,
+
+    status:
+      user.status ||
+      "active",
+
+    emailVerified:
+      Boolean(
+        user.emailVerified
+      ),
+
+    authProvider:
+      user.authProvider ||
+      "local",
+  };
+}
+
+function createAdminSessionData(
+  admin
+) {
+  if (!admin) {
+    return null;
+  }
+
+  const id =
+    admin._id
+      ? String(
+          admin._id
+        )
+      : String(
+          admin.id || ""
+        );
+
+  return {
+    id,
+
+    _id:
+      id,
+
+    username:
+      String(
+        admin.username ||
+          ""
+      )
+        .trim()
+        .toLowerCase(),
+
+    role:
+      String(
+        admin.role ||
+          "admin"
+      )
+        .trim()
+        .toLowerCase(),
+  };
+}
+
 /* ============================================================
    USER SESSION MOUNTING
 ============================================================ */
 
-const userSessionMiddleware =
-  session({
-    name:
-      SESSION_NAME,
-
-    secret:
-      EFFECTIVE_SESSION_SECRET,
-
-    resave:
-      false,
-
-    saveUninitialized:
-      false,
-
-    rolling:
-      true,
-
-    store:
-      userSessionStore,
-
-    cookie: {
-      httpOnly:
-        true,
-
-      secure:
-        IS_PRODUCTION,
-
-      sameSite:
-        "lax",
-
-      maxAge:
-        SESSION_MAX_AGE,
-
-      path:
-        "/",
-    },
-  });
-
 /*
- * Admin requests NEVER enter the user session middleware.
+ * Admin paths never enter the customer session middleware.
  */
 app.use(
   (
@@ -960,9 +974,7 @@ function adminActivityMiddleware(
       req
     )
       .catch(
-        (
-          error
-        ) =>
+        (error) =>
           console.error(
             "ADMIN IDLE SESSION DESTROY ERROR:",
             error
@@ -980,7 +992,7 @@ function adminActivityMiddleware(
             return;
           }
 
-          if (
+          const wantsJson =
             req.path.startsWith(
               "/api/"
             ) ||
@@ -990,7 +1002,10 @@ function adminActivityMiddleware(
                 ""
             ).includes(
               "application/json"
-            )
+            );
+
+          if (
+            wantsJson
           ) {
             return res
               .status(401)
@@ -1033,10 +1048,6 @@ function adminActivityMiddleware(
   next();
 }
 
-/* ============================================================
-   ADMIN ROUTER MOUNT
-============================================================ */
-
 app.get(
   "/admin-logout",
   (
@@ -1048,6 +1059,10 @@ app.get(
       "/admin/logout"
     )
 );
+
+/* ============================================================
+   ADMIN ROUTER MOUNT
+============================================================ */
 
 app.use(
   "/admin",
@@ -1077,6 +1092,9 @@ app.use(
     res.locals.csrfToken =
       req.session?.csrfToken ||
       null;
+
+    res.locals.captchaSiteKey =
+      TURNSTILE_SITE_KEY;
 
     next();
   },
@@ -1151,9 +1169,7 @@ app.use(
         req
       )
         .catch(
-          (
-            error
-          ) =>
+          (error) =>
             console.error(
               "USER IDLE SESSION DESTROY ERROR:",
               error
@@ -1232,15 +1248,6 @@ app.use(
    CSRF PROTECTION
 ============================================================ */
 
-/*
- * All customer state-changing requests are now protected.
- *
- * Admin state-changing requests are handled inside adminRoutes
- * by requireAdminMutation().
- *
- * GET remains intentionally available for compatibility routes
- * such as /logout.
- */
 app.use(
   (
     req,
@@ -1253,16 +1260,13 @@ app.use(
       return next();
     }
 
-    const protectedMethods =
-      new Set([
+    if (
+      ![
         "POST",
         "PUT",
         "PATCH",
         "DELETE",
-      ]);
-
-    if (
-      !protectedMethods.has(
+      ].includes(
         req.method
       )
     ) {
@@ -1336,6 +1340,14 @@ app.use(
       req.query?.auth ||
       null;
 
+    res.locals.authResetToken =
+      req.query?.token ||
+      req.query?.resetToken ||
+      null;
+
+    res.locals.captchaSiteKey =
+      TURNSTILE_SITE_KEY;
+
     res.locals.csrfToken =
       res.locals.csrfToken ||
       req.session?.csrfToken ||
@@ -1346,130 +1358,7 @@ app.use(
 );
 
 /* ============================================================
-   SESSION SERIALIZATION
-============================================================ */
-
-function createUserSessionData(
-  user
-) {
-  if (!user) {
-    return null;
-  }
-
-  const id =
-    user._id
-      ? String(
-          user._id
-        )
-      : String(
-          user.id ||
-            ""
-        );
-
-  const fullname =
-    String(
-      user.fullname ||
-        user.name ||
-        ""
-    ).trim();
-
-  const username =
-    String(
-      user.username ||
-        ""
-    )
-      .trim()
-      .toLowerCase();
-
-  const email =
-    String(
-      user.email ||
-        ""
-    )
-      .trim()
-      .toLowerCase();
-
-  const phone =
-    String(
-      user.phone ||
-        ""
-    ).trim();
-
-  return {
-    id,
-
-    _id:
-      id,
-
-    fullname,
-
-    name:
-      fullname,
-
-    username,
-
-    email,
-
-    phone,
-
-    status:
-      user.status ||
-      "active",
-
-    emailVerified:
-      Boolean(
-        user.emailVerified
-      ),
-
-    authProvider:
-      user.authProvider ||
-      "local",
-  };
-}
-
-function createAdminSessionData(
-  admin
-) {
-  if (!admin) {
-    return null;
-  }
-
-  const id =
-    admin._id
-      ? String(
-          admin._id
-        )
-      : String(
-          admin.id ||
-            ""
-        );
-
-  return {
-    id,
-
-    _id:
-      id,
-
-    username:
-      String(
-        admin.username ||
-          ""
-      )
-        .trim()
-        .toLowerCase(),
-
-    role:
-      String(
-        admin.role ||
-          "admin"
-      )
-        .trim()
-        .toLowerCase(),
-  };
-}
-
-/* ============================================================
-   AUTH HELPERS
+   NORMALIZATION / AUTH HELPERS
 ============================================================ */
 
 function redirectAuthError(
@@ -1506,8 +1395,7 @@ function normalizeString(
   value
 ) {
   return String(
-    value ??
-      ""
+    value ?? ""
   )
     .trim()
     .replace(
@@ -1520,8 +1408,7 @@ function normalizeEmail(
   value
 ) {
   return String(
-    value ??
-      ""
+    value ?? ""
   )
     .trim()
     .toLowerCase();
@@ -1531,8 +1418,7 @@ function normalizeIdentifier(
   value
 ) {
   return String(
-    value ??
-      ""
+    value ?? ""
   )
     .trim()
     .toLowerCase();
@@ -1543,16 +1429,14 @@ function normalizeUsername(
 ) {
   return (
     String(
-      value ??
-        ""
+      value ?? ""
     )
       .trim()
       .toLowerCase()
       .replace(
         /\s+/g,
         ""
-      ) ||
-    ""
+      ) || ""
   );
 }
 
@@ -1561,8 +1445,7 @@ function normalizePhone(
 ) {
   const phone =
     String(
-      value ??
-        ""
+      value ?? ""
     )
       .trim()
       .replace(
@@ -1618,9 +1501,196 @@ function isDuplicateKeyError(
 ) {
   return Boolean(
     error &&
-      error.code ===
-        11000
+      error.code === 11000
   );
+}
+
+function sanitizeReturnTo(
+  value
+) {
+  const input =
+    String(
+      value || ""
+    ).trim();
+
+  if (!input) {
+    return "/";
+  }
+
+  if (
+    !input.startsWith(
+      "/"
+    ) ||
+    input.startsWith(
+      "//"
+    )
+  ) {
+    return "/";
+  }
+
+  return input;
+}
+
+function getPublicBaseUrl(
+  req
+) {
+  const configured =
+    String(
+      process.env.APP_BASE_URL ||
+        process.env.PUBLIC_APP_URL ||
+        ""
+    )
+      .trim()
+      .replace(
+        /\/+$/,
+        ""
+      );
+
+  if (configured) {
+    return configured;
+  }
+
+  const protocol =
+    IS_PRODUCTION
+      ? "https"
+      : req.protocol;
+
+  return `${protocol}://${String(
+    req.get("host") ||
+      ""
+  ).trim()}`;
+}
+
+/* ============================================================
+   OPTIONAL TURNSTILE VERIFICATION
+============================================================ */
+
+async function verifyTurnstile(
+  req
+) {
+  if (
+    !TURNSTILE_SECRET_KEY
+  ) {
+    return {
+      success:
+        true,
+
+      skipped:
+        true,
+    };
+  }
+
+  const token =
+    String(
+      req.body?.captchaToken ||
+        req.body?.[
+          "cf-turnstile-response"
+        ] ||
+        req.headers[
+          "x-turnstile-token"
+        ] ||
+        ""
+    ).trim();
+
+  if (!token) {
+    return {
+      success:
+        false,
+
+      message:
+        "Please complete the security verification and try again.",
+    };
+  }
+
+  const form =
+    new URLSearchParams({
+      secret:
+        TURNSTILE_SECRET_KEY,
+
+      response:
+        token,
+    });
+
+  if (req.ip) {
+    form.set(
+      "remoteip",
+      req.ip
+    );
+  }
+
+  try {
+    const response =
+      await fetch(
+        "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+        {
+          method:
+            "POST",
+
+          headers: {
+            "Content-Type":
+              "application/x-www-form-urlencoded",
+          },
+
+          body:
+            form,
+
+          signal:
+            AbortSignal.timeout(
+              10000
+            ),
+        }
+      );
+
+    if (
+      !response.ok
+    ) {
+      return {
+        success:
+          false,
+
+        message:
+          "Security verification is temporarily unavailable. Please try again.",
+      };
+    }
+
+    const payload =
+      await response.json();
+
+    if (
+      !payload.success
+    ) {
+      return {
+        success:
+          false,
+
+        message:
+          "Security verification failed. Please try again.",
+      };
+    }
+
+    return {
+      success:
+        true,
+
+      skipped:
+        false,
+    };
+  } catch (
+    error
+  ) {
+    console.error(
+      "TURNSTILE VERIFY ERROR:",
+      error
+    );
+
+    return {
+      success:
+        false,
+
+      message:
+        "Security verification is temporarily unavailable. Please try again.",
+    };
+  }
 }
 
 /* ============================================================
@@ -1726,6 +1796,19 @@ function validateSignupInput(
   }
 
   if (
+    password.length >
+    128
+  ) {
+    return {
+      valid:
+        false,
+
+      message:
+        "Password cannot exceed 128 characters.",
+    };
+  }
+
+  if (
     password !==
     confirmPassword
   ) {
@@ -1807,309 +1890,8 @@ function validateSignupInput(
 }
 
 /* ============================================================
-   EMAIL / OTP
+   OTP HELPERS
 ============================================================ */
-
-let mailTransporter =
-  null;
-
-function getMailTransporter() {
-  if (
-    !EMAIL_OTP_ENABLED ||
-    !MAIL_USER ||
-    !MAIL_APP_PASSWORD
-  ) {
-    return null;
-  }
-
-  if (
-    mailTransporter
-  ) {
-    return mailTransporter;
-  }
-
-  mailTransporter =
-    nodemailer.createTransport(
-      {
-        service:
-          "gmail",
-
-        auth: {
-          user:
-            MAIL_USER,
-
-          pass:
-            MAIL_APP_PASSWORD,
-        },
-      }
-    );
-
-  return mailTransporter;
-}
-
-function buildVerificationEmail(
-  code,
-  expiresInSeconds
-) {
-  const minutes =
-    Math.max(
-      1,
-      Math.ceil(
-        Number(
-          expiresInSeconds ||
-            600
-        ) /
-          60
-      )
-    );
-
-  const safeCode =
-    String(
-      code ||
-        ""
-    );
-
-  return {
-    subject:
-      `${MAIL_FROM_NAME} - Email Verification Code`,
-
-    text:
-      [
-        "Puffer Isle Resort",
-        "",
-        "Welcome to IsleRMS.",
-        "",
-        `Your email verification code is: ${safeCode}`,
-        "",
-        `This code expires in ${minutes} minutes.`,
-        "",
-        "If you did not create this account, you can safely ignore this email.",
-      ].join(
-        "\n"
-      ),
-
-    html:
-      `
-      <!doctype html>
-
-      <html>
-
-      <head>
-
-        <meta charset="utf-8">
-
-        <meta
-          name="viewport"
-          content="width=device-width,initial-scale=1"
-        >
-
-        <title>
-          Email Verification
-        </title>
-
-      </head>
-
-      <body
-        style="
-          margin:0;
-          padding:0;
-          background:#f5f5f5;
-          font-family:Arial,Helvetica,sans-serif;
-          color:#222;
-        "
-      >
-
-        <div
-          style="
-            max-width:620px;
-            margin:40px auto;
-            background:#ffffff;
-            border-radius:20px;
-            overflow:hidden;
-            box-shadow:0 15px 45px rgba(0,0,0,.10);
-          "
-        >
-
-          <div
-            style="
-              background:#151515;
-              padding:28px 30px;
-              text-align:center;
-            "
-          >
-
-            <div
-              style="
-                color:#FFD700;
-                font-size:12px;
-                font-weight:bold;
-                letter-spacing:3px;
-                text-transform:uppercase;
-              "
-            >
-              PUFFER ISLE RESORT
-            </div>
-
-            <div
-              style="
-                margin-top:8px;
-                color:#ffffff;
-                font-size:24px;
-                font-weight:bold;
-              "
-            >
-              Welcome to IsleRMS
-            </div>
-
-          </div>
-
-          <div
-            style="
-              padding:38px 30px;
-            "
-          >
-
-            <p
-              style="
-                margin:0 0 12px;
-                font-size:16px;
-                color:#333333;
-              "
-            >
-              Please verify your email address.
-            </p>
-
-            <p
-              style="
-                margin:0 0 28px;
-                font-size:14px;
-                line-height:1.7;
-                color:#666666;
-              "
-            >
-              Enter the verification code below in your
-              Puffer Isle Resort account.
-            </p>
-
-            <div
-              style="
-                text-align:center;
-                margin:28px 0;
-              "
-            >
-
-              <div
-                style="
-                  display:inline-block;
-                  padding:18px 28px;
-                  background:#fff9d6;
-                  border:1px solid #f1dc58;
-                  border-radius:14px;
-                  color:#151515;
-                  font-size:32px;
-                  font-weight:800;
-                  letter-spacing:10px;
-                "
-              >
-                ${safeCode}
-              </div>
-
-            </div>
-
-            <p
-              style="
-                text-align:center;
-                margin:0 0 24px;
-                color:#888888;
-                font-size:13px;
-              "
-            >
-              This code expires in
-              <strong>
-                ${minutes} minutes
-              </strong>.
-            </p>
-
-            <div
-              style="
-                padding:16px;
-                background:#f8f8f8;
-                border-radius:12px;
-                font-size:12px;
-                line-height:1.6;
-                color:#777777;
-              "
-            >
-              For your security, never share this
-              verification code with anyone.
-            </div>
-
-          </div>
-
-          <div
-            style="
-              padding:20px 30px;
-              background:#fafafa;
-              border-top:1px solid #eeeeee;
-              color:#999999;
-              font-size:11px;
-              line-height:1.6;
-              text-align:center;
-            "
-          >
-            © ${new Date().getFullYear()}
-            Puffer Isle Resort.
-            This is an automated email.
-          </div>
-
-        </div>
-
-      </body>
-
-      </html>
-      `,
-  };
-}
-
-async function sendVerificationEmail(
-  email,
-  code,
-  expiresInSeconds
-) {
-  const transporter =
-    getMailTransporter();
-
-  if (
-    !transporter
-  ) {
-    throw new Error(
-      "Gmail email delivery is not configured. Set MAIL_USER and MAIL_APP_PASSWORD in your environment."
-    );
-  }
-
-  const message =
-    buildVerificationEmail(
-      code,
-      expiresInSeconds
-    );
-
-  return transporter.sendMail({
-    from:
-      `"${MAIL_FROM_NAME}" <${MAIL_USER}>`,
-
-    to:
-      email,
-
-    subject:
-      message.subject,
-
-    text:
-      message.text,
-
-    html:
-      message.html,
-  });
-}
 
 function checkOtpRequestRateLimit(
   req,
@@ -2192,33 +1974,6 @@ function checkOtpRequestRateLimit(
   };
 }
 
-setInterval(
-  () => {
-    const now =
-      Date.now();
-
-    for (
-      const [
-        key,
-        entry,
-      ] of otpRequestTracker.entries()
-    ) {
-      if (
-        now -
-          entry.windowStartedAt >
-          OTP_REQUEST_WINDOW_MS
-      ) {
-        otpRequestTracker.delete(
-          key
-        );
-      }
-    }
-  },
-  10 *
-    60 *
-    1000
-).unref();
-
 async function prepareSignupVerification(
   signupData
 ) {
@@ -2269,8 +2024,8 @@ async function prepareSignupVerification(
     }
   }
 
-  let createdNewUser =
-    false;
+  const createdNewUser =
+    !user;
 
   if (!user) {
     user =
@@ -2289,9 +2044,6 @@ async function prepareSignupVerification(
         emailVerified:
           false,
       });
-
-    createdNewUser =
-      true;
   } else {
     user.fullname =
       fullname;
@@ -2307,17 +2059,9 @@ async function prepareSignupVerification(
       false;
   }
 
-  if (
-    username
-  ) {
-    user.username =
-      username;
-  } else if (
-    createdNewUser
-  ) {
-    user.username =
-      undefined;
-  }
+  user.username =
+    username ||
+    undefined;
 
   await user.setPassword(
     password
@@ -2338,300 +2082,432 @@ async function prepareSignupVerification(
 }
 
 /* ============================================================
-   CUSTOMER AUTH COMPATIBILITY MIDDLEWARE
+   MAIL
 ============================================================ */
 
-function requireUser(
-  req,
-  res,
-  next
-) {
-  const sessionUser =
-    req.session?.user;
-
+function getMailTransporter() {
   if (
-    !sessionUser
+    !MAIL_USER ||
+    !MAIL_APP_PASSWORD
   ) {
-    return res.redirect(
-      "/?auth=login&error=" +
-        encodeURIComponent(
-          "Please log in to continue."
-        )
-    );
+    return null;
   }
 
   if (
-    sessionUser.status &&
-    sessionUser.status !==
-      "active"
+    mailTransporter
   ) {
-    return destroySession(
-      req
-    )
-      .catch(
-        (
-          error
-        ) =>
-          console.error(
-            "SESSION CLEANUP ERROR:",
-            error
-          )
-      )
-      .finally(
-        () => {
-          clearSessionCookie(
-            res
-          );
-
-          res.redirect(
-            "/?auth=login&error=" +
-              encodeURIComponent(
-                "Your account is currently unavailable."
-              )
-          );
-        }
-      );
+    return mailTransporter;
   }
 
-  next();
-}
-
-/*
- * Exported compatibility middleware.
- *
- * Actual admin route authorization is handled by adminRoutes.js,
- * which performs a live MongoDB admin status check.
- */
-async function requireAdmin(
-  req,
-  res,
-  next
-) {
-  try {
-    const adminId =
-      req.session?.admin?.id ||
-      req.session?.admin?._id;
-
-    if (
-      !adminId ||
-      !mongoose.Types.ObjectId.isValid(
-        adminId
-      )
-    ) {
-      clearAdminSessionCookie(
-        res
-      );
-
-      return res.redirect(
-        "/admin/login?error=" +
-          encodeURIComponent(
-            "Administrator login required."
-          )
-      );
-    }
-
-    const admin =
-      await Admin.findById(
-        adminId
-      )
-        .select(
-          "username role status active"
-        )
-        .lean();
-
-    if (
-      !admin
-    ) {
-      await destroySession(
-        req
-      ).catch(
-        () => {}
-      );
-
-      clearAdminSessionCookie(
-        res
-      );
-
-      return res.redirect(
-        "/admin/login?error=" +
-          encodeURIComponent(
-            "Your administrator session is no longer valid."
-          )
-      );
-    }
-
-    if (
-      admin.status &&
-      String(
-        admin.status
-      )
-        .toLowerCase() !==
-        "active"
-    ) {
-      await destroySession(
-        req
-      ).catch(
-        () => {}
-      );
-
-      clearAdminSessionCookie(
-        res
-      );
-
-      return res.redirect(
-        "/admin/login?error=" +
-          encodeURIComponent(
-            "Your administrator account is currently unavailable."
-          )
-      );
-    }
-
-    if (
-      admin.active ===
-      false
-    ) {
-      await destroySession(
-        req
-      ).catch(
-        () => {}
-      );
-
-      clearAdminSessionCookie(
-        res
-      );
-
-      return res.redirect(
-        "/admin/login?error=" +
-          encodeURIComponent(
-            "Your administrator account is currently unavailable."
-          )
-      );
-    }
-
-    req.session.admin =
+  mailTransporter =
+    nodemailer.createTransport(
       {
-        ...req.session.admin,
+        service:
+          "gmail",
 
-        ...createAdminSessionData(
-          admin
-        ),
-      };
+        auth: {
+          user:
+            MAIL_USER,
 
-    next();
-  } catch (
-    error
-  ) {
-    console.error(
-      "SERVER requireAdmin ERROR:",
-      error
+          pass:
+            MAIL_APP_PASSWORD,
+        },
+      }
     );
 
-    return res
-      .status(500)
-      .send(
-        "Unable to validate administrator access."
-      );
-  }
+  return mailTransporter;
 }
+
+function buildVerificationEmail(
+  code,
+  expiresInSeconds
+) {
+  const minutes =
+    Math.max(
+      1,
+      Math.ceil(
+        Number(
+          expiresInSeconds ||
+            600
+        ) /
+          60
+      )
+    );
+
+  const safeCode =
+    String(
+      code ||
+        ""
+    );
+
+  return {
+    subject:
+      `${MAIL_FROM_NAME} - Email Verification Code`,
+
+    text:
+      [
+        "Puffer Isle Resort",
+        "",
+        "Welcome to IsleRMS.",
+        "",
+        `Your email verification code is: ${safeCode}`,
+        "",
+        `This code expires in ${minutes} minutes.`,
+        "",
+        "If you did not create this account, you can safely ignore this email.",
+      ].join(
+        "\n"
+      ),
+
+    html:
+      `
+      <!doctype html>
+      <html>
+      <body
+        style="
+          font-family:Arial,Helvetica,sans-serif;
+          color:#222;
+        "
+      >
+        <h2>Puffer Isle Resort</h2>
+
+        <p>
+          Welcome to IsleRMS.
+        </p>
+
+        <p>
+          Your email verification code is:
+        </p>
+
+        <p
+          style="
+            font-size:32px;
+            font-weight:800;
+            letter-spacing:8px;
+          "
+        >
+          ${safeCode}
+        </p>
+
+        <p>
+          This code expires in ${minutes} minutes.
+        </p>
+
+        <p
+          style="
+            color:#777;
+            font-size:12px;
+          "
+        >
+          If you did not create this account,
+          you can safely ignore this email.
+        </p>
+      </body>
+      </html>
+      `,
+  };
+}
+
+async function sendVerificationEmail(
+  email,
+  code,
+  expiresInSeconds
+) {
+  const transporter =
+    getMailTransporter();
+
+  if (!transporter) {
+    throw new Error(
+      "Gmail email delivery is not configured. Set MAIL_USER and MAIL_APP_PASSWORD in your environment."
+    );
+  }
+
+  const message =
+    buildVerificationEmail(
+      code,
+      expiresInSeconds
+    );
+
+  return transporter.sendMail({
+    from:
+      `"${MAIL_FROM_NAME}" <${MAIL_USER}>`,
+
+    to:
+      email,
+
+    subject:
+      message.subject,
+
+    text:
+      message.text,
+
+    html:
+      message.html,
+  });
+}
+
+setInterval(
+  () => {
+    const now =
+      Date.now();
+
+    for (
+      const [
+        key,
+        entry,
+      ] of otpRequestTracker.entries()
+    ) {
+      if (
+        now -
+          entry.windowStartedAt >
+          OTP_REQUEST_WINDOW_MS
+      ) {
+        otpRequestTracker.delete(
+          key
+        );
+      }
+    }
+  },
+  10 * 60 * 1000
+).unref();
 
 /* ============================================================
-   HEALTH
+   PASSWORD RESET HELPERS
 ============================================================ */
 
-app.get(
-  "/health",
-  (
-    req,
-    res
-  ) => {
-    const mongoReady =
-      mongoose.connection.readyState ===
-      1;
-
-    const payload = {
-      success:
-        mongoReady,
-
-      status:
-        mongoReady
-          ? "ok"
-          : "degraded",
-
-      server:
-        "online",
-
-      database:
-        mongoReady
-          ? "connected"
-          : "disconnected",
-
-      uptimeSeconds:
-        Math.floor(
-          process.uptime()
-        ),
-
-      timestamp:
-        new Date().toISOString(),
-    };
-
-    if (
-      !IS_PRODUCTION
-    ) {
-      payload.environment =
-        NODE_ENV;
-    }
-
-    return res
-      .status(
-        mongoReady
-          ? 200
-          : 503
+function hashPasswordResetToken(
+  token
+) {
+  return crypto
+    .createHash("sha256")
+    .update(
+      String(
+        token ||
+          ""
       )
-      .json(
-        payload
-      );
+    )
+    .digest("hex");
+}
+
+function generatePasswordResetToken() {
+  return crypto
+    .randomBytes(32)
+    .toString("hex");
+}
+
+function checkPasswordResetRateLimit(
+  req,
+  email
+) {
+  const ip =
+    String(
+      req.ip ||
+        "unknown"
+    );
+
+  const key =
+    `${ip}|${email}`;
+
+  const now =
+    Date.now();
+
+  const existing =
+    passwordResetRequestTracker.get(
+      key
+    );
+
+  if (
+    !existing ||
+    now -
+      existing.windowStartedAt >
+      PASSWORD_RESET_REQUEST_WINDOW_MS
+  ) {
+    passwordResetRequestTracker.set(
+      key,
+      {
+        windowStartedAt:
+          now,
+
+        count:
+          1,
+      }
+    );
+
+    return {
+      allowed:
+        true,
+
+      retryAfter:
+        0,
+    };
   }
-);
 
-app.get(
-  "/ready",
-  (
-    req,
-    res
-  ) => {
-    const mongoReady =
-      mongoose.connection.readyState ===
-      1;
+  if (
+    existing.count >=
+    PASSWORD_RESET_MAX_REQUESTS_PER_WINDOW
+  ) {
+    return {
+      allowed:
+        false,
 
-    if (
-      !mongoReady
+      retryAfter:
+        Math.ceil(
+          (
+            PASSWORD_RESET_REQUEST_WINDOW_MS -
+            (
+              now -
+              existing.windowStartedAt
+            )
+          ) /
+            1000
+        ),
+    };
+  }
+
+  existing.count +=
+    1;
+
+  return {
+    allowed:
+      true,
+
+    retryAfter:
+      0,
+  };
+}
+
+function buildPasswordResetEmail(
+  resetUrl,
+  expiresInMinutes
+) {
+  return {
+    subject:
+      `${MAIL_FROM_NAME} - Password Reset`,
+
+    text:
+      [
+        "Puffer Isle Resort",
+        "",
+        "A request was made to reset your IsleRMS password.",
+        "",
+        `Reset your password here: ${resetUrl}`,
+        "",
+        `This link expires in ${expiresInMinutes} minutes.`,
+        "",
+        "If you did not request a password reset, you can safely ignore this email.",
+      ].join(
+        "\n"
+      ),
+
+    html:
+      `
+      <!doctype html>
+      <html>
+      <body
+        style="
+          font-family:Arial,Helvetica,sans-serif;
+          color:#222;
+        "
+      >
+        <h2>
+          Puffer Isle Resort
+        </h2>
+
+        <p>
+          A request was made to reset your
+          IsleRMS password.
+        </p>
+
+        <p>
+          <a href="${resetUrl}">
+            Reset Password
+          </a>
+        </p>
+
+        <p>
+          This link expires in
+          ${expiresInMinutes} minutes.
+        </p>
+
+        <p
+          style="
+            color:#777;
+            font-size:12px;
+          "
+        >
+          If you did not request a password
+          reset, you can safely ignore this email.
+        </p>
+      </body>
+      </html>
+      `,
+  };
+}
+
+async function sendPasswordResetEmail(
+  email,
+  resetUrl
+) {
+  const transporter =
+    getMailTransporter();
+
+  if (!transporter) {
+    throw new Error(
+      "Gmail email delivery is not configured. Set MAIL_USER and MAIL_APP_PASSWORD in your environment."
+    );
+  }
+
+  const message =
+    buildPasswordResetEmail(
+      resetUrl,
+      Math.ceil(
+        PASSWORD_RESET_TOKEN_TTL_MS /
+          60000
+      )
+    );
+
+  return transporter.sendMail({
+    from:
+      `"${MAIL_FROM_NAME}" <${MAIL_USER}>`,
+
+    to:
+      email,
+
+    subject:
+      message.subject,
+
+    text:
+      message.text,
+
+    html:
+      message.html,
+  });
+}
+
+setInterval(
+  () => {
+    const now =
+      Date.now();
+
+    for (
+      const [
+        key,
+        entry,
+      ] of passwordResetRequestTracker.entries()
     ) {
-      return res
-        .status(503)
-        .json({
-          success:
-            false,
-
-          ready:
-            false,
-
-          database:
-            "disconnected",
-        });
+      if (
+        now -
+          entry.windowStartedAt >
+          PASSWORD_RESET_REQUEST_WINDOW_MS
+      ) {
+        passwordResetRequestTracker.delete(
+          key
+        );
+      }
     }
-
-    return res.json({
-      success:
-        true,
-
-      ready:
-        true,
-
-      database:
-        "connected",
-    });
-  }
-);
+  },
+  10 * 60 * 1000
+).unref();
 
 /* ============================================================
    USER LOGIN
@@ -2652,12 +2528,10 @@ app.get(
     }
 
     const query =
-      new URLSearchParams();
-
-    query.set(
-      "auth",
-      "login"
-    );
+      new URLSearchParams({
+        auth:
+          "login",
+      });
 
     if (
       req.query?.error
@@ -2694,6 +2568,21 @@ app.post(
     res
   ) => {
     try {
+      const captcha =
+        await verifyTurnstile(
+          req
+        );
+
+      if (
+        !captcha.success
+      ) {
+        return redirectAuthError(
+          res,
+          "login",
+          captcha.message
+        );
+      }
+
       const identifier =
         normalizeIdentifier(
           req.body?.email ||
@@ -2725,9 +2614,7 @@ app.post(
           "+password +googleId"
         );
 
-      if (
-        !user
-      ) {
+      if (!user) {
         return redirectAuthError(
           res,
           "login",
@@ -2736,8 +2623,8 @@ app.post(
       }
 
       if (
-        user.lockedUntil &&
-        user.lockedUntil instanceof Date &&
+        user.lockedUntil instanceof
+          Date &&
         user.lockedUntil.getTime() <=
           Date.now()
       ) {
@@ -2838,9 +2725,6 @@ app.post(
         await user.resetLoginSecurity();
       }
 
-      /*
-       * Session fixation protection.
-       */
       await regenerateSession(
         req
       );
@@ -2865,9 +2749,7 @@ app.post(
       error
     ) {
       console.error(
-        `USER LOGIN ERROR requestId=${
-          req.requestId
-        }:`,
+        `USER LOGIN ERROR requestId=${req.requestId}:`,
         error
       );
 
@@ -2899,12 +2781,10 @@ app.get(
     }
 
     const query =
-      new URLSearchParams();
-
-    query.set(
-      "auth",
-      "signup"
-    );
+      new URLSearchParams({
+        auth:
+          "signup",
+      });
 
     if (
       req.query?.error
@@ -2952,6 +2832,25 @@ app.post(
 
             message:
               "Email verification is currently unavailable.",
+          });
+      }
+
+      const captcha =
+        await verifyTurnstile(
+          req
+        );
+
+      if (
+        !captcha.success
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              captcha.message,
           });
       }
 
@@ -3004,7 +2903,8 @@ app.post(
 
       const expiresIn =
         (
-          typeof prepared.user.getEmailVerificationRemaining ===
+          typeof prepared.user
+            .getEmailVerificationRemaining ===
           "function"
             ? prepared.user.getEmailVerificationRemaining()
             : 600
@@ -3024,18 +2924,19 @@ app.post(
           mailError
         );
 
-        try {
-          prepared.user.clearEmailVerification();
+        prepared.user.clearEmailVerification();
 
-          await prepared.user.save();
-        } catch (
-          cleanupError
-        ) {
-          console.error(
-            "OTP CLEANUP ERROR:",
-            cleanupError
+        await prepared.user
+          .save()
+          .catch(
+            (
+              cleanupError
+            ) =>
+              console.error(
+                "OTP CLEANUP ERROR:",
+                cleanupError
+              )
           );
-        }
 
         return res
           .status(503)
@@ -3159,9 +3060,7 @@ app.post(
             "+emailVerificationResendAt"
         );
 
-      if (
-        !user
-      ) {
+      if (!user) {
         return res
           .status(400)
           .json({
@@ -3305,6 +3204,25 @@ app.post(
           });
       }
 
+      const captcha =
+        await verifyTurnstile(
+          req
+        );
+
+      if (
+        !captcha.success
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              captcha.message,
+          });
+      }
+
       const email =
         normalizeEmail(
           req.body?.email ||
@@ -3360,9 +3278,6 @@ app.post(
             "+emailVerificationResendAt"
         );
 
-      /*
-       * Deliberately avoid account enumeration here.
-       */
       if (
         !user ||
         user.emailVerified ===
@@ -3494,6 +3409,21 @@ app.post(
         );
       }
 
+      const captcha =
+        await verifyTurnstile(
+          req
+        );
+
+      if (
+        !captcha.success
+      ) {
+        return redirectAuthError(
+          res,
+          "signup",
+          captcha.message
+        );
+      }
+
       const prepared =
         await prepareSignupVerification(
           validation.data
@@ -3501,7 +3431,8 @@ app.post(
 
       const expiresIn =
         (
-          typeof prepared.user.getEmailVerificationRemaining ===
+          typeof prepared.user
+            .getEmailVerificationRemaining ===
           "function"
             ? prepared.user.getEmailVerificationRemaining()
             : 600
@@ -3579,36 +3510,6 @@ function isGoogleOAuthConfigured() {
   );
 }
 
-function sanitizeReturnTo(
-  value
-) {
-  const fallback =
-    "/";
-
-  const input =
-    String(
-      value ||
-        ""
-    ).trim();
-
-  if (!input) {
-    return fallback;
-  }
-
-  if (
-    !input.startsWith(
-      "/"
-    ) ||
-    input.startsWith(
-      "//"
-    )
-  ) {
-    return fallback;
-  }
-
-  return input;
-}
-
 function safeCompareStrings(
   left,
   right
@@ -3642,94 +3543,122 @@ function safeCompareStrings(
   );
 }
 
-app.get(
-  "/auth/google",
-  async (
-    req,
-    res
-  ) => {
-    try {
+async function startGoogleOAuth(
+  req,
+  res
+) {
+  try {
+    if (
+      !isGoogleOAuthConfigured()
+    ) {
+      return res.redirect(
+        "/?auth=login&error=" +
+          encodeURIComponent(
+            "Google Sign-In is not configured yet."
+          )
+      );
+    }
+
+    if (
+      req.method ===
+      "POST"
+    ) {
+      const captcha =
+        await verifyTurnstile(
+          req
+        );
+
       if (
-        !isGoogleOAuthConfigured()
+        !captcha.success
       ) {
         return res.redirect(
           "/?auth=login&error=" +
             encodeURIComponent(
-              "Google Sign-In is not configured yet."
+              captcha.message
             )
         );
       }
+    }
 
-      const state =
-        crypto
-          .randomBytes(
-            32
-          )
-          .toString(
-            "hex"
-          );
-
-      const returnTo =
-        sanitizeReturnTo(
-          req.query?.returnTo
+    const state =
+      crypto
+        .randomBytes(32)
+        .toString(
+          "hex"
         );
 
-      req.session.googleOAuthState =
-        state;
-
-      req.session.googleOAuthStateCreatedAt =
-        Date.now();
-
-      req.session.googleOAuthReturnTo =
-        returnTo;
-
-      await saveSession(
-        req
+    const returnTo =
+      sanitizeReturnTo(
+        req.body?.returnTo ||
+          req.query?.returnTo ||
+          "/"
       );
 
-      const params =
-        new URLSearchParams({
-          client_id:
-            GOOGLE_CLIENT_ID,
+    req.session.googleOAuthState =
+      state;
 
-          redirect_uri:
-            GOOGLE_CALLBACK_URL,
+    req.session.googleOAuthStateCreatedAt =
+      Date.now();
 
-          response_type:
-            "code",
+    req.session.googleOAuthReturnTo =
+      returnTo;
 
-          scope:
-            "openid email profile",
+    await saveSession(
+      req
+    );
 
-          state,
+    const params =
+      new URLSearchParams({
+        client_id:
+          GOOGLE_CLIENT_ID,
 
-          access_type:
-            "online",
+        redirect_uri:
+          GOOGLE_CALLBACK_URL,
 
-          prompt:
-            "select_account",
-        });
+        response_type:
+          "code",
 
-      return res.redirect(
-        302,
-        `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
-      );
-    } catch (
+        scope:
+          "openid email profile",
+
+        state,
+
+        access_type:
+          "online",
+
+        prompt:
+          "select_account",
+      });
+
+    return res.redirect(
+      302,
+      `https://accounts.google.com/o/oauth2/v2/auth?${params.toString()}`
+    );
+  } catch (
+    error
+  ) {
+    console.error(
+      "GOOGLE AUTH START ERROR:",
       error
-    ) {
-      console.error(
-        "GOOGLE AUTH START ERROR:",
-        error
-      );
+    );
 
-      return res.redirect(
-        "/?auth=login&error=" +
-          encodeURIComponent(
-            "Unable to start Google Sign-In."
-          )
-      );
-    }
+    return res.redirect(
+      "/?auth=login&error=" +
+        encodeURIComponent(
+          "Unable to start Google Sign-In."
+        )
+    );
   }
+}
+
+app.post(
+  "/auth/google/start",
+  startGoogleOAuth
+);
+
+app.get(
+  "/auth/google",
+  startGoogleOAuth
 );
 
 app.get(
@@ -3900,9 +3829,6 @@ app.get(
         await fetch(
           "https://www.googleapis.com/oauth2/v3/userinfo",
           {
-            method:
-              "GET",
-
             headers: {
               Authorization:
                 `Bearer ${accessToken}`,
@@ -4067,6 +3993,41 @@ app.get(
         );
       }
 
+      if (
+        !normalizePhone(
+          user.phone ||
+            ""
+        )
+      ) {
+        await regenerateSession(
+          req
+        );
+
+        req.session.googleProfileCompletion =
+          {
+            userId:
+              String(
+                user._id
+              ),
+
+            createdAt:
+              Date.now(),
+
+            returnTo,
+          };
+
+        await saveSession(
+          req
+        );
+
+        return res.redirect(
+          303,
+          `/?auth=complete-phone&returnTo=${encodeURIComponent(
+            returnTo
+          )}`
+        );
+      }
+
       await regenerateSession(
         req
       );
@@ -4102,6 +4063,629 @@ app.get(
             "Google Sign-In could not be completed. Please try again."
           )
       );
+    }
+  }
+);
+
+/* ============================================================
+   GOOGLE PROFILE COMPLETION
+============================================================ */
+
+app.post(
+  "/auth/google/complete-profile",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const completion =
+        req.session
+          ?.googleProfileCompletion;
+
+      if (
+        !completion
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              "Your Google profile completion session has expired. Please sign in with Google again.",
+          });
+      }
+
+      const createdAt =
+        Number(
+          completion.createdAt ||
+            0
+        );
+
+      if (
+        !createdAt ||
+        Date.now() -
+          createdAt >
+          GOOGLE_PROFILE_COMPLETION_MAX_AGE_MS
+      ) {
+        delete req.session
+          .googleProfileCompletion;
+
+        await saveSession(
+          req
+        );
+
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              "Your Google profile completion session has expired. Please sign in with Google again.",
+          });
+      }
+
+      const captcha =
+        await verifyTurnstile(
+          req
+        );
+
+      if (
+        !captcha.success
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              captcha.message,
+          });
+      }
+
+      const phone =
+        normalizePhone(
+          req.body?.phone ||
+            ""
+        );
+
+      if (
+        !/^09\d{9}$/.test(
+          phone
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              "Please provide a valid Philippine mobile number.",
+          });
+      }
+
+      if (
+        !mongoose.Types.ObjectId.isValid(
+          completion.userId
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              "Your Google profile could not be validated.",
+          });
+      }
+
+      const user =
+        await User.findById(
+          completion.userId
+        );
+
+      if (
+        !user
+      ) {
+        return res
+          .status(404)
+          .json({
+            success:
+              false,
+
+            message:
+              "Your Google account could not be found.",
+          });
+      }
+
+      if (
+        user.status &&
+        user.status !==
+          "active"
+      ) {
+        return res
+          .status(403)
+          .json({
+            success:
+              false,
+
+            message:
+              "Your account is currently unavailable.",
+          });
+      }
+
+      user.phone =
+        phone;
+
+      await user.save();
+
+      const returnTo =
+        sanitizeReturnTo(
+          completion.returnTo
+        );
+
+      delete req.session
+        .googleProfileCompletion;
+
+      await regenerateSession(
+        req
+      );
+
+      req.session.user =
+        createUserSessionData(
+          user
+        );
+
+      req.session.lastActivityAt =
+        Date.now();
+
+      await saveSession(
+        req
+      );
+
+      return res.json({
+        success:
+          true,
+
+        message:
+          "Your phone number has been added and your Google account is ready.",
+
+        redirect:
+          returnTo ||
+          "/profile",
+      });
+    } catch (
+      error
+    ) {
+      console.error(
+        "GOOGLE PROFILE COMPLETION ERROR:",
+        error
+      );
+
+      if (
+        isDuplicateKeyError(
+          error
+        )
+      ) {
+        return res
+          .status(409)
+          .json({
+            success:
+              false,
+
+            message:
+              "That phone number could not be saved.",
+          });
+      }
+
+      return res
+        .status(500)
+        .json({
+          success:
+            false,
+
+          message:
+            "Unable to complete your Google profile right now.",
+        });
+    }
+  }
+);
+
+/* ============================================================
+   FORGOT PASSWORD
+============================================================ */
+
+app.post(
+  "/auth/forgot-password",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const captcha =
+        await verifyTurnstile(
+          req
+        );
+
+      if (
+        !captcha.success
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              captcha.message,
+          });
+      }
+
+      const email =
+        normalizeEmail(
+          req.body?.email ||
+            ""
+        );
+
+      if (
+        !isValidEmail(
+          email
+        )
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              "Please provide a valid email address.",
+          });
+      }
+
+      const rateLimit =
+        checkPasswordResetRateLimit(
+          req,
+          email
+        );
+
+      if (
+        !rateLimit.allowed
+      ) {
+        return res
+          .status(429)
+          .json({
+            success:
+              false,
+
+            message:
+              "Too many password reset requests. Please try again later.",
+
+            retryAfter:
+              rateLimit.retryAfter,
+          });
+      }
+
+      const user =
+        await User.findByEmail(
+          email
+        ).select(
+          "+passwordResetTokenHash +passwordResetExpiresAt"
+        );
+
+      if (
+        !user ||
+        (
+          user.status &&
+          user.status !==
+            "active"
+        )
+      ) {
+        return res.json({
+          success:
+            true,
+
+          message:
+            "If an account exists for that email address, a password reset link has been sent.",
+        });
+      }
+
+      const rawToken =
+        generatePasswordResetToken();
+
+      user.passwordResetTokenHash =
+        hashPasswordResetToken(
+          rawToken
+        );
+
+      user.passwordResetExpiresAt =
+        new Date(
+          Date.now() +
+            PASSWORD_RESET_TOKEN_TTL_MS
+        );
+
+      await user.save();
+
+      const resetUrl =
+        `${getPublicBaseUrl(
+          req
+        )}/?auth=reset&token=${encodeURIComponent(
+          rawToken
+        )}`;
+
+      try {
+        await sendPasswordResetEmail(
+          email,
+          resetUrl
+        );
+      } catch (
+        mailError
+      ) {
+        console.error(
+          "PASSWORD RESET EMAIL ERROR:",
+          mailError
+        );
+
+        user.clearPasswordReset();
+
+        await user.save();
+
+        return res
+          .status(503)
+          .json({
+            success:
+              false,
+
+            message:
+              "We could not send the password reset email right now. Please try again later.",
+          });
+      }
+
+      return res.json({
+        success:
+          true,
+
+        message:
+          "If an account exists for that email address, a password reset link has been sent.",
+      });
+    } catch (
+      error
+    ) {
+      console.error(
+        "FORGOT PASSWORD ERROR:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          success:
+            false,
+
+          message:
+            "Unable to process the password reset request right now.",
+        });
+    }
+  }
+);
+
+/* ============================================================
+   RESET PASSWORD
+============================================================ */
+
+app.post(
+  "/auth/reset-password",
+  async (
+    req,
+    res
+  ) => {
+    try {
+      const captcha =
+        await verifyTurnstile(
+          req
+        );
+
+      if (
+        !captcha.success
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              captcha.message,
+          });
+      }
+
+      const token =
+        String(
+          req.body?.token ||
+            req.body?.resetToken ||
+            req.query?.token ||
+            ""
+        ).trim();
+
+      const password =
+        String(
+          req.body?.password ||
+            ""
+        );
+
+      const confirmPassword =
+        String(
+          req.body?.confirmPassword ||
+            req.body?.passwordConfirmation ||
+            ""
+        );
+
+      if (
+        !token
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              "The password reset link is invalid or incomplete.",
+          });
+      }
+
+      if (
+        password.length <
+        PASSWORD_MIN_LENGTH
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              `Password must be at least ${PASSWORD_MIN_LENGTH} characters.`,
+          });
+      }
+
+      if (
+        password.length >
+        128
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              "Password cannot exceed 128 characters.",
+          });
+      }
+
+      if (
+        password !==
+        confirmPassword
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              "Passwords do not match.",
+          });
+      }
+
+      const tokenHash =
+        hashPasswordResetToken(
+          token
+        );
+
+      const user =
+        await User.findOne({
+          passwordResetTokenHash:
+            tokenHash,
+
+          passwordResetExpiresAt:
+            {
+              $gt:
+                new Date(),
+            },
+        }).select(
+          "+passwordResetTokenHash " +
+            "+passwordResetExpiresAt"
+        );
+
+      if (
+        !user
+      ) {
+        return res
+          .status(400)
+          .json({
+            success:
+              false,
+
+            message:
+              "This password reset link is invalid or has expired. Please request a new one.",
+          });
+      }
+
+      if (
+        user.status &&
+        user.status !==
+          "active"
+      ) {
+        return res
+          .status(403)
+          .json({
+            success:
+              false,
+
+            message:
+              "Your account is currently unavailable.",
+          });
+      }
+
+      if (
+        typeof user.setPassword !==
+        "function"
+      ) {
+        throw new Error(
+          "User password service is unavailable."
+        );
+      }
+
+      await user.setPassword(
+        password
+      );
+
+      user.clearPasswordReset();
+
+      user.failedLoginAttempts =
+        0;
+
+      user.lockedUntil =
+        null;
+
+      await user.save();
+
+      return res.json({
+        success:
+          true,
+
+        message:
+          "Your password has been reset successfully. You can now sign in.",
+
+        redirect:
+          "/?auth=login&success=" +
+          encodeURIComponent(
+            "Your password has been reset successfully."
+          ),
+      });
+    } catch (
+      error
+    ) {
+      console.error(
+        "RESET PASSWORD ERROR:",
+        error
+      );
+
+      return res
+        .status(500)
+        .json({
+          success:
+            false,
+
+          message:
+            "Unable to reset your password right now. Please try again.",
+        });
     }
   }
 );
@@ -4198,6 +4782,181 @@ app.get(
 );
 
 /* ============================================================
+   ADMIN COMPATIBILITY
+============================================================ */
+
+async function requireAdmin(
+  req,
+  res,
+  next
+) {
+  try {
+    const adminId =
+      req.session?.admin?.id ||
+      req.session?.admin?._id;
+
+    if (
+      !adminId ||
+      !mongoose.Types.ObjectId.isValid(
+        adminId
+      )
+    ) {
+      clearAdminSessionCookie(
+        res
+      );
+
+      return res.redirect(
+        "/admin/login?error=" +
+          encodeURIComponent(
+            "Administrator login required."
+          )
+      );
+    }
+
+    const admin =
+      await Admin.findById(
+        adminId
+      )
+        .select(
+          "username role status active"
+        )
+        .lean();
+
+    if (
+      !admin
+    ) {
+      await destroySession(
+        req
+      ).catch(
+        () => {}
+      );
+
+      clearAdminSessionCookie(
+        res
+      );
+
+      return res.redirect(
+        "/admin/login?error=" +
+          encodeURIComponent(
+            "Your administrator session is no longer valid."
+          )
+      );
+    }
+
+    if (
+      (
+        admin.status &&
+        String(
+          admin.status
+        )
+          .toLowerCase() !==
+          "active"
+      ) ||
+      admin.active ===
+        false
+    ) {
+      await destroySession(
+        req
+      ).catch(
+        () => {}
+      );
+
+      clearAdminSessionCookie(
+        res
+      );
+
+      return res.redirect(
+        "/admin/login?error=" +
+          encodeURIComponent(
+            "Your administrator account is currently unavailable."
+          )
+      );
+    }
+
+    req.session.admin =
+      {
+        ...req.session.admin,
+
+        ...createAdminSessionData(
+          admin
+        ),
+      };
+
+    next();
+  } catch (
+    error
+  ) {
+    console.error(
+      "SERVER requireAdmin ERROR:",
+      error
+    );
+
+    return res
+      .status(500)
+      .send(
+        "Unable to validate administrator access."
+      );
+  }
+}
+
+function requireUser(
+  req,
+  res,
+  next
+) {
+  const sessionUser =
+    req.session?.user;
+
+  if (
+    !sessionUser
+  ) {
+    return res.redirect(
+      "/?auth=login&error=" +
+        encodeURIComponent(
+          "Please log in to continue."
+        )
+    );
+  }
+
+  if (
+    sessionUser.status &&
+    sessionUser.status !==
+      "active"
+  ) {
+    return destroySession(
+      req
+    )
+      .catch(
+        (error) =>
+          console.error(
+            "SESSION CLEANUP ERROR:",
+            error
+          )
+      )
+      .finally(
+        () => {
+          clearSessionCookie(
+            res
+          );
+
+          if (
+            !res.headersSent
+          ) {
+            res.redirect(
+              "/?auth=login&error=" +
+                encodeURIComponent(
+                  "Your account is currently unavailable."
+                )
+            );
+          }
+        }
+      );
+  }
+
+  next();
+}
+
+/* ============================================================
    ADMIN LOGIN COMPATIBILITY
 ============================================================ */
 
@@ -4232,46 +4991,112 @@ app.get(
       );
     }
 
-    const suffix =
-      query.toString()
-        ? `?${query.toString()}`
-        : "";
-
     return res.redirect(
-      `/admin/login${suffix}`
+      `/admin/login${
+        query.toString()
+          ? `?${query.toString()}`
+          : ""
+      }`
     );
   }
 );
 
 /* ============================================================
-   LEGACY BOOKING ROUTE CANONICALIZATION
+   HEALTH
 ============================================================ */
 
-app.use(
+app.get(
+  "/health",
   (
     req,
-    res,
-    next
+    res
   ) => {
+    const mongoReady =
+      mongoose.connection.readyState ===
+      1;
+
+    const payload = {
+      success:
+        mongoReady,
+
+      status:
+        mongoReady
+          ? "ok"
+          : "degraded",
+
+      server:
+        "online",
+
+      database:
+        mongoReady
+          ? "connected"
+          : "disconnected",
+
+      uptimeSeconds:
+        Math.floor(
+          process.uptime()
+        ),
+
+      timestamp:
+        new Date().toISOString(),
+    };
+
     if (
-      !isAdminPath(req) &&
-      req.method ===
-        "POST" &&
-      req.path ===
-        "/booking/submit"
+      !IS_PRODUCTION
     ) {
-      /*
-       * Canonical customer booking endpoint.
-       *
-       * CSRF sees /appointment/submit as the request URL after
-       * this middleware because this middleware is mounted before
-       * the global mutation guard below.
-       */
-      req.url =
-        "/appointment/submit";
+      payload.environment =
+        NODE_ENV;
     }
 
-    next();
+    return res
+      .status(
+        mongoReady
+          ? 200
+          : 503
+      )
+      .json(
+        payload
+      );
+  }
+);
+
+app.get(
+  "/ready",
+  (
+    req,
+    res
+  ) => {
+    const mongoReady =
+      mongoose.connection.readyState ===
+      1;
+
+    if (
+      !mongoReady
+    ) {
+      return res
+        .status(503)
+        .json({
+          success:
+            false,
+
+          ready:
+            false,
+
+          database:
+            "disconnected",
+        });
+    }
+
+    return res.json({
+      success:
+        true,
+
+      ready:
+        true,
+
+      database:
+        "connected",
+    });
   }
 );
 
@@ -4285,7 +5110,7 @@ app.use(
 );
 
 /* ============================================================
-   HOME
+   HOME / STATIC PAGES
 ============================================================ */
 
 app.get(
@@ -4293,39 +5118,33 @@ app.get(
   (
     req,
     res
-  ) => {
-    return res.render(
+  ) =>
+    res.render(
       "index",
       {
         title:
           "Puffer Isle Resort",
       }
-    );
-  }
+    )
 );
-
-/* ============================================================
-   RESORT RULES
-============================================================ */
 
 app.get(
   "/rules",
   (
     req,
     res
-  ) => {
-    return res.render(
+  ) =>
+    res.render(
       "rules",
       {
         title:
           "Resort Rules | Puffer Isle Resort",
       }
-    );
-  }
+    )
 );
 
 /* ============================================================
-   404 HELPERS
+   404 / ERROR HANDLING
 ============================================================ */
 
 function isApiRequest(
@@ -4344,10 +5163,6 @@ function isApiRequest(
       "/ready"
   );
 }
-
-/* ============================================================
-   404 HANDLER
-============================================================ */
 
 app.use(
   (
@@ -4386,14 +5201,13 @@ app.use(
 
           error:
             "The page you requested could not be found.",
+
+          requestId:
+            req.requestId,
         }
       );
   }
 );
-
-/* ============================================================
-   ERROR HANDLER
-============================================================ */
 
 app.use(
   (
@@ -4453,6 +5267,9 @@ app.use(
               ? "Something went wrong while processing your request."
               : error.message ||
                 "Something went wrong.",
+
+          requestId:
+            req.requestId,
         }
       );
   }
@@ -4501,32 +5318,29 @@ async function connectDatabase() {
 
 mongoose.connection.on(
   "connected",
-  () => {
+  () =>
     console.log(
       "🟢 Mongoose connection established."
-    );
-  }
+    )
 );
 
 mongoose.connection.on(
   "error",
   (
     error
-  ) => {
+  ) =>
     console.error(
       "🔴 MongoDB connection error:",
       error
-    );
-  }
+    )
 );
 
 mongoose.connection.on(
   "disconnected",
-  () => {
+  () =>
     console.warn(
       "🟡 MongoDB disconnected."
-    );
-  }
+    )
 );
 
 /* ============================================================
@@ -4609,11 +5423,14 @@ async function ensureDefaultAdmin() {
 }
 
 /* ============================================================
-   SERVER STARTUP
+   STARTUP
 ============================================================ */
 
 let httpServer =
   null;
+
+let shuttingDown =
+  false;
 
 async function startServer() {
   try {
@@ -4664,6 +5481,15 @@ async function startServer() {
     );
 
     console.log(
+      `🛡️ Turnstile: ${
+        TURNSTILE_SITE_KEY &&
+        TURNSTILE_SECRET_KEY
+          ? "configured"
+          : "not configured"
+      }`
+    );
+
+    console.log(
       `🛡️ User idle timeout: ${USER_IDLE_TIMEOUT_MINUTES} minutes`
     );
 
@@ -4692,18 +5518,12 @@ async function startServer() {
             "----------------------------------------------"
           );
 
-          if (
+          console.log(
             HOST ===
-            "127.0.0.1"
-          ) {
-            console.log(
-              `🌐 Local: http://localhost:${PORT}`
-            );
-          } else {
-            console.log(
-              `🌐 Listening on ${HOST}:${PORT}`
-            );
-          }
+              "127.0.0.1"
+              ? `🌐 Local: http://localhost:${PORT}`
+              : `🌐 Listening on ${HOST}:${PORT}`
+          );
 
           console.log(
             "🔐 User Login: /login"
@@ -4715,6 +5535,18 @@ async function startServer() {
 
           console.log(
             "🔐 Google Login: /auth/google"
+          );
+
+          console.log(
+            "🔐 Google Start: /auth/google/start"
+          );
+
+          console.log(
+            "🔐 Forgot Password: /auth/forgot-password"
+          );
+
+          console.log(
+            "🔐 Reset Password: /auth/reset-password"
           );
 
           console.log(
@@ -4765,14 +5597,10 @@ async function startServer() {
       "----------------------------------------------"
     );
 
-    const errorMessage =
-      String(
-        error.message ||
-          ""
-      );
-
     if (
-      errorMessage.includes(
+      String(
+        error.message || ""
+      ).includes(
         "ECONNREFUSED"
       )
     ) {
@@ -4782,7 +5610,9 @@ async function startServer() {
     }
 
     if (
-      errorMessage
+      String(
+        error.message || ""
+      )
         .toLowerCase()
         .includes(
           "authentication failed"
@@ -4802,9 +5632,6 @@ async function startServer() {
 /* ============================================================
    GRACEFUL SHUTDOWN
 ============================================================ */
-
-let shuttingDown =
-  false;
 
 async function gracefulShutdown(
   signal
@@ -4892,12 +5719,11 @@ process.on(
   "unhandledRejection",
   (
     reason
-  ) => {
+  ) =>
     console.error(
       "UNHANDLED PROMISE REJECTION:",
       reason
-    );
-  }
+    )
 );
 
 process.on(
