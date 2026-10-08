@@ -276,6 +276,21 @@ const GOOGLE_OAUTH_STATE_MAX_AGE_MS =
 const otpRequestTracker =
   new Map();
 
+const passwordResetRequestTracker =
+  new Map();
+
+const PASSWORD_RESET_REQUEST_WINDOW_MS =
+  60 *
+  60 *
+  1000;
+
+const PASSWORD_RESET_MAX_REQUESTS_PER_WINDOW =
+  5;
+
+const GOOGLE_PROFILE_COMPLETION_MAX_AGE_MS =
+  10 *
+  60 *
+  1000;
 /* ============================================================
    ENVIRONMENT VALIDATION
 ============================================================ */
