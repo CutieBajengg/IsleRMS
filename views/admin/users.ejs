@@ -1,0 +1,1887 @@
+<%
+/* ============================================================
+ * PUFFER ISLE RESORT | IsleRMS
+ * views/admin/users.ejs
+ *
+ * Customer Intelligence / CRM-style admin page.
+ * Designed to work with the existing adminRoutes /users route.
+ *
+ * Expected server-side variables (defensively optional):
+ *   users, admin, csrfToken
+ *
+ * The page intentionally accepts several possible booking-summary
+ * property names so it remains compatible with your current route.
+ * ============================================================ */
+
+const sourceUsers = Array.isArray(users) ? users : [];
+
+function clean(value, fallback = "—") {
+  if (value === null || value === undefined) return fallback;
+  const text = String(value).trim();
+  return text ? text : fallback;
+}
+
+function firstValue(...values) {
+  for (const value of values) {
+    if (value !== undefined && value !== null && String(value).trim() !== "") {
+      return value;
+    }
+  }
+  return null;
+}
+
+function firstNumber(...values) {
+  for (const value of values) {
+    const num = Number(value);
+    if (Number.isFinite(num)) return num;
+  }
+  return 0;
+}
+
+function asDate(value) {
+  if (!value) return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime()) ? null : date;
+}
+
+function isoDate(value) {
+  const date = asDate(value);
+  return date ? date.toISOString() : "";
+}
+
+function normalizeStatus(value) {
+  return clean(value, "unknown").toLowerCase().replace(/[_\s]+/g, "-");
+}
+
+function normalizeUser(user) {
+  const source = user && typeof user === "object" ? user : {};
+  const summary = source.bookingSummary || source.summary || source.bookingStats || source.stats || {};
+  const bookingArray = Array.isArray(source.bookings) ? source.bookings : [];
+
+  const firstName = clean(firstValue(source.firstName, source.givenName), "");
+  const lastName = clean(firstValue(source.lastName, source.familyName), "");
+  const constructedName = [firstName !== "—" ? firstName : "", lastName !== "—" ? lastName : ""]
+    .filter(Boolean)
+    .join(" ")
+    .trim();
+
+  const fullname = clean(
+    firstValue(source.fullname, source.fullName, source.name, constructedName, source.username, source.email),
+    "Guest"
+  );
+
+  const totalBookings = Math.max(
+    0,
+    Math.round(firstNumber(
+      summary.totalBookings,
+      summary.bookingCount,
+      summary.count,
+      source.totalBookings,
+      source.bookingCount,
+      source.bookingsCount,
+      bookingArray.length
+    ))
+  );
+
+  const totalSpent = Math.max(0, firstNumber(
+    summary.totalSpent,
+    summary.totalSpend,
+    summary.totalRevenue,
+    summary.spent,
+    summary.amountSpent,
+    source.totalSpent,
+    source.totalSpend,
+    source.bookingValue,
+    source.totalBookingValue,
+    source.totalRevenue
+  ));
+
+  const completedBookings = Math.max(0, Math.round(firstNumber(
+    summary.completedBookings,
+    summary.completed,
+    source.completedBookings
+  )));
+
+  const cancelledBookings = Math.max(0, Math.round(firstNumber(
+    summary.cancelledBookings,
+    summary.cancelled,
+    source.cancelledBookings
+  )));
+
+  const pendingBookings = Math.max(0, Math.round(firstNumber(
+    summary.pendingBookings,
+    summary.pending,
+    source.pendingBookings
+  )));
+
+  const activeBookings = Math.max(0, Math.round(firstNumber(
+    summary.activeBookings,
+    summary.active,
+    source.activeBookings
+  )));
+
+  const averageBookingValue = totalBookings > 0
+    ? totalSpent / totalBookings
+    : 0;
+
+  const lastBooking = firstValue(
+    summary.lastBooking,
+    summary.lastBookingAt,
+    summary.lastActivity,
+    source.lastBooking,
+    source.lastBookingAt,
+    source.lastActivity,
+    source.updatedAt
+  );
+
+  const memberLevel = clean(firstValue(
+    source.memberLevel,
+    source.membershipLevel,
+    source.tier,
+    source.level
+  ), "Guest");
+
+  const status = normalizeStatus(firstValue(source.status, source.accountStatus), "active");
+  const emailVerified = Boolean(
+    source.emailVerified === true ||
+    source.emailVerified === "true" ||
+    source.verified === true ||
+    source.isVerified === true
+  );
+
+  return {
+    id: clean(firstValue(source._id, source.id, source.userId), ""),
+    fullname,
+    email: clean(source.email, "No email"),
+    phone: clean(firstValue(source.phone, source.contact, source.mobile), "Not provided"),
+    username: clean(source.username, "Not set"),
+    status,
+    memberLevel,
+    emailVerified,
+    totalBookings,
+    totalSpent,
+    completedBookings,
+    cancelledBookings,
+    pendingBookings,
+    activeBookings,
+    averageBookingValue,
+    lastBookingAt: isoDate(lastBooking),
+    createdAt: isoDate(firstValue(source.createdAt, source.registeredAt, source.joinedAt)),
+    lastLoginAt: isoDate(firstValue(source.lastLoginAt, source.lastLogin)),
+    failedLoginAttempts: Math.max(0, Math.round(firstNumber(source.failedLoginAttempts))),
+    lockedUntil: isoDate(source.lockedUntil),
+    avatar: clean(firstValue(source.avatar, source.profileImage, source.photo), ""),
+    bookingCountLabel: totalBookings === 1 ? "1 booking" : `${totalBookings} bookings`
+  };
+}
+
+const userRows = sourceUsers.map(normalizeUser).filter((user) => user.id || user.email || user.fullname);
+
+const overview = userRows.reduce((acc, user) => {
+  acc.customers += 1;
+  if (user.status === "active") acc.active += 1;
+  if (user.emailVerified) acc.verified += 1;
+  acc.bookings += user.totalBookings;
+  acc.spent += user.totalSpent;
+  if (user.totalBookings >= 2) acc.returning += 1;
+  return acc;
+}, { customers: 0, active: 0, verified: 0, bookings: 0, spent: 0, returning: 0 });
+
+const avgPerCustomer = overview.customers > 0 ? overview.spent / overview.customers : 0;
+const avgBookingValue = overview.bookings > 0 ? overview.spent / overview.bookings : 0;
+const currentAdminName = clean(firstValue(admin && admin.username, admin && admin.name, admin && admin.email), "Administrator");
+const initialCsrfToken = clean(typeof csrfToken !== "undefined" ? csrfToken : "", "");
+
+function php(value) {
+  const amount = Number(value) || 0;
+  return `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+}
+%>
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#071416">
+  <meta name="color-scheme" content="dark">
+  <title>Customers | IsleRMS Admin</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
+
+  <style>
+    :root {
+      --bg: #061114;
+      --bg-soft: #0a191c;
+      --panel: rgba(13, 30, 33, 0.94);
+      --panel-2: rgba(16, 36, 39, 0.92);
+      --panel-3: rgba(24, 46, 49, 0.82);
+      --border: rgba(255, 255, 255, 0.085);
+      --border-strong: rgba(242, 191, 72, 0.24);
+      --gold: #f2bf48;
+      --gold-bright: #ffd970;
+      --teal: #2dc7bd;
+      --teal-soft: rgba(45, 199, 189, 0.12);
+      --green: #63d59a;
+      --red: #ff7d86;
+      --blue: #7fb5ff;
+      --orange: #ffb463;
+      --text: #f4f6f5;
+      --muted: #9caeae;
+      --muted-2: #718383;
+      --shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
+      --radius-xl: 24px;
+      --radius-lg: 18px;
+      --radius-md: 14px;
+      --radius-sm: 10px;
+    }
+
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background:
+        radial-gradient(circle at 10% 0%, rgba(45, 199, 189, 0.09), transparent 28%),
+        radial-gradient(circle at 95% 8%, rgba(242, 191, 72, 0.08), transparent 24%),
+        linear-gradient(180deg, #061114 0%, #081517 52%, #061012 100%);
+      color: var(--text);
+      font-family: "DM Sans", sans-serif;
+      overflow-x: hidden;
+    }
+
+    body.modal-open { overflow: hidden; }
+
+    a { color: inherit; text-decoration: none; }
+    button, input, select { font: inherit; }
+    button { color: inherit; }
+
+    .page-shell {
+      width: min(1500px, calc(100% - 36px));
+      margin: 0 auto;
+      padding: 34px 0 56px;
+    }
+
+    .page-header {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 24px;
+      margin-bottom: 26px;
+    }
+
+    .eyebrow {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      text-transform: uppercase;
+      letter-spacing: 0.16em;
+      font-size: 0.7rem;
+      font-weight: 700;
+      color: var(--gold-bright);
+      margin-bottom: 9px;
+    }
+
+    .eyebrow::before {
+      content: "";
+      width: 26px;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--gold));
+    }
+
+    h1, h2, h3 { margin: 0; }
+    h1 {
+      font-family: "Playfair Display", serif;
+      font-size: clamp(2rem, 3vw, 3.3rem);
+      line-height: 1.06;
+      letter-spacing: -0.025em;
+    }
+
+    .page-subtitle {
+      color: var(--muted);
+      margin: 10px 0 0;
+      max-width: 760px;
+      line-height: 1.65;
+      font-size: 0.95rem;
+    }
+
+    .header-actions {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+    }
+
+    .button {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.035);
+      min-height: 44px;
+      padding: 0 15px;
+      border-radius: 12px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 9px;
+      cursor: pointer;
+      transition: 180ms ease;
+      color: var(--text);
+    }
+
+    .button:hover {
+      transform: translateY(-1px);
+      border-color: rgba(242,191,72,0.28);
+      background: rgba(255,255,255,0.06);
+    }
+
+    .button.gold {
+      background: linear-gradient(135deg, #e3ad3c, #f2c65d);
+      color: #102018;
+      border-color: transparent;
+      box-shadow: 0 12px 26px rgba(242,191,72,0.14);
+      font-weight: 800;
+    }
+
+    .button.gold:hover { background: linear-gradient(135deg, #efbc4d, #ffdc7b); }
+    .button:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .metric-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 14px;
+      margin-bottom: 15px;
+    }
+
+    .metric-card {
+      position: relative;
+      min-height: 158px;
+      padding: 20px;
+      border-radius: var(--radius-lg);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
+        var(--panel);
+      border: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .metric-card::after {
+      content: "";
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      border-radius: 999px;
+      right: -52px;
+      top: -52px;
+      background: radial-gradient(circle, rgba(242,191,72,0.13), transparent 68%);
+      pointer-events: none;
+    }
+
+    .metric-top {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .metric-label {
+      font-size: 0.75rem;
+      color: var(--muted);
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .metric-icon {
+      width: 40px;
+      height: 40px;
+      border-radius: 12px;
+      display: grid;
+      place-items: center;
+      background: var(--teal-soft);
+      color: var(--teal);
+      border: 1px solid rgba(45,199,189,0.16);
+    }
+
+    .metric-card.gold .metric-icon {
+      background: rgba(242,191,72,0.1);
+      color: var(--gold-bright);
+      border-color: rgba(242,191,72,0.16);
+    }
+
+    .metric-card.blue .metric-icon {
+      background: rgba(127,181,255,0.1);
+      color: var(--blue);
+      border-color: rgba(127,181,255,0.16);
+    }
+
+    .metric-card.green .metric-icon {
+      background: rgba(99,213,154,0.1);
+      color: var(--green);
+      border-color: rgba(99,213,154,0.16);
+    }
+
+    .metric-value {
+      margin-top: 17px;
+      font-size: clamp(1.65rem, 3vw, 2.25rem);
+      font-weight: 800;
+      letter-spacing: -0.04em;
+      line-height: 1;
+    }
+
+    .metric-note {
+      margin-top: 11px;
+      color: var(--muted-2);
+      font-size: 0.77rem;
+    }
+
+    .insight-strip {
+      display: grid;
+      grid-template-columns: 1fr 1fr 1fr;
+      gap: 14px;
+      margin-bottom: 18px;
+    }
+
+    .insight-card {
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.022);
+      border-radius: var(--radius-lg);
+      padding: 15px 17px;
+      display: flex;
+      align-items: center;
+      gap: 13px;
+    }
+
+    .insight-icon {
+      width: 38px;
+      height: 38px;
+      display: grid;
+      place-items: center;
+      border-radius: 11px;
+      background: rgba(255,255,255,0.045);
+      color: var(--gold-bright);
+      flex: 0 0 auto;
+    }
+
+    .insight-copy strong { display: block; font-size: 0.9rem; }
+    .insight-copy span { display: block; color: var(--muted); font-size: 0.76rem; margin-top: 3px; }
+
+    .panel {
+      border: 1px solid var(--border);
+      background:
+        linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.012)),
+        var(--panel);
+      border-radius: var(--radius-xl);
+      box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+
+    .panel-head {
+      padding: 19px 20px 16px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 16px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .panel-title-wrap h2 {
+      font-size: 1.05rem;
+      font-weight: 800;
+    }
+
+    .panel-title-wrap p {
+      margin: 5px 0 0;
+      color: var(--muted);
+      font-size: 0.78rem;
+    }
+
+    .result-count {
+      color: var(--muted);
+      font-size: 0.78rem;
+      white-space: nowrap;
+    }
+
+    .toolbar {
+      padding: 14px 16px;
+      display: grid;
+      grid-template-columns: minmax(240px, 1.7fr) repeat(3, minmax(135px, 0.65fr)) auto;
+      gap: 10px;
+      border-bottom: 1px solid var(--border);
+      background: rgba(0,0,0,0.1);
+    }
+
+    .field {
+      position: relative;
+    }
+
+    .field.search-field i {
+      position: absolute;
+      left: 13px;
+      top: 50%;
+      transform: translateY(-50%);
+      color: var(--muted-2);
+      pointer-events: none;
+    }
+
+    .control,
+    .select-control {
+      width: 100%;
+      min-height: 43px;
+      padding: 0 13px;
+      color: var(--text);
+      background: rgba(3, 12, 14, 0.72);
+      border: 1px solid var(--border);
+      border-radius: 11px;
+      outline: none;
+      transition: 160ms ease;
+    }
+
+    .search-field .control { padding-left: 39px; }
+    .control::placeholder { color: #687a7a; }
+    .control:focus,
+    .select-control:focus {
+      border-color: rgba(45,199,189,0.42);
+      box-shadow: 0 0 0 3px rgba(45,199,189,0.07);
+    }
+
+    .select-control option {
+      background: #102124;
+      color: #fff;
+    }
+
+    .filter-button {
+      min-width: 44px;
+      padding: 0 13px;
+    }
+
+    .table-wrap { overflow: auto; }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 980px;
+    }
+
+    th,
+    td {
+      text-align: left;
+      padding: 14px 17px;
+      border-bottom: 1px solid rgba(255,255,255,0.055);
+      vertical-align: middle;
+    }
+
+    th {
+      background: rgba(255,255,255,0.02);
+      color: var(--muted-2);
+      font-size: 0.67rem;
+      letter-spacing: 0.1em;
+      text-transform: uppercase;
+      font-weight: 800;
+      position: sticky;
+      top: 0;
+      z-index: 2;
+    }
+
+    td {
+      font-size: 0.84rem;
+      color: #e6eceb;
+    }
+
+    tbody tr {
+      transition: background 150ms ease;
+      cursor: pointer;
+    }
+
+    tbody tr:hover { background: rgba(45,199,189,0.035); }
+    tbody tr:focus-within { background: rgba(242,191,72,0.035); }
+
+    .user-cell {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      min-width: 260px;
+    }
+
+    .avatar {
+      width: 42px;
+      height: 42px;
+      border-radius: 13px;
+      display: grid;
+      place-items: center;
+      flex: 0 0 auto;
+      background: linear-gradient(135deg, rgba(45,199,189,0.18), rgba(242,191,72,0.14));
+      color: var(--gold-bright);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-weight: 800;
+      overflow: hidden;
+    }
+
+    .avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .user-primary {
+      min-width: 0;
+    }
+
+    .user-primary strong {
+      display: block;
+      font-size: 0.88rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 260px;
+    }
+
+    .user-primary span {
+      display: block;
+      margin-top: 3px;
+      color: var(--muted);
+      font-size: 0.74rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 260px;
+    }
+
+    .stacked-value strong { display: block; font-size: 0.85rem; }
+    .stacked-value span { display: block; margin-top: 4px; color: var(--muted); font-size: 0.72rem; }
+
+    .money {
+      color: var(--gold-bright);
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      min-height: 26px;
+      padding: 0 9px;
+      border-radius: 999px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: #dce5e4;
+      font-size: 0.68rem;
+      font-weight: 800;
+      white-space: nowrap;
+    }
+
+    .pill i { font-size: 0.5rem; }
+
+    .pill.active,
+    .pill.completed,
+    .pill.verified {
+      color: #a8f1c8;
+      border-color: rgba(99,213,154,0.22);
+      background: rgba(99,213,154,0.08);
+    }
+
+    .pill.suspended,
+    .pill.inactive,
+    .pill.cancelled {
+      color: #ffb7bd;
+      border-color: rgba(255,125,134,0.2);
+      background: rgba(255,125,134,0.07);
+    }
+
+    .pill.pending,
+    .pill.guest {
+      color: #ffe0a1;
+      border-color: rgba(242,191,72,0.19);
+      background: rgba(242,191,72,0.07);
+    }
+
+    .pill.confirmed,
+    .pill.accepted {
+      color: #a8d1ff;
+      border-color: rgba(127,181,255,0.2);
+      background: rgba(127,181,255,0.07);
+    }
+
+    .row-action {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.025);
+      display: grid;
+      place-items: center;
+      cursor: pointer;
+      transition: 160ms ease;
+    }
+
+    .row-action:hover {
+      color: var(--gold-bright);
+      border-color: rgba(242,191,72,0.28);
+      background: rgba(242,191,72,0.06);
+    }
+
+    .empty-state {
+      padding: 54px 26px;
+      text-align: center;
+      color: var(--muted);
+    }
+
+    .empty-icon {
+      width: 58px;
+      height: 58px;
+      margin: 0 auto 13px;
+      border-radius: 17px;
+      display: grid;
+      place-items: center;
+      background: rgba(45,199,189,0.08);
+      color: var(--teal);
+      font-size: 1.25rem;
+    }
+
+    .empty-state strong { display: block; color: var(--text); margin-bottom: 5px; }
+
+    .pagination {
+      padding: 14px 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-top: 1px solid var(--border);
+      background: rgba(0,0,0,0.1);
+    }
+
+    .pagination-copy { color: var(--muted); font-size: 0.76rem; }
+    .pagination-actions { display: flex; gap: 8px; }
+
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      display: none;
+      align-items: center;
+      justify-content: center;
+      padding: 18px;
+      background: rgba(1, 8, 10, 0.78);
+      backdrop-filter: blur(10px);
+      z-index: 2000;
+    }
+
+    .modal-backdrop.open { display: flex; }
+
+    .modal {
+      width: min(1060px, 100%);
+      max-height: min(92vh, 900px);
+      border: 1px solid rgba(255,255,255,0.1);
+      background:
+        radial-gradient(circle at 90% 0%, rgba(242,191,72,0.08), transparent 24%),
+        linear-gradient(180deg, rgba(18,39,42,0.98), rgba(8,20,23,0.99));
+      border-radius: 26px;
+      box-shadow: 0 35px 100px rgba(0,0,0,0.52);
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+    }
+
+    .modal-head {
+      padding: 20px 22px;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 18px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .profile-head {
+      display: flex;
+      align-items: center;
+      gap: 14px;
+      min-width: 0;
+    }
+
+    .profile-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 18px;
+      display: grid;
+      place-items: center;
+      background: linear-gradient(135deg, rgba(45,199,189,0.2), rgba(242,191,72,0.18));
+      color: var(--gold-bright);
+      border: 1px solid rgba(255,255,255,0.08);
+      font-size: 1.25rem;
+      font-weight: 900;
+      overflow: hidden;
+      flex: 0 0 auto;
+    }
+
+    .profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
+
+    .profile-meta { min-width: 0; }
+    .profile-meta h2 {
+      font-family: "Playfair Display", serif;
+      font-size: 1.45rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+    }
+
+    .profile-meta p {
+      margin: 4px 0 7px;
+      color: var(--muted);
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 650px;
+    }
+
+    .profile-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+
+    .close-modal {
+      width: 40px;
+      height: 40px;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.035);
+      border-radius: 11px;
+      cursor: pointer;
+      flex: 0 0 auto;
+    }
+
+    .modal-body {
+      padding: 20px 22px 24px;
+      overflow: auto;
+    }
+
+    .modal-loading {
+      min-height: 300px;
+      display: grid;
+      place-items: center;
+      color: var(--muted);
+    }
+
+    .spinner {
+      width: 34px;
+      height: 34px;
+      border-radius: 999px;
+      border: 3px solid rgba(255,255,255,0.12);
+      border-top-color: var(--gold);
+      animation: spin 800ms linear infinite;
+      margin-bottom: 10px;
+    }
+
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .detail-kpis {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 10px;
+      margin-bottom: 14px;
+    }
+
+    .detail-kpi {
+      border: 1px solid var(--border);
+      border-radius: 15px;
+      padding: 15px;
+      background: rgba(255,255,255,0.025);
+    }
+
+    .detail-kpi span {
+      color: var(--muted);
+      font-size: 0.69rem;
+      text-transform: uppercase;
+      letter-spacing: 0.08em;
+      font-weight: 700;
+    }
+
+    .detail-kpi strong {
+      display: block;
+      margin-top: 8px;
+      font-size: 1.25rem;
+    }
+
+    .detail-grid {
+      display: grid;
+      grid-template-columns: 0.95fr 1.55fr;
+      gap: 14px;
+      margin-bottom: 14px;
+    }
+
+    .detail-card {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      background: rgba(255,255,255,0.02);
+      padding: 17px;
+    }
+
+    .detail-card h3 {
+      font-size: 0.88rem;
+      margin-bottom: 13px;
+    }
+
+    .info-list { display: grid; gap: 11px; }
+
+    .info-item {
+      display: flex;
+      justify-content: space-between;
+      gap: 18px;
+      padding-bottom: 10px;
+      border-bottom: 1px solid rgba(255,255,255,0.05);
+    }
+
+    .info-item:last-child { border-bottom: 0; padding-bottom: 0; }
+    .info-item span { color: var(--muted); font-size: 0.75rem; }
+    .info-item strong { font-size: 0.77rem; text-align: right; word-break: break-word; }
+
+    .booking-list-wrap {
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      overflow: hidden;
+      background: rgba(255,255,255,0.018);
+    }
+
+    .booking-list-head {
+      padding: 15px 17px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      border-bottom: 1px solid var(--border);
+    }
+
+    .booking-list-head strong { font-size: 0.9rem; }
+    .booking-list-head span { font-size: 0.72rem; color: var(--muted); }
+
+    .mini-table { min-width: 760px; }
+    .mini-table th { position: static; }
+    .mini-table td, .mini-table th { padding: 12px 14px; }
+
+    .skeleton {
+      height: 16px;
+      width: 100%;
+      border-radius: 7px;
+      background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.1), rgba(255,255,255,0.05));
+      background-size: 200% 100%;
+      animation: shimmer 1.25s infinite;
+    }
+
+    @keyframes shimmer { to { background-position: -200% 0; } }
+
+    .toast-stack {
+      position: fixed;
+      right: 20px;
+      bottom: 20px;
+      z-index: 3000;
+      display: grid;
+      gap: 9px;
+      width: min(390px, calc(100vw - 40px));
+    }
+
+    .toast {
+      padding: 13px 15px;
+      border-radius: 13px;
+      border: 1px solid var(--border);
+      background: rgba(13,30,33,0.97);
+      box-shadow: var(--shadow);
+      display: flex;
+      align-items: flex-start;
+      gap: 10px;
+      transform: translateY(10px);
+      opacity: 0;
+      animation: toastIn 180ms ease forwards;
+    }
+
+    .toast.success { border-color: rgba(99,213,154,0.2); }
+    .toast.error { border-color: rgba(255,125,134,0.22); }
+    .toast-icon { color: var(--teal); margin-top: 2px; }
+    .toast.error .toast-icon { color: var(--red); }
+    .toast strong { display: block; font-size: 0.8rem; }
+    .toast span { display: block; margin-top: 2px; color: var(--muted); font-size: 0.73rem; line-height: 1.45; }
+
+    @keyframes toastIn { to { transform: translateY(0); opacity: 1; } }
+
+    .sr-only {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      padding: 0 !important;
+      margin: -1px !important;
+      overflow: hidden !important;
+      clip: rect(0, 0, 0, 0) !important;
+      white-space: nowrap !important;
+      border: 0 !important;
+    }
+
+    .muted { color: var(--muted); }
+    .nowrap { white-space: nowrap; }
+
+    @media (max-width: 1150px) {
+      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .toolbar { grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(140px, 1fr)); }
+      .toolbar > :last-child { grid-column: span 1; }
+      .detail-grid { grid-template-columns: 1fr; }
+    }
+
+    @media (max-width: 800px) {
+      .page-shell { width: min(100% - 22px, 1500px); padding-top: 22px; }
+      .page-header { align-items: flex-start; flex-direction: column; }
+      .header-actions { justify-content: flex-start; }
+      .insight-strip { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr 1fr; }
+      .search-field { grid-column: 1 / -1; }
+      .metric-grid { grid-template-columns: 1fr 1fr; }
+      .detail-kpis { grid-template-columns: 1fr 1fr; }
+    }
+
+    @media (max-width: 520px) {
+      .metric-grid { grid-template-columns: 1fr; }
+      .toolbar { grid-template-columns: 1fr; }
+      .search-field { grid-column: auto; }
+      .detail-kpis { grid-template-columns: 1fr; }
+      .modal-backdrop { padding: 9px; }
+      .modal-head, .modal-body { padding-left: 15px; padding-right: 15px; }
+      .profile-head { align-items: flex-start; }
+      .profile-meta h2 { white-space: normal; }
+      .profile-meta p { white-space: normal; }
+      .pagination { align-items: flex-start; flex-direction: column; }
+    }
+  </style>
+</head>
+<body>
+  <%- include("../partials/navadmin") %>
+
+  <main class="page-shell">
+    <header class="page-header">
+      <div>
+        <div class="eyebrow"><i class="fa-solid fa-users"></i> Customer Intelligence</div>
+        <h1>Guest Relationship Center</h1>
+        <p class="page-subtitle">
+          A high-level view of your Puffer Isle guests, reservation history, booking value, engagement, and account activity — built for fast front-desk decisions and management review.
+        </p>
+      </div>
+
+      <div class="header-actions">
+        <button class="button" id="refreshUsers" type="button">
+          <i class="fa-solid fa-rotate"></i>
+          Refresh
+        </button>
+        <button class="button" id="exportUsers" type="button">
+          <i class="fa-solid fa-file-arrow-down"></i>
+          Export CSV
+        </button>
+      </div>
+    </header>
+
+    <section class="metric-grid" aria-label="Customer overview">
+      <article class="metric-card">
+        <div class="metric-top">
+          <div class="metric-label">Total Customers</div>
+          <div class="metric-icon"><i class="fa-solid fa-users"></i></div>
+        </div>
+        <div class="metric-value" id="metricCustomers"><%= overview.customers.toLocaleString("en-PH") %></div>
+        <div class="metric-note"><%= overview.verified.toLocaleString("en-PH") %> verified email accounts</div>
+      </article>
+
+      <article class="metric-card gold">
+        <div class="metric-top">
+          <div class="metric-label">Booking Value</div>
+          <div class="metric-icon"><i class="fa-solid fa-peso-sign"></i></div>
+        </div>
+        <div class="metric-value" id="metricSpent"><%= php(overview.spent) %></div>
+        <div class="metric-note">Total value across tracked reservations</div>
+      </article>
+
+      <article class="metric-card blue">
+        <div class="metric-top">
+          <div class="metric-label">Total Bookings</div>
+          <div class="metric-icon"><i class="fa-solid fa-calendar-check"></i></div>
+        </div>
+        <div class="metric-value" id="metricBookings"><%= overview.bookings.toLocaleString("en-PH") %></div>
+        <div class="metric-note">Average booking value: <span class="money"><%= php(avgBookingValue) %></span></div>
+      </article>
+
+      <article class="metric-card green">
+        <div class="metric-top">
+          <div class="metric-label">Returning Guests</div>
+          <div class="metric-icon"><i class="fa-solid fa-repeat"></i></div>
+        </div>
+        <div class="metric-value" id="metricReturning"><%= overview.returning.toLocaleString("en-PH") %></div>
+        <div class="metric-note">Guests with 2+ recorded bookings</div>
+      </article>
+    </section>
+
+    <section class="insight-strip" aria-label="Customer insights">
+      <div class="insight-card">
+        <div class="insight-icon"><i class="fa-solid fa-user-check"></i></div>
+        <div class="insight-copy">
+          <strong><%= overview.active.toLocaleString("en-PH") %> active accounts</strong>
+          <span>Current account status across the customer base</span>
+        </div>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon"><i class="fa-solid fa-chart-line"></i></div>
+        <div class="insight-copy">
+          <strong><%= php(avgPerCustomer) %> average customer value</strong>
+          <span>Total tracked booking value divided by customers</span>
+        </div>
+      </div>
+
+      <div class="insight-card">
+        <div class="insight-icon"><i class="fa-solid fa-bolt"></i></div>
+        <div class="insight-copy">
+          <strong>Front-desk ready</strong>
+          <span>Open a customer profile for reservation history and contact details</span>
+        </div>
+      </div>
+    </section>
+
+    <section class="panel" aria-labelledby="customersTitle">
+      <div class="panel-head">
+        <div class="panel-title-wrap">
+          <h2 id="customersTitle">Customer Directory</h2>
+          <p>Search, segment, sort, and inspect a guest without leaving the admin workspace.</p>
+        </div>
+        <div class="result-count" id="resultCount">Showing <strong><%= userRows.length %></strong> customers</div>
+      </div>
+
+      <div class="toolbar">
+        <div class="field search-field">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <label class="sr-only" for="userSearch">Search customers</label>
+          <input class="control" id="userSearch" type="search" placeholder="Search name, email, phone, username…" autocomplete="off">
+        </div>
+
+        <div class="field">
+          <label class="sr-only" for="statusFilter">Account status</label>
+          <select class="select-control" id="statusFilter">
+            <option value="all">All statuses</option>
+            <option value="active">Active</option>
+            <option value="suspended">Suspended</option>
+            <option value="inactive">Inactive</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="sr-only" for="activityFilter">Customer segment</label>
+          <select class="select-control" id="activityFilter">
+            <option value="all">All guests</option>
+            <option value="returning">Returning guests</option>
+            <option value="one">1 booking</option>
+            <option value="none">No bookings</option>
+            <option value="high-value">₱10,000+ value</option>
+          </select>
+        </div>
+
+        <div class="field">
+          <label class="sr-only" for="sortFilter">Sort customers</label>
+          <select class="select-control" id="sortFilter">
+            <option value="recent">Most recent</option>
+            <option value="spent">Highest spend</option>
+            <option value="bookings">Most bookings</option>
+            <option value="name">Name A–Z</option>
+            <option value="joined">Newest accounts</option>
+          </select>
+        </div>
+
+        <button class="button filter-button" id="clearFilters" type="button" aria-label="Clear filters" title="Clear filters">
+          <i class="fa-solid fa-filter-circle-xmark"></i>
+        </button>
+      </div>
+
+      <div class="table-wrap">
+        <table aria-describedby="customersTitle">
+          <thead>
+            <tr>
+              <th>Customer</th>
+              <th>Account</th>
+              <th>Bookings</th>
+              <th>Booking Value</th>
+              <th>Avg. Booking</th>
+              <th>Last Activity</th>
+              <th><span class="sr-only">Open</span></th>
+            </tr>
+          </thead>
+          <tbody id="usersTableBody"></tbody>
+        </table>
+      </div>
+
+      <div id="emptyState" class="empty-state" hidden>
+        <div class="empty-icon"><i class="fa-solid fa-user-slash"></i></div>
+        <strong>No matching customers</strong>
+        <span>Try another search term or clear the current filters.</span>
+      </div>
+
+      <div class="pagination">
+        <div class="pagination-copy" id="paginationCopy">—</div>
+        <div class="pagination-actions">
+          <button class="button" id="prevPage" type="button"><i class="fa-solid fa-chevron-left"></i> Previous</button>
+          <button class="button" id="nextPage" type="button">Next <i class="fa-solid fa-chevron-right"></i></button>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <div class="modal-backdrop" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
+    <section class="modal">
+      <div class="modal-head">
+        <div class="profile-head" id="profileHeader"></div>
+        <button class="close-modal" id="closeProfile" type="button" aria-label="Close customer profile">
+          <i class="fa-solid fa-xmark"></i>
+        </button>
+      </div>
+      <div class="modal-body" id="profileBody">
+        <div class="modal-loading">
+          <div>
+            <div class="spinner"></div>
+            <div>Loading guest profile…</div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </div>
+
+  <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
+
+  <script>
+    "use strict";
+
+    const INITIAL_USERS = <%- JSON.stringify(userRows).replace(/</g, "\\u003c") %>;
+    const INITIAL_CSRF = <%- JSON.stringify(initialCsrfToken) %>;
+    const PAGE_SIZE = 12;
+
+    const state = {
+      users: Array.isArray(INITIAL_USERS) ? INITIAL_USERS : [],
+      filtered: [],
+      page: 1,
+      loading: false,
+      activeUserId: null
+    };
+
+    const el = {
+      body: document.getElementById("usersTableBody"),
+      empty: document.getElementById("emptyState"),
+      search: document.getElementById("userSearch"),
+      status: document.getElementById("statusFilter"),
+      activity: document.getElementById("activityFilter"),
+      sort: document.getElementById("sortFilter"),
+      clear: document.getElementById("clearFilters"),
+      count: document.getElementById("resultCount"),
+      paginationCopy: document.getElementById("paginationCopy"),
+      prev: document.getElementById("prevPage"),
+      next: document.getElementById("nextPage"),
+      refresh: document.getElementById("refreshUsers"),
+      export: document.getElementById("exportUsers"),
+      modal: document.getElementById("profileModal"),
+      closeModal: document.getElementById("closeProfile"),
+      profileHeader: document.getElementById("profileHeader"),
+      profileBody: document.getElementById("profileBody"),
+      toastStack: document.getElementById("toastStack")
+    };
+
+    const currency = (value) => {
+      const number = Number(value) || 0;
+      return new Intl.NumberFormat("en-PH", {
+        style: "currency",
+        currency: "PHP",
+        minimumFractionDigits: 2,
+        maximumFractionDigits: 2
+      }).format(number);
+    };
+
+    const integer = (value) => Number(value || 0).toLocaleString("en-PH");
+
+    const escapeHtml = (value) => String(value ?? "")
+      .replaceAll("&", "&amp;")
+      .replaceAll("<", "&lt;")
+      .replaceAll(">", "&gt;")
+      .replaceAll('"', "&quot;")
+      .replaceAll("'", "&#039;");
+
+    const dateTime = (value) => {
+      if (!value) return "No recent activity";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "No recent activity";
+      return new Intl.DateTimeFormat("en-PH", {
+        month: "short",
+        day: "numeric",
+        year: "numeric",
+        hour: "numeric",
+        minute: "2-digit"
+      }).format(date);
+    };
+
+    const dateOnly = (value) => {
+      if (!value) return "—";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "—";
+      return new Intl.DateTimeFormat("en-PH", {
+        month: "short",
+        day: "numeric",
+        year: "numeric"
+      }).format(date);
+    };
+
+    const statusClass = (status) => {
+      const normalized = String(status || "unknown").toLowerCase().replace(/[_\s]+/g, "-");
+      return ["active", "inactive", "suspended", "pending", "accepted", "confirmed", "completed", "cancelled"].includes(normalized)
+        ? normalized
+        : "guest";
+    };
+
+    const initials = (name) => {
+      const text = String(name || "Guest").trim();
+      const pieces = text.split(/\s+/).filter(Boolean);
+      if (!pieces.length) return "G";
+      return (pieces.length === 1 ? pieces[0].slice(0, 2) : `${pieces[0][0]}${pieces[pieces.length - 1][0]}`).toUpperCase();
+    };
+
+    const showToast = (title, message = "", type = "success") => {
+      const node = document.createElement("div");
+      node.className = `toast ${type}`;
+      node.innerHTML = `
+        <div class="toast-icon"><i class="fa-solid ${type === "success" ? "fa-circle-check" : "fa-circle-exclamation"}"></i></div>
+        <div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(message)}</span></div>
+      `;
+      el.toastStack.appendChild(node);
+      window.setTimeout(() => node.remove(), 3600);
+    };
+
+    const getCsrfToken = () => {
+      const domToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ||
+        document.getElementById("adminCsrfToken")?.value ||
+        document.querySelector('input[name="_csrf"]')?.value ||
+        window.IsleRMS?.csrfToken ||
+        INITIAL_CSRF;
+      return domToken || "";
+    };
+
+    const normalizeDetailPayload = (payload) => {
+      const root = payload && typeof payload === "object" ? payload : {};
+      const user = root.user || root.customer || root.data?.user || root.data?.customer || {};
+      const bookings = root.bookings || root.appointments || root.data?.bookings || root.data?.appointments || [];
+      const summary = root.summary || root.bookingSummary || root.bookingStats || root.data?.summary || {};
+      return {
+        user: user && typeof user === "object" ? user : {},
+        bookings: Array.isArray(bookings) ? bookings : [],
+        summary: summary && typeof summary === "object" ? summary : {}
+      };
+    };
+
+    const resolveUserField = (user, ...keys) => {
+      for (const key of keys) {
+        const value = key.split(".").reduce((acc, part) => acc?.[part], user);
+        if (value !== undefined && value !== null && String(value).trim() !== "") return value;
+      }
+      return "—";
+    };
+
+    const resolveBookingAmount = (booking) => Number(
+      booking?.totalPrice ??
+      booking?.totalAmount ??
+      booking?.amount ??
+      booking?.price ??
+      0
+    ) || 0;
+
+    const resolveBookingRoom = (booking) => String(
+      booking?.room ??
+      booking?.roomName ??
+      booking?.roomType ??
+      booking?.accommodation ??
+      booking?.roomId?.name ??
+      "Reservation"
+    );
+
+    const resolveBookingStatus = (booking) => String(booking?.status || "unknown").toLowerCase().replace(/[_\s]+/g, "-");
+
+    const resolveBookingId = (booking) => booking?._id || booking?.id || booking?.appointmentId || "";
+
+    const normalizeDetail = (payload, fallbackUser) => {
+      const data = normalizeDetailPayload(payload);
+      const user = data.user || {};
+      const summary = data.summary || {};
+      const bookings = data.bookings;
+
+      const fallback = fallbackUser || {};
+      const totalSpent = Number(
+        summary.totalSpent ?? summary.totalSpend ?? summary.totalBookingValue ?? summary.bookingValue ??
+        fallback.totalSpent ?? bookings.reduce((sum, booking) => sum + resolveBookingAmount(booking), 0)
+      ) || 0;
+
+      const totalBookings = Number(
+        summary.totalBookings ?? summary.bookingCount ?? bookings.length ?? fallback.totalBookings
+      ) || 0;
+
+      const completed = Number(
+        summary.completedBookings ?? summary.completed ??
+        bookings.filter((booking) => ["completed", "checked-out", "checked_out"].includes(resolveBookingStatus(booking))).length
+      ) || 0;
+
+      const cancelled = Number(
+        summary.cancelledBookings ?? summary.cancelled ??
+        bookings.filter((booking) => resolveBookingStatus(booking) === "cancelled").length
+      ) || 0;
+
+      const active = Number(
+        summary.activeBookings ?? summary.active ??
+        bookings.filter((booking) => ["pending", "accepted", "confirmed", "checked-in", "checked_in"].includes(resolveBookingStatus(booking))).length
+      ) || 0;
+
+      const memberLevel = resolveUserField(user, "memberLevel", "membershipLevel", "tier", "level");
+      const fullname = resolveUserField(user, "fullname", "fullName", "name", "username", "email");
+      const email = resolveUserField(user, "email");
+      const phone = resolveUserField(user, "phone", "contact", "mobile");
+      const status = String(resolveUserField(user, "status", "accountStatus", "active") || "active").toLowerCase();
+      const avatar = resolveUserField(user, "avatar", "profileImage", "photo");
+
+      const lastBooking = bookings
+        .map((booking) => booking?.createdAt || booking?.checkin || booking?.checkIn)
+        .filter(Boolean)
+        .sort((a, b) => new Date(b) - new Date(a))[0] || fallback.lastBookingAt;
+
+      return {
+        user,
+        bookings,
+        summary,
+        totalSpent,
+        totalBookings,
+        completed,
+        cancelled,
+        active,
+        average: totalBookings ? totalSpent / totalBookings : 0,
+        fullname,
+        email,
+        phone,
+        memberLevel,
+        status,
+        avatar,
+        lastBooking
+      };
+    };
+
+    const renderProfileHeader = (detail) => {
+      const verified = detail.user.emailVerified === true || detail.user.verified === true || detail.user.isVerified === true;
+      const avatarHtml = detail.avatar && detail.avatar !== "—"
+        ? `<img src="${escapeHtml(detail.avatar)}" alt="${escapeHtml(detail.fullname)}">`
+        : escapeHtml(initials(detail.fullname));
+
+      el.profileHeader.innerHTML = `
+        <div class="profile-avatar">${avatarHtml}</div>
+        <div class="profile-meta">
+          <h2 id="profileModalTitle">${escapeHtml(detail.fullname)}</h2>
+          <p>${escapeHtml(detail.email)}</p>
+          <div class="profile-badges">
+            <span class="pill ${statusClass(detail.status)}"><i class="fa-solid fa-circle"></i>${escapeHtml(detail.status)}</span>
+            <span class="pill guest"><i class="fa-solid fa-crown"></i>${escapeHtml(detail.memberLevel)}</span>
+            ${verified ? '<span class="pill verified"><i class="fa-solid fa-check"></i>Email verified</span>' : ''}
+          </div>
+        </div>
+      `;
+    };
+
+    const renderProfileBody = (detail) => {
+      const user = detail.user;
+      const bookings = [...detail.bookings].sort((a, b) => {
+        const aDate = new Date(a?.createdAt || a?.checkin || 0).getTime();
+        const bDate = new Date(b?.createdAt || b?.checkin || 0).getTime();
+        return bDate - aDate;
+      });
+
+      const bookingRows = bookings.length
+        ? bookings.map((booking) => {
+            const status = resolveBookingStatus(booking);
+            const room = resolveBookingRoom(booking);
+            const checkin = booking?.checkin || booking?.checkIn || booking?.checkInDate;
+            const checkout = booking?.checkout || booking?.checkOut || booking?.checkOutDate;
+            const amount = resolveBookingAmount(booking);
+            const id = resolveBookingId(booking);
+            return `
+              <tr>
+                <td>
+                  <div class="stacked-value">
+                    <strong>${escapeHtml(room)}</strong>
+                    <span>${id ? `#${escapeHtml(String(id).slice(-8).toUpperCase())}` : "Reservation"}</span>
+                  </div>
+                </td>
+                <td><span class="pill ${statusClass(status)}"><i class="fa-solid fa-circle"></i>${escapeHtml(status)}</span></td>
+                <td><span class="nowrap">${escapeHtml(dateOnly(checkin))}</span><span class="muted"> → </span><span class="nowrap">${escapeHtml(dateOnly(checkout))}</span></td>
+                <td class="money">${escapeHtml(currency(amount))}</td>
+              </tr>
+            `;
+          }).join("")
+        : `
+          <tr>
+            <td colspan="4">
+              <div class="empty-state" style="padding:28px 18px;">
+                <div class="empty-icon"><i class="fa-solid fa-calendar-xmark"></i></div>
+                <strong>No bookings recorded</strong>
+                <span>This guest has no reservation history yet.</span>
+              </div>
+            </td>
+          </tr>
+        `;
+
+      const createdAt = resolveUserField(user, "createdAt", "registeredAt", "joinedAt");
+      const lastLogin = resolveUserField(user, "lastLoginAt", "lastLogin");
+      const username = resolveUserField(user, "username");
+      const failedAttempts = Number(resolveUserField(user, "failedLoginAttempts")) || 0;
+      const lockedUntil = resolveUserField(user, "lockedUntil");
+
+      el.profileBody.innerHTML = `
+        <div class="detail-kpis">
+          <div class="detail-kpi"><span>Total booking value</span><strong class="money">${escapeHtml(currency(detail.totalSpent))}</strong></div>
+          <div class="detail-kpi"><span>Total bookings</span><strong>${escapeHtml(integer(detail.totalBookings))}</strong></div>
+          <div class="detail-kpi"><span>Completed stays</span><strong>${escapeHtml(integer(detail.completed))}</strong></div>
+          <div class="detail-kpi"><span>Average booking</span><strong>${escapeHtml(currency(detail.average))}</strong></div>
+        </div>
+
+        <div class="detail-grid">
+          <section class="detail-card">
+            <h3>Guest Profile</h3>
+            <div class="info-list">
+              <div class="info-item"><span>Full name</span><strong>${escapeHtml(detail.fullname)}</strong></div>
+              <div class="info-item"><span>Email</span><strong>${escapeHtml(detail.email)}</strong></div>
+              <div class="info-item"><span>Phone</span><strong>${escapeHtml(detail.phone)}</strong></div>
+              <div class="info-item"><span>Username</span><strong>${escapeHtml(username)}</strong></div>
+              <div class="info-item"><span>Membership</span><strong>${escapeHtml(detail.memberLevel)}</strong></div>
+              <div class="info-item"><span>Joined</span><strong>${escapeHtml(dateOnly(createdAt))}</strong></div>
+            </div>
+          </section>
+
+          <section class="detail-card">
+            <h3>Account & Activity</h3>
+            <div class="info-list">
+              <div class="info-item"><span>Account status</span><strong>${escapeHtml(detail.status)}</strong></div>
+              <div class="info-item"><span>Email verified</span><strong>${user.emailVerified === true ? "Yes" : "Not verified"}</strong></div>
+              <div class="info-item"><span>Last login</span><strong>${escapeHtml(dateTime(lastLogin))}</strong></div>
+              <div class="info-item"><span>Latest booking</span><strong>${escapeHtml(dateTime(detail.lastBooking))}</strong></div>
+              <div class="info-item"><span>Active reservations</span><strong>${escapeHtml(integer(detail.active))}</strong></div>
+              <div class="info-item"><span>Cancelled bookings</span><strong>${escapeHtml(integer(detail.cancelled))}</strong></div>
+              <div class="info-item"><span>Failed login attempts</span><strong>${escapeHtml(integer(failedAttempts))}</strong></div>
+              ${lockedUntil && lockedUntil !== "—" ? `<div class="info-item"><span>Locked until</span><strong>${escapeHtml(dateTime(lockedUntil))}</strong></div>` : ""}
+            </div>
+          </section>
+        </div>
+
+        <section class="booking-list-wrap">
+          <div class="booking-list-head">
+            <strong>Reservation History</strong>
+            <span>${escapeHtml(integer(bookings.length))} recorded reservation${bookings.length === 1 ? "" : "s"}</span>
+          </div>
+          <div class="table-wrap">
+            <table class="mini-table">
+              <thead>
+                <tr>
+                  <th>Accommodation</th>
+                  <th>Status</th>
+                  <th>Stay Dates</th>
+                  <th>Value</th>
+                </tr>
+              </thead>
+              <tbody>${bookingRows}</tbody>
+            </table>
+          </div>
+        </section>
+      `;
+    };
+
+    const openProfile = async (user) => {
+      if (!user) return;
+      state.activeUserId = user.id || null;
+      el.modal.classList.add("open");
+      document.body.classList.add("modal-open");
+      el.profileHeader.innerHTML = `
+        <div class="profile-avatar">${escapeHtml(initials(user.fullname))}</div>
+        <div class="profile-meta">
+          <h2 id="profileModalTitle">${escapeHtml(user.fullname)}</h2>
+          <p>${escapeHtml(user.email)}</p>
+          <div class="profile-badges"><span class="pill guest"><i class="fa-solid fa-circle-notch fa-spin"></i> Loading</span></div>
+        </div>
+      `;
+      el.profileBody.innerHTML = `
+        <div class="modal-loading">
+          <div>
+            <div class="spinner"></div>
+            <div>Loading guest profile…</div>
+          </div>
+        </div>
+      `;
+
+      if (!user.id) {
+        const fallback = normalizeDetail({ user, bookings: [], summary: {} }, user);
+        renderProfileHeader(fallback);
+        renderProfileBody(fallback);
+        return;
+      }
+
+      try {
+        const response = await fetch(`/admin/users/${encodeURIComponent(user.id)}`, {
+          method: "GET",
+          headers: {
+            "Accept": "application/json",
+            "X-Requested-With": "XMLHttpRequest"
+          },
+          credentials: "same-origin",
+          cache: "no-store"
+        });
+
+        const payload = await response.json().catch(() => ({}));
+        if (!response.ok) {
+          throw new Error(payload?.message || payload?.error || "Unable to load this guest profile.");
+        }
+
+        const detail = normalizeDetail(payload, user);
+        renderProfileHeader(detail);
+        renderProfileBody(detail);
+      } catch (error) {
+        const fallback = normalizeDetail({ user, bookings: [], summary: {} }, user);
+        renderProfileHeader(fallback);
+        el.profileBody.innerHTML = `
+          <div class="empty-state">
+            <div class="empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <strong>Profile details could not be loaded</strong>
+            <span>${escapeHtml(error?.message || "Please refresh the page and try again.")}</span>
+          </div>
+        `;
+      }
+    };
+
+    const closeProfile = () => {
+      el.modal.classList.remove("open");
+      document.body.classList.remove("modal-open");
+      state.activeUserId = null;
+    };
+
+    const getFilteredUsers = () => {
+      const query = String(el.search.value || "").trim().toLowerCase();
+      const status = el.status.value;
+      const activity = el.activity.value;
+      const sort = el.sort.value;
+
+      const matches = state.users.filter((user) => {
+        const haystack = [user.fullname, user.email, user.phone, user.username, user.memberLevel]
+          .map((value) => String(value || "").toLowerCase())
+          .join(" ");
+
+        if (query && !haystack.includes(query)) return false;
+        if (status !== "all" && user.status !== status) return false;
+
+        if (activity === "returning" && user.totalBookings < 2) return false;
+        if (activity === "one" && user.totalBookings !== 1) return false;
+        if (activity === "none" && user.totalBookings !== 0) return false;
+        if (activity === "high-value" && user.totalSpent < 10000) return false;
+
+        return true;
+      });
+
+      matches.sort((a, b) => {
+        if (sort === "spent") return b.totalSpent - a.totalSpent;
+        if (sort === "bookings") return b.totalBookings - a.totalBookings;
+        if (sort === "name") return a.fullname.localeCompare(b.fullname, undefined, { sensitivity: "base" });
+        if (sort === "joined") return new Date(b.createdAt || 0) - new Date(a.createdAt || 0);
+        return new Date(b.lastBookingAt || b.lastLoginAt || b.createdAt || 0) - new Date(a.lastBookingAt || a.lastLoginAt || a.createdAt || 0);
+      });
+
+      return matches;
+    };
+
+    const renderTable = () => {
+      state.filtered = getFilteredUsers();
+      const total = state.filtered.length;
+      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      if (state.page > totalPages) state.page = totalPages;
+
+      const start = (state.page - 1) * PAGE_SIZE;
+      const visible = state.filtered.slice(start, start + PAGE_SIZE);
+
+      el.body.innerHTML = "";
+      el.empty.hidden = visible.length > 0;
+
+      visible.forEach((user) => {
+        const tr = document.createElement("tr");
+        tr.tabIndex = 0;
+        tr.setAttribute("role", "button");
+        tr.setAttribute("aria-label", `Open profile for ${user.fullname}`);
+
+        const avatar = user.avatar
+          ? `<img src="${escapeHtml(user.avatar)}" alt="">`
+          : escapeHtml(initials(user.fullname));
+
+        tr.innerHTML = `
+          <td>
+            <div class="user-cell">
+              <div class="avatar">${avatar}</div>
+              <div class="user-primary">
+                <strong>${escapeHtml(user.fullname)}</strong>
+                <span>${escapeHtml(user.email)}</span>
+              </div>
+            </div>
+          </td>
+          <td>
+            <div style="display:flex;flex-wrap:wrap;gap:6px;">
+              <span class="pill ${statusClass(user.status)}"><i class="fa-solid fa-circle"></i>${escapeHtml(user.status)}</span>
+              <span class="pill guest"><i class="fa-solid fa-crown"></i>${escapeHtml(user.memberLevel)}</span>
+            </div>
+          </td>
+          <td>
+            <div class="stacked-value">
+              <strong>${escapeHtml(integer(user.totalBookings))}</strong>
+              <span>${user.totalBookings === 1 ? "reservation" : "reservations"}</span>
+            </div>
+          </td>
+          <td><span class="money">${escapeHtml(currency(user.totalSpent))}</span></td>
+          <td><span class="nowrap">${escapeHtml(currency(user.averageBookingValue))}</span></td>
+          <td><span class="nowrap">${escapeHtml(dateTime(user.lastBookingAt || user.lastLoginAt || user.createdAt))}</span></td>
+          <td><button class="row-action" type="button" aria-label="View ${escapeHtml(user.fullname)}"><i class="fa-solid fa-arrow-up-right-from-square"></i></button></td>
+        `;
+
+        tr.addEventListener("click", (event) => {
+          if (event.target.closest("button")) {
+            event.stopPropagation();
+          }
+          openProfile(user);
+        });
+
+        tr.addEventListener("keydown", (event) => {
+          if (event.key === "Enter" || event.key === " ") {
+            event.preventDefault();
+            openProfile(user);
+          }
+        });
+
+        el.body.appendChild(tr);
+      });
+
+      const first = total ? start + 1 : 0;
+      const last = Math.min(start + PAGE_SIZE, total);
+      el.count.innerHTML = `Showing <strong>${integer(total)}</strong> customer${total === 1 ? "" : "s"}`;
+      el.paginationCopy.textContent = total ? `${first.toLocaleString("en-PH")}–${last.toLocaleString("en-PH")} of ${total.toLocaleString("en-PH")}` : "No results";
+      el.prev.disabled = state.page <= 1;
+      el.next.disabled = state.page >= totalPages;
+    };
+
+    const recalcOverview = () => {
+      const users = state.users;
+      const spent = users.reduce((sum, user) => sum + (Number(user.totalSpent) || 0), 0);
+      const bookings = users.reduce((sum, user) => sum + (Number(user.totalBookings) || 0), 0);
+      const returning = users.filter((user) => Number(user.totalBookings) >= 2).length;
+
+      document.getElementById("metricCustomers").textContent = integer(users.length);
+      document.getElementById("metricSpent").textContent = currency(spent);
+      document.getElementById("metricBookings").textContent = integer(bookings);
+      document.getElementById("metricReturning").textContent = integer(returning);
+    };
+
+    const fetchUsers = async () => {
+      if (state.loading) return;
+      state.loading = true;
+      el.refresh.disabled = true;
+      el.refresh.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Refreshing';
+
+      try {
+        const response = await fetch("/admin/users", {
+          method: "GET",
+          headers: {
+            "Accept": "text/html",
+            "X-Requested-With": "XMLHttpRequest"
+          },
+          credentials: "same-origin",
+          cache: "no-store"
+        });
+
+        if (!response.ok) throw new Error("The customer list could not be refreshed.");
+        window.location.reload();
+      } catch (error) {
+        showToast("Refresh failed", error?.message || "Please try again.", "error");
+      } finally {
+        state.loading = false;
+        el.refresh.disabled = false;
+        el.refresh.innerHTML = '<i class="fa-solid fa-rotate"></i> Refresh';
+      }
+    };
+
+    const exportCsv = () => {
+      const rows = state.filtered.length ? state.filtered : state.users;
+      const headers = ["Customer", "Email", "Phone", "Status", "Membership", "Verified", "Total Bookings", "Total Booking Value (PHP)", "Average Booking Value (PHP)", "Last Activity", "Joined"];
+      const escapeCsv = (value) => `"${String(value ?? "").replaceAll('"', '""')}"`;
+
+      const lines = [headers.map(escapeCsv).join(",")];
+      rows.forEach((user) => {
+        lines.push([
+          user.fullname,
+          user.email,
+          user.phone,
+          user.status,
+          user.memberLevel,
+          user.emailVerified ? "Yes" : "No",
+          user.totalBookings,
+          Number(user.totalSpent || 0).toFixed(2),
+          Number(user.averageBookingValue || 0).toFixed(2),
+          user.lastBookingAt || user.lastLoginAt || "",
+          user.createdAt || ""
+        ].map(escapeCsv).join(","));
+      });
+
+      const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = `islerms-customers-${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      URL.revokeObjectURL(url);
+      showToast("Customer export ready", `${rows.length.toLocaleString("en-PH")} customer records exported.`);
+    };
+
+    el.search.addEventListener("input", () => { state.page = 1; renderTable(); });
+    el.status.addEventListener("change", () => { state.page = 1; renderTable(); });
+    el.activity.addEventListener("change", () => { state.page = 1; renderTable(); });
+    el.sort.addEventListener("change", () => { state.page = 1; renderTable(); });
+
+    el.clear.addEventListener("click", () => {
+      el.search.value = "";
+      el.status.value = "all";
+      el.activity.value = "all";
+      el.sort.value = "recent";
+      state.page = 1;
+      renderTable();
+    });
+
+    el.prev.addEventListener("click", () => {
+      if (state.page > 1) {
+        state.page -= 1;
+        renderTable();
+      }
+    });
+
+    el.next.addEventListener("click", () => {
+      const pages = Math.max(1, Math.ceil(state.filtered.length / PAGE_SIZE));
+      if (state.page < pages) {
+        state.page += 1;
+        renderTable();
+      }
+    });
+
+    el.refresh.addEventListener("click", fetchUsers);
+    el.export.addEventListener("click", exportCsv);
+    el.closeModal.addEventListener("click", closeProfile);
+
+    el.modal.addEventListener("click", (event) => {
+      if (event.target === el.modal) closeProfile();
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.key === "Escape" && el.modal.classList.contains("open")) closeProfile();
+    });
+
+    // Keep the token available to the existing admin page ecosystem without
+    // making GET-only customer operations depend on CSRF.
+    if (INITIAL_CSRF && !window.IsleRMS) {
+      window.IsleRMS = { csrfToken: INITIAL_CSRF };
+    } else if (INITIAL_CSRF && window.IsleRMS && !window.IsleRMS.csrfToken) {
+      window.IsleRMS.csrfToken = INITIAL_CSRF;
+    }
+
+    recalcOverview();
+    renderTable();
+  </script>
+</body>
+</html>
