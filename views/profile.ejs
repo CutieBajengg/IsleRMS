@@ -2785,8 +2785,361 @@
 
 
     /* ============================================================
+       HERO GREETING + GUEST COMMAND CENTER
+       ============================================================ */
+
+    .hero-greeting {
+      margin-bottom: 5px;
+      color: rgba(255, 255, 255, 0.42);
+      font-size: 0.59rem;
+      font-weight: 700;
+      letter-spacing: 0.7px;
+    }
+
+    .dashboard-pulse-section {
+      padding-top: 30px;
+      padding-bottom: 30px;
+      background: linear-gradient(180deg, #fbfcfc 0%, #ffffff 100%);
+    }
+
+    .dashboard-pulse-header { align-items: flex-end; }
+
+    .micro-kicker {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      margin-bottom: 6px;
+      color: var(--teal);
+      font-size: 0.57rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 1.15px;
+    }
+
+    .micro-kicker::before {
+      content: "";
+      width: 18px;
+      height: 2px;
+      background: var(--gold);
+      border-radius: var(--pill);
+    }
+
+    .sync-chip {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      min-height: 33px;
+      padding: 8px 11px;
+      color: #6f6f6f;
+      background: #f7f8f8;
+      border: 1px solid var(--border);
+      border-radius: var(--pill);
+      font-size: 0.57rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.65px;
+      white-space: nowrap;
+    }
+
+    .sync-dot {
+      width: 7px;
+      height: 7px;
+      flex: 0 0 auto;
+      background: var(--teal);
+      border-radius: 50%;
+      box-shadow: 0 0 0 4px rgba(0, 128, 128, 0.07);
+    }
+
+    .sync-chip.offline {
+      color: var(--warning);
+      background: var(--warning-bg);
+      border-color: var(--warning-border);
+    }
+
+    .sync-chip.offline .sync-dot {
+      background: var(--warning);
+      box-shadow: 0 0 0 4px rgba(153, 107, 0, 0.07);
+    }
+
+    .pulse-grid {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 12px;
+    }
+
+    .pulse-card {
+      position: relative;
+      min-width: 0;
+      min-height: 174px;
+      padding: 18px;
+      overflow: hidden;
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: 18px;
+      box-shadow: var(--shadow-xs);
+      transition: transform 0.22s ease, box-shadow 0.22s ease, border-color 0.22s ease;
+    }
+
+    .pulse-card::after {
+      content: "";
+      position: absolute;
+      width: 120px;
+      height: 120px;
+      right: -52px;
+      bottom: -58px;
+      border-radius: 50%;
+      border: 1px solid rgba(0, 128, 128, 0.08);
+    }
+
+    .pulse-card:hover {
+      transform: translateY(-2px);
+      border-color: #dfe3e4;
+      box-shadow: var(--shadow-sm);
+    }
+
+    .pulse-card-focus {
+      color: #fff;
+      background:
+        radial-gradient(circle at 100% 0%, rgba(255, 215, 0, 0.16), transparent 36%),
+        linear-gradient(135deg, #171717 0%, #252525 100%);
+      border-color: #292929;
+      box-shadow: 0 14px 30px rgba(0, 0, 0, 0.12);
+    }
+
+    .pulse-card-focus:hover { border-color: #353535; }
+
+    .pulse-card-head,
+    .pulse-card-meta {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 10px;
+    }
+
+    .pulse-card-head {
+      color: #6f6f6f;
+      font-size: 0.61rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.85px;
+    }
+
+    .pulse-card-head strong {
+      color: var(--teal-dark);
+      font-size: 0.69rem;
+    }
+
+    .pulse-progress {
+      height: 8px;
+      margin-top: 16px;
+      overflow: hidden;
+      background: #eef1f1;
+      border-radius: var(--pill);
+    }
+
+    .pulse-progress span {
+      display: block;
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, var(--teal), #0b9a96);
+      border-radius: inherit;
+      transition: width 0.45s ease;
+    }
+
+    .pulse-card p {
+      margin: 12px 0 0;
+      color: #858585;
+      font-size: 0.63rem;
+      line-height: 1.65;
+    }
+
+    .pulse-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 7px;
+      margin-top: 12px;
+      padding: 0;
+      color: var(--teal-dark);
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.61rem;
+      font-weight: 800;
+    }
+
+    .pulse-link:hover { color: var(--ink); }
+    .pulse-card-focus .pulse-link { color: var(--gold); }
+
+    .pulse-card-label {
+      color: #858585;
+      font-size: 0.58rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.9px;
+    }
+
+    .pulse-card-value {
+      margin-top: 13px;
+      color: var(--ink);
+      font-size: 1.46rem;
+      line-height: 1.08;
+      font-weight: 800;
+      letter-spacing: -0.45px;
+      word-break: break-word;
+    }
+
+    .pulse-card-value-small {
+      font-size: 0.98rem;
+      line-height: 1.35;
+    }
+
+    .pulse-card-meta {
+      justify-content: flex-start;
+      flex-wrap: wrap;
+      margin-top: 9px;
+      color: #9a9a9a;
+      font-size: 0.57rem;
+      font-weight: 700;
+    }
+
+    .pulse-card-meta-wrap { line-height: 1.55; }
+
+    .pulse-card-note {
+      margin-top: 16px;
+      color: #aaa;
+      font-size: 0.56rem;
+      line-height: 1.55;
+    }
+
+    .pulse-card-focus .pulse-card-label,
+    .pulse-card-focus .pulse-card-meta,
+    .pulse-card-focus .pulse-card-note { color: rgba(255, 255, 255, 0.5); }
+
+    .pulse-card-focus .pulse-card-value { color: #fff; }
+
+
+    /* ============================================================
+       RESERVATION INTELLIGENCE
+       ============================================================ */
+
+    .booking-intelligence {
+      display: grid;
+      grid-template-columns: repeat(4, minmax(0, 1fr));
+      gap: 8px;
+      margin-bottom: 14px;
+    }
+
+    .booking-intel-item {
+      min-width: 0;
+      padding: 12px 13px;
+      background: #fafbfb;
+      border: 1px solid #eceeef;
+      border-radius: 14px;
+    }
+
+    .booking-intel-item span {
+      display: block;
+      color: #9b9b9b;
+      font-size: 0.53rem;
+      font-weight: 800;
+      text-transform: uppercase;
+      letter-spacing: 0.7px;
+    }
+
+    .booking-intel-item strong {
+      display: block;
+      margin-top: 5px;
+      color: var(--ink);
+      font-size: 0.82rem;
+      font-weight: 800;
+    }
+
+    .smart-toolbar { flex-wrap: wrap; }
+
+    .smart-sort {
+      width: 150px;
+      min-height: 38px;
+      padding: 9px 11px;
+      color: var(--ink);
+      background: #fff;
+      border: 1px solid var(--border);
+      border-radius: var(--pill);
+      outline: none;
+      font-size: 0.62rem;
+      font-weight: 700;
+    }
+
+    .smart-sort:focus {
+      border-color: var(--teal);
+      box-shadow: 0 0 0 4px rgba(0, 128, 128, 0.08);
+    }
+
+    .booking-copy {
+      display: inline-flex;
+      align-items: center;
+      gap: 5px;
+      margin-top: 3px;
+      padding: 0;
+      color: #9b9b9b;
+      background: transparent;
+      cursor: pointer;
+      font-size: 0.55rem;
+    }
+
+    .booking-copy:hover { color: var(--teal); }
+
+    @media (max-width: 980px) {
+      .pulse-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+      .booking-intelligence { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    }
+
+    @media (max-width: 760px) {
+      .dashboard-pulse-header { align-items: flex-start; }
+      .smart-sort { flex: 1 1 160px; width: auto; }
+      .pulse-grid, .booking-intelligence { grid-template-columns: 1fr; }
+      .table-wrapper { overflow: visible; border: 0; background: transparent; }
+      table { min-width: 0; width: 100%; }
+      table thead { display: none; }
+      table tbody { display: grid; gap: 10px; }
+      table tbody tr {
+        display: block;
+        padding: 12px;
+        background: #fff;
+        border: 1px solid var(--border);
+        border-radius: 16px;
+        box-shadow: var(--shadow-xs);
+      }
+      table tbody tr:hover { background: #fff; }
+      table tbody td {
+        display: grid;
+        grid-template-columns: minmax(100px, 0.8fr) minmax(0, 1.4fr);
+        gap: 10px;
+        padding: 9px 4px;
+        border-top: 1px solid #f1f2f3;
+      }
+      table tbody td:first-child { border-top: 0; }
+      table tbody td::before {
+        content: attr(data-label);
+        color: #a0a0a0;
+        font-size: 0.52rem;
+        font-weight: 800;
+        text-transform: uppercase;
+        letter-spacing: 0.7px;
+      }
+      table tbody td:last-child { display: block; padding-top: 12px; }
+      table tbody td:last-child::before { display: none; }
+      .table-actions { justify-content: flex-start; }
+    }
+
+    @media (max-width: 560px) {
+      .pulse-grid, .booking-intelligence { grid-template-columns: 1fr; }
+      .sync-chip { align-self: flex-start; }
+    }
+
+
+    /* ============================================================
        RESPONSIVE — 1100
        ============================================================ */
+
 
     @media (max-width: 1100px) {
       .profile-header {
@@ -3321,6 +3674,13 @@
 
           <div class="hero-copy">
 
+            <div
+              class="hero-greeting"
+              id="heroGreeting"
+            >
+              Welcome back
+            </div>
+
             <div class="hero-kicker">
               Puffer Isle Resort
             </div>
@@ -3535,6 +3895,111 @@
 
 
     <!-- ========================================================
+         GUEST COMMAND CENTER
+         ======================================================== -->
+
+    <section
+      class="section dashboard-pulse-section"
+      aria-label="Guest command center"
+    >
+
+      <div class="section-header dashboard-pulse-header">
+
+        <div class="section-title-wrap">
+
+          <div class="micro-kicker">
+            Guest Command Center
+          </div>
+
+          <h2>
+            Your resort journey, at a glance.
+          </h2>
+
+          <p class="section-subtitle">
+            A live view of your profile readiness, reservation value, stay history, and next best action.
+          </p>
+
+        </div>
+
+        <div
+          class="sync-chip"
+          id="syncChip"
+          aria-live="polite"
+        >
+          <span class="sync-dot" aria-hidden="true"></span>
+          <span id="syncText">Connecting…</span>
+        </div>
+
+      </div>
+
+      <div class="pulse-grid">
+
+        <article class="pulse-card pulse-card-profile">
+          <div class="pulse-card-head">
+            <span>Profile health</span>
+            <strong id="profileCompletionLabel">0%</strong>
+          </div>
+
+          <div class="pulse-progress" aria-hidden="true">
+            <span id="profileCompletionBar"></span>
+          </div>
+
+          <p id="profileCompletionText">
+            Checking your account details…
+          </p>
+
+          <button
+            type="button"
+            class="pulse-link"
+            data-scroll-target="#accountOverviewSection"
+          >
+            Review profile <span aria-hidden="true">→</span>
+          </button>
+        </article>
+
+        <article class="pulse-card">
+          <div class="pulse-card-label">Booked value</div>
+          <div class="pulse-card-value" id="lifetimeValue">₱0.00</div>
+          <div class="pulse-card-meta">
+            <span id="completedStays">0 completed stays</span>
+            <span>•</span>
+            <span id="averageStay">0 nights avg.</span>
+          </div>
+          <div class="pulse-card-note">
+            Based on your reservation history currently loaded in the dashboard.
+          </div>
+        </article>
+
+        <article class="pulse-card">
+          <div class="pulse-card-label">Preferred accommodation</div>
+          <div class="pulse-card-value pulse-card-value-small" id="favoriteRoom">—</div>
+          <div class="pulse-card-meta" id="favoriteRoomSub">
+            Your most frequent reservation.
+          </div>
+          <div class="pulse-card-note">
+            Helpful for planning repeat escapes and future reservations.
+          </div>
+        </article>
+
+        <article class="pulse-card pulse-card-focus">
+          <div class="pulse-card-label">Recommended next step</div>
+          <div class="pulse-card-value pulse-card-value-small" id="dashboardFocusTitle">
+            Getting things ready…
+          </div>
+          <div class="pulse-card-meta pulse-card-meta-wrap" id="dashboardFocusText">
+            We’re checking your reservations and account activity.
+          </div>
+          <button type="button" class="pulse-link" id="dashboardFocusAction">
+            View dashboard <span aria-hidden="true">→</span>
+          </button>
+        </article>
+
+      </div>
+
+    </section>
+
+
+    <!-- ========================================================
          FLASH MESSAGE
          ======================================================== -->
 
@@ -3676,6 +4141,15 @@
 
         <div class="inline-actions">
 
+          <button
+            type="button"
+            class="tiny-btn"
+            id="exportBookingsButton"
+            title="Export your loaded reservation history as CSV"
+          >
+            Export History
+          </button>
+
           <a
             href="/booking"
             class="tiny-btn dark"
@@ -3687,6 +4161,33 @@
 
       </div>
 
+
+      <div
+        class="booking-intelligence"
+        aria-label="Reservation intelligence"
+      >
+
+        <div class="booking-intel-item">
+          <span>Total booked value</span>
+          <strong id="bookingValueStat">₱0.00</strong>
+        </div>
+
+        <div class="booking-intel-item">
+          <span>Average stay</span>
+          <strong id="bookingAverageStat">0 nights</strong>
+        </div>
+
+        <div class="booking-intel-item">
+          <span>Completed stays</span>
+          <strong id="bookingCompletedStat">0</strong>
+        </div>
+
+        <div class="booking-intel-item">
+          <span>Cancelled</span>
+          <strong id="bookingCancelledStat">0</strong>
+        </div>
+
+      </div>
 
       <div class="toolbar">
 
@@ -3731,15 +4232,18 @@
         </div>
 
 
-        <div class="toolbar-right">
+        <div class="toolbar-right smart-toolbar">
 
-          <label
-            class="sr-only"
-            for="bookingSearch"
-          >
-            Search reservations
-          </label>
+          <label class="sr-only" for="bookingSort">Sort reservations</label>
+          <select id="bookingSort" class="smart-sort" aria-label="Sort reservations">
+            <option value="recent">Most recent</option>
+            <option value="checkin-asc">Check-in soonest</option>
+            <option value="value-desc">Highest value</option>
+            <option value="value-asc">Lowest value</option>
+            <option value="status">Status</option>
+          </select>
 
+          <label class="sr-only" for="bookingSearch">Search reservations</label>
           <input
             id="bookingSearch"
             class="search-box"
@@ -3936,7 +4440,10 @@
          ACCOUNT OVERVIEW
          ======================================================== -->
 
-    <section class="section">
+    <section
+      class="section"
+      id="accountOverviewSection"
+    >
 
       <div class="section-header">
 
@@ -3995,6 +4502,33 @@
 
         </div>
 
+
+        <div class="overview-card">
+
+          <small>Membership</small>
+          <strong id="accountMembership"><%= user.memberLevel || "Resort Member" %></strong>
+
+        </div>
+
+        <div class="overview-card">
+
+          <small>Member Since</small>
+          <strong id="accountSince">
+            <%= user.createdAt
+              ? new Date(user.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" })
+              : "Not available" %>
+          </strong>
+
+        </div>
+
+        <div class="overview-card">
+
+          <small>Account Status</small>
+          <strong id="accountStatus">
+            <%= String(user.status || "active").toLowerCase() === "active" ? "Active" : "Restricted" %>
+          </strong>
+
+        </div>
 
         <div class="overview-card">
 
@@ -4451,15 +4985,19 @@
     const state = {
       bookings: [],
       notifications: [],
+      user: null,
       bookingFilter: "all",
       notificationFilter: "all",
       bookingSearch: "",
+      bookingSort: "recent",
       loading: false,
       notificationActionBusy: false,
       cancelBookingId: null,
       lastActiveModal: null,
       refreshTimer: null,
       feedbackTimer: null,
+      lastSyncedAt: null,
+      offline: !navigator.onLine,
     };
 
     const elements = {
@@ -4490,6 +5028,28 @@
       cancelModalMessage: document.getElementById("cancelModalMessage"),
       confirmCancelButton: document.getElementById("confirmCancelButton"),
       srFeedback: document.getElementById("srFeedback"),
+      syncChip: document.getElementById("syncChip"),
+      syncText: document.getElementById("syncText"),
+      profileCompletionLabel: document.getElementById("profileCompletionLabel"),
+      profileCompletionBar: document.getElementById("profileCompletionBar"),
+      profileCompletionText: document.getElementById("profileCompletionText"),
+      lifetimeValue: document.getElementById("lifetimeValue"),
+      completedStays: document.getElementById("completedStays"),
+      averageStay: document.getElementById("averageStay"),
+      favoriteRoom: document.getElementById("favoriteRoom"),
+      favoriteRoomSub: document.getElementById("favoriteRoomSub"),
+      dashboardFocusTitle: document.getElementById("dashboardFocusTitle"),
+      dashboardFocusText: document.getElementById("dashboardFocusText"),
+      dashboardFocusAction: document.getElementById("dashboardFocusAction"),
+      bookingValueStat: document.getElementById("bookingValueStat"),
+      bookingAverageStat: document.getElementById("bookingAverageStat"),
+      bookingCompletedStat: document.getElementById("bookingCompletedStat"),
+      bookingCancelledStat: document.getElementById("bookingCancelledStat"),
+      bookingSort: document.getElementById("bookingSort"),
+      exportBookingsButton: document.getElementById("exportBookingsButton"),
+      accountMembership: document.getElementById("accountMembership"),
+      accountSince: document.getElementById("accountSince"),
+      accountStatus: document.getElementById("accountStatus"),
     };
 
     const cancellableStatuses = new Set([
@@ -4561,6 +5121,280 @@
         currency: "PHP",
         maximumFractionDigits: 2,
       }).format(amount);
+    }
+
+    function formatDateCompact(value) {
+      if (!value) return "—";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "—";
+      return date.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+    }
+
+    function formatIcsDate(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      const y = date.getFullYear();
+      const m = String(date.getMonth() + 1).padStart(2, "0");
+      const d = String(date.getDate()).padStart(2, "0");
+      return `${y}${m}${d}`;
+    }
+
+    function csvCell(value) {
+      const text = String(value ?? "");
+      return `"${text.replace(/"/g, '""')}"`;
+    }
+
+    function activeBookingValue(booking) {
+      const status = String(booking?.status || "").toLowerCase();
+      if (["declined", "rejected", "cancelled"].includes(status)) return 0;
+      const value = Number(booking?.totalPrice);
+      return Number.isFinite(value) ? value : 0;
+    }
+
+    function completedBookingCount() {
+      return state.bookings.filter((booking) =>
+        ["checked-out", "completed"].includes(String(booking?.status || "").toLowerCase())
+      ).length;
+    }
+
+    function averageStayNights() {
+      const eligible = state.bookings.filter((booking) => getNights(booking) > 0);
+      if (!eligible.length) return 0;
+      const total = eligible.reduce((sum, booking) => sum + getNights(booking), 0);
+      return total / eligible.length;
+    }
+
+    function favoriteAccommodation() {
+      if (!state.bookings.length) return { name: "—", count: 0 };
+      const counts = new Map();
+      state.bookings.forEach((booking) => {
+        const name = roomName(booking);
+        counts.set(name, (counts.get(name) || 0) + 1);
+      });
+      let winner = "—";
+      let best = 0;
+      counts.forEach((count, name) => {
+        if (count > best) {
+          best = count;
+          winner = name;
+        }
+      });
+      return { name: winner, count: best };
+    }
+
+    function calculateProfileCompletion() {
+      const user = state.user || {};
+      const checks = [
+        Boolean(user.fullname),
+        Boolean(user.email),
+        Boolean(user.phone),
+        Boolean(user.emailVerified),
+        Boolean(user.memberLevel || user.status),
+      ];
+      const completed = checks.filter(Boolean).length;
+      return Math.round((completed / checks.length) * 100);
+    }
+
+    function scrollToTarget(selector) {
+      const target = document.querySelector(selector);
+      if (!target) return;
+      target.scrollIntoView({ behavior: "smooth", block: "start" });
+    }
+
+    function updateSyncState() {
+      if (!elements.syncChip || !elements.syncText) return;
+      elements.syncChip.classList.toggle("offline", state.offline);
+      if (state.offline) {
+        elements.syncText.textContent = state.lastSyncedAt
+          ? `Offline · Last synced ${state.lastSyncedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`
+          : "Offline · Awaiting connection";
+        return;
+      }
+      if (!state.lastSyncedAt) {
+        elements.syncText.textContent = "Live dashboard";
+        return;
+      }
+      elements.syncText.textContent = `Live · Synced ${state.lastSyncedAt.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" })}`;
+    }
+
+    function updateCommandCenter() {
+      const percent = Math.max(0, Math.min(100, calculateProfileCompletion()));
+      const totalValue = state.bookings.reduce((sum, booking) => sum + activeBookingValue(booking), 0);
+      const completed = completedBookingCount();
+      const avgNights = averageStayNights();
+      const favorite = favoriteAccommodation();
+
+      if (elements.profileCompletionLabel) elements.profileCompletionLabel.textContent = `${percent}%`;
+      if (elements.profileCompletionBar) elements.profileCompletionBar.style.width = `${percent}%`;
+      if (elements.profileCompletionText) {
+        elements.profileCompletionText.textContent = percent >= 100
+          ? "Your core guest profile is complete."
+          : percent >= 80
+            ? "Almost there. A few profile details remain."
+            : "Complete your guest details to keep future stays frictionless.";
+      }
+
+      if (elements.lifetimeValue) elements.lifetimeValue.textContent = formatCurrency(totalValue);
+      if (elements.completedStays) elements.completedStays.textContent = `${completed} completed stay${completed === 1 ? "" : "s"}`;
+      if (elements.averageStay) elements.averageStay.textContent = `${avgNights ? avgNights.toFixed(1) : "0"} nights avg.`;
+      if (elements.favoriteRoom) elements.favoriteRoom.textContent = favorite.name;
+      if (elements.favoriteRoomSub) {
+        elements.favoriteRoomSub.textContent = favorite.count
+          ? `${favorite.count} reservation${favorite.count === 1 ? "" : "s"} in your history`
+          : "Your most frequent reservation.";
+      }
+
+      const upcoming = state.bookings
+        .filter(isUpcomingBooking)
+        .sort((a, b) => new Date(a?.checkin).getTime() - new Date(b?.checkin).getTime())[0];
+      const unread = state.notifications.filter((note) => !note.read && !note.archived).length;
+
+      let focusTitle = "Ready for your next island escape";
+      let focusText = "Create a new reservation whenever you’re ready.";
+      let focusAction = "Book a stay";
+      let focusTarget = "/booking";
+
+      if (unread > 0) {
+        focusTitle = `${unread} update${unread === 1 ? "" : "s"} need your attention`;
+        focusText = "Review your latest resort and reservation notifications.";
+        focusAction = "Review updates";
+        focusTarget = "#notificationsSection";
+      } else if (upcoming) {
+        const days = daysUntil(upcoming.checkin);
+        focusTitle = days === 0
+          ? "Your stay is today"
+          : days === 1
+            ? "Your stay is tomorrow"
+            : `Your next stay is in ${days ?? "—"} days`;
+        focusText = `${roomName(upcoming)} · ${formatDateCompact(upcoming.checkin)}–${formatDateCompact(upcoming.checkout)}`;
+        focusAction = "View next stay";
+        focusTarget = "#bookingsSection";
+      }
+
+      if (elements.dashboardFocusTitle) elements.dashboardFocusTitle.textContent = focusTitle;
+      if (elements.dashboardFocusText) elements.dashboardFocusText.textContent = focusText;
+      if (elements.dashboardFocusAction) {
+        elements.dashboardFocusAction.textContent = `${focusAction} →`;
+        elements.dashboardFocusAction.dataset.focusTarget = focusTarget;
+      }
+
+      if (elements.bookingValueStat) elements.bookingValueStat.textContent = formatCurrency(totalValue);
+      if (elements.bookingAverageStat) elements.bookingAverageStat.textContent = `${avgNights ? avgNights.toFixed(1) : "0"} nights`;
+      if (elements.bookingCompletedStat) elements.bookingCompletedStat.textContent = String(completed);
+      if (elements.bookingCancelledStat) {
+        elements.bookingCancelledStat.textContent = String(state.bookings.filter((booking) =>
+          ["cancelled", "declined", "rejected"].includes(String(booking?.status || "").toLowerCase())
+        ).length);
+      }
+
+      if (elements.accountMembership && state.user?.memberLevel) elements.accountMembership.textContent = state.user.memberLevel;
+      if (elements.accountSince && state.user?.createdAt) {
+        elements.accountSince.textContent = new Date(state.user.createdAt).toLocaleDateString("en-US", { month: "short", year: "numeric" });
+      }
+      if (elements.accountStatus && state.user?.status) {
+        elements.accountStatus.textContent = String(state.user.status).toLowerCase() === "active" ? "Active" : "Restricted";
+      }
+
+      updateSyncState();
+    }
+
+    function downloadTextFile(filename, content, type) {
+      const blob = new Blob([content], { type });
+      const url = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = url;
+      link.download = filename;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+    }
+
+    function exportBookingHistory() {
+      if (!state.bookings.length) {
+        showFeedback("There are no reservations to export yet.");
+        return;
+      }
+
+      const headers = ["Reference", "Accommodation", "Check-In", "Check-Out", "Guests", "Nights", "Status", "Total (PHP)"];
+      const rows = state.bookings.map((booking) => [
+        bookingRef(booking),
+        roomName(booking),
+        formatDate(booking?.checkin),
+        formatDate(booking?.checkout),
+        booking?.guests || 1,
+        getNights(booking),
+        statusLabel(booking?.status),
+        Number.isFinite(Number(booking?.totalPrice)) ? Number(booking.totalPrice).toFixed(2) : "",
+      ]);
+
+      const csv = [headers, ...rows].map((row) => row.map(csvCell).join(",")).join("\r\n");
+      downloadTextFile(`puffer-isle-reservations-${new Date().toISOString().slice(0, 10)}.csv`, csv, "text/csv;charset=utf-8");
+      showFeedback("Reservation history exported successfully.");
+    }
+
+    function downloadBookingCalendar(booking) {
+      const start = formatIcsDate(booking?.checkin);
+      const end = formatIcsDate(booking?.checkout);
+      if (!start || !end) {
+        showFeedback("Calendar export is unavailable for this reservation.");
+        return;
+      }
+
+      const escapeIcs = (value) => String(value || "")
+        .replace(/\\/g, "\\\\")
+        .replace(/;/g, "\\;")
+        .replace(/,/g, "\\,")
+        .replace(/\r?\n/g, "\\n");
+
+      const description = [
+        `Puffer Isle Resort reservation ${bookingRef(booking)}`,
+        `Guests: ${booking?.guests || 1}`,
+        `Status: ${statusLabel(booking?.status)}`,
+      ].join("\n");
+
+      const ics = [
+        "BEGIN:VCALENDAR",
+        "VERSION:2.0",
+        "PRODID:-//Puffer Isle Resort//Guest Dashboard//EN",
+        "BEGIN:VEVENT",
+        `UID:${escapeIcs(bookingRef(booking))}@pufferisle`,
+        `DTSTAMP:${formatIcsDate(new Date())}T000000`,
+        `DTSTART;VALUE=DATE:${start}`,
+        `DTEND;VALUE=DATE:${end}`,
+        `SUMMARY:${escapeIcs(roomName(booking))}`,
+        `DESCRIPTION:${escapeIcs(description)}`,
+        "END:VEVENT",
+        "END:VCALENDAR",
+      ].join("\r\n");
+
+      downloadTextFile(`puffer-isle-${bookingRef(booking)}.ics`, ics, "text/calendar;charset=utf-8");
+      showFeedback("Calendar file created for this reservation.");
+    }
+
+    async function copyBookingReference(id) {
+      const booking = findBookingById(id);
+      if (!booking) return;
+      const reference = bookingRef(booking);
+
+      try {
+        if (navigator.clipboard?.writeText) {
+          await navigator.clipboard.writeText(reference);
+        } else {
+          const input = document.createElement("textarea");
+          input.value = reference;
+          input.setAttribute("readonly", "");
+          input.style.position = "fixed";
+          input.style.opacity = "0";
+          document.body.appendChild(input);
+          input.select();
+          document.execCommand("copy");
+          input.remove();
+        }
+        showFeedback(`Reservation reference ${reference} copied.`);
+      } catch (_) {
+        showFeedback("Unable to copy the reservation reference on this device.");
+      }
     }
 
     function bookingRef(booking) {
@@ -4669,6 +5503,11 @@
         const aDate = new Date(a?.checkin).getTime();
         const bDate = new Date(b?.checkin).getTime();
 
+        if (state.bookingSort === "checkin-asc") return (aDate || 0) - (bDate || 0);
+        if (state.bookingSort === "value-desc") return Number(b?.totalPrice || 0) - Number(a?.totalPrice || 0);
+        if (state.bookingSort === "value-asc") return Number(a?.totalPrice || 0) - Number(b?.totalPrice || 0);
+        if (state.bookingSort === "status") return statusLabel(a?.status).localeCompare(statusLabel(b?.status));
+
         if (state.bookingFilter === "upcoming" || state.bookingFilter === "active") {
           return (aDate || 0) - (bDate || 0);
         }
@@ -4686,6 +5525,7 @@
       if (elements.upcomingCounter) elements.upcomingCounter.textContent = String(upcoming);
       if (elements.notificationsCounter) elements.notificationsCounter.textContent = String(unread);
       if (elements.nightsCounter) elements.nightsCounter.textContent = String(nights);
+      updateCommandCenter();
     }
 
     function showFeedback(message) {
@@ -4909,36 +5749,44 @@
         return `
           <tr>
 
-            <td>
+            <td data-label="Accommodation">
               <strong class="booking-room">
                 ${escapeHtml(room)}
               </strong>
 
+              <button
+                type="button"
+                class="booking-copy"
+                data-copy-booking-ref="${escapeAttr(id)}"
+                aria-label="Copy reservation reference ${escapeAttr(bookingRef(booking))}"
+              >
+                Ref ${escapeHtml(bookingRef(booking))} · Copy
+              </button>
+
               <span class="booking-id">
-                Ref: ${escapeHtml(bookingRef(booking))}
                 ${nights
-                  ? ` · ${escapeHtml(nights)} night${nights === 1 ? "" : "s"}`
-                  : ""}
+                  ? `${escapeHtml(nights)} night${nights === 1 ? "" : "s"}`
+                  : "Reservation"}
               </span>
             </td>
 
-            <td>
+            <td data-label="Check-In">
               ${escapeHtml(formatDate(booking?.checkin))}
             </td>
 
-            <td>
+            <td data-label="Check-Out">
               ${escapeHtml(formatDate(booking?.checkout))}
             </td>
 
-            <td>
+            <td data-label="Guests">
               ${escapeHtml(booking?.guests || 1)}
             </td>
 
-            <td class="booking-total">
+            <td class="booking-total" data-label="Total">
               ${escapeHtml(total)}
             </td>
 
-            <td>
+            <td data-label="Status">
               <span class="status ${safeClass(status)}">
                 ${escapeHtml(statusLabel(status))}
               </span>
@@ -5201,6 +6049,22 @@
           data-close-modal="bookingModal"
         >
           Close
+        </button>
+
+        <button
+          type="button"
+          class="secondary-btn"
+          data-copy-booking-ref="${escapeAttr(id)}"
+        >
+          Copy Reference
+        </button>
+
+        <button
+          type="button"
+          class="secondary-btn"
+          data-calendar-booking="${escapeAttr(id)}"
+        >
+          Add to Calendar
         </button>
 
         ${cancellableStatuses.has(status)
@@ -5691,6 +6555,8 @@
 
         if (!data?.success) return;
 
+        state.user = data.user || state.user || {};
+
         if (
           data.user?.fullname
         ) {
@@ -5818,6 +6684,14 @@
     } = {}) {
       if (state.loading) return;
 
+      if (!navigator.onLine) {
+        state.offline = true;
+        updateSyncState();
+        if (!silent) showFeedback("You’re offline. Showing the most recent dashboard data available on this device.");
+        return;
+      }
+
+      state.offline = false;
       state.loading = true;
 
       if (!silent) {
@@ -5844,6 +6718,10 @@
         renderNextStay();
         renderBookings();
         renderNotifications();
+
+        state.lastSyncedAt = new Date();
+        state.offline = false;
+        updateCommandCenter();
 
         setRefreshStatus(
           "✓ Updated"
@@ -6422,6 +7300,36 @@
           }
         );
 
+      elements.bookingSort?.addEventListener(
+        "change",
+        (event) => {
+          state.bookingSort = event.target.value || "recent";
+          renderBookings();
+        }
+      );
+
+      elements.exportBookingsButton?.addEventListener(
+        "click",
+        exportBookingHistory
+      );
+
+      document
+        .querySelectorAll("[data-scroll-target]")
+        .forEach((button) => {
+          button.addEventListener("click", () => {
+            scrollToTarget(button.dataset.scrollTarget || "");
+          });
+        });
+
+      elements.dashboardFocusAction?.addEventListener(
+        "click",
+        () => {
+          const target = elements.dashboardFocusAction.dataset.focusTarget || "/booking";
+          if (target.startsWith("#")) scrollToTarget(target);
+          else window.location.href = target;
+        }
+      );
+
       document
         .querySelectorAll(
           "[data-notification-filter]"
@@ -6553,6 +7461,21 @@
             return;
           }
 
+          const copyButton = target.closest("[data-copy-booking-ref]");
+
+          if (copyButton) {
+            copyBookingReference(copyButton.dataset.copyBookingRef || "");
+            return;
+          }
+
+          const calendarButton = target.closest("[data-calendar-booking]");
+
+          if (calendarButton) {
+            const booking = findBookingById(calendarButton.dataset.calendarBooking || "");
+            if (booking) downloadBookingCalendar(booking);
+            return;
+          }
+
           const notificationButton =
             target.closest(
               "[data-notification-action]"
@@ -6663,7 +7586,15 @@
       );
     }
 
+    function initHeroGreeting() {
+      const target = document.getElementById("heroGreeting");
+      if (!target) return;
+      const hour = new Date().getHours();
+      target.textContent = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening";
+    }
+
     function initEventListeners() {
+      initHeroGreeting();
       initFlashDismissal();
       initFilters();
       initPasswordToggles();
@@ -6739,6 +7670,33 @@
         );
     }
 
+    window.addEventListener("online", () => {
+      state.offline = false;
+      updateSyncState();
+      showFeedback("Connection restored. Syncing your dashboard…");
+      refreshDashboard({ silent: true });
+    });
+
+    window.addEventListener("offline", () => {
+      state.offline = true;
+      updateSyncState();
+      showFeedback("You’re offline. The dashboard will keep showing the last synced information.");
+    });
+
+    document.addEventListener("keydown", (event) => {
+      if (event.target instanceof HTMLInputElement ||
+          event.target instanceof HTMLTextAreaElement ||
+          event.target instanceof HTMLSelectElement) return;
+
+      if (event.key === "/") {
+        event.preventDefault();
+        elements.bookingSearch?.focus();
+      }
+
+      if (event.key.toLowerCase() === "r") refreshDashboard();
+      if (event.key.toLowerCase() === "b") window.location.href = "/booking";
+    });
+
     document.addEventListener(
       "visibilitychange",
       () => {
@@ -6773,6 +7731,8 @@
     renderBookings();
     renderNotifications();
     renderNextStay();
+    updateCommandCenter();
+    updateSyncState();
 
     refreshDashboard();
 
