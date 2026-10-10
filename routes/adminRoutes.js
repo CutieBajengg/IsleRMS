@@ -71,6 +71,8 @@ const Notification = require("../models/Notification");
 const Room = require("../models/Room");
 const AddOn = require("../models/AddOn");
 const Gallery = require("../models/Gallery");
+const AdminSessionControl =
+  require("../models/AdminSessionControl");
 
 const csrf = require("../middleware/csrf");
 
@@ -2495,6 +2497,7 @@ router.get(
   }
 );
 
+
 /* ============================================================
    ADMIN LOGIN
 ============================================================ */
@@ -2534,12 +2537,8 @@ router.post(
           req,
           res,
           {
-            statusCode:
-              400,
-
-            username:
-              displayUsername,
-
+            statusCode: 400,
+            username: displayUsername,
             error:
               "Username and password are required.",
           }
@@ -2547,19 +2546,14 @@ router.post(
       }
 
       if (
-        rawUsername.length >
-        120
+        rawUsername.length > 120
       ) {
         return renderAdminLogin(
           req,
           res,
           {
-            statusCode:
-              400,
-
-            username:
-              displayUsername,
-
+            statusCode: 400,
+            username: displayUsername,
             error:
               "Administrator username is invalid.",
           }
@@ -2571,19 +2565,13 @@ router.post(
           rawUsername
         );
 
-      if (
-        !submittedUsername
-      ) {
+      if (!submittedUsername) {
         return renderAdminLogin(
           req,
           res,
           {
-            statusCode:
-              400,
-
-            username:
-              displayUsername,
-
+            statusCode: 400,
+            username: displayUsername,
             error:
               "Administrator username is invalid.",
           }
@@ -2592,25 +2580,20 @@ router.post(
 
       /*
        * Username is the canonical administrator identifier.
-       *
-       * Email lookup is retained only if the Admin model actually
-       * contains an email field.
+       * Email lookup remains supported if the model has email.
        */
       const loginQuery =
         modelHasPath(
           Admin,
           "email"
         ) &&
-        submittedUsername.includes(
-          "@"
-        )
+        submittedUsername.includes("@")
           ? {
               $or: [
                 {
                   username:
                     submittedUsername,
                 },
-
                 {
                   email:
                     normalizeEmail(
@@ -2632,7 +2615,7 @@ router.post(
         );
 
       /*
-       * Account lockout.
+       * ACCOUNT LOCKOUT
        */
       if (
         admin &&
@@ -2643,8 +2626,7 @@ router.post(
         admin.lockedUntil &&
         new Date(
           admin.lockedUntil
-        ) >
-          new Date()
+        ) > new Date()
       ) {
         logAdminAction(
           req,
@@ -2659,24 +2641,20 @@ router.post(
           req,
           res,
           {
-            statusCode:
-              429,
-
-            username:
-              displayUsername,
-
+            statusCode: 429,
+            username: displayUsername,
             error:
               "Administrator account temporarily locked. Please try again later.",
           }
         );
       }
 
-      let validPassword =
-        false;
+      /*
+       * VERIFY PASSWORD
+       */
+      let validPassword = false;
 
-      if (
-        admin
-      ) {
+      if (admin) {
         if (
           typeof admin.comparePassword ===
           "function"
@@ -2685,9 +2663,7 @@ router.post(
             await admin.comparePassword(
               password
             );
-        } else if (
-          admin.password
-        ) {
+        } else if (admin.password) {
           validPassword =
             await bcrypt.compare(
               password,
@@ -2697,13 +2673,12 @@ router.post(
       }
 
       /*
-       * Validate current account state.
+       * VALIDATE ACCOUNT STATUS
        */
       const adminStatus =
         admin
           ? String(
-              admin.status ||
-                "active"
+              admin.status || "active"
             )
               .trim()
               .toLowerCase()
@@ -2718,26 +2693,24 @@ router.post(
               "status"
             ) &&
             admin.status &&
-            adminStatus !==
-              "active"
+            adminStatus !== "active"
           ) ||
           (
             modelHasPath(
               Admin,
               "active"
             ) &&
-            admin.active ===
-              false
+            admin.active === false
           )
         );
 
-      if (
-        inactive
-      ) {
-        validPassword =
-          false;
+      if (inactive) {
+        validPassword = false;
       }
 
+      /*
+       * REJECT INVALID CREDENTIALS
+       */
       if (
         !admin ||
         !validPassword
@@ -2764,63 +2737,137 @@ router.post(
           req,
           res,
           {
-            statusCode:
-              401,
-
-            username:
-              displayUsername,
-
+            statusCode: 401,
+            username: displayUsername,
             error:
               "Access denied. Invalid credentials.",
           }
         );
       }
 
+      /*
+       * RECORD SUCCESSFUL LOGIN
+       */
       await recordAdminLoginSuccess(
         admin
       );
 
       /*
-       * Session fixation protection.
+       * SESSION FIXATION PROTECTION
        *
-       * The existing session ID is replaced on successful
-       * administrator authentication.
+       * Replace the pre-authentication session ID.
        */
       await regenerateSession(
         req
       );
 
-      req.session.admin =
-        {
-          id:
-            admin._id.toString(),
+      /*
+       * CREATE UNIQUE ADMIN SESSION TOKEN
+       *
+       * The raw token is stored in the server-side session.
+       * Only its SHA-256 hash is stored in MongoDB.
+       */
+      const adminSessionToken =
+        crypto.randomBytes(32).toString("hex");
 
-          _id:
-            admin._id.toString(),
-
-          username:
-            normalizeUsername(
-              admin.username
-            ),
-
-          role:
-            normalizeString(
-              admin.role ||
-                "admin",
-              80
-            ).toLowerCase(),
-        };
+      const adminSessionTokenHash =
+        crypto
+          .createHash("sha256")
+          .update(adminSessionToken)
+          .digest("hex");
 
       /*
-       * Never allow a customer session to survive as the active
-       * identity inside the same regenerated session.
+       * SET THE AUTHENTICATED ADMIN IDENTITY
+       */
+      req.session.admin = {
+        id:
+          admin._id.toString(),
+
+        _id:
+          admin._id.toString(),
+
+        username:
+          normalizeUsername(
+            admin.username
+          ),
+
+        role:
+          normalizeString(
+            admin.role || "admin",
+            80
+          ).toLowerCase(),
+      };
+
+      req.session.adminSessionToken =
+        adminSessionToken;
+
+      /*
+       * Keep customer identity separate from the admin session.
        */
       delete req.session.user;
 
+      /*
+       * SAVE THE NEW SESSION FIRST
+       */
       await saveSession(
         req
       );
 
+      /*
+       * ACTIVATE THIS ADMIN SESSION GLOBALLY
+       *
+       * Replacing this hash invalidates older administrator
+       * sessions on their next protected /admin request.
+       */
+      const controlUpdate = {
+        activeSessionTokenHash:
+          adminSessionTokenHash,
+
+        adminId:
+          admin._id,
+
+        updatedAt:
+          new Date(),
+      };
+
+      try {
+        await AdminSessionControl.findOneAndUpdate(
+          {
+            _id: "global",
+          },
+          {
+            $set: controlUpdate,
+          },
+          {
+            upsert: true,
+            new: true,
+            setDefaultsOnInsert: true,
+          }
+        );
+      } catch (controlError) {
+        /*
+         * Handle a duplicate-key race if simultaneous first
+         * logins try to create the singleton record.
+         */
+        if (
+          controlError?.code !== 11000
+        ) {
+          throw controlError;
+        }
+
+        await AdminSessionControl.updateOne(
+          {
+            _id: "global",
+          },
+          {
+            $set: controlUpdate,
+          }
+        );
+      }
+
+      /*
+       * PRESERVE EXISTING ACTIVITY LOGGING
+       */
       logAdminAction(
         req,
         "login",
@@ -2834,15 +2881,12 @@ router.post(
         303,
         "/admin/dashboard"
       );
+
     } catch (error) {
       console.error(
         `[ADMIN LOGIN ERROR] requestId=${
-          getRequestId(
-            req
-          ) ||
-          "none"
+          getRequestId(req) || "none"
         }`,
-
         error.stack ||
           error.message ||
           error
@@ -2852,12 +2896,8 @@ router.post(
         req,
         res,
         {
-          statusCode:
-            500,
-
-          username:
-            displayUsername,
-
+          statusCode: 500,
+          username: displayUsername,
           error:
             "We were unable to process the administrator login. Please try again.",
         }
@@ -2865,190 +2905,6 @@ router.post(
     }
   }
 );
-
-/* ============================================================
-   NOTIFICATIONS
-============================================================ */
-
-async function notifyUser(
-  userId,
-  event,
-  title,
-  message,
-  bookingId =
-    null
-) {
-  if (
-    !isValidObjectId(
-      userId
-    )
-  ) {
-    return null;
-  }
-
-  try {
-    if (
-      typeof Notification.createAppointmentNotification ===
-      "function"
-    ) {
-      return await Notification.createAppointmentNotification(
-        {
-          userId,
-
-          appointmentId:
-            isValidObjectId(
-              bookingId
-            )
-              ? bookingId
-              : null,
-
-          event,
-
-          title,
-
-          message,
-
-          priority:
-            event ===
-              "declined" ||
-            event ===
-              "rejected"
-              ? "high"
-              : "normal",
-
-          actionLabel:
-            isValidObjectId(
-              bookingId
-            )
-              ? "View Reservation"
-              : undefined,
-
-          actionUrl:
-            isValidObjectId(
-              bookingId
-            )
-              ? `/profile?booking=${encodeURIComponent(
-                  String(
-                    bookingId
-                  )
-                )}`
-              : undefined,
-        }
-      );
-    }
-
-    const payload =
-      {};
-
-    if (
-      modelHasPath(
-        Notification,
-        "userId"
-      )
-    ) {
-      payload.userId =
-        userId;
-    }
-
-    if (
-      modelHasPath(
-        Notification,
-        "type"
-      )
-    ) {
-      payload.type =
-        modelHasPath(
-          Notification,
-          "event"
-        )
-          ? "appointment"
-          : event;
-    }
-
-    if (
-      modelHasPath(
-        Notification,
-        "event"
-      )
-    ) {
-      payload.event =
-        event;
-    }
-
-    if (
-      modelHasPath(
-        Notification,
-        "title"
-      )
-    ) {
-      payload.title =
-        title;
-    }
-
-    if (
-      modelHasPath(
-        Notification,
-        "message"
-      )
-    ) {
-      payload.message =
-        message;
-    }
-
-    if (
-      isValidObjectId(
-        bookingId
-      )
-    ) {
-      if (
-        modelHasPath(
-          Notification,
-          "bookingId"
-        )
-      ) {
-        payload.bookingId =
-          bookingId;
-      }
-
-      if (
-        modelHasPath(
-          Notification,
-          "appointmentId"
-        )
-      ) {
-        payload.appointmentId =
-          bookingId;
-      }
-    }
-
-    if (
-      modelHasPath(
-        Notification,
-        "read"
-      )
-    ) {
-      payload.read =
-        false;
-    }
-
-    return await Notification.create(
-      payload
-    );
-  } catch (error) {
-    console.error(
-      "Notification Error:",
-      error.stack ||
-        error.message ||
-        error
-    );
-
-    /*
-     * Notification delivery is never allowed to break the
-     * primary booking operation.
-     */
-    return null;
-  }
-}
 
 /* ============================================================
    ROOM / CATALOG HELPERS

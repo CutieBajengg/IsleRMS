@@ -13,6 +13,8 @@ dotenv.config();
 
 const User = require("./models/User");
 const Admin = require("./models/Admin");
+const AdminSessionControl =
+  require("./models/AdminSessionControl");
 
 const userRoutes = require("./routes/userRoutes");
 const adminRoutes = require("./routes/adminRoutes");
@@ -1060,15 +1062,27 @@ app.get(
     )
 );
 
+
 /* ============================================================
    ADMIN ROUTER MOUNT
 ============================================================ */
 
 app.use(
   "/admin",
+
+  // Load the separate administrator session.
   adminSessionMiddleware,
+
+  // Enforce the single-active-administrator rule.
+  enforceSingleAdminSession,
+
+  // Preserve existing CSRF protection.
   attachCsrfToken,
+
+  // Preserve existing administrator activity tracking.
   adminActivityMiddleware,
+
+  // Preserve existing administrator view locals.
   (
     req,
     res,
@@ -1098,6 +1112,8 @@ app.use(
 
     next();
   },
+
+  // Keep both existing route groups.
   galleryRoutes,
   adminRoutes
 );
