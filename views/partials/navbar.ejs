@@ -2687,7 +2687,7 @@ const captchaSiteKey = authModal?.dataset?.captchaSiteKey || "";
           sitekey: captchaSiteKey,
           theme: "dark",
           size: "flexible",
-          appearance: "interaction-only",
+          appearance: "always",
           callback: (token) => {
             if (config.input) config.input.value = token || "";
             updateAuthSecurityNote("Security check complete · Ready to continue", "success");
@@ -3452,30 +3452,23 @@ const captchaSiteKey = authModal?.dataset?.captchaSiteKey || "";
        LOGIN
     ====================================================== */
 
-    loginFormElem?.addEventListener("submit", (event) => {
+    let loginSubmissionApproved = false;
+
+    loginFormElem?.addEventListener("submit", async (event) => {
+      if (loginSubmissionApproved) return;
+      event.preventDefault();
+
       const identifier = loginEmail?.value.trim() || "";
       const password = loginPassword?.value || "";
       clearAuthMessage();
-      loginEmailError.textContent = "";
-      loginPasswordError.textContent = "";
+      if (loginEmailError) loginEmailError.textContent = "";
+      if (loginPasswordError) loginPasswordError.textContent = "";
 
-      if (rejectBotLikeSubmission(loginFormElem)) {
-        event.preventDefault();
-        return;
-      }
-
-      if (captchaEnabled && !getCaptchaToken("login")) {
-        event.preventDefault();
-        setAuthMessage("Please complete the security check before signing in.", "error");
-        updateAuthSecurityNote("Security check required · Please retry", "warning");
-        shakeAuthOnError();
-        return;
-      }
+      if (rejectBotLikeSubmission(loginFormElem)) return;
 
       if (!identifier) {
-        event.preventDefault();
         setFieldState(loginEmail, "invalid");
-        loginEmailError.textContent = "Email or username is required.";
+        if (loginEmailError) loginEmailError.textContent = "Email or username is required.";
         setAuthMessage("Please enter your email or username.", "error");
         loginEmail?.focus();
         shakeAuthOnError();
@@ -3483,17 +3476,21 @@ const captchaSiteKey = authModal?.dataset?.captchaSiteKey || "";
       }
 
       if (!password) {
-        event.preventDefault();
         setFieldState(loginPassword, "invalid");
-        loginPasswordError.textContent = "Password is required.";
+        if (loginPasswordError) loginPasswordError.textContent = "Password is required.";
         setAuthMessage("Please enter your password.", "error");
         loginPassword?.focus();
         shakeAuthOnError();
         return;
       }
 
+      if (!(await requireCaptcha("login"))) return;
+      if (loginCaptchaToken) loginCaptchaToken.value = getCaptchaToken("login");
+
       updateAuthSecurityNote("Signing you in securely…", "success");
       setLoading(loginSubmit, "Signing In…");
+      loginSubmissionApproved = true;
+      HTMLFormElement.prototype.submit.call(loginFormElem);
     });
 
     /* =====================================================
