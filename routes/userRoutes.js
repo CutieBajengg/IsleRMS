@@ -287,14 +287,12 @@ const BLOCKING_STATUSES =
         "checked-in",
       ];
 
-const CANCELLABLE_STATUSES =
-  typeof Appointment.getCancellableStatuses === "function"
-    ? Appointment.getCancellableStatuses()
-    : [
-        "pending",
-        "accepted",
-        "confirmed",
-      ];
+/*
+ * Customer cancellation policy: Accepted reservations cannot be cancelled
+ * by customers. Preserve the existing behavior for Pending and Confirmed
+ * reservations; hiding the button in profile.ejs is not enough by itself.
+ */
+const CANCELLABLE_STATUSES = Object.freeze(["pending", "confirmed"]);
 
 const ALL_BOOKING_STATUSES =
   typeof Appointment.getAllStatuses === "function"

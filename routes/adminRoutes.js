@@ -4751,17 +4751,32 @@ async function updateStatusInternal({
         await appointment.save();
 
         const notification =
-          statusNotification(
-            status
-          );
+  statusNotification(status);
 
-        await notifyUser(
-          appointment.userId,
-          notification.event,
-          notification.title,
-          notification.message,
-          appointment._id
-        );
+// Notification failure must not turn a successful
+// booking update into a false failure response.
+try {
+  if (appointment.userId) {
+    await Notification.createAppointmentNotification({
+      userId: appointment.userId,
+      appointmentId: appointment._id,
+      event: notification.event,
+      title: notification.title,
+      message: notification.message,
+      priority: "normal",
+      actionLabel: "View My Bookings",
+      actionUrl: "/profile#bookings",
+      metadata: {
+        bookingStatus: status,
+      },
+    });
+  }
+} catch (notificationError) {
+  console.error(
+    `[BOOKING NOTIFICATION ERROR] bookingId=${appointment._id}:`,
+    notificationError.message
+  );
+}
 
         if (
           req
