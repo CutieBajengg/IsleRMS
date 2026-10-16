@@ -6,7 +6,7 @@
   <meta name="theme-color" content="#171717">
   <meta
     name="description"
-    content="Guest dashboard for Puffer Isle Resort — manage stays, reservations, notifications, and account security."
+    content="Guest dashboard for Puffer Isle Resort — manage stays, reservations, and account security."
   >
 
   <title>
@@ -25,6 +25,25 @@
   <% if (typeof csrfToken !== "undefined" && csrfToken) { %>
     <meta name="csrf-token" content="<%= csrfToken %>">
   <% } %>
+
+  <%
+    const profileCsrfToken =
+      typeof csrfToken !== "undefined"
+        ? String(csrfToken || "")
+        : "";
+
+    const storedProfilePicture =
+      typeof user?.profilePicture === "string"
+        ? user.profilePicture.trim()
+        : "";
+
+    // Only render our own validated upload paths. The Google avatar is not
+    // used as a default, so guest profiles remain anonymous unless opted in.
+    const profilePictureSrc =
+      /^\/uploads\/profiles\/[A-Za-z0-9_-]+\.(?:jpg|png|webp)$/i.test(storedProfilePicture)
+        ? storedProfilePicture
+        : "/images/profile-icon.png";
+  %>
 
   <style>
     /* ============================================================
@@ -148,10 +167,6 @@
           #eef2f3 52%,
           #e9eff0 100%
         );
-    }
-
-    body.modal-open {
-      overflow: hidden;
     }
 
     button,
@@ -467,7 +482,7 @@
       margin-top: 6px;
 
       color:
-        rgba(255, 255, 255, 0.42);
+        rgb(251, 247, 247);
 
       font-size: 0.61rem;
       font-weight: 600;
@@ -510,7 +525,7 @@
     }
 
     .hero-meta-chip strong {
-      color: #fff;
+      color: #000000;
     }
 
     .hero-actions {
@@ -640,7 +655,7 @@
       display: grid;
 
       grid-template-columns:
-        repeat(4, minmax(0, 1fr));
+        repeat(3, minmax(0, 1fr));
 
       background:
         linear-gradient(
@@ -1626,250 +1641,6 @@
 
 
     /* ============================================================
-       NOTIFICATIONS
-       ============================================================ */
-
-    .notification-toolbar {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-
-      gap: 12px;
-
-      margin-bottom: 18px;
-
-      flex-wrap: wrap;
-    }
-
-    .notification-filters,
-    .notification-actions {
-      display: flex;
-      align-items: center;
-
-      gap: 7px;
-
-      flex-wrap: wrap;
-    }
-
-    .notification-list {
-      display: grid;
-      gap: 11px;
-    }
-
-    .notification {
-      position: relative;
-
-      display: flex;
-      align-items: flex-start;
-
-      gap: 13px;
-
-      padding: 16px;
-
-      background: #fff;
-
-      border:
-        1px solid
-        var(--border);
-
-      border-radius: 18px;
-
-      box-shadow:
-        0 2px 8px
-        rgba(0, 0, 0, 0.018);
-
-      transition:
-        transform 0.22s ease,
-        box-shadow 0.22s ease,
-        border-color 0.22s ease,
-        background 0.22s ease;
-    }
-
-    .notification:hover {
-      transform: translateY(-2px);
-
-      box-shadow:
-        var(--shadow-sm);
-
-      border-color:
-        #dedfe1;
-    }
-
-    .notification.unread {
-      background:
-        linear-gradient(
-          135deg,
-          #fffef5,
-          #fffdfa
-        );
-    }
-
-    .notification.archived {
-      opacity: 0.72;
-    }
-
-    .notification.pending {
-      border-left:
-        4px solid
-        var(--warning);
-    }
-
-    .notification.accepted,
-    .notification.confirmed {
-      border-left:
-        4px solid
-        var(--success);
-    }
-
-    .notification.declined,
-    .notification.rejected {
-      border-left:
-        4px solid
-        var(--danger);
-    }
-
-    .notification.cancelled {
-      border-left:
-        4px solid
-        #868e96;
-    }
-
-    .notification.checked-in {
-      border-left:
-        4px solid
-        var(--info);
-    }
-
-    .notification.checked-out,
-    .notification.completed {
-      border-left:
-        4px solid
-        var(--purple);
-    }
-
-    .notification-icon {
-      width: 44px;
-      height: 44px;
-
-      flex: 0 0 44px;
-
-      display: grid;
-      place-items: center;
-
-      background:
-        linear-gradient(
-          135deg,
-          #f7f7f7,
-          #f1f3f3
-        );
-
-      border:
-        1px solid
-        #ececec;
-
-      border-radius: 14px;
-
-      font-size: 1rem;
-    }
-
-    .notification-content {
-      min-width: 0;
-      flex: 1;
-    }
-
-    .notification-title {
-      margin: 0 0 4px;
-
-      padding-right: 18px;
-
-      color: var(--ink);
-
-      font-size: 0.79rem;
-      font-weight: 800;
-
-      line-height: 1.4;
-    }
-
-    .notification-message {
-      margin: 0;
-
-      color: #666;
-
-      font-size: 0.68rem;
-      line-height: 1.65;
-
-      word-break: break-word;
-    }
-
-    .notification-meta {
-      display: flex;
-      align-items: center;
-
-      gap: 6px;
-
-      margin-top: 8px;
-
-      flex-wrap: wrap;
-
-      color: #999;
-
-      font-size: 0.56rem;
-    }
-
-    .notification-actions {
-      margin-left: auto;
-
-      align-self: flex-start;
-
-      justify-content: flex-end;
-    }
-
-    .notification-actions .tiny-btn {
-      min-height: 30px;
-
-      padding: 6px 9px;
-
-      font-size: 0.55rem;
-    }
-
-    .unread-dot {
-      position: absolute;
-
-      top: 13px;
-      right: 13px;
-
-      width: 7px;
-      height: 7px;
-
-      background: var(--gold);
-
-      border-radius: 50%;
-
-      box-shadow:
-        0 0 0 4px
-        rgba(255, 215, 0, 0.08);
-    }
-
-    .notification-badge {
-      display: inline-flex;
-      align-items: center;
-
-      padding: 3px 7px;
-
-      color: #777;
-      background: #f3f4f4;
-
-      border-radius: var(--pill);
-
-      font-size: 0.48rem;
-      font-weight: 700;
-
-      text-transform: uppercase;
-      letter-spacing: 0.45px;
-    }
-
-
-    /* ============================================================
        ACCOUNT OVERVIEW
        ============================================================ */
 
@@ -2349,55 +2120,57 @@
        MODALS
        ============================================================ */
 
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      z-index: 900;
+    /* Dashboard modal system: isolated from any global/auth modal classes. */
+    body.isle-modal-open {
+      overflow: hidden;
+      overscroll-behavior: none;
+    }
 
+    .isle-modal-backdrop {
+      position: fixed !important;
+      inset: 0 !important;
+      z-index: 50000 !important;
       display: none;
       align-items: center;
       justify-content: center;
-
-      padding: 18px;
-
-      background:
-        rgba(12, 12, 12, 0.68);
-
-      backdrop-filter:
-        blur(7px);
+      overflow-x: hidden;
+      overflow-y: auto;
+      overscroll-behavior: contain;
+      isolation: isolate;
+      padding: clamp(12px, 3vw, 28px);
+      background: rgba(12, 12, 12, 0.72);
+      -webkit-backdrop-filter: blur(7px);
+      backdrop-filter: blur(7px);
     }
 
-    .modal-backdrop.open {
-      display: flex;
+    .isle-modal-backdrop.open {
+      display: flex !important;
     }
 
-    .modal {
-      width: min(720px, 100%);
-
-      max-height:
-        min(88vh, 820px);
-
-      overflow: hidden;
-
-      display: flex;
+    .isle-modal-backdrop > .isle-modal {
+      position: relative !important;
+      inset: auto !important;
+      display: flex !important;
+      flex: 0 1 auto;
       flex-direction: column;
-
+      width: min(720px, 100%);
+      min-width: 0;
+      max-width: 100%;
+      height: auto !important;
+      max-height: 88vh;
+      max-height: 88dvh;
+      margin: auto !important;
+      overflow: hidden;
       background: #fff;
-
-      border:
-        1px solid
-        rgba(255, 255, 255, 0.8);
-
+      border: 1px solid rgba(255, 255, 255, 0.8);
       border-radius: 26px;
+      box-shadow: 0 35px 100px rgba(0, 0, 0, 0.3);
+      animation: modalIn 0.24s cubic-bezier(0.22, 1, 0.36, 1);
+    }
 
-      box-shadow:
-        0 35px 100px
-        rgba(0, 0, 0, 0.3);
-
-      animation:
-        modalIn
-        0.24s
-        cubic-bezier(0.22, 1, 0.36, 1);
+    .isle-modal-header,
+    .isle-modal-footer {
+      flex: 0 0 auto;
     }
 
     @keyframes modalIn {
@@ -2416,7 +2189,7 @@
       }
     }
 
-    .modal-header {
+    .isle-modal-header {
       position: relative;
       overflow: hidden;
 
@@ -2443,7 +2216,7 @@
         );
     }
 
-    .modal-header::after {
+    .isle-modal-header::after {
       content: "";
 
       position: absolute;
@@ -2463,26 +2236,26 @@
         );
     }
 
-    .modal-kicker {
+    .isle-modal-kicker {
       color: var(--gold);
 
-      font-size: 0.58rem;
+      font-size: 0.66rem;
       font-weight: 800;
 
       text-transform: uppercase;
       letter-spacing: 1.2px;
     }
 
-    .modal-title {
+    .isle-modal-title {
       margin-top: 4px;
 
       color: #fff;
 
-      font-size: 1.05rem;
+      font-size: clamp(1.05rem, 2.4vw, 1.3rem);
       font-weight: 800;
     }
 
-    .modal-close {
+    .isle-modal-close {
       width: 34px;
       height: 34px;
 
@@ -2511,28 +2284,32 @@
         transform 0.2s ease;
     }
 
-    .modal-close:hover {
+    .isle-modal-close:hover {
       background:
         rgba(255, 255, 255, 0.12);
 
       transform: rotate(4deg);
     }
 
-    .modal-body {
+    .isle-modal-body {
+      min-height: 0;
+      flex: 1 1 auto;
       padding: 23px;
-
+      overflow-x: hidden;
       overflow-y: auto;
+      overscroll-behavior: contain;
+      -webkit-overflow-scrolling: touch;
     }
 
-    .modal-body::-webkit-scrollbar {
+    .isle-modal-body::-webkit-scrollbar {
       width: 7px;
     }
 
-    .modal-body::-webkit-scrollbar-track {
+    .isle-modal-body::-webkit-scrollbar-track {
       background: #f7f7f7;
     }
 
-    .modal-body::-webkit-scrollbar-thumb {
+    .isle-modal-body::-webkit-scrollbar-thumb {
       background: #d8d8d8;
       border-radius: var(--pill);
     }
@@ -2574,9 +2351,9 @@
 
       margin-bottom: 5px;
 
-      color: #999;
+      color: #777;
 
-      font-size: 0.55rem;
+      font-size: 0.63rem;
       font-weight: 700;
 
       text-transform: uppercase;
@@ -2587,8 +2364,8 @@
     .detail-card span {
       color: var(--ink);
 
-      font-size: 0.73rem;
-
+      font-size: 0.84rem;
+      line-height: 1.55;
       word-break: break-word;
     }
 
@@ -2619,7 +2396,7 @@
 
       color: #666;
 
-      font-size: 0.69rem;
+      font-size: 0.78rem;
     }
 
     .price-summary .price-line:first-child {
@@ -2670,14 +2447,27 @@
 
       border-radius: 11px;
 
-      font-size: 0.66rem;
+      font-size: 0.76rem;
     }
 
     .addon-line strong {
       color: var(--ink);
     }
 
-    .modal-footer {
+    .cancellation-message {
+      margin: 0;
+      color: #565d61;
+      font-size: 0.82rem;
+      line-height: 1.8;
+      overflow-wrap: anywhere;
+    }
+
+    .cancellation-message strong {
+      color: var(--ink);
+      font-weight: 800;
+    }
+
+    .isle-modal-footer {
       display: flex;
       align-items: center;
       justify-content: flex-end;
@@ -2701,6 +2491,13 @@
     .secondary-btn:hover {
       color: var(--ink);
       background: #f8f8f8;
+    }
+
+    .isle-modal-footer .secondary-btn,
+    .isle-modal-footer .danger-btn {
+      min-height: 40px;
+      padding: 10px 15px;
+      font-size: 0.7rem;
     }
 
     .danger-btn {
@@ -3288,38 +3085,6 @@
         width: 100%;
       }
 
-      .notification-toolbar {
-        align-items: stretch;
-        flex-direction: column;
-      }
-
-      .notification-filters,
-      .notification-actions {
-        width: 100%;
-      }
-
-      .notification-filters {
-        overflow-x: auto;
-        flex-wrap: nowrap;
-
-        scrollbar-width: none;
-      }
-
-      .notification-filters::-webkit-scrollbar {
-        display: none;
-      }
-
-      .notification {
-        flex-wrap: wrap;
-      }
-
-      .notification-actions {
-        width: 100%;
-        margin-left: 0;
-
-        justify-content: flex-start;
-      }
-
       .account-overview {
         grid-template-columns: 1fr;
       }
@@ -3350,18 +3115,18 @@
         width: 100%;
       }
 
-      .modal-backdrop {
+      .isle-modal-backdrop {
         padding: 10px;
       }
 
-      .modal {
+      .isle-modal {
         max-height: 92vh;
         border-radius: 20px;
       }
 
-      .modal-header,
-      .modal-body,
-      .modal-footer {
+      .isle-modal-header,
+      .isle-modal-body,
+      .isle-modal-footer {
         padding-left: 18px;
         padding-right: 18px;
       }
@@ -3468,15 +3233,6 @@
         align-self: flex-start;
       }
 
-      .notification {
-        padding: 14px;
-      }
-
-      .notification-icon {
-        width: 40px;
-        height: 40px;
-        flex-basis: 40px;
-      }
     }
 
 
@@ -3536,16 +3292,6 @@
 
       .hero-meta-chip {
         justify-content: space-between;
-      }
-
-      .notification-actions {
-        display: grid;
-        grid-template-columns:
-          repeat(2, minmax(0, 1fr));
-      }
-
-      .notification-actions .tiny-btn {
-        width: 100%;
       }
 
       .stay-actions {
@@ -3609,10 +3355,8 @@
 
       .hero-actions,
       .toolbar,
-      .notification-toolbar,
-      .notification-actions,
       .logout-area,
-      .modal-backdrop,
+      .isle-modal-backdrop,
       .sr-feedback,
       .table-actions,
       .flash-stack,
@@ -3631,7 +3375,278 @@
         break-inside: avoid;
       }
     }
-  </style>
+
+    /* Final guard against third-party positioning rules and small viewport clipping. */
+    .isle-modal-backdrop.open > .isle-modal {
+      display: flex !important;
+      position: relative !important;
+      top: auto !important;
+      right: auto !important;
+      bottom: auto !important;
+      left: auto !important;
+      max-width: 100%;
+      max-height: 88vh;
+      max-height: 88dvh;
+    }
+
+    @media (max-width: 560px) {
+      .isle-modal-backdrop {
+        padding: 10px;
+        align-items: center;
+      }
+
+      .isle-modal-backdrop > .isle-modal {
+        width: 100%;
+        max-height: 92vh;
+        max-height: 92dvh;
+        border-radius: 20px;
+      }
+
+      .isle-modal-header,
+      .isle-modal-body,
+      .isle-modal-footer {
+        padding-left: 18px;
+        padding-right: 18px;
+      }
+
+      .isle-modal-footer > button {
+        min-height: 40px;
+      }
+    }
+
+    @media (prefers-reduced-motion: reduce) {
+      .isle-modal-backdrop > .isle-modal {
+        animation: none;
+      }
+    }
+
+    /* ============================================================
+       ACCESSIBILITY + PROFILE PHOTO — additive refinements
+       Preserve Puffer Isle's existing charcoal, gold, and teal palette.
+       ============================================================ */
+
+    .hero-avatar-wrap {
+      z-index: 2;
+      width: 132px;
+      flex: 0 0 132px;
+    }
+
+    .avatar-profile-form {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 6px;
+      width: 100%;
+      margin: 0;
+    }
+
+    .avatar-file-input {
+      position: absolute !important;
+      width: 1px !important;
+      height: 1px !important;
+      opacity: 0 !important;
+      pointer-events: none !important;
+    }
+
+    .hero-avatar-frame {
+      position: relative;
+      width: 104px;
+      height: 104px;
+      flex: 0 0 104px;
+    }
+
+    .hero-avatar-frame .hero-avatar {
+      width: 104px;
+      height: 104px;
+    }
+
+    .avatar-edit-button {
+      position: absolute;
+      right: -2px;
+      bottom: 3px;
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      padding: 0;
+      color: var(--ink);
+      background: var(--gold);
+      border: 3px solid #1a1a1a;
+      border-radius: 50%;
+      box-shadow: 0 5px 14px rgba(0, 0, 0, 0.28);
+      cursor: pointer;
+      transition: transform 0.2s ease, background 0.2s ease;
+    }
+
+    .avatar-edit-button:hover {
+      transform: translateY(-1px);
+      background: var(--gold-bright);
+    }
+
+    .avatar-edit-button:disabled,
+    .avatar-anonymous-button:disabled {
+      cursor: wait;
+      opacity: 0.6;
+    }
+
+    .avatar-private-note {
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 0.57rem;
+      font-weight: 600;
+      line-height: 1.4;
+      text-align: center;
+    }
+
+    .avatar-anonymous-button {
+      padding: 4px 7px;
+      color: #ffe979;
+      background: rgba(255, 255, 255, 0.055);
+      border: 1px solid rgba(255, 215, 0, 0.2);
+      border-radius: 999px;
+      cursor: pointer;
+      font-size: 0.55rem;
+      font-weight: 700;
+      line-height: 1.4;
+      text-align: center;
+      transition: background 0.18s ease, border-color 0.18s ease;
+    }
+
+    .avatar-anonymous-button:hover {
+      background: rgba(255, 215, 0, 0.11);
+      border-color: rgba(255, 215, 0, 0.45);
+    }
+
+    .avatar-feedback {
+      max-width: 170px;
+      margin: 0;
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 0.56rem;
+      line-height: 1.45;
+      overflow-wrap: anywhere;
+      text-align: center;
+    }
+
+    .avatar-feedback:empty {
+      display: none;
+    }
+
+    .avatar-feedback.is-error {
+      color: #ffaaaa;
+    }
+
+    .avatar-feedback.is-success {
+      color: #8af0ad;
+    }
+
+    /* Text inside dark sections was intentionally subdued; raise contrast. */
+    .profile-handle {
+      color: rgba(255, 255, 255, 0.82);
+    }
+
+    .member-since {
+      color: rgba(255, 255, 255, 0.68);
+    }
+
+    .hero-meta-chip {
+      color: rgba(255, 255, 255, 0.86);
+    }
+
+    .stat-label {
+      color: rgba(255, 255, 255, 0.78);
+      font-size: 0.62rem;
+    }
+
+    .stat-subvalue {
+      color: rgba(255, 255, 255, 0.67);
+      font-size: 0.62rem;
+    }
+
+    .section-subtitle {
+      color: #555b5e;
+    }
+
+    .stay-ref,
+    .stay-detail small,
+    .booking-id,
+    .overview-card small,
+    .field-group label,
+    .password-hint,
+    .logout-copy {
+      color: #62686b;
+    }
+
+    .stay-detail small,
+    .booking-id,
+    .overview-card small,
+    .field-group label,
+    .password-hint {
+      font-size: 0.62rem;
+    }
+
+    th {
+      color: #60676a;
+    }
+
+    td {
+      color: #454b4e;
+    }
+
+    .empty-state,
+    .empty-state-text {
+      color: #62686b;
+    }
+
+    .logout-copy {
+      font-size: 0.68rem;
+    }
+
+    .search-box,
+    input,
+    select {
+      font-size: max(0.72rem, 12px);
+    }
+
+    @media (max-width: 760px) {
+      .hero-avatar-wrap {
+        width: 108px;
+        flex-basis: 108px;
+      }
+
+      .hero-avatar-frame,
+      .hero-avatar-frame .hero-avatar {
+        width: 84px;
+        height: 84px;
+      }
+
+      .hero-avatar-frame {
+        flex-basis: 84px;
+      }
+
+      .avatar-edit-button {
+        width: 31px;
+        height: 31px;
+      }
+    }
+
+    @media (max-width: 600px) {
+      .user-stats {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+      }
+
+      .stat-item:nth-child(2) {
+        border-right: 0;
+      }
+
+      .stat-item:nth-child(3) {
+        border-bottom: 0;
+      }
+
+      .stat-item:nth-child(3)::before {
+        opacity: 0.7;
+      }
+    }
+
+</style>
 </head>
 
 
@@ -3657,18 +3672,71 @@
         <div class="hero-identity">
 
           <div class="hero-avatar-wrap">
-            <img
-              class="hero-avatar"
-              src="/images/profile-icon.png"
-              alt="Profile picture"
-              loading="lazy"
-              onerror="this.src='/images/islelogo.png';"
+            <form
+              class="avatar-profile-form"
+              id="profilePictureForm"
+              action="/profile/update-picture"
+              method="POST"
+              enctype="multipart/form-data"
+              aria-label="Profile picture settings"
             >
+              <% if (profileCsrfToken) { %>
+                <input type="hidden" name="_csrf" value="<%= profileCsrfToken %>">
+              <% } %>
 
-            <span
-              class="hero-avatar-status"
-              aria-hidden="true"
-            ></span>
+              <input
+                type="file"
+                id="profilePictureInput"
+                name="profilePicture"
+                accept="image/jpeg,image/png,image/webp"
+                class="avatar-file-input"
+                tabindex="-1"
+                aria-label="Choose a JPG, PNG, or WebP profile picture"
+              >
+
+              <div class="hero-avatar-frame">
+                <img
+                  class="hero-avatar"
+                  id="heroAvatarImage"
+                  src="<%= profilePictureSrc %>"
+                  alt="Your profile picture"
+                  loading="eager"
+                  decoding="async"
+                  onerror="this.onerror=null;this.src='/images/profile-icon.png';"
+                >
+
+                <button
+                  type="button"
+                  class="avatar-edit-button"
+                  id="changeProfilePictureButton"
+                  aria-label="Choose a profile photo"
+                  title="Choose a profile photo"
+                >
+                  <svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                    <path d="M12 20h9"/>
+                    <path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L8 18l-4 1 1-4Z"/>
+                  </svg>
+                </button>
+              </div>
+
+              <span class="avatar-private-note">Anonymous by default</span>
+
+              <button
+                type="button"
+                class="avatar-anonymous-button <%= profilePictureSrc === "/images/profile-icon.png" ? "hidden" : "" %>"
+                id="removeProfilePictureButton"
+              >
+                Use anonymous avatar
+              </button>
+
+              <p
+                class="avatar-feedback"
+                id="profilePictureFeedback"
+                role="status"
+                aria-live="polite"
+                aria-atomic="true"
+              ></p>
+            </form>
           </div>
 
 
@@ -3838,34 +3906,7 @@
       </div>
 
 
-      <div class="stat-item">
-
-        <div class="stat-label">
-          <span>Unread</span>
-
-          <span class="stat-badge">
-            Alerts
-          </span>
-        </div>
-
-        <div
-          class="stat-value"
-          id="stat-notifs"
-        >
-          <%= notifications
-            ? notifications.filter(
-                function(note) {
-                  return !note.read && !note.archived;
-                }
-              ).length
-            : 0 %>
-        </div>
-
-        <div class="stat-subvalue">
-          Updates that need your attention
-        </div>
-
-      </div>
+      
 
 
       <div class="stat-item">
@@ -4332,111 +4373,6 @@
 
 
     <!-- ========================================================
-         NOTIFICATIONS
-         ======================================================== -->
-
-    <section
-      class="section"
-      id="notificationsSection"
-    >
-
-      <div class="section-header">
-
-        <div class="section-title-wrap">
-
-          <h2>
-            Notifications
-          </h2>
-
-          <p class="section-subtitle">
-            Booking changes, resort updates, and account activity in one place.
-          </p>
-
-        </div>
-
-      </div>
-
-
-      <div class="notification-toolbar">
-
-        <div
-          class="notification-filters"
-          role="group"
-          aria-label="Notification filters"
-        >
-
-          <button
-            type="button"
-            class="filter-button active"
-            data-notification-filter="all"
-          >
-            All
-          </button>
-
-          <button
-            type="button"
-            class="filter-button"
-            data-notification-filter="unread"
-          >
-            Unread
-          </button>
-
-          <button
-            type="button"
-            class="filter-button"
-            data-notification-filter="archived"
-          >
-            Archived
-          </button>
-
-        </div>
-
-
-        <div class="notification-actions">
-
-          <button
-            type="button"
-            class="tiny-btn dark"
-            id="markAllReadButton"
-          >
-            Mark all as read
-          </button>
-
-        </div>
-
-      </div>
-
-
-      <div
-        id="notificationsContainer"
-        class="notification-list"
-      >
-
-        <div class="empty-state">
-
-          <div
-            class="empty-state-icon"
-            aria-hidden="true"
-          >
-            🔔
-          </div>
-
-          <div class="empty-state-title">
-            Loading notifications…
-          </div>
-
-          <div class="empty-state-text">
-            Your latest resort updates will appear here.
-          </div>
-
-        </div>
-
-      </div>
-
-    </section>
-
-
-    <!-- ========================================================
          ACCOUNT OVERVIEW
          ======================================================== -->
 
@@ -4817,28 +4753,30 @@
        ======================================================== -->
 
   <div
-    class="modal-backdrop"
+    class="isle-modal-backdrop"
     id="bookingModal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="bookingModalTitle"
+    role="presentation"
+    aria-hidden="true"
   >
 
     <div
-      class="modal"
-      role="document"
+      class="isle-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="bookingModalTitle"
+      tabindex="-1"
     >
 
-      <div class="modal-header">
+      <div class="isle-modal-header">
 
         <div>
 
-          <div class="modal-kicker">
+          <div class="isle-modal-kicker">
             Reservation Details
           </div>
 
           <div
-            class="modal-title"
+            class="isle-modal-title"
             id="bookingModalTitle"
           >
             Booking
@@ -4849,7 +4787,7 @@
 
         <button
           type="button"
-          class="modal-close"
+          class="isle-modal-close"
           data-close-modal="bookingModal"
           aria-label="Close booking details"
         >
@@ -4860,13 +4798,13 @@
 
 
       <div
-        class="modal-body"
+        class="isle-modal-body"
         id="bookingModalBody"
       ></div>
 
 
       <div
-        class="modal-footer"
+        class="isle-modal-footer"
         id="bookingModalFooter"
       ></div>
 
@@ -4880,29 +4818,31 @@
        ======================================================== -->
 
   <div
-    class="modal-backdrop"
+    class="isle-modal-backdrop"
     id="cancelModal"
-    role="dialog"
-    aria-modal="true"
-    aria-labelledby="cancelModalTitle"
+    role="presentation"
+    aria-hidden="true"
   >
 
     <div
-      class="modal"
-      role="document"
+      class="isle-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="cancelModalTitle"
+      tabindex="-1"
       style="width:min(480px,100%);"
     >
 
-      <div class="modal-header">
+      <div class="isle-modal-header">
 
         <div>
 
-          <div class="modal-kicker">
+          <div class="isle-modal-kicker">
             Reservation Action
           </div>
 
           <div
-            class="modal-title"
+            class="isle-modal-title"
             id="cancelModalTitle"
           >
             Cancel this reservation?
@@ -4913,7 +4853,7 @@
 
         <button
           type="button"
-          class="modal-close"
+          class="isle-modal-close"
           data-close-modal="cancelModal"
           aria-label="Close cancellation dialog"
         >
@@ -4923,22 +4863,17 @@
       </div>
 
 
-      <div class="modal-body">
+      <div class="isle-modal-body">
 
         <p
           id="cancelModalMessage"
-          style="
-            margin:0;
-            color:#666;
-            font-size:.75rem;
-            line-height:1.7;
-          "
+          class="cancellation-message"
         ></p>
 
       </div>
 
 
-      <div class="modal-footer">
+      <div class="isle-modal-footer">
 
         <button
           type="button"
@@ -4982,21 +4917,148 @@
     const profilePage = document.getElementById("profilePage");
     const userId = profilePage?.dataset?.userId || "";
 
+    /* ============================================================
+       OPTIONAL PROFILE PHOTO
+       Anonymous avatar is the default. Uploads are stored server-side.
+       ============================================================ */
+
+    const avatarDefaultSrc = "/images/profile-icon.png";
+    const avatarForm = document.getElementById("profilePictureForm");
+    const avatarInput = document.getElementById("profilePictureInput");
+    const avatarImage = document.getElementById("heroAvatarImage");
+    const avatarChooseButton = document.getElementById("changeProfilePictureButton");
+    const avatarRemoveButton = document.getElementById("removeProfilePictureButton");
+    const avatarFeedback = document.getElementById("profilePictureFeedback");
+    const avatarMaxBytes = 5 * 1024 * 1024;
+    let avatarRequestBusy = false;
+
+    function setAvatarFeedback(message, kind = "status") {
+      if (!avatarFeedback) return;
+      avatarFeedback.textContent = String(message || "");
+      avatarFeedback.classList.remove("is-error", "is-success");
+      if (kind === "error") avatarFeedback.classList.add("is-error");
+      if (kind === "success") avatarFeedback.classList.add("is-success");
+    }
+
+    function setAvatarControlsBusy(busy) {
+      avatarRequestBusy = Boolean(busy);
+      if (avatarChooseButton) avatarChooseButton.disabled = avatarRequestBusy;
+      if (avatarRemoveButton) avatarRemoveButton.disabled = avatarRequestBusy;
+      if (avatarForm) avatarForm.setAttribute("aria-busy", String(avatarRequestBusy));
+    }
+
+    function avatarCsrfToken() {
+      return document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ||
+        avatarForm?.querySelector('input[name="_csrf"]')?.value ||
+        "";
+    }
+
+    async function submitAvatarChange({ file = null, remove = false } = {}) {
+      if (avatarRequestBusy) return null;
+      const csrf = avatarCsrfToken();
+      const formData = new FormData();
+      if (file) formData.append("profilePicture", file);
+      if (remove) formData.append("removeProfilePicture", "true");
+      if (csrf) formData.append("_csrf", csrf);
+
+      const headers = {
+        Accept: "application/json",
+        "X-Requested-With": "XMLHttpRequest",
+      };
+      if (csrf) headers["X-CSRF-Token"] = csrf;
+
+      setAvatarControlsBusy(true);
+      try {
+        const response = await fetch("/profile/update-picture", {
+          method: "POST",
+          credentials: "same-origin",
+          cache: "no-store",
+          headers,
+          body: formData,
+        });
+
+        let data = {};
+        try {
+          data = await response.json();
+        } catch (_) {
+          throw new Error("The server returned an unreadable response. Please refresh and try again.");
+        }
+
+        if (!response.ok || data?.success !== true) {
+          throw new Error(data?.message || "Unable to update your profile picture.");
+        }
+
+        const savedPicture = typeof data.profilePicture === "string" ? data.profilePicture : "";
+        if (avatarImage) avatarImage.src = savedPicture || avatarDefaultSrc;
+        if (avatarRemoveButton) avatarRemoveButton.classList.toggle("hidden", !savedPicture);
+        setAvatarFeedback(data.message || (remove ? "Anonymous avatar restored." : "Profile picture updated."), "success");
+        return data;
+      } catch (error) {
+        throw error;
+      } finally {
+        setAvatarControlsBusy(false);
+      }
+    }
+
+    avatarChooseButton?.addEventListener("click", () => {
+      if (!avatarRequestBusy) avatarInput?.click();
+    });
+
+    avatarInput?.addEventListener("change", async () => {
+      const file = avatarInput.files?.[0];
+      if (!file) return;
+
+      const allowedTypes = new Set(["image/jpeg", "image/png", "image/webp"]);
+      if (!allowedTypes.has(file.type) || file.size > avatarMaxBytes || file.size === 0) {
+        setAvatarFeedback("Choose a JPG, PNG, or WebP image no larger than 5 MB.", "error");
+        avatarInput.value = "";
+        return;
+      }
+
+      const priorSrc = avatarImage?.getAttribute("src") || avatarDefaultSrc;
+      let previewUrl = "";
+      try {
+        previewUrl = URL.createObjectURL(file);
+        if (avatarImage) avatarImage.src = previewUrl;
+        setAvatarFeedback("Previewing your photo and saving it securely…");
+        await submitAvatarChange({ file });
+      } catch (error) {
+        if (avatarImage) avatarImage.src = priorSrc;
+        setAvatarFeedback(error?.message || "Unable to save your photo. Please try again.", "error");
+      } finally {
+        if (previewUrl) URL.revokeObjectURL(previewUrl);
+        avatarInput.value = "";
+      }
+    });
+
+    avatarRemoveButton?.addEventListener("click", async () => {
+      if (avatarRequestBusy) return;
+      const priorSrc = avatarImage?.getAttribute("src") || avatarDefaultSrc;
+      if (avatarImage) avatarImage.src = avatarDefaultSrc;
+      setAvatarFeedback("Restoring the anonymous avatar…");
+      try {
+        await submitAvatarChange({ remove: true });
+      } catch (error) {
+        if (avatarImage) avatarImage.src = priorSrc;
+        setAvatarFeedback(error?.message || "Unable to remove your profile photo.", "error");
+      }
+    });
+
     const state = {
       bookings: [],
-      notifications: [],
       user: null,
       bookingFilter: "all",
-      notificationFilter: "all",
       bookingSearch: "",
       bookingSort: "recent",
       loading: false,
-      notificationActionBusy: false,
       cancelBookingId: null,
       lastActiveModal: null,
+      modalReturnStack: [],
       refreshTimer: null,
       feedbackTimer: null,
       lastSyncedAt: null,
+      serverStats: null,
+      serverBookingTotal: null,
       offline: !navigator.onLine,
     };
 
@@ -5004,14 +5066,11 @@
       refreshButton: document.getElementById("refreshButton"),
       refreshStatus: document.getElementById("refreshStatus"),
       appointmentsContainer: document.getElementById("appointmentsContainer"),
-      notificationsContainer: document.getElementById("notificationsContainer"),
       bookingsCounter: document.getElementById("stat-bookings"),
       upcomingCounter: document.getElementById("stat-upcoming"),
-      notificationsCounter: document.getElementById("stat-notifs"),
       nightsCounter: document.getElementById("stat-nights"),
       bookingSearch: document.getElementById("bookingSearch"),
       nextStayContainer: document.getElementById("nextStayContainer"),
-      markAllReadButton: document.getElementById("markAllReadButton"),
       passwordForm: document.getElementById("passwordForm"),
       passwordSubmitButton: document.getElementById("passwordSubmitButton"),
       passwordFeedback: document.getElementById("passwordFeedback"),
@@ -5139,6 +5198,16 @@
       return `${y}${m}${d}`;
     }
 
+    // RFC 5545 DTSTAMP must be a UTC date-time, not a date plus fixed midnight.
+    function formatIcsUtcDateTime(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return "";
+      return date
+        .toISOString()
+        .replace(/[-:]/g, "")
+        .replace(/\.\d{3}Z$/, "Z");
+    }
+
     function csvCell(value) {
       const text = String(value ?? "");
       return `"${text.replace(/"/g, '""')}"`;
@@ -5157,17 +5226,28 @@
       ).length;
     }
 
+    function isExcludedFromGuestInsights(booking) {
+      return ["declined", "rejected", "cancelled"].includes(
+        String(booking?.status || "").toLowerCase()
+      );
+    }
+
     function averageStayNights() {
-      const eligible = state.bookings.filter((booking) => getNights(booking) > 0);
+      const eligible = state.bookings.filter((booking) =>
+        !isExcludedFromGuestInsights(booking) && getNights(booking) > 0
+      );
       if (!eligible.length) return 0;
       const total = eligible.reduce((sum, booking) => sum + getNights(booking), 0);
       return total / eligible.length;
     }
 
     function favoriteAccommodation() {
-      if (!state.bookings.length) return { name: "—", count: 0 };
+      const eligible = state.bookings.filter(
+        (booking) => !isExcludedFromGuestInsights(booking)
+      );
+      if (!eligible.length) return { name: "—", count: 0 };
       const counts = new Map();
-      state.bookings.forEach((booking) => {
+      eligible.forEach((booking) => {
         const name = roomName(booking);
         counts.set(name, (counts.get(name) || 0) + 1);
       });
@@ -5247,19 +5327,13 @@
       const upcoming = state.bookings
         .filter(isUpcomingBooking)
         .sort((a, b) => new Date(a?.checkin).getTime() - new Date(b?.checkin).getTime())[0];
-      const unread = state.notifications.filter((note) => !note.read && !note.archived).length;
 
       let focusTitle = "Ready for your next island escape";
       let focusText = "Create a new reservation whenever you’re ready.";
       let focusAction = "Book a stay";
       let focusTarget = "/booking";
 
-      if (unread > 0) {
-        focusTitle = `${unread} update${unread === 1 ? "" : "s"} need your attention`;
-        focusText = "Review your latest resort and reservation notifications.";
-        focusAction = "Review updates";
-        focusTarget = "#notificationsSection";
-      } else if (upcoming) {
+      if (upcoming) {
         const days = daysUntil(upcoming.checkin);
         focusTitle = days === 0
           ? "Your stay is today"
@@ -5342,10 +5416,10 @@
       }
 
       const escapeIcs = (value) => String(value || "")
-        .replace(/\\/g, "\\\\")
-        .replace(/;/g, "\\;")
-        .replace(/,/g, "\\,")
-        .replace(/\r?\n/g, "\\n");
+        .replace(/\\\\/g, "\\\\\\\\")
+        .replace(/;/g, "\\\\;")
+        .replace(/,/g, "\\\\,")
+        .replace(/\r?\n/g, "\\\n");
 
       const description = [
         `Puffer Isle Resort reservation ${bookingRef(booking)}`,
@@ -5359,7 +5433,7 @@
         "PRODID:-//Puffer Isle Resort//Guest Dashboard//EN",
         "BEGIN:VEVENT",
         `UID:${escapeIcs(bookingRef(booking))}@pufferisle`,
-        `DTSTAMP:${formatIcsDate(new Date())}T000000`,
+        `DTSTAMP:${formatIcsUtcDateTime(new Date())}`,
         `DTSTART;VALUE=DATE:${start}`,
         `DTEND;VALUE=DATE:${end}`,
         `SUMMARY:${escapeIcs(roomName(booking))}`,
@@ -5449,19 +5523,27 @@
       return Math.round((targetStart - todayStart) / 86400000);
     }
 
+    function startOfLocalDay(value) {
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) return null;
+      return new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    }
+
     function isUpcomingBooking(booking) {
       const status = String(booking?.status || "pending").toLowerCase();
-      const checkin = new Date(booking?.checkin);
-      if (Number.isNaN(checkin.getTime())) return false;
-      return !terminalStatuses.has(status) && checkin >= new Date();
+      const checkinDay = startOfLocalDay(booking?.checkin);
+      if (!checkinDay) return false;
+      const today = startOfLocalDay(new Date());
+      return Boolean(today) && !terminalStatuses.has(status) && checkinDay >= today;
     }
 
     function isPastBooking(booking) {
       const status = String(booking?.status || "pending").toLowerCase();
       if (terminalStatuses.has(status)) return true;
 
-      const checkout = new Date(booking?.checkout);
-      return !Number.isNaN(checkout.getTime()) && checkout < new Date();
+      const checkoutDay = startOfLocalDay(booking?.checkout);
+      const today = startOfLocalDay(new Date());
+      return Boolean(checkoutDay && today) && checkoutDay < today;
     }
 
     function isActiveBooking(booking) {
@@ -5517,13 +5599,19 @@
     }
 
     function updateStats() {
-      const upcoming = state.bookings.filter(isUpcomingBooking).length;
-      const nights = state.bookings.reduce((sum, booking) => sum + getNights(booking), 0);
-      const unread = state.notifications.filter((note) => !note.read && !note.archived).length;
-
-      if (elements.bookingsCounter) elements.bookingsCounter.textContent = String(state.bookings.length);
+      // Prefer API-wide totals so the cards remain accurate when lists are paginated.
+      const upcoming = typeof state.serverStats?.upcomingBookings === "number"
+        ? state.serverStats.upcomingBookings
+        : state.bookings.filter(isUpcomingBooking).length;
+      const totalBookings = typeof state.serverStats?.totalBookings === "number"
+        ? state.serverStats.totalBookings
+        : typeof state.serverBookingTotal === "number"
+          ? state.serverBookingTotal
+          : state.bookings.length;
+      const nights = state.bookings.reduce((sum, booking) =>
+        sum + (isExcludedFromGuestInsights(booking) ? 0 : getNights(booking)), 0);
+      if (elements.bookingsCounter) elements.bookingsCounter.textContent = String(totalBookings);
       if (elements.upcomingCounter) elements.upcomingCounter.textContent = String(upcoming);
-      if (elements.notificationsCounter) elements.notificationsCounter.textContent = String(unread);
       if (elements.nightsCounter) elements.nightsCounter.textContent = String(nights);
       updateCommandCenter();
     }
@@ -5598,6 +5686,11 @@
         }
 
         return data || {};
+      } catch (error) {
+        if (error?.name === "AbortError") {
+          throw new Error("The server took too long to respond. Please try again.");
+        }
+        throw error;
       } finally {
         window.clearTimeout(timeout);
       }
@@ -6084,50 +6177,81 @@
     function openModal(modal, opener = null) {
       if (!modal) return;
 
-      state.lastActiveModal =
-        opener ||
-        document.activeElement;
+      const activeModal = document.querySelector(
+        ".isle-modal-backdrop.open"
+      );
 
+      if (activeModal && activeModal !== modal) {
+        state.modalReturnStack.push({
+          modal: activeModal,
+          focusTarget: document.activeElement,
+          returnFocus: state.lastActiveModal,
+        });
+        activeModal.classList.remove("open");
+        activeModal.setAttribute("aria-hidden", "true");
+      }
+
+      state.lastActiveModal = opener || document.activeElement;
+      modal.setAttribute("aria-hidden", "false");
       modal.classList.add("open");
+      document.body.classList.add("isle-modal-open");
 
-      document.body.classList.add(
-        "modal-open"
-      );
+      const focusTarget = modal.querySelector(
+        "button, [href], input, select, textarea, [tabindex]:not([tabindex='-1'])"
+      ) || modal.querySelector(".isle-modal");
 
-      const focusTarget =
-        modal.querySelector(
-          "button, [href], input, select, textarea"
-        );
-
-      window.setTimeout(
-        () => focusTarget?.focus(),
-        0
-      );
+      window.setTimeout(() => focusTarget?.focus(), 0);
     }
 
-    function closeModal(modal) {
-      if (
-        !modal ||
-        !modal.classList.contains("open")
-      ) {
+    function closeModal(modal, options = {}) {
+      if (!modal || !modal.classList.contains("open")) return;
+
+      modal.classList.remove("open");
+      modal.setAttribute("aria-hidden", "true");
+
+      const restorePrevious = options.restorePrevious !== false;
+      const previous = restorePrevious
+        ? state.modalReturnStack.pop()
+        : null;
+
+      if (previous?.modal && document.body.contains(previous.modal)) {
+        previous.modal.classList.add("open");
+        previous.modal.setAttribute("aria-hidden", "false");
+        state.lastActiveModal = previous.returnFocus || state.lastActiveModal;
+        document.body.classList.add("isle-modal-open");
+
+        if (previous.focusTarget?.isConnected) {
+          window.setTimeout(() => previous.focusTarget.focus(), 0);
+        }
         return;
       }
 
-      modal.classList.remove("open");
-
-      document.body.classList.remove(
-        "modal-open"
-      );
-
-      if (
-        state.lastActiveModal &&
-        typeof state.lastActiveModal.focus ===
-          "function"
-      ) {
-        state.lastActiveModal.focus();
+      if (!restorePrevious) {
+        for (const item of state.modalReturnStack) {
+          item.modal?.classList.remove("open");
+          item.modal?.setAttribute("aria-hidden", "true");
+        }
+        state.modalReturnStack = [];
       }
 
-      state.lastActiveModal = null;
+      const anotherOpenModal = document.querySelector(
+        ".isle-modal-backdrop.open"
+      );
+
+      if (!anotherOpenModal) {
+        document.body.classList.remove("isle-modal-open");
+
+        const focusTarget = state.lastActiveModal;
+        const parentModal = focusTarget?.closest?.(".isle-modal-backdrop");
+        if (
+          focusTarget?.isConnected &&
+          (!parentModal || parentModal.classList.contains("open")) &&
+          typeof focusTarget.focus === "function"
+        ) {
+          focusTarget.focus();
+        }
+        state.lastActiveModal = null;
+      }
     }
 
     function findBookingById(id) {
@@ -6247,7 +6371,8 @@
             `/appointment/cancel/${encodeURIComponent(id)}`,
             {
               method: "POST",
-            }
+            },
+            30000
           );
 
         if (!data?.success) {
@@ -6257,8 +6382,12 @@
           );
         }
 
+        // Clear the selected booking only after the server confirms success.
+        state.cancelBookingId = null;
+
         closeModal(
-          elements.cancelModal
+          elements.cancelModal,
+          { restorePrevious: false }
         );
 
         showFeedback(
@@ -6285,265 +6414,7 @@
 
         elements.confirmCancelButton.textContent =
           "Cancel Reservation";
-
-        state.cancelBookingId =
-          null;
       }
-    }
-
-    function renderNotifications() {
-      if (!elements.notificationsContainer) return;
-
-      let filtered =
-        [...state.notifications];
-
-      if (
-        state.notificationFilter ===
-        "unread"
-      ) {
-        filtered =
-          filtered.filter(
-            (note) =>
-              !note.read &&
-              !note.archived
-          );
-      } else if (
-        state.notificationFilter ===
-        "archived"
-      ) {
-        filtered =
-          filtered.filter(
-            (note) =>
-              note.archived
-          );
-      }
-
-      filtered.sort(
-        (a, b) => {
-          return (
-            new Date(
-              b?.createdAt
-            ).getTime() || 0
-          ) -
-          (
-            new Date(
-              a?.createdAt
-            ).getTime() || 0
-          );
-        }
-      );
-
-      if (!filtered.length) {
-        const text =
-          state.notificationFilter ===
-          "unread"
-            ? "You have no unread notifications."
-            : state.notificationFilter ===
-              "archived"
-              ? "No archived notifications are available."
-              : "No notifications are available yet.";
-
-        elements.notificationsContainer.innerHTML = `
-          <div class="empty-state">
-
-            <div class="empty-state-icon">
-              🔔
-            </div>
-
-            <div class="empty-state-title">
-              You're all caught up
-            </div>
-
-            <div class="empty-state-text">
-              ${escapeHtml(text)}
-            </div>
-
-          </div>
-        `;
-
-        return;
-      }
-
-      elements.notificationsContainer.innerHTML =
-        filtered
-          .map((note) => {
-            const type =
-              String(
-                note?.type ||
-                "system"
-              ).toLowerCase();
-
-            const event =
-              String(
-                note?.event ||
-                ""
-              ).toLowerCase();
-
-            const unread =
-              !note?.read;
-
-            const archived =
-              Boolean(
-                note?.archived
-              );
-
-            const id =
-              note?._id ||
-              note?.id ||
-              "";
-
-            const title =
-              note?.title ||
-              "Island Update";
-
-            const message =
-              note?.message ||
-              "You have a new resort update.";
-
-            const icon =
-              note?.icon ||
-              (
-                event ===
-                "cancelled"
-                  ? "✖️"
-                  : event ===
-                    "created"
-                    ? "🧾"
-                    : "🏝️"
-              );
-
-            const detailLabel =
-              event
-                ? statusLabel(
-                    event
-                  )
-                : type;
-
-            return `
-              <article
-                class="notification ${safeClass(event || type)} ${
-                  unread && !archived
-                    ? "unread"
-                    : ""
-                } ${
-                  archived
-                    ? "archived"
-                    : ""
-                }"
-                data-notification-id="${escapeAttr(id)}"
-              >
-
-                ${
-                  unread && !archived
-                    ? '<span class="unread-dot" aria-label="Unread notification"></span>'
-                    : ""
-                }
-
-                <div
-                  class="notification-icon"
-                  aria-hidden="true"
-                >
-                  ${escapeHtml(icon)}
-                </div>
-
-
-                <div class="notification-content">
-
-                  <p class="notification-title">
-                    ${escapeHtml(title)}
-                  </p>
-
-                  <p class="notification-message">
-                    ${escapeHtml(message)}
-                  </p>
-
-
-                  <div class="notification-meta">
-
-                    <span class="notification-badge">
-                      ${escapeHtml(detailLabel)}
-                    </span>
-
-                    <span>
-                      ${escapeHtml(
-                        formatDateTime(
-                          note?.createdAt
-                        ) ||
-                        "Recent update"
-                      )}
-                    </span>
-
-                    ${
-                      archived
-                        ? `
-                          <span class="notification-badge">
-                            Archived
-                          </span>
-                        `
-                        : ""
-                    }
-
-                  </div>
-
-                </div>
-
-
-                <div class="notification-actions">
-
-                  ${
-                    !archived
-                      ? `
-                        <button
-                          type="button"
-                          class="tiny-btn"
-                          data-notification-action="${
-                            unread
-                              ? "read"
-                              : "unread"
-                          }"
-                          data-notification-id="${escapeAttr(id)}"
-                        >
-                          ${
-                            unread
-                              ? "Mark read"
-                              : "Unread"
-                          }
-                        </button>
-                      `
-                      : `
-                        <button
-                          type="button"
-                          class="tiny-btn"
-                          data-notification-action="unarchive"
-                          data-notification-id="${escapeAttr(id)}"
-                        >
-                          Restore
-                        </button>
-                      `
-                  }
-
-
-                  ${
-                    !archived
-                      ? `
-                        <button
-                          type="button"
-                          class="tiny-btn"
-                          data-notification-action="archive"
-                          data-notification-id="${escapeAttr(id)}"
-                        >
-                          Archive
-                        </button>
-                      `
-                      : ""
-                  }
-
-                </div>
-
-              </article>
-            `;
-          })
-          .join("");
     }
 
     async function loadDashboardStats() {
@@ -6556,6 +6427,9 @@
         if (!data?.success) return;
 
         state.user = data.user || state.user || {};
+        if (data.stats && typeof data.stats === "object") {
+          state.serverStats = data.stats;
+        }
 
         if (
           data.user?.fullname
@@ -6656,27 +6530,10 @@
         )
           ? data.bookings
           : [];
-    }
 
-    async function loadNotifications() {
-      const data =
-        await fetchJson(
-          "/api/me/notifications?limit=100&includeArchived=true"
-        );
-
-      if (!data?.success) {
-        throw new Error(
-          data?.message ||
-          "Unable to load notifications."
-        );
-      }
-
-      state.notifications =
-        Array.isArray(
-          data.notifications
-        )
-          ? data.notifications
-          : [];
+      state.serverBookingTotal = typeof data.pagination?.total === "number"
+        ? data.pagination.total
+        : state.bookings.length;
     }
 
     async function refreshDashboard({
@@ -6710,14 +6567,12 @@
       try {
         await Promise.all([
           loadBookings(),
-          loadNotifications(),
           loadDashboardStats(),
         ]);
 
         updateStats();
         renderNextStay();
         renderBookings();
-        renderNotifications();
 
         state.lastSyncedAt = new Date();
         state.offline = false;
@@ -6761,202 +6616,6 @@
           elements.refreshButton.disabled =
             false;
         }
-      }
-    }
-
-    async function updateNotificationState(
-      id,
-      action
-    ) {
-      if (
-        state.notificationActionBusy
-      ) {
-        return;
-      }
-
-      if (!id) return;
-
-      state.notificationActionBusy =
-        true;
-
-      try {
-        const endpointMap = {
-          read: {
-            url: `/api/me/notifications/${encodeURIComponent(id)}/read`,
-            method: "POST",
-          },
-          unread: {
-            url: `/api/me/notifications/${encodeURIComponent(id)}/unread`,
-            method: "POST",
-          },
-          archive: {
-            url: `/api/me/notifications/${encodeURIComponent(id)}/archive`,
-            method: "POST",
-          },
-          unarchive: {
-            url: `/api/me/notifications/${encodeURIComponent(id)}/unarchive`,
-            method: "POST",
-          },
-        };
-
-        const request =
-          endpointMap[action];
-
-        if (!request) return;
-
-        const data =
-          await fetchJson(
-            request.url,
-            {
-              method:
-                request.method,
-            }
-          );
-
-        if (!data?.success) {
-          throw new Error(
-            data?.message ||
-            "Unable to update notification."
-          );
-        }
-
-        const returned =
-          data.notification;
-
-        state.notifications =
-          state.notifications.map(
-            (note) => {
-              const noteId =
-                String(
-                  note?._id ||
-                  note?.id ||
-                  ""
-                );
-
-              return noteId ===
-                String(id) &&
-                returned
-                ? returned
-                : note;
-            }
-          );
-
-        updateStats();
-        renderNotifications();
-
-        showFeedback(
-          action === "read"
-            ? "Notification marked as read."
-            : action === "archive"
-              ? "Notification archived."
-              : action ===
-                "unarchive"
-                ? "Notification restored."
-                : "Notification marked as unread."
-        );
-      } catch (error) {
-        console.error(
-          "Notification action error:",
-          error
-        );
-
-        showFeedback(
-          error.message ||
-          "Unable to update that notification."
-        );
-      } finally {
-        state.notificationActionBusy =
-          false;
-      }
-    }
-
-    async function markAllNotificationsRead() {
-      if (
-        !elements.markAllReadButton ||
-        state.notificationActionBusy
-      ) {
-        return;
-      }
-
-      const unreadExists =
-        state.notifications.some(
-          (note) =>
-            !note.read &&
-            !note.archived
-        );
-
-      if (!unreadExists) {
-        showFeedback(
-          "There are no unread notifications."
-        );
-
-        return;
-      }
-
-      state.notificationActionBusy =
-        true;
-
-      elements.markAllReadButton.disabled =
-        true;
-
-      elements.markAllReadButton.textContent =
-        "Updating…";
-
-      try {
-        const data =
-          await fetchJson(
-            "/api/me/notifications/read-all",
-            {
-              method: "POST",
-            }
-          );
-
-        if (!data?.success) {
-          throw new Error(
-            data?.message ||
-            "Unable to update notifications."
-          );
-        }
-
-        state.notifications =
-          state.notifications.map(
-            (note) =>
-              note.archived
-                ? note
-                : {
-                    ...note,
-                    read: true,
-                    readAt:
-                      new Date().toISOString(),
-                  }
-          );
-
-        updateStats();
-        renderNotifications();
-
-        showFeedback(
-          data.message ||
-          "All notifications have been marked as read."
-        );
-      } catch (error) {
-        console.error(
-          "Mark all notifications error:",
-          error
-        );
-
-        showFeedback(
-          error.message ||
-          "Unable to mark all notifications as read."
-        );
-      } finally {
-        state.notificationActionBusy =
-          false;
-
-        elements.markAllReadButton.disabled =
-          false;
-
-        elements.markAllReadButton.textContent =
-          "Mark all as read";
       }
     }
 
@@ -7330,40 +6989,7 @@
         }
       );
 
-      document
-        .querySelectorAll(
-          "[data-notification-filter]"
-        )
-        .forEach(
-          (button) => {
-            button.addEventListener(
-              "click",
-              () => {
-                document
-                  .querySelectorAll(
-                    "[data-notification-filter]"
-                  )
-                  .forEach(
-                    (item) =>
-                      item.classList.remove(
-                        "active"
-                      )
-                  );
 
-                button.classList.add(
-                  "active"
-                );
-
-                state.notificationFilter =
-                  button.dataset
-                    .notificationFilter ||
-                  "all";
-
-                renderNotifications();
-              }
-            );
-          }
-        );
     }
 
     function initPasswordToggles() {
@@ -7407,13 +7033,25 @@
     }
 
     function closeAllModals() {
-      closeModal(
-        elements.bookingModal
-      );
+      const returnFocus = state.modalReturnStack[0]?.returnFocus || state.lastActiveModal;
 
-      closeModal(
-        elements.cancelModal
-      );
+      document.querySelectorAll(".isle-modal-backdrop").forEach((modal) => {
+        modal.classList.remove("open");
+        modal.setAttribute("aria-hidden", "true");
+      });
+
+      state.modalReturnStack = [];
+      document.body.classList.remove("isle-modal-open");
+      state.lastActiveModal = null;
+
+      const parentModal = returnFocus?.closest?.(".isle-modal-backdrop");
+      if (
+        returnFocus?.isConnected &&
+        (!parentModal || parentModal.classList.contains("open")) &&
+        typeof returnFocus.focus === "function"
+      ) {
+        returnFocus.focus();
+      }
     }
 
     function initModalInteractions() {
@@ -7476,26 +7114,6 @@
             return;
           }
 
-          const notificationButton =
-            target.closest(
-              "[data-notification-action]"
-            );
-
-          if (notificationButton) {
-            updateNotificationState(
-              notificationButton
-                .dataset
-                .notificationId ||
-                "",
-              notificationButton
-                .dataset
-                .notificationAction ||
-                ""
-            );
-
-            return;
-          }
-
           const closeButton =
             target.closest(
               "[data-close-modal]"
@@ -7516,13 +7134,10 @@
           }
 
           if (
-            target.classList.contains(
-              "modal-backdrop"
-            )
+            target.classList.contains("isle-modal-backdrop") &&
+            target.classList.contains("open")
           ) {
-            closeModal(
-              target
-            );
+            closeModal(target);
           }
         }
       );
@@ -7530,16 +7145,20 @@
       document.addEventListener(
         "keydown",
         (event) => {
-          if (
-            event.key ===
-            "Escape"
-          ) {
-            closeAllModals();
+          if (event.key === "Escape") {
+            const activeModal = document.querySelector(
+              ".isle-modal-backdrop.open"
+            );
+            if (activeModal) {
+              event.preventDefault();
+              closeModal(activeModal);
+              return;
+            }
           }
 
           const openModalElement =
             document.querySelector(
-              ".modal-backdrop.open"
+              ".isle-modal-backdrop.open"
             );
 
           if (
@@ -7616,11 +7235,6 @@
 
           renderBookings();
         }
-      );
-
-      elements.markAllReadButton?.addEventListener(
-        "click",
-        markAllNotificationsRead
       );
 
       elements.confirmCancelButton?.addEventListener(
@@ -7729,7 +7343,6 @@
 
     updateStats();
     renderBookings();
-    renderNotifications();
     renderNextStay();
     updateCommandCenter();
     updateSyncState();

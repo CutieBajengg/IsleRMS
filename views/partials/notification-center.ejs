@@ -1,0 +1,965 @@
+<%
+  const notificationCsrfToken =
+    typeof csrfToken !== "undefined"
+      ? String(csrfToken || "")
+      : "";
+%>
+<!-- =========================================================
+     PUFFER ISLE RESORT | IsleRMS
+     File: views/partials/notification-center.ejs
+     Integrates with existing userRoutes.js:
+       GET  /api/me/notifications
+       POST /api/me/notifications/:notificationId/read
+       POST /api/me/notifications/read-all
+     Uses the existing Notification model:
+       userId, title, message, type, event,
+       read, readAt, archived, actionUrl, createdAt
+========================================================= -->
+<div
+  class="dropdown notification-wrapper"
+  id="notificationDropdown"
+  data-csrf-token="<%= notificationCsrfToken %>"
+>
+  <button
+    type="button"
+    class="notification-bell dropdown-trigger"
+    id="notificationBell"
+    aria-label="Notifications"
+    aria-haspopup="true"
+    aria-expanded="false"
+    aria-controls="notificationMenu"
+    title="Notifications"
+  >
+    <svg
+      xmlns="http://www.w3.org/2000/svg"
+      class="notification-bell-icon"
+      width="22"
+      height="22"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.8"
+      stroke-linecap="round"
+      stroke-linejoin="round"
+      aria-hidden="true"
+    >
+      <path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9" />
+      <path d="M10 21h4" />
+    </svg>
+    <span
+      id="notificationCount"
+      class="notification-count hidden"
+      aria-live="polite"
+      aria-atomic="true"
+    >0</span>
+  </button>
+  <div
+    id="notificationMenu"
+    class="dropdown-content notification-panel"
+    aria-label="Your notifications"
+  >
+    <div class="notification-panel-header">
+      <div class="notification-heading-copy">
+        <h3>Notifications</h3>
+        <p id="notificationSummary">
+          Stay updated on your reservations.
+        </p>
+      </div>
+      <button
+        type="button"
+        id="notificationMarkAll"
+        class="notification-mark-all"
+        disabled
+      >
+        Mark all read
+      </button>
+    </div>
+    <div
+      id="notificationList"
+      class="notification-list"
+      aria-live="polite"
+      aria-busy="false"
+    >
+      <div class="notification-state">
+        <span class="notification-state-icon" aria-hidden="true">◌</span>
+        <span>Loading your notifications...</span>
+      </div>
+    </div>
+    <button
+      type="button"
+      id="notificationLoadMore"
+      class="notification-view-all"
+      hidden
+    >
+      <span id="notificationLoadMoreLabel">
+        Load more notifications
+      </span>
+      <span aria-hidden="true">→</span>
+    </button>
+    <div
+      id="notificationError"
+      class="notification-error"
+      role="status"
+      aria-live="polite"
+      hidden
+    ></div>
+  </div>
+</div>
+<style>
+  /* Puffer Isle notification center — aligned with the navbar's charcoal + gold palette. */
+  .notification-wrapper {
+    position: relative;
+    flex: 0 0 auto;
+    min-width: 0;
+  }
+
+  .notification-bell {
+    position: relative;
+    width: 42px;
+    height: 42px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0;
+    border: 1px solid rgba(255, 215, 0, 0.2);
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.045);
+    color: rgba(255, 255, 255, 0.9);
+    cursor: pointer;
+    transition: background 0.22s ease, border-color 0.22s ease, color 0.22s ease, transform 0.22s ease;
+  }
+
+  .notification-bell:hover,
+  .notification-bell:focus-visible,
+  .notification-wrapper.is-open .notification-bell {
+    color: #ffd700;
+    background: rgba(255, 215, 0, 0.1);
+    border-color: rgba(255, 215, 0, 0.62);
+  }
+
+  .notification-bell:hover { transform: translateY(-1px); }
+  .notification-bell-icon { flex-shrink: 0; }
+
+  .notification-count {
+    position: absolute;
+    top: -4px;
+    right: -5px;
+    min-width: 19px;
+    height: 19px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 0 5px;
+    border: 2px solid #151515;
+    border-radius: 999px;
+    background: #e04444;
+    color: #fff;
+    font-size: 10px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+    pointer-events: none;
+  }
+
+  .notification-count.hidden { display: none !important; }
+
+  /* Match the light dropdown surfaces used by Discover and the profile menu. */
+  .notification-panel.dropdown-content {
+    width: 380px;
+    max-width: min(380px, calc(100vw - 24px));
+    padding: 0;
+    overflow: hidden;
+    background: #fff;
+    color: #151515;
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-radius: 16px;
+    box-shadow: 0 25px 60px rgba(0, 0, 0, 0.25);
+    transform-origin: top right;
+  }
+
+  .notification-panel.dropdown-content::before { display: none; }
+
+  .notification-panel-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 17px 17px 15px;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.07);
+    background: linear-gradient(135deg, rgba(255, 215, 0, 0.13), rgba(255, 255, 255, 0.98) 72%);
+  }
+
+  .notification-heading-copy { flex: 1; min-width: 0; }
+
+  .notification-panel-header h3 {
+    margin: 0;
+    color: #151515;
+    font-family: inherit;
+    font-size: 15px;
+    font-weight: 800;
+    letter-spacing: -0.15px;
+  }
+
+  .notification-panel-header p {
+    margin: 5px 0 0;
+    color: #686868;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .notification-mark-all {
+    flex: 0 0 auto;
+    padding: 5px 0;
+    border: 0;
+    background: transparent;
+    color: #806600;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: color 0.2s ease, opacity 0.2s ease;
+  }
+
+  .notification-mark-all:hover:not(:disabled) {
+    color: #151515;
+    text-decoration: underline;
+    text-underline-offset: 3px;
+  }
+
+  .notification-mark-all:disabled { opacity: 0.4; cursor: not-allowed; }
+
+  .notification-list {
+    max-height: 370px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    scrollbar-width: thin;
+    scrollbar-color: rgba(21, 21, 21, 0.24) transparent;
+  }
+
+  .notification-list::-webkit-scrollbar { width: 5px; }
+  .notification-list::-webkit-scrollbar-thumb { border-radius: 999px; background: rgba(21, 21, 21, 0.22); }
+
+  .notification-panel .notification-item {
+    position: relative;
+    display: flex;
+    align-items: flex-start;
+    gap: 12px;
+    width: 100%;
+    margin: 0;
+    padding: 14px 16px;
+    border: 0;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.055);
+    border-radius: 0;
+    background: #fff;
+    color: #151515;
+    font-family: inherit;
+    text-align: left;
+    text-decoration: none;
+    white-space: normal;
+    transition: background 0.18s ease;
+  }
+
+  .notification-panel .notification-item:hover,
+  .notification-panel .notification-item:focus-visible {
+    background: #f8f8f6;
+    color: #151515;
+  }
+
+  .notification-panel .notification-item.is-unread {
+    background: #fffbed;
+    box-shadow: inset 3px 0 0 #ffd700;
+  }
+
+  .notification-panel .notification-item.is-unread:hover { background: #fff7d6; }
+
+  .notification-item-icon {
+    width: 37px;
+    height: 37px;
+    flex: 0 0 37px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border: 1px solid rgba(21, 21, 21, 0.07);
+    border-radius: 11px;
+    background: #f5f5f2;
+    color: #806600;
+    font-size: 15px;
+    font-weight: 800;
+  }
+
+  .notification-item-content { flex: 1; min-width: 0; }
+
+  .notification-panel .notification-item-title {
+    display: block;
+    margin: 1px 0 5px;
+    color: #171717;
+    font-size: 12px;
+    font-weight: 800;
+    line-height: 1.45;
+    overflow-wrap: anywhere;
+  }
+
+  .notification-panel .notification-item-message {
+    display: -webkit-box;
+    overflow: hidden;
+    color: #5f5f5f;
+    font-size: 11px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+    -webkit-box-orient: vertical;
+    -webkit-line-clamp: 2;
+  }
+
+  .notification-item-action {
+    display: inline-block;
+    margin-top: 7px;
+    color: #806600;
+    font-size: 10px;
+    font-weight: 800;
+  }
+
+  .notification-item-time {
+    display: block;
+    margin-top: 7px;
+    color: #777;
+    font-size: 10px;
+  }
+
+  .notification-unread-dot {
+    width: 7px;
+    height: 7px;
+    flex: 0 0 7px;
+    margin-top: 5px;
+    border-radius: 50%;
+    background: #e3b900;
+    box-shadow: 0 0 0 3px rgba(255, 215, 0, 0.18);
+  }
+
+  .notification-state {
+    min-height: 120px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 9px;
+    padding: 23px 20px;
+    color: #686868;
+    font-size: 11px;
+    line-height: 1.6;
+    text-align: center;
+  }
+
+  .notification-state-icon { color: #a08300; font-size: 23px; }
+
+  .notification-retry {
+    margin-top: 5px;
+    padding: 7px 12px;
+    border: 1px solid rgba(21, 21, 21, 0.14);
+    border-radius: 10px;
+    background: #f7f7f5;
+    color: #151515;
+    font-family: inherit;
+    font-size: 10px;
+    font-weight: 800;
+    cursor: pointer;
+    transition: background 0.2s ease, border-color 0.2s ease;
+  }
+
+  .notification-retry:hover { background: #fff5c2; border-color: rgba(128, 102, 0, 0.3); }
+
+  .notification-error {
+    padding: 10px 15px;
+    border-top: 1px solid rgba(224, 68, 68, 0.17);
+    background: #fff4f4;
+    color: #9c2424;
+    font-size: 11px;
+    line-height: 1.5;
+  }
+
+  .notification-panel .notification-view-all {
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 10px;
+    margin: 0;
+    padding: 13px 17px;
+    border: 0;
+    border-top: 1px solid rgba(0, 0, 0, 0.07);
+    border-radius: 0;
+    background: #fff;
+    color: #705900;
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 800;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.18s ease, color 0.18s ease;
+  }
+
+  .notification-panel .notification-view-all:hover:not(:disabled) {
+    background: #fff8d8;
+    color: #151515;
+  }
+
+  .notification-panel .notification-view-all:disabled { opacity: 0.6; cursor: wait; }
+  .notification-view-all[hidden] { display: none !important; }
+
+  .notification-view-all > span:last-child {
+    font-size: 16px;
+    transition: transform 0.18s ease;
+  }
+
+  .notification-view-all:hover:not(:disabled) > span:last-child { transform: translateX(3px); }
+
+  @media (max-width: 850px) {
+    .notification-wrapper { width: 100%; }
+
+    .notification-bell {
+      width: 100%;
+      height: 46px;
+      justify-content: flex-start;
+      gap: 12px;
+      padding: 0 15px;
+      border-radius: 11px;
+      background: transparent;
+      border-color: transparent;
+      color: rgba(255, 255, 255, 0.88);
+    }
+
+    .notification-bell::after {
+      content: "Notifications";
+      font-family: inherit;
+      font-size: 15px;
+      font-weight: 500;
+    }
+
+    .notification-bell:hover,
+    .notification-bell:focus-visible,
+    .notification-wrapper.is-open .notification-bell {
+      background: rgba(255, 215, 0, 0.09);
+      border-color: rgba(255, 215, 0, 0.18);
+      color: #ffd700;
+      transform: none;
+    }
+
+    .notification-count {
+      top: 5px;
+      left: 34px;
+      right: auto;
+      border-color: #171717;
+    }
+
+    .notification-panel.dropdown-content {
+      width: 100%;
+      max-width: 100%;
+      margin: 5px 0 8px;
+      border-radius: 12px;
+    }
+
+    .notification-list { max-height: 300px; }
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    .notification-bell,
+    .notification-panel .notification-item,
+    .notification-view-all > span:last-child,
+    .notification-mark-all,
+    .notification-retry { transition: none !important; }
+  }
+</style>
+<script>
+(() => {
+  "use strict";
+  function initNotificationCenter() {
+    const wrapper = document.getElementById("notificationDropdown");
+    if (
+      !wrapper ||
+      wrapper.dataset.notificationsInitialized === "true"
+    ) {
+      return;
+    }
+    wrapper.dataset.notificationsInitialized = "true";
+    const bell = document.getElementById("notificationBell");
+    const badge = document.getElementById("notificationCount");
+    const list = document.getElementById("notificationList");
+    const summary = document.getElementById("notificationSummary");
+    const markAllButton = document.getElementById("notificationMarkAll");
+    const loadMoreButton = document.getElementById("notificationLoadMore");
+    const loadMoreLabel = document.getElementById("notificationLoadMoreLabel");
+    const errorBox = document.getElementById("notificationError");
+    const csrfToken = wrapper.dataset.csrfToken || "";
+    const API = {
+      list: "/api/me/notifications",
+      markAll: "/api/me/notifications/read-all",
+      markOne: (id) =>
+        `/api/me/notifications/${encodeURIComponent(id)}/read`
+    };
+    const PAGE_SIZE = 8;
+    const POLL_INTERVAL_MS = 45000;
+    const REQUEST_TIMEOUT_MS = 10000;
+    let currentPage = 1;
+    let hasNextPage = false;
+    let unreadCount = 0;
+    let notifications = [];
+    let requestInProgress = false;
+    let pollingTimer = null;
+    let retryTimer = null;
+    function isRead(item) {
+      if (typeof item?.read === "boolean") {
+        return item.read;
+      }
+      // Compatibility for legacy notification documents.
+      if (typeof item?.isRead === "boolean") {
+        return item.isRead;
+      }
+      return Boolean(item?.readAt);
+    }
+    function updateBadge(count) {
+      unreadCount = Math.max(
+        0,
+        Number.isFinite(Number(count)) ? Number(count) : 0
+      );
+      if (badge) {
+        badge.textContent =
+          unreadCount > 99 ? "99+" : String(unreadCount);
+        badge.classList.toggle("hidden", unreadCount === 0);
+      }
+      bell?.setAttribute(
+        "aria-label",
+        unreadCount > 0
+          ? `Notifications, ${unreadCount} unread`
+          : "Notifications"
+      );
+      if (markAllButton) {
+        markAllButton.disabled = unreadCount === 0;
+      }
+    }
+    function clearError() {
+      if (!errorBox) return;
+      errorBox.hidden = true;
+      errorBox.textContent = "";
+    }
+    function showError(message) {
+      if (!errorBox) return;
+      errorBox.textContent = String(
+        message || "Unable to complete the request."
+      );
+      errorBox.hidden = false;
+    }
+    function showState(message, icon = "◌", retry = false) {
+      if (!list) return;
+      const state = document.createElement("div");
+      state.className = "notification-state";
+      const symbol = document.createElement("span");
+      symbol.className = "notification-state-icon";
+      symbol.setAttribute("aria-hidden", "true");
+      symbol.textContent = icon;
+      const description = document.createElement("span");
+      description.textContent = message;
+      state.append(symbol, description);
+      if (retry) {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "notification-retry";
+        button.textContent = "Try again";
+        button.addEventListener("click", () => {
+          loadNotifications();
+        });
+        state.appendChild(button);
+      }
+      list.replaceChildren(state);
+    }
+    function formatTime(value) {
+      if (!value) return "Recently";
+      const date = new Date(value);
+      if (Number.isNaN(date.getTime())) {
+        return "Recently";
+      }
+      const seconds = Math.max(
+        0,
+        Math.floor((Date.now() - date.getTime()) / 1000)
+      );
+      if (seconds < 60) return "Just now";
+      const minutes = Math.floor(seconds / 60);
+      if (minutes < 60) return `${minutes}m ago`;
+      const hours = Math.floor(minutes / 60);
+      if (hours < 24) return `${hours}h ago`;
+      const days = Math.floor(hours / 24);
+      if (days < 7) return `${days}d ago`;
+      return date.toLocaleDateString(undefined, {
+        month: "short",
+        day: "numeric",
+        year:
+          date.getFullYear() !== new Date().getFullYear()
+            ? "numeric"
+            : undefined
+      });
+    }
+    function notificationIcon(item) {
+      const type = String(item?.type || "").toLowerCase();
+      const event = String(item?.event || "").toLowerCase();
+      if (
+        type === "appointment" ||
+        event === "created" ||
+        event === "accepted" ||
+        event === "confirmed"
+      ) {
+        return "▣";
+      }
+      if (
+        type === "alert" ||
+        event === "security"
+      ) {
+        return "!";
+      }
+      if (
+        event === "payment"
+      ) {
+        return "₱";
+      }
+      if (event === "reminder") {
+        return "◷";
+      }
+      return "✦";
+    }
+    function safeInternalUrl(value) {
+      // The dashboard is the reliable landing page for notifications.
+      const fallback = "/profile";
+      const candidate = String(value || "").trim();
+      if (
+        !candidate ||
+        !candidate.startsWith("/") ||
+        candidate.startsWith("//") ||
+        candidate.includes("\\\\")
+      ) {
+        return fallback;
+      }
+      try {
+        const parsed = new URL(candidate, window.location.origin);
+        if (parsed.origin !== window.location.origin) {
+          return fallback;
+        }
+        return parsed.pathname + parsed.search + parsed.hash;
+      } catch (_) {
+        return fallback;
+      }
+    }
+    async function fetchWithTimeout(url, options = {}) {
+      const controller = new AbortController();
+      const timeout = window.setTimeout(
+        () => controller.abort(),
+        REQUEST_TIMEOUT_MS
+      );
+      try {
+        return await fetch(url, {
+          ...options,
+          signal: controller.signal
+        });
+      } finally {
+        window.clearTimeout(timeout);
+      }
+    }
+    async function readJson(response) {
+      try {
+        return await response.json();
+      } catch (_) {
+        return {};
+      }
+    }
+    function renderNotifications() {
+      if (!list) return;
+      list.replaceChildren();
+      if (notifications.length === 0) {
+        showState(
+          "You're all caught up. Your reservation updates will appear here.",
+          "✓"
+        );
+        return;
+      }
+      const fragment = document.createDocumentFragment();
+      notifications.forEach((notification) => {
+        const id = String(
+          notification?._id || notification?.id || ""
+        ).trim();
+        const title = String(
+          notification?.title || "Resort notification"
+        ).trim();
+        const message = String(
+          notification?.message || "You have a new update."
+        ).trim();
+        const read = isRead(notification);
+        // actionUrl is the actual field in models/Notification.js.
+        // Older notifications may point to a missing #bookings anchor, so
+        // always send the explicit "View My Bookings" action to the dashboard.
+        const actionLabel = String(notification?.actionLabel || "").trim();
+        const destination = /^view\s+my\s+bookings$/i.test(actionLabel)
+          ? "/profile"
+          : safeInternalUrl(notification?.actionUrl);
+        const item = document.createElement("a");
+        item.className = "notification-item";
+        item.href = destination;
+        if (id) {
+          item.dataset.notificationId = id;
+        }
+        if (!read) {
+          item.classList.add("is-unread");
+        }
+        const icon = document.createElement("span");
+        icon.className = "notification-item-icon";
+        icon.setAttribute("aria-hidden", "true");
+        icon.textContent = notificationIcon(notification);
+        const content = document.createElement("span");
+        content.className = "notification-item-content";
+        const heading = document.createElement("span");
+        heading.className = "notification-item-title";
+        heading.textContent = title;
+        const description = document.createElement("span");
+        description.className = "notification-item-message";
+        description.textContent = message;
+        const time = document.createElement("span");
+        time.className = "notification-item-time";
+        time.textContent = formatTime(notification.createdAt);
+        content.append(heading, description, time);
+        if (actionLabel) {
+          const action = document.createElement("span");
+          action.className = "notification-item-action";
+          action.textContent = actionLabel;
+          content.appendChild(action);
+        }
+        item.append(icon, content);
+        if (!read) {
+          const dot = document.createElement("span");
+          dot.className = "notification-unread-dot";
+          dot.setAttribute("aria-label", "Unread");
+          item.appendChild(dot);
+        }
+        fragment.appendChild(item);
+      });
+      list.appendChild(fragment);
+    }
+    async function loadNotifications(options = {}) {
+      if (requestInProgress || document.hidden) return;
+      const append = options.append === true;
+      if (append && !hasNextPage) return;
+      requestInProgress = true;
+      list?.setAttribute("aria-busy", "true");
+      clearError();
+      if (!append && notifications.length === 0) {
+        showState("Loading your notifications...", "◌");
+      }
+      if (append && loadMoreButton) {
+        loadMoreButton.disabled = true;
+        if (loadMoreLabel) {
+          loadMoreLabel.textContent = "Loading...";
+        }
+      }
+      const requestedPage = append ? currentPage + 1 : 1;
+      try {
+        const response = await fetchWithTimeout(
+          `${API.list}?page=${requestedPage}&limit=${PAGE_SIZE}`,
+          {
+            method: "GET",
+            credentials: "same-origin",
+            cache: "no-store",
+            headers: {
+              Accept: "application/json",
+              "X-Requested-With": "XMLHttpRequest"
+            }
+          }
+        );
+        if (!response.ok) {
+          if (response.status === 401) {
+            throw new Error(
+              "Your session has expired. Please sign in again."
+            );
+          }
+          throw new Error("Unable to load your notifications.");
+        }
+        const payload = await readJson(response);
+        if (payload.success !== true) {
+          throw new Error(
+            payload.message || "Unable to load notifications."
+          );
+        }
+        const fetched = Array.isArray(payload.notifications)
+          ? payload.notifications
+          : [];
+        currentPage = requestedPage;
+        notifications = append
+          ? notifications.concat(fetched)
+          : fetched;
+        unreadCount = Number(payload.unreadCount) || 0;
+        hasNextPage = Boolean(
+          payload.pagination?.hasNextPage
+        );
+        updateBadge(unreadCount);
+        if (summary) {
+          summary.textContent =
+            unreadCount > 0
+              ? `${unreadCount} unread notification${unreadCount === 1 ? "" : "s"}`
+              : "You're up to date.";
+        }
+        renderNotifications();
+        if (loadMoreButton) {
+          loadMoreButton.hidden = !hasNextPage;
+        }
+      } catch (error) {
+        console.warn("IsleRMS notification loading:", error);
+        if (append && notifications.length > 0) {
+          showError(
+            error.name === "AbortError"
+              ? "Loading took too long. Please try again."
+              : error.message
+          );
+        } else {
+          showState(
+            error.name === "AbortError"
+              ? "The request timed out. Please try again."
+              : error.message || "Unable to load notifications.",
+            "!",
+            true
+          );
+        }
+      } finally {
+        requestInProgress = false;
+        list?.setAttribute("aria-busy", "false");
+        if (loadMoreButton) {
+          loadMoreButton.disabled = false;
+          if (loadMoreLabel) {
+            loadMoreLabel.textContent = "Load more notifications";
+          }
+        }
+      }
+    }
+    async function sendNotificationAction(endpoint) {
+      const body = new URLSearchParams();
+      if (csrfToken) {
+        body.set("_csrf", csrfToken);
+      }
+      const headers = {
+        Accept: "application/json",
+        "Content-Type":
+          "application/x-www-form-urlencoded;charset=UTF-8",
+        "X-Requested-With": "XMLHttpRequest"
+      };
+      if (csrfToken) {
+        headers["X-CSRF-Token"] = csrfToken;
+      }
+      const response = await fetchWithTimeout(endpoint, {
+        method: "POST",
+        credentials: "same-origin",
+        cache: "no-store",
+        headers,
+        body
+      });
+      const payload = await readJson(response);
+      if (!response.ok || payload.success !== true) {
+        throw new Error(
+          payload.message || "Unable to update the notification."
+        );
+      }
+      return payload;
+    }
+    async function markOneAsRead(id) {
+      if (!id) return false;
+      try {
+        await sendNotificationAction(API.markOne(id));
+        return true;
+      } catch (error) {
+        console.warn("IsleRMS mark-read error:", error);
+        return false;
+      }
+    }
+    /* The existing navbar controls dropdown visibility. */
+    bell?.addEventListener("click", () => {
+      window.setTimeout(() => {
+        if (wrapper.classList.contains("is-open")) {
+          loadNotifications();
+        }
+      }, 0);
+    });
+    list?.addEventListener("click", async (event) => {
+      const item = event.target.closest(
+        "a[data-notification-id]"
+      );
+      if (!item || !list.contains(item)) return;
+      event.preventDefault();
+      const id = item.dataset.notificationId;
+      const destination = safeInternalUrl(item.getAttribute("href"));
+      const needsRead = item.classList.contains("is-unread");
+      if (needsRead && id) {
+        await markOneAsRead(id);
+      }
+      window.location.assign(destination);
+    });
+    markAllButton?.addEventListener("click", async () => {
+      if (markAllButton.disabled || unreadCount === 0) return;
+      const oldLabel = markAllButton.textContent;
+      markAllButton.disabled = true;
+      markAllButton.textContent = "Updating...";
+      clearError();
+      try {
+        await sendNotificationAction(API.markAll);
+        // Reload page 1 so the badge and notification list are refreshed.
+        currentPage = 1;
+        hasNextPage = false;
+        notifications = [];
+        await loadNotifications();
+      } catch (error) {
+        console.warn("IsleRMS mark-all error:", error);
+        showError(
+          error.message || "Unable to mark notifications as read."
+        );
+      } finally {
+        markAllButton.textContent = oldLabel;
+        markAllButton.disabled = unreadCount === 0;
+      }
+    });
+    loadMoreButton?.addEventListener("click", () => {
+      loadNotifications({ append: true });
+    });
+    document.addEventListener("visibilitychange", () => {
+      if (document.hidden) return;
+      if (retryTimer) {
+        window.clearTimeout(retryTimer);
+        retryTimer = null;
+      }
+      loadNotifications();
+    });
+    function startPolling() {
+      if (pollingTimer) return;
+      pollingTimer = window.setInterval(() => {
+        if (document.hidden) return;
+        // Only refresh page 1 automatically; older pages are loaded
+        // when the customer selects "Load more notifications".
+        currentPage = 1;
+        hasNextPage = false;
+        notifications = [];
+        loadNotifications();
+      }, POLL_INTERVAL_MS);
+    }
+    function stopPolling() {
+      if (pollingTimer) {
+        window.clearInterval(pollingTimer);
+        pollingTimer = null;
+      }
+    }
+    window.addEventListener("pagehide", stopPolling);
+    window.addEventListener("pageshow", startPolling);
+    // Initial load and unread badge.
+    loadNotifications();
+    startPolling();
+  }
+  if (document.readyState === "loading") {
+    document.addEventListener(
+      "DOMContentLoaded",
+      initNotificationCenter,
+      { once: true }
+    );
+  } else {
+    initNotificationCenter();
+  }
+})();
+</script>

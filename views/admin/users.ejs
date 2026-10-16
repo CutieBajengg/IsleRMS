@@ -1,307 +1,94 @@
 <%
-/* ============================================================
- * PUFFER ISLE RESORT | IsleRMS
- * views/admin/users.ejs
- *
- * Customer Intelligence / CRM-style admin page.
- * Designed to work with the existing adminRoutes /users route.
- *
- * Expected server-side variables (defensively optional):
- *   users, admin, csrfToken
- *
- * Important compatibility notes:
- * - EJS is intentionally kept OUT of the executable JavaScript block.
- * - Customer data is serialized through hidden <textarea> elements.
- * - The page uses booking VALUE terminology rather than claiming
- *   that reservations represent money actually paid.
- * ============================================================ */
-
-const sourceUsers =
-  typeof users !== "undefined" && Array.isArray(users) ? users : [];
-
-const adminSource =
-  typeof admin !== "undefined" && admin && typeof admin === "object"
-    ? admin
-    : {};
-
+/* PUFFER ISLE RESORT | IsleRMS — Customer Directory */
+const sourceUsers = typeof users !== "undefined" && Array.isArray(users) ? users : [];
+const adminSource = typeof admin !== "undefined" && admin && typeof admin === "object" ? admin : {};
 function clean(value, fallback = "—") {
   if (value === null || value === undefined) return fallback;
   const text = String(value).trim();
   return text ? text : fallback;
 }
-
 function firstValue(...values) {
   for (const value of values) {
-    if (
-      value !== undefined &&
-      value !== null &&
-      String(value).trim() !== ""
-    ) {
-      return value;
-    }
+    if (value !== undefined && value !== null && String(value).trim() !== "") return value;
   }
   return null;
 }
-
 function firstNumber(...values) {
   for (const value of values) {
+    if (value === undefined || value === null || value === "") continue;
     const num = Number(value);
     if (Number.isFinite(num)) return num;
   }
   return 0;
 }
-
 function asDate(value) {
   if (!value) return null;
   const date = new Date(value);
   return Number.isNaN(date.getTime()) ? null : date;
 }
-
 function isoDate(value) {
   const date = asDate(value);
   return date ? date.toISOString() : "";
 }
-
 function normalizeStatus(value, fallback = "active") {
-  return clean(value, fallback)
-    .toLowerCase()
-    .replace(/[_\s]+/g, "-");
+  return clean(value, fallback).toLowerCase().replace(/[_\s]+/g, "-");
 }
-
 function normalizeUser(user) {
   const source = user && typeof user === "object" ? user : {};
-  const summary =
-    source.bookingSummary ||
-    source.summary ||
-    source.bookingStats ||
-    source.stats ||
-    {};
+  const summary = source.bookingSummary || source.summary || source.bookingStats || source.stats || {};
   const bookingArray = Array.isArray(source.bookings) ? source.bookings : [];
-
-  const firstName = clean(
-    firstValue(source.firstName, source.givenName),
-    ""
-  );
-  const lastName = clean(
-    firstValue(source.lastName, source.familyName),
-    ""
-  );
-
-  const constructedName = [
-    firstName && firstName !== "—" ? firstName : "",
-    lastName && lastName !== "—" ? lastName : ""
-  ]
-    .filter(Boolean)
-    .join(" ")
-    .trim();
-
-  const fullname = clean(
-    firstValue(
-      source.fullname,
-      source.fullName,
-      source.name,
-      constructedName,
-      source.username,
-      source.email
-    ),
-    "Guest"
-  );
-
-  const totalBookings = Math.max(
-    0,
-    Math.round(
-      firstNumber(
-        summary.totalBookings,
-        summary.bookingCount,
-        summary.count,
-        source.totalBookings,
-        source.bookingCount,
-        source.bookingsCount,
-        bookingArray.length
-      )
-    )
-  );
-
-  const totalSpent = Math.max(
-    0,
-    firstNumber(
-      summary.totalSpent,
-      summary.totalSpend,
-      summary.totalBookingValue,
-      summary.totalRevenue,
-      summary.bookingValue,
-      summary.spent,
-      summary.amountSpent,
-      source.totalSpent,
-      source.totalSpend,
-      source.bookingValue,
-      source.totalBookingValue,
-      source.totalRevenue
-    )
-  );
-
-  const completedBookings = Math.max(
-    0,
-    Math.round(
-      firstNumber(
-        summary.completedBookings,
-        summary.completed,
-        source.completedBookings
-      )
-    )
-  );
-
-  const cancelledBookings = Math.max(
-    0,
-    Math.round(
-      firstNumber(
-        summary.cancelledBookings,
-        summary.cancelled,
-        source.cancelledBookings
-      )
-    )
-  );
-
-  const pendingBookings = Math.max(
-    0,
-    Math.round(
-      firstNumber(
-        summary.pendingBookings,
-        summary.pending,
-        source.pendingBookings
-      )
-    )
-  );
-
-  const activeBookings = Math.max(
-    0,
-    Math.round(
-      firstNumber(
-        summary.activeBookings,
-        summary.active,
-        source.activeBookings
-      )
-    )
-  );
-
-  const averageBookingValue =
-    totalBookings > 0 ? totalSpent / totalBookings : 0;
-
-  const lastBooking = firstValue(
-    summary.lastBooking,
-    summary.lastBookingAt,
-    summary.lastActivity,
-    source.lastBooking,
-    source.lastBookingAt,
-    source.lastActivity,
-    source.updatedAt
-  );
-
-  const memberLevel = clean(
-    firstValue(
-      source.memberLevel,
-      source.membershipLevel,
-      source.tier,
-      source.level
-    ),
-    "Guest"
-  );
-
-  const rawStatus = firstValue(source.status, source.accountStatus);
-  const accountFallback =
-    source.active === false || source.isActive === false ? "inactive" : "active";
-  const status = normalizeStatus(rawStatus, accountFallback);
-
-  const emailVerified = Boolean(
-    source.emailVerified === true ||
-    source.emailVerified === "true" ||
-    source.verified === true ||
-    source.isVerified === true
-  );
-
+  const firstName = clean(firstValue(source.firstName, source.givenName), "");
+  const lastName = clean(firstValue(source.lastName, source.familyName), "");
+  const constructedName = [firstName !== "—" ? firstName : "", lastName !== "—" ? lastName : ""].filter(Boolean).join(" ").trim();
+  const fullname = clean(firstValue(source.fullname, source.fullName, source.name, constructedName, source.username, source.email), "Guest");
+  const totalBookings = Math.max(0, Math.round(firstNumber(summary.totalBookings, summary.bookingCount, summary.count, source.totalBookings, source.bookingCount, source.bookingsCount, bookingArray.length)));
+  const totalSpent = Math.max(0, firstNumber(summary.totalSpent, summary.totalSpend, summary.totalBookingValue, summary.totalRevenue, summary.bookingValue, summary.spent, summary.amountSpent, source.totalSpent, source.totalSpend, source.bookingValue, source.totalBookingValue, source.totalRevenue));
+  const completedBookings = Math.max(0, Math.round(firstNumber(summary.completedBookings, summary.completed, source.completedBookings)));
+  const cancelledBookings = Math.max(0, Math.round(firstNumber(summary.cancelledBookings, summary.cancelled, source.cancelledBookings)));
+  const pendingBookings = Math.max(0, Math.round(firstNumber(summary.pendingBookings, summary.pending, source.pendingBookings)));
+  const activeBookings = Math.max(0, Math.round(firstNumber(summary.activeBookings, summary.active, source.activeBookings)));
+  const eligibleBookingCount = bookingArray.filter((booking) => ["accepted", "confirmed", "checked-in", "checked-out", "completed"].includes(String(booking?.status || "").trim().toLowerCase().replace(/[_\s]+/g, "-"))).length;
+  const bookingValueBookings = Math.max(0, Math.round(firstNumber(summary.bookingValueBookings, source.bookingValueBookings, eligibleBookingCount)));
+  const suppliedAverage = Number(summary.averageBookingValue ?? source.averageBookingValue);
+  const averageBookingValue = Number.isFinite(suppliedAverage) ? Math.max(0, suppliedAverage) : bookingValueBookings > 0 ? totalSpent / bookingValueBookings : 0;
+  const lastBooking = firstValue(summary.lastBooking, summary.lastBookingAt, summary.lastActivity, source.lastBooking, source.lastBookingAt, source.lastActivity, source.updatedAt);
+  const memberLevel = clean(firstValue(source.memberLevel, source.membershipLevel, source.tier, source.level), "Guest");
+  const accountFallback = source.active === false || source.isActive === false ? "inactive" : "active";
+  const status = normalizeStatus(firstValue(source.status, source.accountStatus), accountFallback);
+  const emailVerified = source.emailVerified === true || source.emailVerified === "true" || source.verified === true || source.isVerified === true;
   return {
-    id: clean(firstValue(source._id, source.id, source.userId), ""),
-    fullname,
-    email: clean(source.email, "No email"),
-    phone: clean(
-      firstValue(source.phone, source.contact, source.mobile),
-      "Not provided"
-    ),
-    username: clean(source.username, "Not set"),
-    status,
-    memberLevel,
-    emailVerified,
-    totalBookings,
-    totalSpent,
-    completedBookings,
-    cancelledBookings,
-    pendingBookings,
-    activeBookings,
-    averageBookingValue,
+    id: clean(firstValue(source._id, source.id, source.userId), ""), fullname,
+    email: clean(source.email, "No email"), phone: clean(firstValue(source.phone, source.contact, source.mobile), "Not provided"),
+    username: clean(source.username, "Not set"), status, memberLevel, emailVerified,
+    totalBookings, totalSpent, bookingValueBookings, completedBookings, cancelledBookings,
+    pendingBookings, activeBookings, averageBookingValue,
     lastBookingAt: isoDate(lastBooking),
-    createdAt: isoDate(
-      firstValue(source.createdAt, source.registeredAt, source.joinedAt)
-    ),
+    createdAt: isoDate(firstValue(source.createdAt, source.registeredAt, source.joinedAt)),
     lastLoginAt: isoDate(firstValue(source.lastLoginAt, source.lastLogin)),
-    failedLoginAttempts: Math.max(
-      0,
-      Math.round(firstNumber(source.failedLoginAttempts))
-    ),
+    failedLoginAttempts: Math.max(0, Math.round(firstNumber(source.failedLoginAttempts))),
     lockedUntil: isoDate(source.lockedUntil),
-    avatar: clean(
-      firstValue(source.avatar, source.profileImage, source.photo),
-      ""
-    ),
-    bookingCountLabel:
-      totalBookings === 1 ? "1 booking" : `${totalBookings} bookings`
+    avatar: clean(firstValue(source.avatarUrl, source.avatar, source.profileImage, source.photo), ""),
+    bookingCountLabel: totalBookings === 1 ? "1 booking" : `${totalBookings} bookings`
   };
 }
-
-const userRows = sourceUsers
-  .map(normalizeUser)
-  .filter((user) => user.id || user.email || user.fullname);
-
-const overview = userRows.reduce(
-  (acc, user) => {
-    acc.customers += 1;
-    if (user.status === "active") acc.active += 1;
-    if (user.emailVerified) acc.verified += 1;
-    acc.bookings += user.totalBookings;
-    acc.spent += user.totalSpent;
-    if (user.totalBookings >= 2) acc.returning += 1;
-    return acc;
-  },
-  {
-    customers: 0,
-    active: 0,
-    verified: 0,
-    bookings: 0,
-    spent: 0,
-    returning: 0
-  }
-);
-
-const avgPerCustomer =
-  overview.customers > 0 ? overview.spent / overview.customers : 0;
-const avgBookingValue =
-  overview.bookings > 0 ? overview.spent / overview.bookings : 0;
-
-const currentAdminName = clean(
-  firstValue(adminSource.username, adminSource.name, adminSource.email),
-  "Administrator"
-);
-
-const initialCsrfToken = clean(
-  typeof csrfToken !== "undefined" ? csrfToken : "",
-  ""
-);
-
+const userRows = sourceUsers.map(normalizeUser).filter((user) => user.id || user.email || user.fullname);
+const overview = userRows.reduce((acc, user) => {
+  acc.customers++;
+  if (user.status === "active") acc.active++;
+  if (user.emailVerified) acc.verified++;
+  acc.bookings += user.totalBookings;
+  acc.valueBookings += user.bookingValueBookings;
+  acc.spent += user.totalSpent;
+  if (user.totalBookings >= 2) acc.returning++;
+  return acc;
+}, { customers: 0, active: 0, verified: 0, bookings: 0, valueBookings: 0, spent: 0, returning: 0 });
+const avgPerCustomer = overview.customers > 0 ? overview.spent / overview.customers : 0;
+const avgBookingValue = overview.valueBookings > 0 ? overview.spent / overview.valueBookings : 0;
+const currentAdminName = clean(firstValue(adminSource.username, adminSource.name, adminSource.email), "Administrator");
+const initialCsrfToken = clean(typeof csrfToken !== "undefined" ? csrfToken : "", "");
 function php(value) {
   const amount = Number(value) || 0;
-  return `₱${amount.toLocaleString("en-PH", {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2
-  })}`;
+  return `₱${amount.toLocaleString("en-PH", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 }
 %>
 <!DOCTYPE html>
@@ -309,976 +96,265 @@ function php(value) {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#071416">
+  <meta name="theme-color" content="#070a0c">
   <meta name="color-scheme" content="dark">
   <meta name="csrf-token" content="<%= initialCsrfToken %>">
   <title>Customers | IsleRMS Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=Playfair+Display:wght@600;700&display=swap" rel="stylesheet">
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700&family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css">
   <style>
     :root {
-      --bg: #061114;
-      --bg-soft: #0a191c;
-      --panel: rgba(13, 30, 33, 0.94);
-      --panel-2: rgba(16, 36, 39, 0.92);
-      --panel-3: rgba(24, 46, 49, 0.82);
-      --border: rgba(255, 255, 255, 0.085);
-      --border-strong: rgba(242, 191, 72, 0.24);
-      --gold: #f2bf48;
-      --gold-bright: #ffd970;
-      --teal: #2dc7bd;
-      --teal-soft: rgba(45, 199, 189, 0.12);
-      --green: #63d59a;
-      --red: #ff7d86;
-      --blue: #7fb5ff;
-      --orange: #ffb463;
-      --text: #f4f6f5;
-      --muted: #9caeae;
-      --muted-2: #718383;
-      --shadow: 0 22px 60px rgba(0, 0, 0, 0.28);
-      --radius-xl: 24px;
-      --radius-lg: 18px;
-      --radius-md: 14px;
-      --radius-sm: 10px;
+      --bg: #070a0c;
+      --bg-soft: #0c1113;
+      --panel: rgba(255,255,255,.035);
+      --panel-2: rgba(255,255,255,.05);
+      --panel-3: rgba(255,255,255,.075);
+      --border: rgba(255,255,255,.08);
+      --border-strong: rgba(255,255,255,.14);
+      --gold: #ffd700;
+      --gold-bright: #ffe34f;
+      --teal: #008080;
+      --teal-dark: #005c5c;
+      --teal-deep: #003f3f;
+      --teal-light: #12a9a9;
+      --teal-soft: rgba(0,128,128,.11);
+      --green: #2ecc71;
+      --red: #e74c3c;
+      --blue: #3498db;
+      --orange: #f1c40f;
+      --text: #fff;
+      --text-soft: #dce2e4;
+      --muted: #929ca1;
+      --muted-2: #718086;
+      --shadow: 0 18px 50px rgba(0,0,0,.25);
+      --radius-xl: 28px;
+      --radius-lg: 21px;
+      --radius-md: 16px;
+      --radius-sm: 11px;
     }
-
     * { box-sizing: border-box; }
-
     html { scroll-behavior: smooth; }
-
     body {
-      margin: 0;
-      min-height: 100vh;
-      background:
-        radial-gradient(circle at 10% 0%, rgba(45, 199, 189, 0.09), transparent 28%),
-        radial-gradient(circle at 95% 8%, rgba(242, 191, 72, 0.08), transparent 24%),
-        linear-gradient(180deg, #061114 0%, #081517 52%, #061012 100%);
-      color: var(--text);
-      font-family: "DM Sans", sans-serif;
-      overflow-x: hidden;
+      position: relative; margin: 0; min-height: 100vh; overflow-x: hidden;
+      color: var(--text); font-family: "Poppins", sans-serif;
+      background: radial-gradient(circle at 8% 8%, rgba(0,128,128,.13), transparent 27%),
+        radial-gradient(circle at 92% 85%, rgba(255,215,0,.045), transparent 25%),
+        linear-gradient(145deg,#070a0c 0%,#0a0e10 55%,#080b0d 100%);
+      font-size: 14px;
     }
-
+    body::before {
+      content: ""; position: fixed; inset: 0; z-index: 0; pointer-events: none;
+      background: linear-gradient(90deg,rgba(255,255,255,.012) 1px,transparent 1px), linear-gradient(rgba(255,255,255,.012) 1px,transparent 1px);
+      background-size: 48px 48px; opacity: .25; mask-image: linear-gradient(to bottom,#000,transparent 75%);
+    }
     body.modal-open { overflow: hidden; }
-
     a { color: inherit; text-decoration: none; }
-
     button, input, select { font: inherit; }
-
     button { color: inherit; }
-
-    .page-shell {
-      width: min(1500px, calc(100% - 36px));
-      margin: 0 auto;
-      padding: 34px 0 56px;
-    }
-
-    .page-header {
-      display: flex;
-      align-items: flex-end;
-      justify-content: space-between;
-      gap: 24px;
-      margin-bottom: 26px;
-    }
-
-    .eyebrow {
-      display: inline-flex;
-      align-items: center;
-      gap: 8px;
-      text-transform: uppercase;
-      letter-spacing: 0.16em;
-      font-size: 0.7rem;
-      font-weight: 700;
-      color: var(--gold-bright);
-      margin-bottom: 9px;
-    }
-
-    .eyebrow::before {
-      content: "";
-      width: 26px;
-      height: 1px;
-      background: linear-gradient(90deg, transparent, var(--gold));
-    }
-
-    h1, h2, h3 { margin: 0; }
-
-    h1 {
-      font-family: "Playfair Display", serif;
-      font-size: clamp(2rem, 3vw, 3.3rem);
-      line-height: 1.06;
-      letter-spacing: -0.025em;
-    }
-
-    .page-subtitle {
-      color: var(--muted);
-      margin: 10px 0 0;
-      max-width: 760px;
-      line-height: 1.65;
-      font-size: 0.95rem;
-    }
-
-    .header-actions {
-      display: flex;
-      gap: 10px;
-      align-items: center;
-      flex-wrap: wrap;
-      justify-content: flex-end;
-    }
-
-    .button {
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.035);
-      min-height: 44px;
-      padding: 0 15px;
-      border-radius: 12px;
-      display: inline-flex;
-      align-items: center;
-      justify-content: center;
-      gap: 9px;
-      cursor: pointer;
-      transition: 180ms ease;
-      color: var(--text);
-    }
-
-    .button:hover {
-      transform: translateY(-1px);
-      border-color: rgba(242,191,72,0.28);
-      background: rgba(255,255,255,0.06);
-    }
-
-    .button.gold {
-      background: linear-gradient(135deg, #e3ad3c, #f2c65d);
-      color: #102018;
-      border-color: transparent;
-      box-shadow: 0 12px 26px rgba(242,191,72,0.14);
-      font-weight: 800;
-    }
-
-    .button.gold:hover {
-      background: linear-gradient(135deg, #efbc4d, #ffdc7b);
-    }
-
-    .button:disabled {
-      opacity: 0.55;
-      cursor: not-allowed;
-      transform: none;
-    }
-
-    .metric-grid {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 14px;
-      margin-bottom: 15px;
-    }
-
-    .metric-card {
-      position: relative;
-      min-height: 158px;
-      padding: 20px;
-      border-radius: var(--radius-lg);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.035), rgba(255,255,255,0.012)),
-        var(--panel);
-      border: 1px solid var(--border);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .metric-card::after {
-      content: "";
-      position: absolute;
-      width: 120px;
-      height: 120px;
-      border-radius: 999px;
-      right: -52px;
-      top: -52px;
-      background: radial-gradient(circle, rgba(242,191,72,0.13), transparent 68%);
-      pointer-events: none;
-    }
-
-    .metric-top {
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-    }
-
-    .metric-label {
-      font-size: 0.75rem;
-      color: var(--muted);
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 700;
-    }
-
-    .metric-icon {
-      width: 40px;
-      height: 40px;
-      border-radius: 12px;
-      display: grid;
-      place-items: center;
-      background: var(--teal-soft);
-      color: var(--teal);
-      border: 1px solid rgba(45,199,189,0.16);
-    }
-
-    .metric-card.gold .metric-icon {
-      background: rgba(242,191,72,0.1);
-      color: var(--gold-bright);
-      border-color: rgba(242,191,72,0.16);
-    }
-
-    .metric-card.blue .metric-icon {
-      background: rgba(127,181,255,0.1);
-      color: var(--blue);
-      border-color: rgba(127,181,255,0.16);
-    }
-
-    .metric-card.green .metric-icon {
-      background: rgba(99,213,154,0.1);
-      color: var(--green);
-      border-color: rgba(99,213,154,0.16);
-    }
-
-    .metric-value {
-      margin-top: 17px;
-      font-size: clamp(1.65rem, 3vw, 2.25rem);
-      font-weight: 800;
-      letter-spacing: -0.04em;
-      line-height: 1;
-    }
-
-    .metric-note {
-      margin-top: 11px;
-      color: var(--muted-2);
-      font-size: 0.77rem;
-    }
-
-    .insight-strip {
-      display: grid;
-      grid-template-columns: 1fr 1fr 1fr;
-      gap: 14px;
-      margin-bottom: 18px;
-    }
-
-    .insight-card {
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.022);
-      border-radius: var(--radius-lg);
-      padding: 15px 17px;
-      display: flex;
-      align-items: center;
-      gap: 13px;
-    }
-
-    .insight-icon {
-      width: 38px;
-      height: 38px;
-      display: grid;
-      place-items: center;
-      border-radius: 11px;
-      background: rgba(255,255,255,0.045);
-      color: var(--gold-bright);
-      flex: 0 0 auto;
-    }
-
-    .insight-copy strong { display: block; font-size: 0.9rem; }
-
-    .insight-copy span {
-      display: block;
-      color: var(--muted);
-      font-size: 0.76rem;
-      margin-top: 3px;
-    }
-
-    .panel {
-      border: 1px solid var(--border);
-      background:
-        linear-gradient(180deg, rgba(255,255,255,0.028), rgba(255,255,255,0.012)),
-        var(--panel);
-      border-radius: var(--radius-xl);
-      box-shadow: var(--shadow);
-      overflow: hidden;
-    }
-
-    .panel-head {
-      padding: 19px 20px 16px;
-      display: flex;
-      justify-content: space-between;
-      align-items: center;
-      gap: 16px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .panel-title-wrap h2 {
-      font-size: 1.05rem;
-      font-weight: 800;
-    }
-
-    .panel-title-wrap p {
-      margin: 5px 0 0;
-      color: var(--muted);
-      font-size: 0.78rem;
-    }
-
-    .result-count {
-      color: var(--muted);
-      font-size: 0.78rem;
-      white-space: nowrap;
-    }
-
-    .toolbar {
-      padding: 14px 16px;
-      display: grid;
-      grid-template-columns: minmax(240px, 1.7fr) repeat(3, minmax(135px, 0.65fr)) auto;
-      gap: 10px;
-      border-bottom: 1px solid var(--border);
-      background: rgba(0,0,0,0.1);
-    }
-
-    .field { position: relative; }
-
-    .field.search-field i {
-      position: absolute;
-      left: 13px;
-      top: 50%;
-      transform: translateY(-50%);
-      color: var(--muted-2);
-      pointer-events: none;
-    }
-
-    .control,
-    .select-control {
-      width: 100%;
-      min-height: 43px;
-      padding: 0 13px;
-      color: var(--text);
-      background: rgba(3, 12, 14, 0.72);
-      border: 1px solid var(--border);
-      border-radius: 11px;
-      outline: none;
-      transition: 160ms ease;
-    }
-
+    ::selection { color: #071011; background: var(--gold); }
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: var(--bg); }
+    ::-webkit-scrollbar-thumb { background: var(--teal); border-radius: 999px; }
+    ::-webkit-scrollbar-thumb:hover { background: var(--teal-light); }
+    .page-shell { position: relative; z-index: 1; width: min(1600px,calc(100% - 48px)); margin: 0 auto; padding: 40px 0 78px; }
+    .page-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 28px; margin-bottom: 24px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 9px; margin-bottom: 11px; color: var(--teal-light); font-size: .68rem; font-weight: 700; letter-spacing: 2.2px; line-height: 1; text-transform: uppercase; }
+    .eyebrow::before { content: ""; width: 24px; height: 1px; background: var(--teal-light); opacity: .8; }
+    h1,h2,h3 { margin: 0; }
+    .page-header h1 { font-family: "Playfair Display",serif; font-size: clamp(2.3rem,4vw,3.55rem); line-height: 1.08; letter-spacing: -1px; color: #fff; }
+    .page-header h1 span { color: var(--gold); }
+    .page-subtitle { max-width: 720px; margin: 10px 0 0; color: var(--muted); font-size: .84rem; line-height: 1.72; }
+    .header-actions { display: flex; align-items: center; justify-content: flex-end; flex-wrap: wrap; gap: 10px; }
+    .button { display: inline-flex; align-items: center; justify-content: center; gap: 9px; min-height: 46px; padding: 0 16px; color: var(--text-soft); background: rgba(255,255,255,.035); border: 1px solid var(--border); border-radius: var(--radius-md); cursor: pointer; font-size: .75rem; font-weight: 500; transition: transform .2s ease,background .2s ease,border-color .2s ease,color .2s ease,box-shadow .2s ease; }
+    .button:hover:not(:disabled) { transform: translateY(-2px); color: white; background: rgba(255,255,255,.075); border-color: rgba(0,128,128,.5); }
+    .button.gold { color: #071011; background: linear-gradient(135deg,#e8c600,#ffd700); border-color: transparent; box-shadow: 0 8px 24px rgba(255,215,0,.09); font-weight: 700; }
+    .button.gold:hover:not(:disabled) { color: #071011; background: var(--gold-bright); border-color: transparent; }
+    .button:disabled { opacity: .48; cursor: not-allowed; transform: none; }
+    .metric-grid { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 16px; margin-bottom: 22px; }
+    .metric-card { position: relative; min-width: 0; min-height: 178px; padding: 22px; overflow: hidden; background: linear-gradient(145deg,rgba(255,255,255,.055),rgba(255,255,255,.018)); border: 1px solid var(--border); border-radius: var(--radius-lg); box-shadow: 0 10px 30px rgba(0,0,0,.18); transition: transform .25s ease,border-color .25s ease,background .25s ease,box-shadow .25s ease; }
+    .metric-card:hover { transform: translateY(-4px); background: linear-gradient(145deg,rgba(255,255,255,.075),rgba(255,255,255,.025)); border-color: rgba(0,128,128,.52); box-shadow: var(--shadow); }
+    .metric-card.gold:hover { border-color: rgba(255,215,0,.35); }
+    .metric-card.green:hover { border-color: rgba(46,204,113,.38); }
+    .metric-card.blue:hover { border-color: rgba(52,152,219,.38); }
+    .metric-card::before { content: ""; position: absolute; top: 0; left: 22px; right: 22px; height: 1px; background: linear-gradient(90deg,transparent,rgba(255,255,255,.13),transparent); pointer-events: none; }
+    .metric-card::after { content: ""; position: absolute; width: 120px; height: 120px; right: -30px; bottom: -35px; border-radius: 50%; background: radial-gradient(circle,rgba(0,128,128,.1),transparent 70%); pointer-events: none; }
+    .metric-top { display: flex; flex-direction: column; align-items: flex-start; gap: 0; }
+    .metric-icon { order: 1; display: grid; place-items: center; width: 44px; height: 44px; margin-bottom: 16px; border-radius: 12px; color: var(--teal-light); background: rgba(0,128,128,.11); border: 1px solid rgba(0,128,128,.16); font-size: .9rem; }
+    .metric-card.gold .metric-icon { color: var(--gold); background: rgba(255,215,0,.09); border-color: rgba(255,215,0,.12); }
+    .metric-card.blue .metric-icon { color: var(--blue); background: rgba(52,152,219,.09); border-color: rgba(52,152,219,.12); }
+    .metric-card.green .metric-icon { color: var(--green); background: rgba(46,204,113,.09); border-color: rgba(46,204,113,.12); }
+    .metric-label { order: 2; color: var(--muted); font-size: .64rem; font-weight: 600; letter-spacing: 1.1px; text-transform: uppercase; }
+    .metric-value { position: relative; z-index: 1; margin-top: 5px; font-size: clamp(1.45rem,2.6vw,2rem); font-weight: 700; line-height: 1.25; letter-spacing: -.5px; overflow-wrap: anywhere; }
+    .metric-note { position: relative; z-index: 1; margin-top: 7px; color: var(--muted); font-size: .66rem; line-height: 1.5; }
+    .insight-strip { display: grid; grid-template-columns: repeat(3,minmax(0,1fr)); gap: 16px; margin-bottom: 22px; }
+    .insight-card { display: flex; align-items: center; gap: 13px; min-width: 0; padding: 17px; background: linear-gradient(145deg,rgba(255,255,255,.045),rgba(255,255,255,.018)); border: 1px solid var(--border); border-radius: var(--radius-lg); transition: border-color .2s ease,background .2s ease; }
+    .insight-card:hover { background: rgba(255,255,255,.05); border-color: rgba(0,128,128,.3); }
+    .insight-icon { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 40px; border-radius: 11px; color: var(--teal-light); background: rgba(0,128,128,.1); }
+    .insight-copy { min-width: 0; }
+    .insight-copy strong { display: block; color: #fff; font-size: .75rem; font-weight: 600; overflow-wrap: anywhere; }
+    .insight-copy span { display: block; margin-top: 4px; color: var(--muted); font-size: .62rem; line-height: 1.5; }
+    .panel { min-width: 0; background: linear-gradient(145deg,rgba(255,255,255,.04),rgba(255,255,255,.018)); border: 1px solid var(--border); border-radius: var(--radius-xl); box-shadow: 0 28px 80px rgba(0,0,0,.35); backdrop-filter: blur(18px); overflow: hidden; }
+    .panel-head { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 22px 25px 20px; margin-bottom: 0; border-bottom: 1px solid var(--border); }
+    .panel-title-wrap h2 { font-family: "Playfair Display",serif; font-size: 1.38rem; line-height: 1.25; font-weight: 600; }
+    .panel-title-wrap p { margin: 6px 0 0; color: var(--muted); font-size: .69rem; line-height: 1.6; }
+    .result-count { color: var(--muted); font-size: .66rem; white-space: nowrap; }
+    .result-count strong { color: white; }
+    .toolbar { display: grid; grid-template-columns: minmax(220px,1.7fr) repeat(3,minmax(130px,.65fr)) auto; gap: 10px; padding: 18px 20px; margin-bottom: 0; background: transparent; border-bottom: 1px solid var(--border); }
+    .field { position: relative; min-width: 0; }
+    .field.search-field i { position: absolute; top: 50%; left: 13px; transform: translateY(-50%); color: var(--teal-light); pointer-events: none; }
+    .control,.select-control { width: 100%; min-height: 46px; padding: 0 13px; color: #fff; background: rgba(7,10,12,.7); border: 1px solid var(--border); border-radius: 11px; outline: none; font-family: "Poppins",sans-serif; font-size: .69rem; transition: border-color .2s ease,box-shadow .2s ease,background .2s ease; }
     .search-field .control { padding-left: 39px; }
-
-    .control::placeholder { color: #687a7a; }
-
-    .control:focus,
-    .select-control:focus {
-      border-color: rgba(45,199,189,0.42);
-      box-shadow: 0 0 0 3px rgba(45,199,189,0.07);
-    }
-
-    .select-control option {
-      background: #102124;
-      color: #fff;
-    }
-
-    .filter-button {
-      min-width: 44px;
-      padding: 0 13px;
-    }
-
-    .table-wrap { overflow: auto; }
-
-    table {
-      width: 100%;
-      border-collapse: collapse;
-      min-width: 980px;
-    }
-
-    th,
-    td {
-      text-align: left;
-      padding: 14px 17px;
-      border-bottom: 1px solid rgba(255,255,255,0.055);
-      vertical-align: middle;
-    }
-
-    th {
-      background: rgba(255,255,255,0.02);
-      color: var(--muted-2);
-      font-size: 0.67rem;
-      letter-spacing: 0.1em;
-      text-transform: uppercase;
-      font-weight: 800;
-      position: sticky;
-      top: 0;
-      z-index: 2;
-    }
-
-    td {
-      font-size: 0.84rem;
-      color: #e6eceb;
-    }
-
-    tbody tr {
-      transition: background 150ms ease;
-      cursor: pointer;
-    }
-
-    tbody tr:hover { background: rgba(45,199,189,0.035); }
-
-    tbody tr:focus-within { background: rgba(242,191,72,0.035); }
-
-    .user-cell {
-      display: flex;
-      align-items: center;
-      gap: 12px;
-      min-width: 260px;
-    }
-
-    .avatar {
-      width: 42px;
-      height: 42px;
-      border-radius: 13px;
-      display: grid;
-      place-items: center;
-      flex: 0 0 auto;
-      background: linear-gradient(135deg, rgba(45,199,189,0.18), rgba(242,191,72,0.14));
-      color: var(--gold-bright);
-      border: 1px solid rgba(255,255,255,0.08);
-      font-weight: 800;
-      overflow: hidden;
-    }
-
-    .avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
+    .control::placeholder { color: #718086; }
+    .control:focus,.select-control:focus { background: rgba(7,10,12,.9); border-color: rgba(18,169,169,.65); box-shadow: 0 0 0 3px rgba(0,128,128,.12); }
+    .select-control option { color: white; background: #0c1113; }
+    .filter-button { min-width: 46px; padding: 0 13px; }
+    .table-wrap { width: 100%; overflow: auto; scrollbar-width: thin; scrollbar-color: var(--teal) var(--bg); }
+    .panel table { width: 100%; min-width: 980px; border-collapse: separate; border-spacing: 0 8px; }
+    .panel table th { position: static; padding: 0 11px 7px; color: var(--muted); background: transparent; border: 0; font-family: "Poppins",sans-serif; font-size: .59rem; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+    .panel > .table-wrap { padding: 10px 15px 0; }
+    .panel table td { padding: 13px 11px; color: var(--text-soft); background: rgba(255,255,255,.023); border-top: 1px solid var(--border); border-bottom: 1px solid var(--border); font-size: .69rem; vertical-align: middle; }
+    .panel table tbody td:first-child { border-left: 1px solid var(--border); border-radius: 13px 0 0 13px; }
+    .panel table tbody td:last-child { border-right: 1px solid var(--border); border-radius: 0 13px 13px 0; }
+    .panel table tbody tr { transition: transform .2s ease,background .2s ease; cursor: pointer; }
+    .panel table tbody tr:hover { background: transparent; transform: translateX(3px); }
+    .user-cell { display: flex; align-items: center; gap: 10px; min-width: 235px; }
+    .avatar { display: grid; place-items: center; width: 36px; height: 36px; flex: 0 0 36px; overflow: hidden; border-radius: 10px; color: #fff; background: linear-gradient(135deg,var(--teal),var(--teal-dark)); border: 1px solid rgba(255,255,255,.08); font-size: .72rem; font-weight: 700; box-shadow: 0 5px 15px rgba(0,128,128,.16); }
+    .avatar img,.profile-avatar img { width: 100%; height: 100%; object-fit: cover; }
     .user-primary { min-width: 0; }
-
-    .user-primary strong {
-      display: block;
-      font-size: 0.88rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 260px;
-    }
-
-    .user-primary span {
-      display: block;
-      margin-top: 3px;
-      color: var(--muted);
-      font-size: 0.74rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 260px;
-    }
-
-    .stacked-value strong {
-      display: block;
-      font-size: 0.85rem;
-    }
-
-    .stacked-value span {
-      display: block;
-      margin-top: 4px;
-      color: var(--muted);
-      font-size: 0.72rem;
-    }
-
-    .money {
-      color: var(--gold-bright);
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .pill {
-      display: inline-flex;
-      align-items: center;
-      gap: 6px;
-      min-height: 26px;
-      padding: 0 9px;
-      border-radius: 999px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.03);
-      color: #dce5e4;
-      font-size: 0.68rem;
-      font-weight: 800;
-      white-space: nowrap;
-    }
-
-    .pill i { font-size: 0.5rem; }
-
-    .pill.active,
-    .pill.completed,
-    .pill.verified {
-      color: #a8f1c8;
-      border-color: rgba(99,213,154,0.22);
-      background: rgba(99,213,154,0.08);
-    }
-
-    .pill.suspended,
-    .pill.inactive,
-    .pill.cancelled,
-    .pill.rejected,
-    .pill.declined {
-      color: #ffb7bd;
-      border-color: rgba(255,125,134,0.2);
-      background: rgba(255,125,134,0.07);
-    }
-
-    .pill.pending,
-    .pill.guest {
-      color: #ffe0a1;
-      border-color: rgba(242,191,72,0.19);
-      background: rgba(242,191,72,0.07);
-    }
-
-    .pill.confirmed,
-    .pill.accepted,
-    .pill.checked-in,
-    .pill.checked-out {
-      color: #a8d1ff;
-      border-color: rgba(127,181,255,0.2);
-      background: rgba(127,181,255,0.07);
-    }
-
-    .row-action {
-      width: 36px;
-      height: 36px;
-      border-radius: 10px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.025);
-      display: grid;
-      place-items: center;
-      cursor: pointer;
-      transition: 160ms ease;
-    }
-
-    .row-action:hover,
-    .row-action:focus-visible {
-      color: var(--gold-bright);
-      border-color: rgba(242,191,72,0.28);
-      background: rgba(242,191,72,0.06);
-      outline: none;
-    }
-
-    .empty-state {
-      padding: 54px 26px;
-      text-align: center;
-      color: var(--muted);
-    }
-
-    .empty-icon {
-      width: 58px;
-      height: 58px;
-      margin: 0 auto 13px;
-      border-radius: 17px;
-      display: grid;
-      place-items: center;
-      background: rgba(45,199,189,0.08);
-      color: var(--teal);
-      font-size: 1.25rem;
-    }
-
-    .empty-state strong {
-      display: block;
-      color: var(--text);
-      margin-bottom: 5px;
-    }
-
-    .pagination {
-      padding: 14px 16px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      border-top: 1px solid var(--border);
-      background: rgba(0,0,0,0.1);
-    }
-
-    .pagination-copy {
-      color: var(--muted);
-      font-size: 0.76rem;
-    }
-
-    .pagination-actions {
-      display: flex;
-      gap: 8px;
-    }
-
-    .modal-backdrop {
-      position: fixed;
-      inset: 0;
-      display: none;
-      align-items: center;
-      justify-content: center;
-      padding: 18px;
-      background: rgba(1, 8, 10, 0.78);
-      backdrop-filter: blur(10px);
-      z-index: 2000;
-    }
-
+    .user-primary strong { display: block; max-width: 230px; color: #fff; font-size: .73rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .user-primary span { display: block; max-width: 230px; margin-top: 3px; color: var(--muted); font-size: .6rem; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+    .stacked-value strong { display: block; color: #fff; font-size: .72rem; font-weight: 600; }
+    .stacked-value span { display: block; margin-top: 4px; color: var(--muted); font-size: .59rem; }
+    .money { color: var(--gold); font-weight: 700; white-space: nowrap; }
+    .pill { display: inline-flex; align-items: center; gap: 6px; min-height: 24px; padding: 0 9px; border: 1px solid var(--border); border-radius: 999px; color: #dce2e4; background: rgba(255,255,255,.035); font-size: .57rem; font-weight: 700; letter-spacing: .35px; white-space: nowrap; }
+    .pill i { font-size: .48rem; }
+    .pill.active,.pill.completed,.pill.verified { color: var(--green); background: rgba(46,204,113,.08); border-color: rgba(46,204,113,.16); }
+    .pill.suspended,.pill.inactive,.pill.disabled,.pill.cancelled,.pill.rejected,.pill.declined { color: var(--red); background: rgba(231,76,60,.08); border-color: rgba(231,76,60,.16); }
+    .pill.pending,.pill.guest { color: var(--gold); background: rgba(255,215,0,.065); border-color: rgba(255,215,0,.16); }
+    .pill.confirmed,.pill.accepted,.pill.checked-in,.pill.checked-out { color: var(--blue); background: rgba(52,152,219,.08); border-color: rgba(52,152,219,.16); }
+    .row-action { display: grid; place-items: center; width: 34px; height: 34px; color: var(--text-soft); background: rgba(255,255,255,.045); border: 1px solid var(--border); border-radius: 9px; cursor: pointer; transition: transform .2s ease,background .2s ease,border-color .2s ease,color .2s ease; }
+    .row-action:hover { transform: translateY(-2px); color: var(--gold); background: rgba(0,128,128,.1); border-color: rgba(0,128,128,.5); }
+    .empty-state { padding: 48px 20px; color: var(--muted); text-align: center; }
+    .empty-icon { display: grid; place-items: center; width: 58px; height: 58px; margin: 0 auto 16px; color: var(--teal-light); background: rgba(0,128,128,.08); border: 1px solid rgba(0,128,128,.12); border-radius: 16px; font-size: 1.15rem; }
+    .empty-state strong { display: block; margin-bottom: 5px; color: #fff; font-size: .88rem; }
+    .empty-state span { font-size: .68rem; line-height: 1.6; }
+    .pagination { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 16px 20px; margin-top: 4px; border-top: 1px solid var(--border); background: transparent; }
+    .pagination-copy { color: var(--muted); font-size: .65rem; }
+    .pagination-actions { display: flex; gap: 8px; }
+    .modal-backdrop { position: fixed; inset: 0; z-index: 6000; display: none; align-items: center; justify-content: center; padding: 18px; background: rgba(2,7,9,.82); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px); }
     .modal-backdrop.open { display: flex; }
-
-    .modal {
-      width: min(1060px, 100%);
-      max-height: min(92vh, 900px);
-      border: 1px solid rgba(255,255,255,0.1);
-      background:
-        radial-gradient(circle at 90% 0%, rgba(242,191,72,0.08), transparent 24%),
-        linear-gradient(180deg, rgba(18,39,42,0.98), rgba(8,20,23,0.99));
-      border-radius: 26px;
-      box-shadow: 0 35px 100px rgba(0,0,0,0.52);
-      overflow: hidden;
-      display: flex;
-      flex-direction: column;
-    }
-
-    .modal-head {
-      padding: 20px 22px;
-      display: flex;
-      align-items: flex-start;
-      justify-content: space-between;
-      gap: 18px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .profile-head {
-      display: flex;
-      align-items: center;
-      gap: 14px;
-      min-width: 0;
-    }
-
-    .profile-avatar {
-      width: 64px;
-      height: 64px;
-      border-radius: 18px;
-      display: grid;
-      place-items: center;
-      background: linear-gradient(135deg, rgba(45,199,189,0.2), rgba(242,191,72,0.18));
-      color: var(--gold-bright);
-      border: 1px solid rgba(255,255,255,0.08);
-      font-size: 1.25rem;
-      font-weight: 900;
-      overflow: hidden;
-      flex: 0 0 auto;
-    }
-
-    .profile-avatar img {
-      width: 100%;
-      height: 100%;
-      object-fit: cover;
-    }
-
+    .modal { display: flex; flex-direction: column; width: min(1060px,100%); max-height: min(92vh,900px); overflow: hidden; background: radial-gradient(circle at 90% 0%,rgba(0,128,128,.1),transparent 25%),linear-gradient(145deg,#101719,#080d0f); border: 1px solid var(--border-strong); border-radius: 25px; box-shadow: 0 35px 100px rgba(0,0,0,.52); }
+    .modal-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 18px; padding: 22px; border-bottom: 1px solid var(--border); }
+    .profile-head { display: flex; align-items: center; gap: 14px; min-width: 0; }
+    .profile-avatar { display: grid; place-items: center; width: 64px; height: 64px; flex: 0 0 64px; overflow: hidden; color: var(--gold); background: linear-gradient(135deg,var(--teal),var(--teal-dark)); border-radius: 16px; font-size: 1.2rem; font-weight: 800; }
     .profile-meta { min-width: 0; }
-
-    .profile-meta h2 {
-      font-family: "Playfair Display", serif;
-      font-size: 1.45rem;
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-    }
-
-    .profile-meta p {
-      margin: 4px 0 7px;
-      color: var(--muted);
-      white-space: nowrap;
-      overflow: hidden;
-      text-overflow: ellipsis;
-      max-width: 650px;
-    }
-
-    .profile-badges {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 6px;
-    }
-
-    .close-modal {
-      width: 40px;
-      height: 40px;
-      border: 1px solid var(--border);
-      background: rgba(255,255,255,0.035);
-      border-radius: 11px;
-      cursor: pointer;
-      flex: 0 0 auto;
-    }
-
-    .close-modal:hover,
-    .close-modal:focus-visible {
-      border-color: rgba(242,191,72,0.28);
-      color: var(--gold-bright);
-      outline: none;
-    }
-
-    .modal-body {
-      padding: 20px 22px 24px;
-      overflow: auto;
-    }
-
-    .modal-loading {
-      min-height: 300px;
-      display: grid;
-      place-items: center;
-      color: var(--muted);
-      text-align: center;
-    }
-
-    .spinner {
-      width: 34px;
-      height: 34px;
-      border-radius: 999px;
-      border: 3px solid rgba(255,255,255,0.12);
-      border-top-color: var(--gold);
-      animation: spin 800ms linear infinite;
-      margin: 0 auto 10px;
-    }
-
+    .profile-meta h2 { color: #fff; font-family: "Playfair Display",serif; font-size: 1.45rem; }
+    .profile-meta p { max-width: 650px; margin: 4px 0 7px; color: var(--muted); font-size: .7rem; overflow-wrap: anywhere; }
+    .profile-badges { display: flex; flex-wrap: wrap; gap: 6px; }
+    .close-modal { display: grid; place-items: center; width: 40px; height: 40px; flex: 0 0 auto; color: var(--text-soft); background: rgba(255,255,255,.045); border: 1px solid var(--border); border-radius: 10px; cursor: pointer; transition: background .2s ease,border-color .2s ease,color .2s ease; }
+    .close-modal:hover { color: var(--gold); background: rgba(255,215,0,.06); border-color: rgba(255,215,0,.25); }
+    .modal-body { padding: 22px; overflow: auto; }
+    .modal-loading { display: grid; place-items: center; min-height: 300px; color: var(--muted); text-align: center; }
+    .spinner { width: 34px; height: 34px; margin: 0 auto 10px; border: 3px solid rgba(255,255,255,.12); border-top-color: var(--teal-light); border-radius: 50%; animation: spin .8s linear infinite; }
     @keyframes spin { to { transform: rotate(360deg); } }
-
-    .detail-kpis {
-      display: grid;
-      grid-template-columns: repeat(4, minmax(0, 1fr));
-      gap: 10px;
-      margin-bottom: 14px;
-    }
-
-    .detail-kpi {
-      border: 1px solid var(--border);
-      border-radius: 15px;
-      padding: 15px;
-      background: rgba(255,255,255,0.025);
-    }
-
-    .detail-kpi span {
-      color: var(--muted);
-      font-size: 0.69rem;
-      text-transform: uppercase;
-      letter-spacing: 0.08em;
-      font-weight: 700;
-    }
-
-    .detail-kpi strong {
-      display: block;
-      margin-top: 8px;
-      font-size: 1.25rem;
-    }
-
-    .detail-grid {
-      display: grid;
-      grid-template-columns: 0.95fr 1.55fr;
-      gap: 14px;
-      margin-bottom: 14px;
-    }
-
-    .detail-card {
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      background: rgba(255,255,255,0.02);
-      padding: 17px;
-    }
-
-    .detail-card h3 {
-      font-size: 0.88rem;
-      margin-bottom: 13px;
-    }
-
-    .info-list {
-      display: grid;
-      gap: 11px;
-    }
-
-    .info-item {
-      display: flex;
-      justify-content: space-between;
-      gap: 18px;
-      padding-bottom: 10px;
-      border-bottom: 1px solid rgba(255,255,255,0.05);
-    }
-
-    .info-item:last-child {
-      border-bottom: 0;
-      padding-bottom: 0;
-    }
-
-    .info-item span {
-      color: var(--muted);
-      font-size: 0.75rem;
-    }
-
-    .info-item strong {
-      font-size: 0.77rem;
-      text-align: right;
-      word-break: break-word;
-    }
-
-    .booking-list-wrap {
-      border: 1px solid var(--border);
-      border-radius: 18px;
-      overflow: hidden;
-      background: rgba(255,255,255,0.018);
-    }
-
-    .booking-list-head {
-      padding: 15px 17px;
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      gap: 12px;
-      border-bottom: 1px solid var(--border);
-    }
-
-    .booking-list-head strong { font-size: 0.9rem; }
-
-    .booking-list-head span {
-      font-size: 0.72rem;
-      color: var(--muted);
-    }
-
-    .mini-table { min-width: 760px; }
-
-    .mini-table th { position: static; }
-
-    .mini-table td,
-    .mini-table th { padding: 12px 14px; }
-
-    .skeleton {
-      height: 16px;
-      width: 100%;
-      border-radius: 7px;
-      background: linear-gradient(90deg, rgba(255,255,255,0.05), rgba(255,255,255,0.1), rgba(255,255,255,0.05));
-      background-size: 200% 100%;
-      animation: shimmer 1.25s infinite;
-    }
-
-    @keyframes shimmer { to { background-position: -200% 0; } }
-
-    .toast-stack {
-      position: fixed;
-      right: 20px;
-      bottom: 20px;
-      z-index: 3000;
-      display: grid;
-      gap: 9px;
-      width: min(390px, calc(100vw - 40px));
-    }
-
-    .toast {
-      padding: 13px 15px;
-      border-radius: 13px;
-      border: 1px solid var(--border);
-      background: rgba(13,30,33,0.97);
-      box-shadow: var(--shadow);
-      display: flex;
-      align-items: flex-start;
-      gap: 10px;
-      transform: translateY(10px);
-      opacity: 0;
-      animation: toastIn 180ms ease forwards;
-    }
-
-    .toast.success { border-color: rgba(99,213,154,0.2); }
-    .toast.error { border-color: rgba(255,125,134,0.22); }
-    .toast-icon { color: var(--teal); margin-top: 2px; }
+    .detail-kpis { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 10px; margin-bottom: 14px; }
+    .detail-kpi,.detail-card,.booking-list-wrap { background: rgba(255,255,255,.025); border: 1px solid var(--border); border-radius: 16px; }
+    .detail-kpi { padding: 16px; }
+    .detail-kpi span { color: var(--muted); font-size: .61rem; letter-spacing: .8px; text-transform: uppercase; }
+    .detail-kpi strong { display: block; margin-top: 8px; color: #fff; font-size: 1.15rem; overflow-wrap: anywhere; }
+    .detail-grid { display: grid; grid-template-columns: .95fr 1.55fr; gap: 14px; margin-bottom: 14px; }
+    .detail-card { padding: 18px; }
+    .detail-card h3 { margin-bottom: 13px; color: #fff; font-size: .84rem; }
+    .info-list { display: grid; gap: 11px; }
+    .info-item { display: flex; justify-content: space-between; gap: 18px; padding-bottom: 10px; border-bottom: 1px solid rgba(255,255,255,.06); }
+    .info-item:last-child { padding-bottom: 0; border-bottom: 0; }
+    .info-item span { color: var(--muted); font-size: .67rem; }
+    .info-item strong { color: var(--text-soft); font-size: .68rem; text-align: right; overflow-wrap: anywhere; }
+    .account-controls { margin-bottom: 14px; }
+    .account-controls p { margin: -4px 0 15px; color: var(--muted); font-size: .67rem; line-height: 1.65; }
+    .account-controls-grid { display: grid; grid-template-columns: minmax(180px,1fr) auto; align-items: end; gap: 12px; }
+    .account-status-field label { display: block; margin-bottom: 7px; color: var(--muted); font-size: .68rem; }
+    .account-control-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+    .booking-list-wrap { overflow: hidden; }
+    .booking-list-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 15px 17px; border-bottom: 1px solid var(--border); }
+    .booking-list-head strong { color: #fff; font-size: .8rem; }
+    .booking-list-head span { color: var(--muted); font-size: .64rem; }
+    .mini-table { min-width: 760px !important; }
+    .mini-table th { padding: 12px 14px !important; color: var(--muted); background: rgba(255,255,255,.02); }
+    .mini-table td { padding: 12px 14px !important; background: rgba(255,255,255,.015); border-bottom-color: var(--border); }
+    .mini-table tbody td:first-child,.mini-table tbody td:last-child { border-radius: 0 !important; }
+    .toast-stack { position: fixed; right: 24px; bottom: 24px; z-index: 7000; display: grid; gap: 9px; width: min(390px,calc(100vw - 48px)); }
+    .toast { display: flex; align-items: flex-start; gap: 12px; padding: 14px 15px; background: #111719; border: 1px solid var(--border-strong); border-radius: 15px; box-shadow: 0 25px 70px rgba(0,0,0,.5); transform: translateY(10px); opacity: 0; animation: toastIn .18s ease forwards; }
+    .toast.success { border-color: rgba(46,204,113,.22); }
+    .toast.error { border-color: rgba(231,76,60,.22); }
+    .toast-icon { margin-top: 2px; color: var(--green); }
     .toast.error .toast-icon { color: var(--red); }
-    .toast strong { display: block; font-size: 0.8rem; }
-
-    .toast span {
-      display: block;
-      margin-top: 2px;
-      color: var(--muted);
-      font-size: 0.73rem;
-      line-height: 1.45;
-    }
-
-    @keyframes toastIn {
-      to {
-        transform: translateY(0);
-        opacity: 1;
-      }
-    }
-
-    .sr-only {
-      position: absolute !important;
-      width: 1px !important;
-      height: 1px !important;
-      padding: 0 !important;
-      margin: -1px !important;
-      overflow: hidden !important;
-      clip: rect(0, 0, 0, 0) !important;
-      white-space: nowrap !important;
-      border: 0 !important;
-    }
-
+    .toast strong { display: block; color: #fff; font-size: .74rem; font-weight: 600; }
+    .toast span { display: block; margin-top: 2px; color: var(--muted); font-size: .64rem; line-height: 1.5; }
+    @keyframes toastIn { to { transform: translateY(0); opacity: 1; } }
+    .sr-only { position: absolute !important; width: 1px !important; height: 1px !important; padding: 0 !important; margin: -1px !important; overflow: hidden !important; clip: rect(0,0,0,0) !important; white-space: nowrap !important; border: 0 !important; }
     .muted { color: var(--muted); }
     .nowrap { white-space: nowrap; }
-
-    .data-source {
-      display: none !important;
-    }
-
+    .data-source { display: none !important; }
+    :focus-visible { outline: 2px solid var(--gold); outline-offset: 3px; }
     @media (max-width: 1150px) {
-      .metric-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-
-      .toolbar {
-        grid-template-columns: minmax(220px, 1fr) repeat(2, minmax(140px, 1fr));
-      }
-
-      .toolbar > :last-child { grid-column: span 1; }
-
+      .page-shell { width: min(100% - 36px,1600px); padding-top: 32px; }
+      .toolbar { grid-template-columns: minmax(200px,1fr) repeat(2,minmax(130px,1fr)); }
+      .metric-grid { grid-template-columns: repeat(2,minmax(0,1fr)); }
       .detail-grid { grid-template-columns: 1fr; }
     }
-
     @media (max-width: 800px) {
-      .page-shell {
-        width: min(100% - 22px, 1500px);
-        padding-top: 22px;
-      }
-
-      .page-header {
-        align-items: flex-start;
-        flex-direction: column;
-      }
-
+      .page-shell { width: min(100% - 30px,1600px); padding-top: 28px; padding-bottom: 55px; }
+      .page-header { align-items: stretch; flex-direction: column; }
       .header-actions { justify-content: flex-start; }
       .insight-strip { grid-template-columns: 1fr; }
       .toolbar { grid-template-columns: 1fr 1fr; }
       .search-field { grid-column: 1 / -1; }
-      .metric-grid { grid-template-columns: 1fr 1fr; }
-      .detail-kpis { grid-template-columns: 1fr 1fr; }
+      .panel-head { align-items: flex-start; flex-direction: column; gap: 8px; }
+      .panel { border-radius: 21px; }
+      .detail-grid { grid-template-columns: 1fr; }
     }
-
-    @media (max-width: 520px) {
-      .metric-grid { grid-template-columns: 1fr; }
+    @media (max-width: 640px) {
+      .page-shell { width: min(100% - 22px,1600px); padding-top: 24px; padding-bottom: 45px; }
+      .page-header h1 { font-size: 2.15rem; }
+      .page-subtitle { font-size: .77rem; }
+      .header-actions { width: 100%; flex-direction: column; align-items: stretch; }
+      .header-actions .button { width: 100%; }
+      .metric-grid { grid-template-columns: 1fr; gap: 11px; }
+      .metric-card { min-height: 155px; }
       .toolbar { grid-template-columns: 1fr; }
       .search-field { grid-column: auto; }
-      .detail-kpis { grid-template-columns: 1fr; }
+      .panel { padding: 0; border-radius: 18px; }
+      .panel-head { padding: 18px 16px; }
+      .toolbar { padding: 14px 16px; }
+      .panel > .table-wrap { padding: 8px 10px 0; }
+      .detail-kpis { grid-template-columns: 1fr 1fr; }
+      .account-controls-grid { grid-template-columns: 1fr; }
+      .pagination { align-items: flex-start; flex-direction: column; padding: 15px 16px; }
+      .toast-stack { right: 11px; bottom: 11px; left: 11px; width: auto; }
       .modal-backdrop { padding: 9px; }
-      .modal-head,
-      .modal-body {
-        padding-left: 15px;
-        padding-right: 15px;
-      }
-
+      .modal-head,.modal-body { padding-left: 15px; padding-right: 15px; }
       .profile-head { align-items: flex-start; }
-      .profile-meta h2 { white-space: normal; }
-      .profile-meta p { white-space: normal; }
-
-      .pagination {
-        align-items: flex-start;
-        flex-direction: column;
-      }
+      .profile-meta h2,.profile-meta p { white-space: normal; }
+      .account-control-actions .button { flex: 1 1 auto; }
+    }
+    @media (max-width: 420px) {
+      .detail-kpis { grid-template-columns: 1fr; }
+      .pagination-actions { width: 100%; }
+      .pagination-actions .button { flex: 1; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      *,*::before,*::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
     }
   </style>
 </head>
 <body>
   <%- include("../partials/navadmin") %>
 
-  <!--
-    Keep EJS data outside executable JavaScript so VS Code's JavaScript
-    language service does not interpret <%- ... %> as invalid JavaScript.
-  -->
+  <!-- Keep EJS data outside executable JavaScript for safe JSON parsing. -->
   <textarea id="initialUsersData" class="data-source" hidden><%- JSON.stringify(userRows).replace(/</g, "\\u003c").replace(/>/g, "\\u003e").replace(/&/g, "\\u0026") %></textarea>
   <textarea id="initialCsrfData" class="data-source" hidden><%- JSON.stringify(initialCsrfToken) %></textarea>
 
@@ -1286,1333 +362,379 @@ function php(value) {
     <header class="page-header">
       <div>
         <div class="eyebrow"><i class="fa-solid fa-users"></i> Customer Intelligence</div>
-        <h1>Guest Relationship Center</h1>
-        <p class="page-subtitle">
-          A high-level view of your Puffer Isle guests, reservation history, booking value, engagement, and account activity — built for fast front-desk decisions and management review.
-        </p>
+        <h1>Guest <span>Relationship Center</span></h1>
+        <p class="page-subtitle">A high-level view of your Puffer Isle guests, reservation history, booking value, engagement, and account activity — built for fast front-desk decisions and management review.</p>
       </div>
       <div class="header-actions">
-        <button class="button" id="refreshUsers" type="button" title="Reload the customer directory">
-          <i class="fa-solid fa-rotate"></i>
-          Refresh
-        </button>
-        <button class="button" id="exportUsers" type="button" title="Export the currently filtered customer list">
-          <i class="fa-solid fa-file-arrow-down"></i>
-          Export CSV
-        </button>
+        <button class="button" id="refreshUsers" type="button" title="Reload the customer directory"><i class="fa-solid fa-rotate"></i> Refresh</button>
+        <button class="button" id="exportUsers" type="button" title="Export the currently filtered customer list"><i class="fa-solid fa-file-arrow-down"></i> Export CSV</button>
       </div>
     </header>
 
     <section class="metric-grid" aria-label="Customer overview">
       <article class="metric-card">
-        <div class="metric-top">
-          <div class="metric-label">Total Customers</div>
-          <div class="metric-icon"><i class="fa-solid fa-users"></i></div>
-        </div>
+        <div class="metric-top"><div class="metric-icon"><i class="fa-solid fa-users"></i></div><div class="metric-label">Total Customers</div></div>
         <div class="metric-value" id="metricCustomers"><%= overview.customers.toLocaleString("en-PH") %></div>
         <div class="metric-note"><%= overview.verified.toLocaleString("en-PH") %> verified email accounts</div>
       </article>
-
       <article class="metric-card gold">
-        <div class="metric-top">
-          <div class="metric-label">Booking Value</div>
-          <div class="metric-icon"><i class="fa-solid fa-peso-sign"></i></div>
-        </div>
+        <div class="metric-top"><div class="metric-icon"><i class="fa-solid fa-peso-sign"></i></div><div class="metric-label">Booking Value</div></div>
         <div class="metric-value" id="metricSpent"><%= php(overview.spent) %></div>
         <div class="metric-note">Total value across tracked reservations</div>
       </article>
-
       <article class="metric-card blue">
-        <div class="metric-top">
-          <div class="metric-label">Total Bookings</div>
-          <div class="metric-icon"><i class="fa-solid fa-calendar-check"></i></div>
-        </div>
+        <div class="metric-top"><div class="metric-icon"><i class="fa-solid fa-calendar-check"></i></div><div class="metric-label">Total Bookings</div></div>
         <div class="metric-value" id="metricBookings"><%= overview.bookings.toLocaleString("en-PH") %></div>
         <div class="metric-note">Average booking value: <span class="money"><%= php(avgBookingValue) %></span></div>
       </article>
-
       <article class="metric-card green">
-        <div class="metric-top">
-          <div class="metric-label">Returning Guests</div>
-          <div class="metric-icon"><i class="fa-solid fa-repeat"></i></div>
-        </div>
+        <div class="metric-top"><div class="metric-icon"><i class="fa-solid fa-repeat"></i></div><div class="metric-label">Returning Guests</div></div>
         <div class="metric-value" id="metricReturning"><%= overview.returning.toLocaleString("en-PH") %></div>
         <div class="metric-note">Guests with 2+ recorded bookings</div>
       </article>
     </section>
 
     <section class="insight-strip" aria-label="Customer insights">
-      <div class="insight-card">
-        <div class="insight-icon"><i class="fa-solid fa-user-check"></i></div>
-        <div class="insight-copy">
-          <strong><%= overview.active.toLocaleString("en-PH") %> active accounts</strong>
-          <span>Current account status across the customer base</span>
-        </div>
-      </div>
-
-      <div class="insight-card">
-        <div class="insight-icon"><i class="fa-solid fa-chart-line"></i></div>
-        <div class="insight-copy">
-          <strong><%= php(avgPerCustomer) %> average customer value</strong>
-          <span>Total tracked booking value divided by customers</span>
-        </div>
-      </div>
-
-      <div class="insight-card">
-        <div class="insight-icon"><i class="fa-solid fa-bolt"></i></div>
-        <div class="insight-copy">
-          <strong>Front-desk ready</strong>
-          <span>Open a customer profile for reservation history and contact details</span>
-        </div>
-      </div>
+      <div class="insight-card"><div class="insight-icon"><i class="fa-solid fa-user-check"></i></div><div class="insight-copy"><strong id="metricActiveAccounts"><%= overview.active.toLocaleString("en-PH") %> active accounts</strong><span>Current account status across the customer base</span></div></div>
+      <div class="insight-card"><div class="insight-icon"><i class="fa-solid fa-chart-line"></i></div><div class="insight-copy"><strong><%= php(avgPerCustomer) %> average customer value</strong><span>Total tracked booking value divided by customers</span></div></div>
+      <div class="insight-card"><div class="insight-icon"><i class="fa-solid fa-bolt"></i></div><div class="insight-copy"><strong>Front-desk ready</strong><span>Open a customer profile for reservation history and contact details</span></div></div>
     </section>
 
     <section class="panel" aria-labelledby="customersTitle">
       <div class="panel-head">
-        <div class="panel-title-wrap">
-          <h2 id="customersTitle">Customer Directory</h2>
-          <p>Search, segment, sort, and inspect a guest without leaving the admin workspace.</p>
-        </div>
+        <div class="panel-title-wrap"><h2 id="customersTitle">Customer Directory</h2><p>Search, segment, sort, and inspect a guest without leaving the admin workspace.</p></div>
         <div class="result-count" id="resultCount">Showing <strong><%= userRows.length %></strong> customers</div>
       </div>
-
       <div class="toolbar">
-        <div class="field search-field">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <label class="sr-only" for="userSearch">Search customers</label>
-          <input class="control" id="userSearch" type="search" placeholder="Search name, email, phone, username…" autocomplete="off">
-        </div>
-
-        <div class="field">
-          <label class="sr-only" for="statusFilter">Account status</label>
-          <select class="select-control" id="statusFilter">
-            <option value="all">All statuses</option>
-            <option value="active">Active</option>
-            <option value="suspended">Suspended</option>
-            <option value="inactive">Inactive</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label class="sr-only" for="activityFilter">Customer segment</label>
-          <select class="select-control" id="activityFilter">
-            <option value="all">All guests</option>
-            <option value="returning">Returning guests</option>
-            <option value="one">1 booking</option>
-            <option value="none">No bookings</option>
-            <option value="high-value">₱10,000+ value</option>
-          </select>
-        </div>
-
-        <div class="field">
-          <label class="sr-only" for="sortFilter">Sort customers</label>
-          <select class="select-control" id="sortFilter">
-            <option value="recent">Most recent</option>
-            <option value="spent">Highest booking value</option>
-            <option value="bookings">Most bookings</option>
-            <option value="name">Name A–Z</option>
-            <option value="joined">Newest accounts</option>
-          </select>
-        </div>
-
-        <button class="button filter-button" id="clearFilters" type="button" aria-label="Clear filters" title="Clear filters">
-          <i class="fa-solid fa-filter-circle-xmark"></i>
-        </button>
+        <div class="field search-field"><i class="fa-solid fa-magnifying-glass"></i><label class="sr-only" for="userSearch">Search customers</label><input class="control" id="userSearch" type="search" placeholder="Search name, email, phone, username…" autocomplete="off"></div>
+        <div class="field"><label class="sr-only" for="statusFilter">Account status</label><select class="select-control" id="statusFilter"><option value="all">All statuses</option><option value="active">Active</option><option value="suspended">Suspended</option><option value="disabled">Disabled</option><option value="inactive">Inactive (legacy)</option></select></div>
+        <div class="field"><label class="sr-only" for="activityFilter">Customer segment</label><select class="select-control" id="activityFilter"><option value="all">All guests</option><option value="returning">Returning guests</option><option value="one">1 booking</option><option value="none">No bookings</option><option value="high-value">₱10,000+ value</option></select></div>
+        <div class="field"><label class="sr-only" for="sortFilter">Sort customers</label><select class="select-control" id="sortFilter"><option value="recent">Most recent</option><option value="spent">Highest booking value</option><option value="bookings">Most bookings</option><option value="name">Name A–Z</option><option value="joined">Newest accounts</option></select></div>
+        <button class="button filter-button" id="clearFilters" type="button" aria-label="Clear filters" title="Clear filters"><i class="fa-solid fa-filter-circle-xmark"></i></button>
       </div>
-
       <div class="table-wrap">
         <table aria-describedby="customersTitle">
-          <thead>
-            <tr>
-              <th>Customer</th>
-              <th>Account</th>
-              <th>Bookings</th>
-              <th>Booking Value</th>
-              <th>Avg. Booking</th>
-              <th>Last Activity</th>
-              <th><span class="sr-only">Open</span></th>
-            </tr>
-          </thead>
+          <thead><tr><th>Customer</th><th>Account</th><th>Bookings</th><th>Booking Value</th><th>Avg. Booking</th><th>Last Activity</th><th><span class="sr-only">Open</span></th></tr></thead>
           <tbody id="usersTableBody"></tbody>
         </table>
       </div>
-
-      <div id="emptyState" class="empty-state" hidden>
-        <div class="empty-icon"><i class="fa-solid fa-user-slash"></i></div>
-        <strong>No matching customers</strong>
-        <span>Try another search term or clear the current filters.</span>
-      </div>
-
-      <div class="pagination">
-        <div class="pagination-copy" id="paginationCopy">—</div>
-        <div class="pagination-actions">
-          <button class="button" id="prevPage" type="button">
-            <i class="fa-solid fa-chevron-left"></i> Previous
-          </button>
-          <button class="button" id="nextPage" type="button">
-            Next <i class="fa-solid fa-chevron-right"></i>
-          </button>
-        </div>
-      </div>
+      <div id="emptyState" class="empty-state" hidden><div class="empty-icon"><i class="fa-solid fa-user-slash"></i></div><strong>No matching customers</strong><span>Try another search term or clear the current filters.</span></div>
+      <div class="pagination"><div class="pagination-copy" id="paginationCopy">—</div><div class="pagination-actions"><button class="button" id="prevPage" type="button"><i class="fa-solid fa-chevron-left"></i> Previous</button><button class="button" id="nextPage" type="button">Next <i class="fa-solid fa-chevron-right"></i></button></div></div>
     </section>
   </main>
 
   <div class="modal-backdrop" id="profileModal" role="dialog" aria-modal="true" aria-labelledby="profileModalTitle">
     <section class="modal">
-      <div class="modal-head">
-        <div class="profile-head" id="profileHeader"></div>
-        <button class="close-modal" id="closeProfile" type="button" aria-label="Close customer profile">
-          <i class="fa-solid fa-xmark"></i>
-        </button>
-      </div>
-
-      <div class="modal-body" id="profileBody">
-        <div class="modal-loading">
-          <div>
-            <div class="spinner"></div>
-            <div>Loading guest profile…</div>
-          </div>
-        </div>
-      </div>
+      <div class="modal-head"><div class="profile-head" id="profileHeader"></div><button class="close-modal" id="closeProfile" type="button" aria-label="Close customer profile"><i class="fa-solid fa-xmark"></i></button></div>
+      <div class="modal-body" id="profileBody"><div class="modal-loading"><div><div class="spinner"></div><div>Loading guest profile…</div></div></div></div>
     </section>
   </div>
-
   <div class="toast-stack" id="toastStack" aria-live="polite" aria-atomic="true"></div>
 
   <script>
     "use strict";
-
     const readJsonTextarea = (id, fallback) => {
       const element = document.getElementById(id);
       if (!element) return fallback;
-
-      try {
-        return JSON.parse(element.value || element.textContent || "");
-      } catch (error) {
-        console.error(`IsleRMS: unable to parse ${id}:`, error);
-        return fallback;
-      }
+      try { return JSON.parse(element.value || element.textContent || ""); }
+      catch (error) { console.error(`IsleRMS: unable to parse ${id}:`, error); return fallback; }
     };
-
     const INITIAL_USERS = readJsonTextarea("initialUsersData", []);
     const INITIAL_CSRF = readJsonTextarea("initialCsrfData", "");
     const PAGE_SIZE = 12;
-
-    const state = {
-      users: Array.isArray(INITIAL_USERS) ? INITIAL_USERS : [],
-      filtered: [],
-      page: 1,
-      loading: false,
-      activeUserId: null,
-      lastFocusedElement: null
-    };
-
+    const state = { users: Array.isArray(INITIAL_USERS) ? INITIAL_USERS : [], filtered: [], page: 1, loading: false, activeUserId: null, activeDetail: null, lastFocusedElement: null };
     const el = {
-      body: document.getElementById("usersTableBody"),
-      empty: document.getElementById("emptyState"),
-      search: document.getElementById("userSearch"),
-      status: document.getElementById("statusFilter"),
-      activity: document.getElementById("activityFilter"),
-      sort: document.getElementById("sortFilter"),
-      clear: document.getElementById("clearFilters"),
-      count: document.getElementById("resultCount"),
-      paginationCopy: document.getElementById("paginationCopy"),
-      prev: document.getElementById("prevPage"),
-      next: document.getElementById("nextPage"),
-      refresh: document.getElementById("refreshUsers"),
-      export: document.getElementById("exportUsers"),
-      modal: document.getElementById("profileModal"),
-      closeModal: document.getElementById("closeProfile"),
-      profileHeader: document.getElementById("profileHeader"),
-      profileBody: document.getElementById("profileBody"),
-      toastStack: document.getElementById("toastStack")
+      body: document.getElementById("usersTableBody"), empty: document.getElementById("emptyState"),
+      search: document.getElementById("userSearch"), status: document.getElementById("statusFilter"),
+      activity: document.getElementById("activityFilter"), sort: document.getElementById("sortFilter"),
+      clear: document.getElementById("clearFilters"), count: document.getElementById("resultCount"),
+      paginationCopy: document.getElementById("paginationCopy"), prev: document.getElementById("prevPage"),
+      next: document.getElementById("nextPage"), refresh: document.getElementById("refreshUsers"),
+      export: document.getElementById("exportUsers"), modal: document.getElementById("profileModal"),
+      closeModal: document.getElementById("closeProfile"), profileHeader: document.getElementById("profileHeader"),
+      profileBody: document.getElementById("profileBody"), toastStack: document.getElementById("toastStack")
     };
-
-    const currency = (value) => {
-      const number = Number(value) || 0;
-      return new Intl.NumberFormat("en-PH", {
-        style: "currency",
-        currency: "PHP",
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2
-      }).format(number);
-    };
-
-    const integer = (value) => {
-      const number = Number(value);
-      return Number.isFinite(number)
-        ? number.toLocaleString("en-PH")
-        : "0";
-    };
-
-    const escapeHtml = (value) => String(value ?? "")
-      .replaceAll("&", "&amp;")
-      .replaceAll("<", "&lt;")
-      .replaceAll(">", "&gt;")
-      .replaceAll('"', "&quot;")
-      .replaceAll("'", "&#039;");
-
+    const currency = (value) => new Intl.NumberFormat("en-PH", { style: "currency", currency: "PHP", minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(Number(value) || 0);
+    const integer = (value) => { const number = Number(value); return Number.isFinite(number) ? number.toLocaleString("en-PH") : "0"; };
+    const escapeHtml = (value) => String(value ?? "").replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;").replaceAll("'", "&#039;");
     const safeImageUrl = (value) => {
-      const raw = String(value || "").trim();
-      if (!raw) return "";
-
-      try {
-        const base = window.location.origin;
-        const url = new URL(raw, base);
-        const protocolAllowed = url.protocol === "http:" || url.protocol === "https:";
-        if (!protocolAllowed) return "";
-        return url.href;
-      } catch (error) {
-        return "";
-      }
+      const raw = String(value || "").trim(); if (!raw) return "";
+      try { const url = new URL(raw, window.location.origin); return ["http:", "https:"].includes(url.protocol) ? url.href : ""; }
+      catch (_) { return ""; }
     };
-
     const dateTime = (value) => {
-      if (!value) return "No recent activity";
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return "No recent activity";
-
-      return new Intl.DateTimeFormat("en-PH", {
-        month: "short",
-        day: "numeric",
-        year: "numeric",
-        hour: "numeric",
-        minute: "2-digit"
-      }).format(date);
+      if (!value) return "No recent activity"; const date = new Date(value); if (Number.isNaN(date.getTime())) return "No recent activity";
+      return new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric", hour: "numeric", minute: "2-digit" }).format(date);
     };
-
     const dateOnly = (value) => {
-      if (!value) return "—";
-      const date = new Date(value);
-      if (Number.isNaN(date.getTime())) return "—";
-
-      return new Intl.DateTimeFormat("en-PH", {
-        month: "short",
-        day: "numeric",
-        year: "numeric"
-      }).format(date);
+      if (!value || value === "—") return "—"; const date = new Date(value); if (Number.isNaN(date.getTime())) return "—";
+      return new Intl.DateTimeFormat("en-PH", { month: "short", day: "numeric", year: "numeric" }).format(date);
     };
-
     const statusClass = (status) => {
-      const normalized = String(status || "unknown")
-        .toLowerCase()
-        .replace(/[_\s]+/g, "-");
-
-      return [
-        "active",
-        "inactive",
-        "suspended",
-        "pending",
-        "accepted",
-        "confirmed",
-        "completed",
-        "cancelled",
-        "rejected",
-        "declined",
-        "checked-in",
-        "checked-out"
-      ].includes(normalized)
-        ? normalized
-        : "guest";
+      const normalized = String(status || "unknown").toLowerCase().replace(/[_\s]+/g, "-");
+      return ["active","inactive","suspended","disabled","pending","accepted","confirmed","completed","cancelled","rejected","declined","checked-in","checked-out"].includes(normalized) ? normalized : "guest";
     };
-
     const initials = (name) => {
-      const text = String(name || "Guest").trim();
-      const pieces = text.split(/\s+/).filter(Boolean);
-
-      if (!pieces.length) return "G";
-
-      if (pieces.length === 1) {
-        return pieces[0].slice(0, 2).toUpperCase();
-      }
-
+      const pieces = String(name || "Guest").trim().split(/\s+/).filter(Boolean);
+      if (!pieces.length) return "G"; if (pieces.length === 1) return pieces[0].slice(0,2).toUpperCase();
       return `${pieces[0][0]}${pieces[pieces.length - 1][0]}`.toUpperCase();
     };
-
     const showToast = (title, message = "", type = "success") => {
-      const node = document.createElement("div");
-      node.className = `toast ${type}`;
-      node.innerHTML = `
-        <div class="toast-icon">
-          <i class="fa-solid ${type === "success" ? "fa-circle-check" : "fa-circle-exclamation"}"></i>
-        </div>
-        <div>
-          <strong>${escapeHtml(title)}</strong>
-          <span>${escapeHtml(message)}</span>
-        </div>
-      `;
-
-      el.toastStack.appendChild(node);
-      window.setTimeout(() => node.remove(), 3600);
+      const node = document.createElement("div"); node.className = `toast ${type}`;
+      node.innerHTML = `<div class="toast-icon"><i class="fa-solid ${type === "success" ? "fa-circle-check" : "fa-circle-exclamation"}"></i></div><div><strong>${escapeHtml(title)}</strong><span>${escapeHtml(message)}</span></div>`;
+      el.toastStack.appendChild(node); window.setTimeout(() => node.remove(), 3600);
     };
-
-    const getCsrfToken = () => {
-      const domToken =
-        document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") ||
-        document.getElementById("adminCsrfToken")?.value ||
-        document.querySelector('input[name="_csrf"]')?.value ||
-        window.IsleRMS?.csrfToken ||
-        INITIAL_CSRF;
-
-      return domToken || "";
-    };
-
+    const getCsrfToken = () => document.querySelector('meta[name="csrf-token"]')?.getAttribute("content") || document.getElementById("adminCsrfToken")?.value || document.querySelector('input[name="_csrf"]')?.value || window.IsleRMS?.csrfToken || INITIAL_CSRF || "";
     const normalizeDetailPayload = (payload) => {
       const root = payload && typeof payload === "object" ? payload : {};
-      const user =
-        root.user ||
-        root.customer ||
-        root.data?.user ||
-        root.data?.customer ||
-        {};
-      const bookings =
-        root.bookings ||
-        root.appointments ||
-        root.data?.bookings ||
-        root.data?.appointments ||
-        [];
-      const summary =
-        root.summary ||
-        root.bookingSummary ||
-        root.bookingStats ||
-        root.data?.summary ||
-        {};
-
-      return {
-        user: user && typeof user === "object" ? user : {},
-        bookings: Array.isArray(bookings) ? bookings : [],
-        summary: summary && typeof summary === "object" ? summary : {}
-      };
+      const user = root.user || root.customer || root.data?.user || root.data?.customer || {};
+      const bookings = root.bookings || root.appointments || root.data?.bookings || root.data?.appointments || [];
+      const summary = root.summary || root.bookingSummary || root.bookingStats || root.data?.summary || {};
+      return { user: user && typeof user === "object" ? user : {}, bookings: Array.isArray(bookings) ? bookings : [], summary: summary && typeof summary === "object" ? summary : {} };
     };
-
     const resolveUserField = (user, ...keys) => {
       for (const key of keys) {
-        const value = key
-          .split(".")
-          .reduce((acc, part) => acc?.[part], user);
-
-        if (
-          value !== undefined &&
-          value !== null &&
-          String(value).trim() !== ""
-        ) {
-          return value;
-        }
+        const value = key.split(".").reduce((acc, part) => acc?.[part], user);
+        if (value !== undefined && value !== null && String(value).trim() !== "") return value;
       }
-
       return "—";
     };
-
-    const resolveBookingAmount = (booking) => {
-      const amount = Number(
-        booking?.totalPrice ??
-        booking?.totalAmount ??
-        booking?.amount ??
-        booking?.price ??
-        booking?.total ??
-        0
-      );
-
-      return Number.isFinite(amount) && amount >= 0 ? amount : 0;
-    };
-
-    const resolveBookingRoom = (booking) => String(
-      booking?.roomName ??
-      booking?.room ??
-      booking?.roomType ??
-      booking?.accommodation ??
-      booking?.roomId?.name ??
-      "Reservation"
-    );
-
-    const resolveBookingStatus = (booking) => String(
-      booking?.status || "unknown"
-    )
-      .toLowerCase()
-      .replace(/[_\s]+/g, "-");
-
-    const resolveBookingId = (booking) =>
-      booking?._id ||
-      booking?.id ||
-      booking?.appointmentId ||
-      "";
-
-    const normalizeDetail = (payload, fallbackUser) => {
-      const data = normalizeDetailPayload(payload);
-      const user = data.user || {};
-      const summary = data.summary || {};
-      const bookings = data.bookings;
-      const fallback = fallbackUser || {};
-
-      const totalSpentRaw =
-        summary.totalSpent ??
-        summary.totalSpend ??
-        summary.totalBookingValue ??
-        summary.bookingValue ??
-        fallback.totalSpent;
-
-      const calculatedBookingValue = bookings.reduce(
-        (sum, booking) => sum + resolveBookingAmount(booking),
-        0
-      );
-
-      const parsedTotalSpent = Number(totalSpentRaw);
-      const totalSpent = Number.isFinite(parsedTotalSpent)
-        ? Math.max(0, parsedTotalSpent)
-        : calculatedBookingValue;
-
-      const totalBookingsRaw =
-        summary.totalBookings ??
-        summary.bookingCount ??
-        summary.count ??
-        fallback.totalBookings;
-
-      const parsedTotalBookings = Number(totalBookingsRaw);
-      const totalBookings = Number.isFinite(parsedTotalBookings)
-        ? Math.max(0, Math.round(parsedTotalBookings))
-        : bookings.length;
-
-      const completed = Number(
-        summary.completedBookings ??
-        summary.completed ??
-        bookings.filter((booking) =>
-          ["completed", "checked-out"].includes(resolveBookingStatus(booking))
-        ).length
-      ) || 0;
-
-      const cancelled = Number(
-        summary.cancelledBookings ??
-        summary.cancelled ??
-        bookings.filter((booking) =>
-          ["cancelled", "rejected", "declined"].includes(resolveBookingStatus(booking))
-        ).length
-      ) || 0;
-
-      const active = Number(
-        summary.activeBookings ??
-        summary.active ??
-        bookings.filter((booking) =>
-          [
-            "pending",
-            "accepted",
-            "confirmed",
-            "checked-in"
-          ].includes(resolveBookingStatus(booking))
-        ).length
-      ) || 0;
-
-      const memberLevel = resolveUserField(
-        user,
-        "memberLevel",
-        "membershipLevel",
-        "tier",
-        "level"
-      );
-
-      const fullname = resolveUserField(
-        user,
-        "fullname",
-        "fullName",
-        "name",
-        "username",
-        "email"
-      );
-
-      const email = resolveUserField(user, "email");
-      const phone = resolveUserField(user, "phone", "contact", "mobile");
-
-      const fallbackStatus =
-        user.active === false || user.isActive === false
-          ? "inactive"
-          : "active";
-
-      const rawStatus = firstNonEmptyValue(
-        user.status,
-        user.accountStatus,
-        fallbackStatus
-      );
-
-      const status = String(rawStatus || "active")
-        .toLowerCase()
-        .replace(/[_\s]+/g, "-");
-
-      const avatar = resolveUserField(
-        user,
-        "avatar",
-        "profileImage",
-        "photo"
-      );
-
-      const bookingDates = bookings
-        .map((booking) =>
-          booking?.createdAt ||
-          booking?.checkin ||
-          booking?.checkIn ||
-          booking?.checkInDate
-        )
-        .filter(Boolean)
-        .sort((a, b) => new Date(b) - new Date(a));
-
-      const lastBooking = bookingDates[0] || fallback.lastBookingAt || "";
-
-      return {
-        user,
-        bookings,
-        summary,
-        totalSpent,
-        totalBookings,
-        completed,
-        cancelled,
-        active,
-        average: totalBookings ? totalSpent / totalBookings : 0,
-        fullname,
-        email,
-        phone,
-        memberLevel,
-        status,
-        avatar,
-        lastBooking
-      };
-    };
-
     const firstNonEmptyValue = (...values) => {
-      for (const value of values) {
-        if (
-          value !== undefined &&
-          value !== null &&
-          String(value).trim() !== ""
-        ) {
-          return value;
-        }
-      }
+      for (const value of values) if (value !== undefined && value !== null && String(value).trim() !== "") return value;
       return null;
     };
-
-    const renderProfileHeader = (detail) => {
-      const verified =
-        detail.user.emailVerified === true ||
-        detail.user.emailVerified === "true" ||
-        detail.user.verified === true ||
-        detail.user.isVerified === true;
-
-      const avatarUrl = safeImageUrl(detail.avatar);
-      const avatarHtml = avatarUrl
-        ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(detail.fullname)}" loading="lazy" referrerpolicy="no-referrer">`
-        : escapeHtml(initials(detail.fullname));
-
-      el.profileHeader.innerHTML = `
-        <div class="profile-avatar">${avatarHtml}</div>
-        <div class="profile-meta">
-          <h2 id="profileModalTitle">${escapeHtml(detail.fullname)}</h2>
-          <p>${escapeHtml(detail.email)}</p>
-          <div class="profile-badges">
-            <span class="pill ${statusClass(detail.status)}">
-              <i class="fa-solid fa-circle"></i>${escapeHtml(detail.status)}
-            </span>
-            <span class="pill guest">
-              <i class="fa-solid fa-crown"></i>${escapeHtml(detail.memberLevel)}
-            </span>
-            ${verified ? `
-              <span class="pill verified">
-                <i class="fa-solid fa-check"></i>Email verified
-              </span>
-            ` : ""}
-          </div>
-        </div>
-      `;
+    const resolveBookingAmount = (booking) => {
+      const amount = Number(booking?.totalPrice ?? booking?.totalAmount ?? booking?.amount ?? booking?.price ?? booking?.total ?? 0);
+      return Number.isFinite(amount) && amount >= 0 ? amount : 0;
     };
-
+    const resolveBookingRoom = (booking) => String(booking?.roomName ?? booking?.room ?? booking?.roomType ?? booking?.accommodation ?? booking?.roomId?.name ?? "Reservation");
+    const resolveBookingStatus = (booking) => String(booking?.status || "unknown").toLowerCase().replace(/[_\s]+/g, "-");
+    const resolveBookingId = (booking) => booking?._id || booking?.id || booking?.appointmentId || "";
+    const normalizeDetail = (payload, fallbackUser) => {
+      const data = normalizeDetailPayload(payload); const user = data.user || {}; const summary = data.summary || {}; const bookings = data.bookings; const fallback = fallbackUser || {};
+      const totalSpentRaw = summary.totalSpent ?? summary.totalSpend ?? summary.totalBookingValue ?? summary.bookingValue ?? fallback.totalSpent;
+      const calculatedBookingValue = bookings.reduce((sum, booking) => sum + resolveBookingAmount(booking), 0);
+      const parsedTotalSpent = Number(totalSpentRaw);
+      const totalSpent = Number.isFinite(parsedTotalSpent) && totalSpentRaw !== null && totalSpentRaw !== "" ? Math.max(0, parsedTotalSpent) : calculatedBookingValue;
+      const totalBookingsRaw = summary.totalBookings ?? summary.bookingCount ?? summary.count ?? fallback.totalBookings;
+      const parsedTotalBookings = Number(totalBookingsRaw);
+      const totalBookings = Number.isFinite(parsedTotalBookings) && totalBookingsRaw !== null && totalBookingsRaw !== "" ? Math.max(0, Math.round(parsedTotalBookings)) : bookings.length;
+      const completed = Number(summary.completedBookings ?? summary.completed ?? bookings.filter((booking) => ["completed","checked-out"].includes(resolveBookingStatus(booking))).length) || 0;
+      const cancelled = Number(summary.cancelledBookings ?? summary.cancelled ?? bookings.filter((booking) => ["cancelled","rejected","declined"].includes(resolveBookingStatus(booking))).length) || 0;
+      const active = Number(summary.activeBookings ?? summary.active ?? bookings.filter((booking) => ["pending","accepted","confirmed","checked-in"].includes(resolveBookingStatus(booking))).length) || 0;
+      const eligibleCount = Number(summary.bookingValueBookings) || bookings.filter((booking) => ["accepted","confirmed","checked-in","checked-out","completed"].includes(resolveBookingStatus(booking))).length;
+      const rawAverage = Number(summary.averageBookingValue);
+      const average = Number.isFinite(rawAverage) && summary.averageBookingValue !== null && summary.averageBookingValue !== "" ? Math.max(0, rawAverage) : eligibleCount > 0 ? totalSpent / eligibleCount : 0;
+      const memberLevel = resolveUserField(user, "memberLevel", "membershipLevel", "tier", "level");
+      const fullname = resolveUserField(user, "fullname", "fullName", "name", "username", "email");
+      const email = resolveUserField(user, "email"); const phone = resolveUserField(user, "phone", "contact", "mobile");
+      const fallbackStatus = user.active === false || user.isActive === false ? "inactive" : "active";
+      const status = String(firstNonEmptyValue(user.status, user.accountStatus, fallbackStatus) || "active").toLowerCase().replace(/[_\s]+/g, "-");
+      const avatar = resolveUserField(user, "avatarUrl", "avatar", "profileImage", "photo");
+      const bookingDates = bookings.map((booking) => booking?.createdAt || booking?.checkin || booking?.checkIn || booking?.checkInDate).filter(Boolean).sort((a,b) => new Date(b) - new Date(a));
+      return { user, bookings, summary, totalSpent, totalBookings, completed, cancelled, active, average, fullname, email, phone, memberLevel, status, avatar, lastBooking: bookingDates[0] || fallback.lastBookingAt || "" };
+    };
+    const renderProfileHeader = (detail) => {
+      const verified = detail.user.emailVerified === true || detail.user.emailVerified === "true" || detail.user.verified === true || detail.user.isVerified === true;
+      const avatarUrl = safeImageUrl(detail.avatar);
+      const avatarHtml = avatarUrl ? `<img src="${escapeHtml(avatarUrl)}" alt="${escapeHtml(detail.fullname)}" loading="lazy" referrerpolicy="no-referrer">` : escapeHtml(initials(detail.fullname));
+      el.profileHeader.innerHTML = `<div class="profile-avatar">${avatarHtml}</div><div class="profile-meta"><h2 id="profileModalTitle">${escapeHtml(detail.fullname)}</h2><p>${escapeHtml(detail.email)}</p><div class="profile-badges"><span class="pill ${statusClass(detail.status)}"><i class="fa-solid fa-circle"></i>${escapeHtml(detail.status)}</span><span class="pill guest"><i class="fa-solid fa-crown"></i>${escapeHtml(detail.memberLevel)}</span>${verified ? `<span class="pill verified"><i class="fa-solid fa-check"></i>Email verified</span>` : ""}</div></div>`;
+    };
     const renderProfileBody = (detail) => {
       const user = detail.user || {};
-      const bookings = [...detail.bookings].sort((a, b) => {
-        const aDate = new Date(
-          a?.createdAt ||
-          a?.checkin ||
-          a?.checkIn ||
-          a?.checkInDate ||
-          0
-        ).getTime();
-        const bDate = new Date(
-          b?.createdAt ||
-          b?.checkin ||
-          b?.checkIn ||
-          b?.checkInDate ||
-          0
-        ).getTime();
-        return bDate - aDate;
-      });
-
-      const bookingRows = bookings.length
-        ? bookings.map((booking) => {
-            const status = resolveBookingStatus(booking);
-            const room = resolveBookingRoom(booking);
-            const checkin =
-              booking?.checkin ||
-              booking?.checkIn ||
-              booking?.checkInDate;
-            const checkout =
-              booking?.checkout ||
-              booking?.checkOut ||
-              booking?.checkOutDate;
-            const amount = resolveBookingAmount(booking);
-            const id = resolveBookingId(booking);
-            const shortId = id
-              ? `#${escapeHtml(String(id).slice(-8).toUpperCase())}`
-              : "Reservation";
-
-            return `
-              <tr>
-                <td>
-                  <div class="stacked-value">
-                    <strong>${escapeHtml(room)}</strong>
-                    <span>${shortId}</span>
-                  </div>
-                </td>
-                <td>
-                  <span class="pill ${statusClass(status)}">
-                    <i class="fa-solid fa-circle"></i>${escapeHtml(status)}
-                  </span>
-                </td>
-                <td>
-                  <span class="nowrap">${escapeHtml(dateOnly(checkin))}</span>
-                  <span class="muted"> → </span>
-                  <span class="nowrap">${escapeHtml(dateOnly(checkout))}</span>
-                </td>
-                <td class="money">${escapeHtml(currency(amount))}</td>
-              </tr>
-            `;
-          }).join("")
-        : `
-          <tr>
-            <td colspan="4">
-              <div class="empty-state" style="padding:28px 18px;">
-                <div class="empty-icon">
-                  <i class="fa-solid fa-calendar-xmark"></i>
-                </div>
-                <strong>No bookings recorded</strong>
-                <span>This guest has no reservation history yet.</span>
-              </div>
-            </td>
-          </tr>
-        `;
-
-      const createdAt = resolveUserField(
-        user,
-        "createdAt",
-        "registeredAt",
-        "joinedAt"
-      );
+      const bookings = [...detail.bookings].sort((a,b) => new Date(b?.createdAt || b?.checkin || b?.checkIn || b?.checkInDate || 0).getTime() - new Date(a?.createdAt || a?.checkin || a?.checkIn || a?.checkInDate || 0).getTime());
+      const bookingRows = bookings.length ? bookings.map((booking) => {
+        const status = resolveBookingStatus(booking); const room = resolveBookingRoom(booking);
+        const checkin = booking?.checkin || booking?.checkIn || booking?.checkInDate;
+        const checkout = booking?.checkout || booking?.checkOut || booking?.checkOutDate;
+        const amount = resolveBookingAmount(booking); const id = resolveBookingId(booking);
+        const shortId = id ? `#${escapeHtml(String(id).slice(-8).toUpperCase())}` : "Reservation";
+        return `<tr><td><div class="stacked-value"><strong>${escapeHtml(room)}</strong><span>${shortId}</span></div></td><td><span class="pill ${statusClass(status)}"><i class="fa-solid fa-circle"></i>${escapeHtml(status)}</span></td><td><span class="nowrap">${escapeHtml(dateOnly(checkin))}</span><span class="muted"> → </span><span class="nowrap">${escapeHtml(dateOnly(checkout))}</span></td><td class="money">${escapeHtml(currency(amount))}</td></tr>`;
+      }).join("") : `<tr><td colspan="4"><div class="empty-state" style="padding:28px 18px"><div class="empty-icon"><i class="fa-solid fa-calendar-xmark"></i></div><strong>No bookings recorded</strong><span>This guest has no reservation history yet.</span></div></td></tr>`;
+      const createdAt = resolveUserField(user, "createdAt", "registeredAt", "joinedAt");
       const lastLogin = resolveUserField(user, "lastLoginAt", "lastLogin");
       const username = resolveUserField(user, "username");
-      const failedAttempts = Math.max(
-        0,
-        Math.round(Number(resolveUserField(user, "failedLoginAttempts")) || 0)
-      );
+      const failedAttempts = Math.max(0, Math.round(Number(resolveUserField(user, "failedLoginAttempts")) || 0));
       const lockedUntil = resolveUserField(user, "lockedUntil");
-      const verified =
-        user.emailVerified === true ||
-        user.emailVerified === "true" ||
-        user.verified === true ||
-        user.isVerified === true;
-
+      const verified = user.emailVerified === true || user.emailVerified === "true" || user.verified === true || user.isVerified === true;
       el.profileBody.innerHTML = `
         <div class="detail-kpis">
-          <div class="detail-kpi">
-            <span>Total booking value</span>
-            <strong class="money">${escapeHtml(currency(detail.totalSpent))}</strong>
-          </div>
-          <div class="detail-kpi">
-            <span>Total bookings</span>
-            <strong>${escapeHtml(integer(detail.totalBookings))}</strong>
-          </div>
-          <div class="detail-kpi">
-            <span>Completed stays</span>
-            <strong>${escapeHtml(integer(detail.completed))}</strong>
-          </div>
-          <div class="detail-kpi">
-            <span>Average booking</span>
-            <strong>${escapeHtml(currency(detail.average))}</strong>
-          </div>
+          <div class="detail-kpi"><span>Total booking value</span><strong class="money">${escapeHtml(currency(detail.totalSpent))}</strong></div>
+          <div class="detail-kpi"><span>Total bookings</span><strong>${escapeHtml(integer(detail.totalBookings))}</strong></div>
+          <div class="detail-kpi"><span>Completed stays</span><strong>${escapeHtml(integer(detail.completed))}</strong></div>
+          <div class="detail-kpi"><span>Average booking</span><strong>${escapeHtml(currency(detail.average))}</strong></div>
         </div>
-
         <div class="detail-grid">
-          <section class="detail-card">
-            <h3>Guest Profile</h3>
-            <div class="info-list">
-              <div class="info-item">
-                <span>Full name</span>
-                <strong>${escapeHtml(detail.fullname)}</strong>
-              </div>
-              <div class="info-item">
-                <span>Email</span>
-                <strong>${escapeHtml(detail.email)}</strong>
-              </div>
-              <div class="info-item">
-                <span>Phone</span>
-                <strong>${escapeHtml(detail.phone)}</strong>
-              </div>
-              <div class="info-item">
-                <span>Username</span>
-                <strong>${escapeHtml(username)}</strong>
-              </div>
-              <div class="info-item">
-                <span>Membership</span>
-                <strong>${escapeHtml(detail.memberLevel)}</strong>
-              </div>
-              <div class="info-item">
-                <span>Joined</span>
-                <strong>${escapeHtml(dateOnly(createdAt))}</strong>
-              </div>
-            </div>
-          </section>
-
-          <section class="detail-card">
-            <h3>Account & Activity</h3>
-            <div class="info-list">
-              <div class="info-item">
-                <span>Account status</span>
-                <strong>${escapeHtml(detail.status)}</strong>
-              </div>
-              <div class="info-item">
-                <span>Email verified</span>
-                <strong>${verified ? "Yes" : "Not verified"}</strong>
-              </div>
-              <div class="info-item">
-                <span>Last login</span>
-                <strong>${escapeHtml(dateTime(lastLogin))}</strong>
-              </div>
-              <div class="info-item">
-                <span>Latest booking</span>
-                <strong>${escapeHtml(dateTime(detail.lastBooking))}</strong>
-              </div>
-              <div class="info-item">
-                <span>Active reservations</span>
-                <strong>${escapeHtml(integer(detail.active))}</strong>
-              </div>
-              <div class="info-item">
-                <span>Cancelled bookings</span>
-                <strong>${escapeHtml(integer(detail.cancelled))}</strong>
-              </div>
-              <div class="info-item">
-                <span>Failed login attempts</span>
-                <strong>${escapeHtml(integer(failedAttempts))}</strong>
-              </div>
-              ${lockedUntil && lockedUntil !== "—" ? `
-                <div class="info-item">
-                  <span>Locked until</span>
-                  <strong>${escapeHtml(dateTime(lockedUntil))}</strong>
-                </div>
-              ` : ""}
-            </div>
-          </section>
+          <section class="detail-card"><h3>Guest Profile</h3><div class="info-list">
+            <div class="info-item"><span>Full name</span><strong>${escapeHtml(detail.fullname)}</strong></div>
+            <div class="info-item"><span>Email</span><strong>${escapeHtml(detail.email)}</strong></div>
+            <div class="info-item"><span>Phone</span><strong>${escapeHtml(detail.phone)}</strong></div>
+            <div class="info-item"><span>Username</span><strong>${escapeHtml(username)}</strong></div>
+            <div class="info-item"><span>Membership</span><strong>${escapeHtml(detail.memberLevel)}</strong></div>
+            <div class="info-item"><span>Joined</span><strong>${escapeHtml(dateOnly(createdAt))}</strong></div>
+          </div></section>
+          <section class="detail-card"><h3>Account &amp; Activity</h3><div class="info-list">
+            <div class="info-item"><span>Account status</span><strong>${escapeHtml(detail.status)}</strong></div>
+            <div class="info-item"><span>Email verified</span><strong>${verified ? "Yes" : "Not verified"}</strong></div>
+            <div class="info-item"><span>Last login</span><strong>${escapeHtml(dateTime(lastLogin))}</strong></div>
+            <div class="info-item"><span>Latest booking</span><strong>${escapeHtml(dateTime(detail.lastBooking))}</strong></div>
+            <div class="info-item"><span>Active reservations</span><strong>${escapeHtml(integer(detail.active))}</strong></div>
+            <div class="info-item"><span>Cancelled bookings</span><strong>${escapeHtml(integer(detail.cancelled))}</strong></div>
+            <div class="info-item"><span>Failed login attempts</span><strong>${escapeHtml(integer(failedAttempts))}</strong></div>
+            ${lockedUntil && lockedUntil !== "—" ? `<div class="info-item"><span>Locked until</span><strong>${escapeHtml(dateTime(lockedUntil))}</strong></div>` : ""}
+          </div></section>
         </div>
-
-        <section class="booking-list-wrap">
-          <div class="booking-list-head">
-            <strong>Reservation History</strong>
-            <span>
-              ${escapeHtml(integer(bookings.length))}
-              recorded reservation${bookings.length === 1 ? "" : "s"}
-            </span>
-          </div>
-
-          <div class="table-wrap">
-            <table class="mini-table">
-              <thead>
-                <tr>
-                  <th>Accommodation</th>
-                  <th>Status</th>
-                  <th>Stay Dates</th>
-                  <th>Value</th>
-                </tr>
-              </thead>
-              <tbody>${bookingRows}</tbody>
-            </table>
-          </div>
+        <section class="detail-card account-controls" aria-labelledby="accountControlsTitle">
+          <h3 id="accountControlsTitle">Account Management</h3>
+          <p>Change account access or clear a login lock. Suspensions and disabled status take effect when the guest makes their next protected request.</p>
+          <div class="account-controls-grid"><div class="account-status-field"><label for="accountStatusControl">Account status</label><select class="select-control" id="accountStatusControl" aria-label="Account status">
+            <option value="active" ${detail.status === "active" ? "selected" : ""}>Active — can access guest portal</option>
+            <option value="suspended" ${detail.status === "suspended" ? "selected" : ""}>Suspended — temporarily blocked</option>
+            <option value="disabled" ${detail.status === "disabled" ? "selected" : ""}>Disabled — access blocked</option>
+          </select></div><div class="account-control-actions">
+            <button class="button gold" id="saveAccountStatus" type="button"><i class="fa-solid fa-shield-halved"></i> Save status</button>
+            <button class="button" id="unlockAccount" type="button" ${(lockedUntil && lockedUntil !== "—") || failedAttempts > 0 ? "" : "disabled"}><i class="fa-solid fa-lock-open"></i> Reset login lock</button>
+          </div></div>
         </section>
-      `;
-    };
+        <section class="booking-list-wrap"><div class="booking-list-head"><strong>Reservation History</strong><span>${escapeHtml(integer(bookings.length))} recorded reservation${bookings.length === 1 ? "" : "s"}</span></div><div class="table-wrap"><table class="mini-table"><thead><tr><th>Accommodation</th><th>Status</th><th>Stay Dates</th><th>Value</th></tr></thead><tbody>${bookingRows}</tbody></table></div></section>`;
 
+      const statusSelect = document.getElementById("accountStatusControl");
+      const saveStatusButton = document.getElementById("saveAccountStatus");
+      const unlockButton = document.getElementById("unlockAccount");
+      if (saveStatusButton && statusSelect) saveStatusButton.addEventListener("click", async () => {
+        const userId = state.activeUserId; const nextStatus = statusSelect.value; if (!userId) return;
+        if (nextStatus !== "active" && !window.confirm(`Set this guest account to "${nextStatus}"? The guest will be blocked from protected portal actions.`)) return;
+        saveStatusButton.disabled = true; const originalLabel = saveStatusButton.innerHTML; saveStatusButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Saving';
+        try {
+          const response = await fetch(`/admin/users/${encodeURIComponent(userId)}/status`, { method: "PATCH", credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json", "Content-Type": "application/json", "X-Requested-With": "XMLHttpRequest", "X-CSRF-Token": getCsrfToken() }, body: JSON.stringify({ status: nextStatus }) });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || payload.success !== true) throw new Error(payload.message || payload.error || "Unable to update account status.");
+          const updatedStatus = payload.user?.status || nextStatus;
+          const row = state.users.find((candidate) => String(candidate.id) === String(userId)); if (row) row.status = updatedStatus;
+          if (state.activeDetail) { state.activeDetail.status = updatedStatus; if (state.activeDetail.user) state.activeDetail.user.status = updatedStatus; renderProfileHeader(state.activeDetail); renderProfileBody(state.activeDetail); }
+          renderTable(); recalcOverview(); showToast("Account status updated", payload.message || `Account status changed to ${updatedStatus}.`);
+        } catch (error) { showToast("Status update failed", error.message || "Please retry.", "error"); saveStatusButton.disabled = false; saveStatusButton.innerHTML = originalLabel; }
+      });
+      if (unlockButton) unlockButton.addEventListener("click", async () => {
+        const userId = state.activeUserId; if (!userId) return;
+        if (!window.confirm("Reset this guest's failed-login counter and clear any active login lock?")) return;
+        unlockButton.disabled = true; const originalLabel = unlockButton.innerHTML; unlockButton.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Resetting';
+        try {
+          const response = await fetch(`/admin/users/${encodeURIComponent(userId)}/unlock`, { method: "POST", credentials: "same-origin", cache: "no-store", headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest", "X-CSRF-Token": getCsrfToken() } });
+          const payload = await response.json().catch(() => ({}));
+          if (!response.ok || payload.success !== true) throw new Error(payload.message || payload.error || "Unable to reset the login lock.");
+          if (state.activeDetail?.user) { state.activeDetail.user.failedLoginAttempts = 0; state.activeDetail.user.lockedUntil = null; renderProfileBody(state.activeDetail); }
+          const row = state.users.find((candidate) => String(candidate.id) === String(userId)); if (row) { row.failedLoginAttempts = 0; row.lockedUntil = ""; }
+          showToast("Login security reset", payload.message || "Login lock cleared.");
+        } catch (error) { showToast("Login reset failed", error.message || "Please retry.", "error"); unlockButton.disabled = false; unlockButton.innerHTML = originalLabel; }
+      });
+    };
     const openProfile = async (user) => {
       if (!user) return;
-
-      state.activeUserId = user.id || null;
-      state.lastFocusedElement = document.activeElement;
-
-      el.modal.classList.add("open");
-      document.body.classList.add("modal-open");
-      el.closeModal.focus({ preventScroll: true });
-
-      el.profileHeader.innerHTML = `
-        <div class="profile-avatar">${escapeHtml(initials(user.fullname))}</div>
-        <div class="profile-meta">
-          <h2 id="profileModalTitle">${escapeHtml(user.fullname)}</h2>
-          <p>${escapeHtml(user.email)}</p>
-          <div class="profile-badges">
-            <span class="pill guest">
-              <i class="fa-solid fa-circle-notch fa-spin"></i>Loading
-            </span>
-          </div>
-        </div>
-      `;
-
-      el.profileBody.innerHTML = `
-        <div class="modal-loading">
-          <div>
-            <div class="spinner"></div>
-            <div>Loading guest profile…</div>
-          </div>
-        </div>
-      `;
-
-      if (!user.id) {
-        const fallback = normalizeDetail(
-          { user, bookings: [], summary: {} },
-          user
-        );
-        renderProfileHeader(fallback);
-        renderProfileBody(fallback);
-        return;
-      }
-
+      state.activeUserId = user.id || null; state.lastFocusedElement = document.activeElement;
+      el.modal.classList.add("open"); document.body.classList.add("modal-open"); el.closeModal.focus({ preventScroll: true });
+      el.profileHeader.innerHTML = `<div class="profile-avatar">${escapeHtml(initials(user.fullname))}</div><div class="profile-meta"><h2 id="profileModalTitle">${escapeHtml(user.fullname)}</h2><p>${escapeHtml(user.email)}</p><div class="profile-badges"><span class="pill guest"><i class="fa-solid fa-circle-notch fa-spin"></i>Loading</span></div></div>`;
+      el.profileBody.innerHTML = `<div class="modal-loading"><div><div class="spinner"></div><div>Loading guest profile…</div></div></div>`;
+      if (!user.id) { const fallback = normalizeDetail({ user, bookings: [], summary: {} }, user); state.activeDetail = fallback; renderProfileHeader(fallback); renderProfileBody(fallback); return; }
       const requestedUserId = String(user.id);
-
       try {
-        const response = await fetch(
-          `/admin/users/${encodeURIComponent(requestedUserId)}`,
-          {
-            method: "GET",
-            headers: {
-              Accept: "application/json",
-              "X-Requested-With": "XMLHttpRequest"
-            },
-            credentials: "same-origin",
-            cache: "no-store"
-          }
-        );
-
+        const response = await fetch(`/admin/users/${encodeURIComponent(requestedUserId)}`, { method: "GET", headers: { Accept: "application/json", "X-Requested-With": "XMLHttpRequest" }, credentials: "same-origin", cache: "no-store" });
         const payload = await response.json().catch(() => ({}));
-
-        if (!response.ok) {
-          throw new Error(
-            payload?.message ||
-            payload?.error ||
-            "Unable to load this guest profile."
-          );
-        }
-
-        // A user may open another profile while this request is still in
-        // flight. Ignore stale responses so profile A can never overwrite
-        // profile B in the modal.
+        if (!response.ok) throw new Error(payload?.message || payload?.error || "Unable to load this guest profile.");
         if (state.activeUserId !== requestedUserId) return;
-
-        const detail = normalizeDetail(payload, user);
-        renderProfileHeader(detail);
-        renderProfileBody(detail);
+        const detail = normalizeDetail(payload, user); state.activeDetail = detail; renderProfileHeader(detail); renderProfileBody(detail);
       } catch (error) {
         if (state.activeUserId !== requestedUserId) return;
-
-        const fallback = normalizeDetail(
-          { user, bookings: [], summary: {} },
-          user
-        );
-
-        renderProfileHeader(fallback);
-        el.profileBody.innerHTML = `
-          <div class="empty-state">
-            <div class="empty-icon">
-              <i class="fa-solid fa-triangle-exclamation"></i>
-            </div>
-            <strong>Profile details could not be loaded</strong>
-            <span>${escapeHtml(
-              error?.message ||
-              "Please refresh the page and try again."
-            )}</span>
-          </div>
-        `;
+        const fallback = normalizeDetail({ user, bookings: [], summary: {} }, user); state.activeDetail = fallback; renderProfileHeader(fallback);
+        el.profileBody.innerHTML = `<div class="empty-state"><div class="empty-icon"><i class="fa-solid fa-triangle-exclamation"></i></div><strong>Profile details could not be loaded</strong><span>${escapeHtml(error?.message || "Please refresh the page and try again.")}</span></div>`;
       }
     };
-
     const closeProfile = () => {
-      el.modal.classList.remove("open");
-      document.body.classList.remove("modal-open");
-      state.activeUserId = null;
-
-      const focused = state.lastFocusedElement;
-      state.lastFocusedElement = null;
-
-      if (focused && typeof focused.focus === "function") {
-        try {
-          focused.focus({ preventScroll: true });
-        } catch (error) {
-          focused.focus();
-        }
-      }
+      el.modal.classList.remove("open"); document.body.classList.remove("modal-open"); state.activeUserId = null; state.activeDetail = null;
+      const focused = state.lastFocusedElement; state.lastFocusedElement = null;
+      if (focused && typeof focused.focus === "function") { try { focused.focus({ preventScroll: true }); } catch (_) { focused.focus(); } }
     };
-
     const getFilteredUsers = () => {
-      const query = String(el.search.value || "").trim().toLowerCase();
-      const status = el.status.value;
-      const activity = el.activity.value;
-      const sort = el.sort.value;
-
+      const query = String(el.search.value || "").trim().toLowerCase(); const status = el.status.value; const activity = el.activity.value; const sort = el.sort.value;
       const matches = state.users.filter((user) => {
-        const haystack = [
-          user.fullname,
-          user.email,
-          user.phone,
-          user.username,
-          user.memberLevel
-        ]
-          .map((value) => String(value || "").toLowerCase())
-          .join(" ");
-
+        const haystack = [user.fullname,user.email,user.phone,user.username,user.memberLevel].map((value) => String(value || "").toLowerCase()).join(" ");
         if (query && !haystack.includes(query)) return false;
         if (status !== "all" && user.status !== status) return false;
         if (activity === "returning" && user.totalBookings < 2) return false;
         if (activity === "one" && user.totalBookings !== 1) return false;
         if (activity === "none" && user.totalBookings !== 0) return false;
         if (activity === "high-value" && user.totalSpent < 10000) return false;
-
         return true;
       });
-
-      matches.sort((a, b) => {
+      matches.sort((a,b) => {
         if (sort === "spent") return b.totalSpent - a.totalSpent;
         if (sort === "bookings") return b.totalBookings - a.totalBookings;
-        if (sort === "name") {
-          return a.fullname.localeCompare(
-            b.fullname,
-            undefined,
-            { sensitivity: "base" }
-          );
-        }
-        if (sort === "joined") {
-          return (
-            new Date(b.createdAt || 0).getTime() -
-            new Date(a.createdAt || 0).getTime()
-          );
-        }
-
-        return (
-          new Date(
-            b.lastBookingAt ||
-            b.lastLoginAt ||
-            b.createdAt ||
-            0
-          ).getTime() -
-          new Date(
-            a.lastBookingAt ||
-            a.lastLoginAt ||
-            a.createdAt ||
-            0
-          ).getTime()
-        );
+        if (sort === "name") return a.fullname.localeCompare(b.fullname, undefined, { sensitivity: "base" });
+        if (sort === "joined") return new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime();
+        return new Date(b.lastBookingAt || b.lastLoginAt || b.createdAt || 0).getTime() - new Date(a.lastBookingAt || a.lastLoginAt || a.createdAt || 0).getTime();
       });
-
       return matches;
     };
-
     const renderTable = () => {
-      state.filtered = getFilteredUsers();
-
-      const total = state.filtered.length;
-      const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
-
-      if (state.page > totalPages) state.page = totalPages;
-      if (state.page < 1) state.page = 1;
-
-      const start = (state.page - 1) * PAGE_SIZE;
-      const visible = state.filtered.slice(start, start + PAGE_SIZE);
-
-      el.body.innerHTML = "";
-      el.empty.hidden = visible.length > 0;
-
+      state.filtered = getFilteredUsers(); const total = state.filtered.length; const totalPages = Math.max(1, Math.ceil(total / PAGE_SIZE));
+      if (state.page > totalPages) state.page = totalPages; if (state.page < 1) state.page = 1;
+      const start = (state.page - 1) * PAGE_SIZE; const visible = state.filtered.slice(start, start + PAGE_SIZE);
+      el.body.innerHTML = ""; el.empty.hidden = visible.length > 0;
       visible.forEach((user) => {
-        const tr = document.createElement("tr");
-        tr.tabIndex = 0;
-        tr.setAttribute("role", "button");
-        tr.setAttribute(
-          "aria-label",
-          `Open profile for ${user.fullname}`
-        );
-
-        const imageUrl = safeImageUrl(user.avatar);
-        const avatar = imageUrl
-          ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">`
-          : escapeHtml(initials(user.fullname));
-
-        tr.innerHTML = `
-          <td>
-            <div class="user-cell">
-              <div class="avatar">${avatar}</div>
-              <div class="user-primary">
-                <strong>${escapeHtml(user.fullname)}</strong>
-                <span>${escapeHtml(user.email)}</span>
-              </div>
-            </div>
-          </td>
-          <td>
-            <div style="display:flex;flex-wrap:wrap;gap:6px;">
-              <span class="pill ${statusClass(user.status)}">
-                <i class="fa-solid fa-circle"></i>${escapeHtml(user.status)}
-              </span>
-              <span class="pill guest">
-                <i class="fa-solid fa-crown"></i>${escapeHtml(user.memberLevel)}
-              </span>
-            </div>
-          </td>
-          <td>
-            <div class="stacked-value">
-              <strong>${escapeHtml(integer(user.totalBookings))}</strong>
-              <span>${user.totalBookings === 1 ? "reservation" : "reservations"}</span>
-            </div>
-          </td>
-          <td>
-            <span class="money">${escapeHtml(currency(user.totalSpent))}</span>
-          </td>
-          <td>
-            <span class="nowrap">${escapeHtml(currency(user.averageBookingValue))}</span>
-          </td>
-          <td>
-            <span class="nowrap">
-              ${escapeHtml(
-                dateTime(
-                  user.lastBookingAt ||
-                  user.lastLoginAt ||
-                  user.createdAt
-                )
-              )}
-            </span>
-          </td>
-          <td>
-            <button
-              class="row-action"
-              type="button"
-              aria-label="View ${escapeHtml(user.fullname)}"
-              title="Open customer profile"
-            >
-              <i class="fa-solid fa-arrow-up-right-from-square"></i>
-            </button>
-          </td>
-        `;
-
+        const tr = document.createElement("tr"); tr.tabIndex = 0; tr.setAttribute("role", "button"); tr.setAttribute("aria-label", `Open profile for ${user.fullname}`);
+        const imageUrl = safeImageUrl(user.avatar); const avatar = imageUrl ? `<img src="${escapeHtml(imageUrl)}" alt="" loading="lazy" referrerpolicy="no-referrer">` : escapeHtml(initials(user.fullname));
+        tr.innerHTML = `<td><div class="user-cell"><div class="avatar">${avatar}</div><div class="user-primary"><strong>${escapeHtml(user.fullname)}</strong><span>${escapeHtml(user.email)}</span></div></div></td>
+          <td><div style="display:flex;flex-wrap:wrap;gap:6px"><span class="pill ${statusClass(user.status)}"><i class="fa-solid fa-circle"></i>${escapeHtml(user.status)}</span><span class="pill guest"><i class="fa-solid fa-crown"></i>${escapeHtml(user.memberLevel)}</span></div></td>
+          <td><div class="stacked-value"><strong>${escapeHtml(integer(user.totalBookings))}</strong><span>${user.totalBookings === 1 ? "reservation" : "reservations"}</span></div></td>
+          <td><span class="money">${escapeHtml(currency(user.totalSpent))}</span></td><td><span class="nowrap">${escapeHtml(currency(user.averageBookingValue))}</span></td>
+          <td><span class="nowrap">${escapeHtml(dateTime(user.lastBookingAt || user.lastLoginAt || user.createdAt))}</span></td>
+          <td><button class="row-action" type="button" aria-label="View ${escapeHtml(user.fullname)}" title="Open customer profile"><i class="fa-solid fa-arrow-up-right-from-square"></i></button></td>`;
         const actionButton = tr.querySelector(".row-action");
-
-        if (actionButton) {
-          actionButton.addEventListener("click", (event) => {
-            event.stopPropagation();
-            openProfile(user);
-          });
-        }
-
-        tr.addEventListener("click", (event) => {
-          if (event.target.closest("button")) return;
-          openProfile(user);
-        });
-
-        tr.addEventListener("keydown", (event) => {
-          if (event.key === "Enter" || event.key === " ") {
-            event.preventDefault();
-            openProfile(user);
-          }
-        });
-
+        if (actionButton) actionButton.addEventListener("click", (event) => { event.stopPropagation(); openProfile(user); });
+        tr.addEventListener("click", (event) => { if (event.target.closest("button")) return; openProfile(user); });
+        tr.addEventListener("keydown", (event) => { if (event.key === "Enter" || event.key === " ") { event.preventDefault(); openProfile(user); } });
         el.body.appendChild(tr);
       });
-
-      const first = total ? start + 1 : 0;
-      const last = Math.min(start + PAGE_SIZE, total);
-
+      const first = total ? start + 1 : 0; const last = Math.min(start + PAGE_SIZE, total);
       el.count.innerHTML = `Showing <strong>${integer(total)}</strong> customer${total === 1 ? "" : "s"}`;
-      el.paginationCopy.textContent = total
-        ? `${first.toLocaleString("en-PH")}–${last.toLocaleString("en-PH")} of ${total.toLocaleString("en-PH")}`
-        : "No results";
-
-      el.prev.disabled = state.page <= 1;
-      el.next.disabled = state.page >= totalPages;
+      el.paginationCopy.textContent = total ? `${first.toLocaleString("en-PH")}–${last.toLocaleString("en-PH")} of ${total.toLocaleString("en-PH")}` : "No results";
+      el.prev.disabled = state.page <= 1; el.next.disabled = state.page >= totalPages;
     };
-
     const recalcOverview = () => {
-      const users = state.users;
-      const spent = users.reduce(
-        (sum, user) => sum + (Number(user.totalSpent) || 0),
-        0
-      );
-      const bookings = users.reduce(
-        (sum, user) => sum + (Number(user.totalBookings) || 0),
-        0
-      );
-      const returning = users.filter(
-        (user) => Number(user.totalBookings) >= 2
-      ).length;
-
-      document.getElementById("metricCustomers").textContent = integer(users.length);
-      document.getElementById("metricSpent").textContent = currency(spent);
-      document.getElementById("metricBookings").textContent = integer(bookings);
-      document.getElementById("metricReturning").textContent = integer(returning);
+      const users = state.users; const spent = users.reduce((sum,user) => sum + (Number(user.totalSpent) || 0),0);
+      const bookings = users.reduce((sum,user) => sum + (Number(user.totalBookings) || 0),0); const returning = users.filter((user) => Number(user.totalBookings) >= 2).length;
+      document.getElementById("metricCustomers").textContent = integer(users.length); document.getElementById("metricSpent").textContent = currency(spent);
+      document.getElementById("metricBookings").textContent = integer(bookings); document.getElementById("metricReturning").textContent = integer(returning);
+      const activeMetric = document.getElementById("metricActiveAccounts"); if (activeMetric) activeMetric.textContent = `${integer(users.filter((user) => user.status === "active").length)} active accounts`;
     };
-
     const refreshUsers = () => {
-      if (state.loading) return;
-
-      state.loading = true;
-      el.refresh.disabled = true;
-      el.refresh.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Refreshing';
-
-      window.setTimeout(() => {
-        window.location.reload();
-      }, 80);
+      if (state.loading) return; state.loading = true; el.refresh.disabled = true; el.refresh.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Refreshing';
+      window.setTimeout(() => window.location.reload(), 80);
     };
-
     const exportCsv = () => {
-      const rows = state.filtered.length ? state.filtered : state.users;
-      const headers = [
-        "Customer",
-        "Email",
-        "Phone",
-        "Status",
-        "Membership",
-        "Verified",
-        "Total Bookings",
-        "Total Booking Value (PHP)",
-        "Average Booking Value (PHP)",
-        "Last Activity",
-        "Joined"
-      ];
-
-      const escapeCsv = (value) =>
-        `"${String(value ?? "").replaceAll('"', '""')}"`;
-
+      const rows = state.filtered; const headers = ["Customer","Email","Phone","Status","Membership","Verified","Total Bookings","Total Booking Value (PHP)","Average Booking Value (PHP)","Last Activity","Joined"];
+      const escapeCsv = (value) => { let text = String(value ?? ""); if (/^[\t\r\n ]*[=+\-@]/.test(text)) text = `'${text}`; return `"${text.replaceAll('"','""')}"`; };
       const lines = [headers.map(escapeCsv).join(",")];
-
-      rows.forEach((user) => {
-        lines.push(
-          [
-            user.fullname,
-            user.email,
-            user.phone,
-            user.status,
-            user.memberLevel,
-            user.emailVerified ? "Yes" : "No",
-            user.totalBookings,
-            Number(user.totalSpent || 0).toFixed(2),
-            Number(user.averageBookingValue || 0).toFixed(2),
-            user.lastBookingAt || user.lastLoginAt || "",
-            user.createdAt || ""
-          ]
-            .map(escapeCsv)
-            .join(",")
-        );
-      });
-
-      const blob = new Blob(
-        ["\ufeff" + lines.join("\n")],
-        { type: "text/csv;charset=utf-8;" }
-      );
-      const url = URL.createObjectURL(blob);
-      const link = document.createElement("a");
-
-      link.href = url;
-      link.download = `islerms-customers-${new Date().toISOString().slice(0, 10)}.csv`;
-      document.body.appendChild(link);
-      link.click();
-      link.remove();
-      URL.revokeObjectURL(url);
-
-      showToast(
-        "Customer export ready",
-        `${rows.length.toLocaleString("en-PH")} customer records exported.`
-      );
+      rows.forEach((user) => lines.push([user.fullname,user.email,user.phone,user.status,user.memberLevel,user.emailVerified ? "Yes" : "No",user.totalBookings,Number(user.totalSpent || 0).toFixed(2),Number(user.averageBookingValue || 0).toFixed(2),user.lastBookingAt || user.lastLoginAt || "",user.createdAt || ""].map(escapeCsv).join(",")));
+      const blob = new Blob(["\ufeff" + lines.join("\n")], { type: "text/csv;charset=utf-8;" }); const url = URL.createObjectURL(blob); const link = document.createElement("a");
+      link.href = url; link.download = `islerms-customers-${new Date().toISOString().slice(0,10)}.csv`; document.body.appendChild(link); link.click(); link.remove(); URL.revokeObjectURL(url);
+      showToast("Customer export ready", `${rows.length.toLocaleString("en-PH")} customer records exported.`);
     };
-
-    el.search.addEventListener("input", () => {
-      state.page = 1;
-      renderTable();
-    });
-
-    el.status.addEventListener("change", () => {
-      state.page = 1;
-      renderTable();
-    });
-
-    el.activity.addEventListener("change", () => {
-      state.page = 1;
-      renderTable();
-    });
-
-    el.sort.addEventListener("change", () => {
-      state.page = 1;
-      renderTable();
-    });
-
-    el.clear.addEventListener("click", () => {
-      el.search.value = "";
-      el.status.value = "all";
-      el.activity.value = "all";
-      el.sort.value = "recent";
-      state.page = 1;
-      renderTable();
-    });
-
-    el.prev.addEventListener("click", () => {
-      if (state.page > 1) {
-        state.page -= 1;
-        renderTable();
-      }
-    });
-
-    el.next.addEventListener("click", () => {
-      const pages = Math.max(
-        1,
-        Math.ceil(state.filtered.length / PAGE_SIZE)
-      );
-
-      if (state.page < pages) {
-        state.page += 1;
-        renderTable();
-      }
-    });
-
-    el.refresh.addEventListener("click", refreshUsers);
-    el.export.addEventListener("click", exportCsv);
-    el.closeModal.addEventListener("click", closeProfile);
-
-    el.modal.addEventListener("click", (event) => {
-      if (event.target === el.modal) closeProfile();
-    });
-
-    document.addEventListener("keydown", (event) => {
-      if (event.key === "Escape" && el.modal.classList.contains("open")) {
-        closeProfile();
-      }
-    });
-
-    // Keep the token available to the existing admin page ecosystem.
-    // This does not make GET-only customer operations depend on CSRF.
-    if (INITIAL_CSRF && !window.IsleRMS) {
-      window.IsleRMS = { csrfToken: INITIAL_CSRF };
-    } else if (
-      INITIAL_CSRF &&
-      window.IsleRMS &&
-      !window.IsleRMS.csrfToken
-    ) {
-      window.IsleRMS.csrfToken = INITIAL_CSRF;
-    }
-
-    // Make sure this helper remains available to any future page-side
-    // mutation code added to the existing admin workspace.
-    window.IsleRMS = window.IsleRMS || {};
-    window.IsleRMS.getCsrfToken = getCsrfToken;
-
-    // Used only for diagnostics in the browser console during development.
-    // It intentionally does not expose customer information.
-    if (!Array.isArray(INITIAL_USERS)) {
-      console.warn("IsleRMS: customer payload was not an array.");
-    }
-
-    recalcOverview();
-    renderTable();
+    el.search.addEventListener("input", () => { state.page = 1; renderTable(); });
+    el.status.addEventListener("change", () => { state.page = 1; renderTable(); });
+    el.activity.addEventListener("change", () => { state.page = 1; renderTable(); });
+    el.sort.addEventListener("change", () => { state.page = 1; renderTable(); });
+    el.clear.addEventListener("click", () => { el.search.value = ""; el.status.value = "all"; el.activity.value = "all"; el.sort.value = "recent"; state.page = 1; renderTable(); });
+    el.prev.addEventListener("click", () => { if (state.page > 1) { state.page--; renderTable(); } });
+    el.next.addEventListener("click", () => { const pages = Math.max(1, Math.ceil(state.filtered.length / PAGE_SIZE)); if (state.page < pages) { state.page++; renderTable(); } });
+    el.refresh.addEventListener("click", refreshUsers); el.export.addEventListener("click", exportCsv); el.closeModal.addEventListener("click", closeProfile);
+    el.modal.addEventListener("click", (event) => { if (event.target === el.modal) closeProfile(); });
+    document.addEventListener("keydown", (event) => { if (event.key === "Escape" && el.modal.classList.contains("open")) closeProfile(); });
+    if (INITIAL_CSRF && !window.IsleRMS) window.IsleRMS = { csrfToken: INITIAL_CSRF };
+    else if (INITIAL_CSRF && window.IsleRMS && !window.IsleRMS.csrfToken) window.IsleRMS.csrfToken = INITIAL_CSRF;
+    window.IsleRMS = window.IsleRMS || {}; window.IsleRMS.getCsrfToken = getCsrfToken;
+    if (!Array.isArray(INITIAL_USERS)) console.warn("IsleRMS: customer payload was not an array.");
+    recalcOverview(); renderTable();
   </script>
 </body>
 </html>

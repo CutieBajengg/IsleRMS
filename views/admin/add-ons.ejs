@@ -2939,12 +2939,30 @@
        JAVASCRIPT
   ========================================================= -->
 
+  <div
+    id="addOnsData"
+    data-add-ons="<%= JSON.stringify(addOns || []) %>"
+    hidden
+  ></div>
+
   <script>
     (() => {
       "use strict";
 
-      const addOns =
-        <%- JSON.stringify(addOns || []).replace(/</g, "\\u003c") %>;
+      // Read the server-provided catalog from an HTML data attribute.
+      // This keeps EJS template syntax out of the JavaScript parser.
+      const addOnsDataElement =
+        document.getElementById("addOnsData");
+
+      let addOns = [];
+
+      try {
+        addOns = JSON.parse(
+          addOnsDataElement?.getAttribute("data-add-ons") || "[]"
+        );
+      } catch (error) {
+        console.error("Unable to parse add-on catalog data:", error);
+      }
 
       const modal =
         document.getElementById("addOnModal");

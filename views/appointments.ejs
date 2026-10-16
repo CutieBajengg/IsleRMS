@@ -1,1186 +1,1923 @@
 <!DOCTYPE html>
+
 <html lang="en">
+
 <head>
+
   <meta charset="UTF-8">
+
   <meta
+
     name="viewport"
+
     content="width=device-width, initial-scale=1.0"
+
   >
+
   <link rel="icon" type="image/png" href="/images/islelogo.png" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
+
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
   <link
+
     href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700;800&display=swap"
+
     rel="stylesheet"
+
   >
 
   <title>
+
     <%= title || "Book Your Stay | Puffer Isle Resort" %>
+
   </title>
 
   <meta
+
     name="description"
+
     content="Book your stay at Puffer Isle Resort."
+
   >
 
   <style>
 
     :root {
+
       --gold: #ffd700;
+
       --gold-dark: #d9b800;
+
       --teal: #008080;
+
       --teal-dark: #006666;
 
       --ink: #171717;
+
       --muted: #707070;
+
       --soft: #f5f7f8;
+
       --white: #ffffff;
 
       --success: #16803c;
+
       --success-bg: #edf9f1;
 
       --danger: #c62828;
+
       --danger-bg: #fff1f1;
 
       --warning: #9a6b00;
+
       --warning-bg: #fff8df;
 
       --border: #e7e9eb;
 
       --shadow-sm:
+
         0 8px 25px rgba(0, 0, 0, 0.06);
 
       --shadow-lg:
+
         0 30px 80px rgba(0, 0, 0, 0.14);
 
       --radius-lg: 28px;
+
       --radius-md: 18px;
+
       --radius-sm: 12px;
+
     }
 
     * {
+
       margin: 0;
+
       padding: 0;
+
       box-sizing: border-box;
+
     }
 
     html {
+
       scroll-behavior: smooth;
+
     }
 
     body {
+
       min-height: 100vh;
+
       font-family: "Poppins", sans-serif;
+
       color: var(--ink);
+
       background:
+
         radial-gradient(
+
           circle at top left,
+
           rgba(255, 215, 0, 0.12),
+
           transparent 30%
+
         ),
+
         linear-gradient(
+
           135deg,
+
           #f7fafb 0%,
+
           #edf2f3 50%,
+
           #e7eeee 100%
+
         );
+
       line-height: 1.5;
+
     }
 
     button,
+
     input,
+
     select,
+
     textarea {
+
       font: inherit;
+
     }
 
     button,
+
     label {
+
       -webkit-tap-highlight-color: transparent;
+
     }
 
     img {
+
       display: block;
+
       max-width: 100%;
+
     }
 
     a {
+
       color: inherit;
+
     }
 
     /* =========================================================
+
        PAGE
+
     ========================================================= */
 
     .page-shell {
+
       width: min(1180px, calc(100% - 32px));
+
       margin: 0 auto;
+
       padding: 120px 0 70px;
+
     }
 
     .page-header {
+
       margin-bottom: 30px;
+
       animation: pageEnter 0.7s cubic-bezier(0.22, 1, 0.36, 1);
+
     }
 
     .eyebrow {
+
       display: inline-flex;
+
       align-items: center;
+
       gap: 8px;
 
       margin-bottom: 10px;
+
       padding: 0;
 
       color: var(--teal);
+
       background: transparent;
 
       font-size: 0.75rem;
+
       font-weight: 800;
+
       letter-spacing: 1.8px;
+
       text-transform: uppercase;
+
     }
 
     .eyebrow::before {
+
       content: "";
+
       width: 28px;
+
       height: 2px;
+
       flex-shrink: 0;
+
       background: var(--gold);
+
       border-radius: 999px;
+
     }
 
     .page-header h1 {
+
       margin: 0;
+
       font-size: clamp(2.1rem, 4vw, 3rem);
+
       line-height: 1.08;
+
       font-weight: 800;
+
       letter-spacing: -1px;
+
     }
 
     .page-header p {
+
       margin-top: 12px;
+
       max-width: 750px;
+
       color: var(--muted);
+
       font-size: 0.95rem;
+
       line-height: 1.7;
+
     }
 
     @keyframes pageEnter {
+
       from {
+
         opacity: 0;
+
         transform: translateY(28px);
+
       }
 
       to {
+
         opacity: 1;
+
         transform: translateY(0);
+
       }
+
     }
 
     /* =========================================================
+
        ALERTS
+
     ========================================================= */
 
     .alert {
+
       display: flex;
+
       align-items: flex-start;
+
       gap: 12px;
 
       margin-bottom: 22px;
+
       padding: 15px 17px;
 
       border-radius: var(--radius-sm);
+
       font-size: 0.85rem;
+
       font-weight: 600;
+
       line-height: 1.5;
+
     }
 
     .alert::before {
+
       flex-shrink: 0;
+
       font-size: 1rem;
+
     }
 
     .alert-error {
+
       background: var(--danger-bg);
+
       border: 1px solid #ffd3d3;
+
       color: var(--danger);
+
     }
 
     .alert-error::before {
+
       content: "⚠️";
+
     }
 
     .alert-success {
+
       background: var(--success-bg);
+
       border: 1px solid #ccebd7;
+
       color: var(--success);
+
     }
 
     .alert-success::before {
+
       content: "✅";
+
     }
 
     /* =========================================================
+
        LAYOUT
+
     ========================================================= */
 
     .booking-layout {
+
       display: grid;
+
       grid-template-columns:
+
         minmax(0, 1.35fr)
+
         minmax(320px, 0.65fr);
+
       gap: 0;
+
       align-items: stretch;
 
       overflow: hidden;
 
       border-radius: var(--radius-lg);
+
       box-shadow: var(--shadow-lg);
+
       animation: pageEnter 0.7s 0.05s
+
         cubic-bezier(0.22, 1, 0.36, 1) both;
+
     }
 
     .card {
+
       background: var(--white);
+
       border: 1px solid rgba(255, 255, 255, 0.7);
+
     }
 
     .booking-card {
+
       padding: 42px 44px;
+
       border-radius: var(--radius-lg) 0 0 var(--radius-lg);
+
       box-shadow: none;
+
     }
 
     .section {
+
       padding-bottom: 30px;
+
       margin-bottom: 30px;
+
       border-bottom: 1px solid var(--border);
+
     }
 
     .section:last-child {
+
       padding-bottom: 0;
+
       margin-bottom: 0;
+
       border-bottom: 0;
+
     }
 
     .section-heading {
+
       display: flex;
+
       justify-content: space-between;
+
       align-items: flex-start;
+
       gap: 16px;
+
       margin-bottom: 18px;
+
     }
 
     .section-heading > div {
+
       min-width: 0;
+
     }
 
     .section-heading h2 {
+
       display: flex;
+
       align-items: center;
+
       gap: 12px;
+
       margin: 0;
+
       font-size: 0.95rem;
+
       font-weight: 800;
+
       letter-spacing: 0.2px;
+
     }
 
     .section-heading h2::before {
+
       content: "";
+
       width: 30px;
+
       height: 30px;
+
       flex-shrink: 0;
 
       display: grid;
+
       place-items: center;
 
       color: var(--ink);
+
       background: var(--gold);
+
       border-radius: 50%;
+
     }
 
     .section:nth-child(1) .section-heading h2::before { content: "1"; }
+
     .section:nth-child(2) .section-heading h2::before { content: "2"; }
+
     .section:nth-child(3) .section-heading h2::before { content: "3"; }
+
     .section:nth-child(4) .section-heading h2::before { content: "4"; }
 
     .section-heading p {
+
       margin: 7px 0 0 42px;
+
       color: var(--muted);
+
       font-size: 0.75rem;
+
       line-height: 1.55;
+
     }
 
     .required {
+
       color: var(--danger);
+
     }
 
     /* =========================================================
+
        FORM
+
     ========================================================= */
 
     .form-grid {
+
       display: grid;
+
       grid-template-columns: repeat(2, minmax(0, 1fr));
+
       gap: 17px;
+
     }
 
     .field {
+
       display: flex;
+
       flex-direction: column;
+
       gap: 7px;
+
     }
 
     .field.full {
+
       grid-column: 1 / -1;
+
     }
 
     .field label {
+
       font-size: 0.75rem;
+
       font-weight: 700;
+
     }
 
     .field input,
+
     .field select,
+
     .field textarea {
+
       width: 100%;
+
       padding: 13px 14px;
 
       color: var(--ink);
+
       background: #fafbfb;
 
       border: 1.5px solid var(--border);
+
       border-radius: 12px;
 
       outline: none;
 
       transition:
+
         border-color 0.2s ease,
+
         background 0.2s ease,
+
         box-shadow 0.2s ease,
+
         transform 0.2s ease;
+
     }
 
     .field input:hover,
+
     .field select:hover,
+
     .field textarea:hover {
+
       border-color: #d4d8da;
+
     }
 
     .field input:focus,
+
     .field select:focus,
+
     .field textarea:focus {
+
       background: #fff;
+
       border-color: var(--teal);
+
       box-shadow:
+
         0 0 0 4px
+
         rgba(0, 128, 128, 0.08);
+
     }
 
     .field textarea {
+
       min-height: 115px;
+
       resize: vertical;
+
       line-height: 1.6;
+
     }
 
     .field small {
+
       color: var(--muted);
+
       font-size: 0.65rem;
+
       line-height: 1.5;
+
     }
 
     /* =========================================================
+
        ROOM OPTIONS
+
     ========================================================= */
 
     .catalog-grid {
+
       display: grid;
+
       grid-template-columns: repeat(2, minmax(0, 1fr));
+
       gap: 15px;
+
     }
 
     .room-option {
+
       position: relative;
+
       min-width: 0;
+
     }
 
     .room-option input {
+
       position: absolute;
+
       opacity: 0;
+
       pointer-events: none;
+
     }
 
     .room-card {
+
       position: relative;
+
       height: 100%;
+
       overflow: hidden;
 
       cursor: pointer;
 
       background: #fff;
+
       border: 2px solid var(--border);
+
       border-radius: var(--radius-md);
 
       transition:
+
         border-color 0.25s ease,
+
         transform 0.25s ease,
+
         box-shadow 0.25s ease,
+
         background 0.25s ease;
+
     }
 
     .room-card:hover {
+
       transform: translateY(-2px);
+
       border-color: #d5d9db;
+
       box-shadow: var(--shadow-sm);
+
     }
 
     .room-option input:focus-visible + .room-card {
+
       outline: 3px solid rgba(0, 128, 128, 0.18);
+
       outline-offset: 3px;
+
     }
 
     .room-option input:checked + .room-card {
+
       border-color: var(--gold);
+
       background: #fffdf2;
+
       box-shadow:
+
         0 10px 28px
+
         rgba(255, 215, 0, 0.14);
+
     }
 
     .room-card::after {
+
       content: "✓ Selected";
+
       position: absolute;
+
       top: 12px;
+
       right: 12px;
 
       display: none;
+
       align-items: center;
 
       padding: 6px 10px;
 
       color: var(--ink);
+
       background: var(--gold);
+
       border-radius: 999px;
 
       font-size: 0.68rem;
+
       font-weight: 800;
+
     }
 
     .room-option input:checked + .room-card::after {
+
       display: inline-flex;
+
     }
 
     .catalog-image,
+
     .catalog-placeholder {
+
       width: 100%;
+
       height: 160px;
+
     }
 
     .catalog-image {
+
       object-fit: cover;
+
       transition: transform 0.5s ease;
+
     }
 
     .room-card:hover .catalog-image {
+
       transform: scale(1.04);
+
     }
 
     .catalog-placeholder {
+
       display: grid;
+
       place-items: center;
 
       background:
+
         linear-gradient(
+
           135deg,
+
           #fffdf1,
+
           #f3f6f6
+
         );
 
       color: var(--teal);
+
       font-size: 2rem;
+
       font-weight: 800;
+
     }
 
     .room-content {
+
       padding: 16px;
+
     }
 
     .room-topline {
+
       display: flex;
+
       justify-content: space-between;
+
       align-items: flex-start;
+
       gap: 12px;
+
     }
 
     .room-name {
+
       margin: 0;
+
       font-size: 0.9rem;
+
       font-weight: 800;
+
     }
 
     .room-price {
+
       white-space: nowrap;
+
       color: var(--teal);
+
       font-size: 0.85rem;
+
       font-weight: 800;
+
     }
 
     .room-price small {
+
       color: var(--muted);
+
       font-size: 0.68rem;
+
       font-weight: 600;
+
     }
 
     .room-description {
+
       margin: 7px 0 11px;
+
       color: var(--muted);
+
       font-size: 0.7rem;
+
       line-height: 1.5;
+
     }
 
     .room-meta {
+
       display: flex;
+
       flex-wrap: wrap;
+
       gap: 7px;
 
       padding-top: 11px;
+
       border-top: 1px solid var(--border);
+
     }
 
     .meta-pill {
+
       display: inline-flex;
+
       align-items: center;
 
       padding: 5px 9px;
 
       color: #4f5b58;
+
       background: #f3f6f6;
+
       border-radius: 999px;
 
       font-size: 0.66rem;
+
       font-weight: 700;
+
     }
 
     .empty-catalog {
+
       grid-column: 1 / -1;
+
       padding: 25px;
 
       color: var(--muted);
+
       background: var(--soft);
 
       border: 1px dashed var(--border);
+
       border-radius: var(--radius-md);
 
       text-align: center;
+
       font-size: 0.8rem;
+
     }
 
     /* =========================================================
+
        ADD-ONS
+
     ========================================================= */
 
     .addon-list {
+
       display: grid;
+
       gap: 10px;
+
     }
 
     .addon-option {
+
       display: flex;
+
       align-items: flex-start;
+
       gap: 13px;
 
       padding: 13px 14px;
 
       background: #fafbfb;
+
       border: 2px solid var(--border);
+
       border-radius: var(--radius-md);
 
       cursor: pointer;
 
       transition:
+
         border-color 0.25s ease,
+
         background 0.25s ease,
+
         box-shadow 0.25s ease;
+
+    }
+
+    .addon-image {
+      display: block;
+      width: 90px;
+      height: 90px;
+      flex: 0 0 90px;
+      object-fit: cover;
+      border-radius: 12px;
+      background: #f5f7f8;
+      border: 1px solid var(--border);
+    }
+
+    @media (max-width: 420px) {
+      .addon-image {
+        width: 70px;
+        height: 70px;
+        flex-basis: 70px;
+      }
     }
 
     .addon-option:hover {
+
       border-color: #d5d9db;
+
       box-shadow: var(--shadow-sm);
+
     }
 
     .addon-option:has(input:checked) {
+
       border-color: var(--gold);
+
       background: #fffdf2;
+
       box-shadow:
+
         0 8px 22px
+
         rgba(255, 215, 0, 0.1);
+
     }
 
     .addon-option input {
+
       margin-top: 3px;
+
       accent-color: var(--teal);
+
     }
 
     .addon-info {
+
       flex: 1;
+
       min-width: 0;
+
     }
 
     .addon-title-row {
+
       display: flex;
+
       justify-content: space-between;
+
       gap: 12px;
+
     }
 
     .addon-name {
+
       font-size: 0.85rem;
+
       font-weight: 800;
+
     }
 
     .addon-price {
+
       white-space: nowrap;
+
       color: var(--teal);
+
       font-size: 0.75rem;
+
       font-weight: 800;
+
     }
 
     .addon-description {
+
       margin-top: 4px;
+
       color: var(--muted);
+
       font-size: 0.7rem;
+
       line-height: 1.5;
+
     }
 
     .addon-note {
+
       margin-top: 5px;
+
       color: var(--muted);
+
       font-size: 0.64rem;
+
     }
 
     /* =========================================================
+
        SUMMARY
+
     ========================================================= */
 
     .summary-card {
+
       position: sticky;
+
       top: 0;
 
       min-height: 100%;
+
       display: flex;
+
       flex-direction: column;
 
       padding: 42px 34px;
 
       color: #fff;
+
       background:
+
         radial-gradient(
+
           circle at top right,
+
           rgba(255, 215, 0, 0.14),
+
           transparent 30%
+
         ),
+
         linear-gradient(
+
           145deg,
+
           #171717,
+
           #242424
+
         );
 
       border-radius: 0 var(--radius-lg) var(--radius-lg) 0;
+
       box-shadow: none;
+
     }
 
     .summary-card h2 {
+
       margin: 0;
+
       font-size: 1.45rem;
+
       line-height: 1.2;
+
       font-weight: 800;
+
     }
 
     .summary-subtitle {
+
       margin: 8px 0 22px;
+
       color: rgba(255, 255, 255, 0.55);
+
       font-size: 0.72rem;
+
       line-height: 1.6;
+
     }
 
     .summary-room {
+
       margin-bottom: 15px;
+
       padding: 14px;
 
       background: rgba(255, 255, 255, 0.04);
+
       border: 1px solid rgba(255, 255, 255, 0.06);
+
       border-radius: 13px;
+
     }
 
     .summary-room-name {
+
       color: #fff;
+
       font-size: 0.82rem;
+
       font-weight: 800;
+
     }
 
     .summary-room-meta {
+
       margin-top: 5px;
+
       color: rgba(255, 255, 255, 0.5);
+
       font-size: 0.66rem;
+
       line-height: 1.5;
+
     }
 
     .price-lines {
+
       display: grid;
+
       gap: 0;
+
     }
 
     .price-line {
+
       display: flex;
+
       justify-content: space-between;
+
       align-items: flex-start;
+
       gap: 18px;
 
       padding: 12px 0;
 
       color: rgba(255, 255, 255, 0.55);
+
       border-bottom: 1px solid rgba(255, 255, 255, 0.07);
 
       font-size: 0.72rem;
+
     }
 
     .price-line strong {
+
       color: #fff;
+
       font-size: 0.76rem;
+
       font-weight: 600;
+
       text-align: right;
+
     }
 
     .price-divider {
+
       display: none;
+
     }
 
     .total-line {
+
       display: flex;
+
       justify-content: space-between;
+
       align-items: flex-start;
+
       gap: 18px;
 
       margin-top: 18px;
+
       padding: 18px;
 
       background: rgba(255, 215, 0, 0.08);
+
       border: 1px dashed rgba(255, 215, 0, 0.65);
+
       border-radius: 18px;
 
       color: var(--gold);
+
       font-size: 0.68rem;
+
       font-weight: 800;
+
       letter-spacing: 1px;
+
       text-transform: uppercase;
+
     }
 
     .total-line strong {
+
       color: #fff;
+
       font-size: clamp(1.7rem, 4vw, 2.35rem);
+
       line-height: 1.05;
+
       font-weight: 800;
+
       letter-spacing: -0.5px;
+
       text-transform: none;
+
     }
 
     .submit-button {
+
       width: 100%;
+
       min-height: 56px;
+
       margin-top: 18px;
 
       display: inline-flex;
+
       align-items: center;
+
       justify-content: center;
+
       gap: 10px;
 
       color: var(--ink);
+
       background: var(--gold);
 
       border: 0;
+
       border-radius: 15px;
 
       font-size: 0.86rem;
+
       font-weight: 800;
 
       cursor: pointer;
 
       transition:
+
         transform 0.2s ease,
+
         background 0.2s ease,
+
         box-shadow 0.2s ease,
+
         opacity 0.2s ease;
+
     }
 
     .submit-button:hover:not(:disabled) {
+
       transform: translateY(-2px);
+
       background: #ffe347;
 
       box-shadow:
+
         0 12px 25px
+
         rgba(255, 215, 0, 0.18);
+
     }
 
     .submit-button:active:not(:disabled) {
+
       transform: translateY(0);
+
     }
 
     .submit-button:disabled {
+
       cursor: not-allowed;
+
       opacity: 0.55;
+
     }
 
     .security-note {
+
       margin-top: 13px;
+
       color: rgba(255, 255, 255, 0.42);
+
       font-size: 0.62rem;
+
       line-height: 1.55;
+
       text-align: center;
+
     }
 
     .validation-message {
+
       display: none;
 
       margin-top: 12px;
+
       padding: 11px 13px;
 
       color: #ffd6d6;
+
       background: rgba(198, 40, 40, 0.16);
 
       border: 1px solid rgba(255, 170, 170, 0.2);
+
       border-radius: 10px;
 
       font-size: 0.72rem;
+
       font-weight: 700;
+
       line-height: 1.5;
+
     }
 
     /* =========================================================
+
        HISTORY
+
     ========================================================= */
 
     .booking-history {
+
       margin-top: 32px;
+
       padding: 25px;
 
       border-radius: var(--radius-lg);
+
       box-shadow: var(--shadow-sm);
+
     }
 
     .booking-history h2 {
+
       margin: 0 0 5px;
+
       font-size: 1.15rem;
+
       font-weight: 800;
+
     }
 
     .booking-history > p {
+
       margin: 0 0 18px;
+
       color: var(--muted);
+
       font-size: 0.78rem;
+
     }
 
     .history-list {
+
       display: grid;
+
       gap: 12px;
+
     }
 
     .history-item {
+
       display: grid;
+
       grid-template-columns: minmax(0, 1fr) auto;
+
       gap: 16px;
 
       padding: 15px;
 
       background: #fafbfb;
+
       border: 1px solid var(--border);
+
       border-radius: 14px;
 
       transition:
+
         transform 0.2s ease,
+
         border-color 0.2s ease,
+
         box-shadow 0.2s ease;
+
     }
 
     .history-item:hover {
+
       transform: translateY(-1px);
+
       border-color: #d5d9db;
+
       box-shadow: var(--shadow-sm);
+
     }
 
     .history-name {
+
       margin: 0;
+
       font-size: 0.82rem;
+
       font-weight: 800;
+
     }
 
     .history-meta {
+
       margin-top: 5px;
+
       color: var(--muted);
+
       font-size: 0.68rem;
+
       line-height: 1.5;
+
     }
 
     .history-price {
+
       white-space: nowrap;
+
       align-self: start;
+
       color: var(--teal);
+
       font-size: 0.8rem;
+
       font-weight: 800;
+
     }
 
     .status {
+
       display: inline-flex;
+
       align-items: center;
 
       margin-top: 8px;
+
       padding: 5px 9px;
 
       border-radius: 999px;
 
       font-size: 0.65rem;
+
       font-weight: 800;
+
       text-transform: capitalize;
+
     }
 
     .status-pending {
+
       background: var(--warning-bg);
+
       color: var(--warning);
+
     }
 
     .status-accepted,
+
     .status-confirmed {
+
       background: var(--success-bg);
+
       color: var(--success);
+
     }
 
     .status-cancelled,
+
     .status-declined,
+
     .status-rejected {
+
       background: var(--danger-bg);
+
       color: var(--danger);
+
     }
 
     .status-checked-in,
+
     .status-checked-out,
+
     .status-completed {
+
       background: rgba(0, 128, 128, 0.1);
+
       color: var(--teal-dark);
+
     }
 
     .empty-history {
+
       padding: 24px;
 
       color: var(--muted);
+
       background: var(--soft);
 
       border: 1px dashed var(--border);
+
       border-radius: 14px;
 
       text-align: center;
+
       font-size: 0.82rem;
+
     }
 
     /* =========================================================
+
        RESPONSIVE
+
     ========================================================= */
 
     @media (max-width: 1000px) {
+
       .booking-layout {
+
         grid-template-columns: 1fr;
+
         gap: 0;
+
         overflow: visible;
+
       }
 
       .booking-card {
+
         border-radius: var(--radius-lg) var(--radius-lg) 0 0;
+
       }
 
       .summary-card {
+
         position: static;
+
         min-height: auto;
+
         border-radius: 0 0 var(--radius-lg) var(--radius-lg);
+
       }
+
     }
 
     @media (max-width: 700px) {
+
       .page-shell {
+
         width: min(100% - 20px, 1180px);
+
         padding: 100px 0 35px;
+
       }
 
       .page-header {
+
         margin-bottom: 22px;
+
       }
 
       .page-header h1 {
+
         font-size: 2rem;
+
       }
 
       .booking-card,
+
       .summary-card,
+
       .booking-history {
+
         padding: 24px 20px;
+
       }
 
       .form-grid,
+
       .catalog-grid {
+
         grid-template-columns: 1fr;
+
       }
 
       .field.full {
+
         grid-column: auto;
+
       }
 
       .section-heading p {
+
         margin-left: 0;
+
         margin-top: 9px;
+
       }
 
       .section-heading h2::before {
+
         width: 28px;
+
         height: 28px;
+
       }
 
       .catalog-image,
+
       .catalog-placeholder {
+
         height: 165px;
+
       }
 
       .history-item {
+
         grid-template-columns: 1fr;
+
       }
 
       .history-price {
+
         white-space: normal;
+
       }
+
     }
 
     @media (max-width: 420px) {
+
       .page-shell {
+
         width: min(100% - 14px, 1180px);
+
       }
 
       .booking-card,
+
       .summary-card,
+
       .booking-history {
+
         padding: 20px 16px;
+
       }
 
       .catalog-grid {
+
         gap: 10px;
+
       }
 
       .room-content {
+
         padding: 13px;
+
       }
 
       .room-topline {
+
         flex-direction: column;
+
         gap: 5px;
+
       }
 
       .addon-title-row {
+
         flex-direction: column;
+
         gap: 4px;
+
       }
 
       .total-line {
+
         align-items: center;
+
       }
 
       .total-line strong {
+
         font-size: 1.8rem;
+
       }
+
     }
 
     /* =========================================================
+
        REDUCED MOTION
+
     ========================================================= */
 
     @media (prefers-reduced-motion: reduce) {
+
       *,
+
       *::before,
+
       *::after {
+
         animation-duration: 0.01ms !important;
+
         animation-iteration-count: 1 !important;
+
         scroll-behavior: auto !important;
+
         transition-duration: 0.01ms !important;
+
       }
+
     }
 
   </style>
+
 </head>
 
 <body>
 
-  <%- include("partials/navbar") %>
+  <%- include("./partials/navbar.ejs") %>
 
   <main class="page-shell">
 
     <header class="page-header">
+
       <div class="eyebrow">
+
         Puffer Isle Resort
+
       </div>
 
       <h1>
+
         Book Your Stay
+
       </h1>
 
       <p>
+
         Choose your accommodation, dates, guests,
+
         and any available add-ons. Your final price
+
         is calculated securely by the resort system.
+
       </p>
+
     </header>
 
-
     <% if (error) { %>
+
       <div class="alert alert-error">
+
         <%= error %>
+
       </div>
+
     <% } %>
 
     <% if (success) { %>
+
       <div class="alert alert-success">
+
         <%= success %>
+
       </div>
+
     <% } %>
 
-
     <form
-      id="bookingForm"
-      action="/appointment/submit"
-      method="POST"
-      novalidate
+
+  id="bookingForm"
+
+  action="/appointment/submit"
+
+  method="POST"
+
+  novalidate
+
+>
+
+  <% if (typeof csrfToken !== "undefined" && csrfToken) { %>
+
+    <input
+
+      type="hidden"
+
+      name="_csrf"
+
+      value="<%= csrfToken %>"
+
     >
 
-      <div class="booking-layout">
+  <% } %>
+
+  <div class="booking-layout">
 
         <!-- =====================================================
+
              LEFT / MAIN FORM
+
         ====================================================== -->
 
         <section class="card booking-card">
 
           <!-- ===================================================
+
                ACCOMMODATION
+
           ==================================================== -->
 
           <div class="section">
 
             <div class="section-heading">
+
               <div>
+
                 <h2>
+
                   1. Choose your accommodation
+
                   <span class="required">*</span>
+
                 </h2>
 
                 <p>
-                  Current room information is managed by the resort.
-                </p>
-              </div>
-            </div>
 
+                  Current room information is managed by the resort.
+
+                </p>
+
+              </div>
+
+            </div>
 
             <div class="catalog-grid">
 
@@ -1191,13 +1928,21 @@
                   <label class="room-option">
 
                     <input
+
                       type="radio"
+
                       name="room"
+
                       value="<%= room._id %>"
+
                       data-room-name="<%= room.name %>"
+
                       data-room-price="<%= Number(room.price || 0) %>"
+
                       data-room-capacity="<%= Number(room.maxGuests || 1) %>"
+
                       required
+
                     >
 
                     <div class="room-card">
@@ -1205,61 +1950,81 @@
                       <% if (room.image) { %>
 
                         <img
+
                           class="catalog-image"
+
                           src="<%= room.image %>"
+
                           alt="<%= room.name %>"
+
                           loading="lazy"
+
                         >
 
                       <% } else { %>
 
                         <div class="catalog-placeholder">
+
                           <%= room.name
+
                             ? room.name.charAt(0).toUpperCase()
+
                             : "R" %>
+
                         </div>
 
                       <% } %>
-
 
                       <div class="room-content">
 
                         <div class="room-topline">
 
                           <h3 class="room-name">
+
                             <%= room.name %>
+
                           </h3>
 
                           <div class="room-price">
+
                             ₱<%= Number(room.price || 0).toLocaleString("en-PH") %>
+
                             <small>/night</small>
+
                           </div>
 
                         </div>
 
-
                         <% if (room.description) { %>
 
                           <p class="room-description">
+
                             <%= room.description %>
+
                           </p>
 
                         <% } %>
 
-
                         <div class="room-meta">
 
                           <span class="meta-pill">
+
                             Up to
+
                             <%= Number(room.maxGuests || 1) %>
-                            guest<%= Number(room.maxGuests || 1) === 1 ? "" : "s" %>
+
+                            gues&#x74;<%= Number(room.maxGuests || 1) === 1 ? "" : "s" %>
+
                           </span>
 
                           <% if (Number(room.quantity || 1) > 1) { %>
 
                             <span class="meta-pill">
+
                               <%= Number(room.quantity) %>
+
                               units
+
                             </span>
 
                           <% } %>
@@ -1277,8 +2042,11 @@
               <% } else { %>
 
                 <div class="empty-catalog">
+
                   No accommodations are currently available.
+
                   Please contact the resort.
+
                 </div>
 
               <% } %>
@@ -1287,112 +2055,162 @@
 
           </div>
 
-
           <!-- ===================================================
+
                DATES + GUESTS
+
           ==================================================== -->
 
           <div class="section">
 
             <div class="section-heading">
+
               <div>
+
                 <h2>
+
                   2. Stay details
+
                 </h2>
 
                 <p>
-                  Select your dates and number of guests.
-                </p>
-              </div>
-            </div>
 
+                  Select your dates and number of guests.
+
+                </p>
+
+              </div>
+
+            </div>
 
             <div class="form-grid">
 
               <div class="field">
 
                 <label for="checkin">
+
                   Check-in
+
                   <span class="required">*</span>
+
                 </label>
 
                 <input
+
                   type="date"
+
                   id="checkin"
+
                   name="checkin"
+
                   required
+
                 >
 
                 <small>
+
                   Check-in cannot be in the past.
+
                 </small>
 
               </div>
-
 
               <div class="field">
 
                 <label for="checkout">
+
                   Check-out
+
                   <span class="required">*</span>
+
                 </label>
 
                 <input
+
                   type="date"
+
                   id="checkout"
+
                   name="checkout"
+
                   required
+
                 >
 
                 <small>
+
                   Must be after check-in.
+
                 </small>
 
               </div>
-
 
               <div class="field">
 
                 <label for="guests">
+
                   Number of guests
+
                   <span class="required">*</span>
+
                 </label>
 
                 <input
+
                   type="number"
+
                   id="guests"
+
                   name="guests"
+
                   value="1"
+
                   min="1"
+
                   step="1"
+
                   required
+
                 >
 
                 <small id="capacityHelp">
+
                   Select a room to see its maximum capacity.
+
                 </small>
 
               </div>
 
-
               <div class="field">
 
                 <label for="contact">
+
                   Contact number
+
                   <span class="required">*</span>
+
                 </label>
 
                 <input
+
                   type="tel"
+
                   id="contact"
+
                   name="contact"
-                  value="<%= user && user.phone ? user.phone : "" %>"
+
+                  value="<%= user && user.phone ? user.phone : '' %>"
+
                   autocomplete="tel"
+
                   required
+
                 >
 
                 <small>
+
                   We'll use this for reservation communication.
+
                 </small>
 
               </div>
@@ -1401,25 +2219,33 @@
 
           </div>
 
-
           <!-- ===================================================
+
                ADD-ONS
+
           ==================================================== -->
 
           <div class="section">
 
             <div class="section-heading">
+
               <div>
+
                 <h2>
+
                   3. Optional add-ons
+
                 </h2>
 
                 <p>
-                  Available extras are managed by the resort.
-                </p>
-              </div>
-            </div>
 
+                  Available extras are managed by the resort.
+
+                </p>
+
+              </div>
+
+            </div>
 
             <% if (addOns && addOns.length > 0) { %>
 
@@ -1430,37 +2256,57 @@
                   <label class="addon-option">
 
                     <input
+
                       type="checkbox"
+
                       name="addOns[]"
+
                       value="<%= addOn._id %>"
+
                       data-addon-name="<%= addOn.name %>"
+
                       data-addon-price="<%= Number(addOn.price || 0) %>"
-                      data-addon-pricing-type="<%= addOn.pricingType || "once" %>"
+
+                      data-addon-pricing-type="<%= addOn.pricingType || 'once' %>"
+
                     >
+
+                    <% if (addOn.image) { %>
+                      <img
+                        class="addon-image"
+                        src="<%= addOn.image %>"
+                        alt="<%= addOn.name %>"
+                        loading="lazy"
+                      >
+                    <% } %>
 
                     <div class="addon-info">
 
                       <div class="addon-title-row">
 
                         <span class="addon-name">
+
                           <%= addOn.name %>
+
                         </span>
 
                         <span class="addon-price">
+
                           ₱<%= Number(addOn.price || 0).toLocaleString("en-PH") %>
+
                         </span>
 
                       </div>
 
-
                       <% if (addOn.description) { %>
 
                         <div class="addon-description">
+
                           <%= addOn.description %>
+
                         </div>
 
                       <% } %>
-
 
                       <div class="addon-note">
 
@@ -1487,48 +2333,67 @@
             <% } else { %>
 
               <div class="empty-catalog">
+
                 No add-ons are currently available.
+
               </div>
 
             <% } %>
 
           </div>
 
-
           <!-- ===================================================
+
                SPECIAL REQUESTS
+
           ==================================================== -->
 
           <div class="section">
 
             <div class="section-heading">
+
               <div>
+
                 <h2>
+
                   4. Special requests
+
                 </h2>
 
                 <p>
-                  Optional notes for the resort team.
-                </p>
-              </div>
-            </div>
 
+                  Optional notes for the resort team.
+
+                </p>
+
+              </div>
+
+            </div>
 
             <div class="field">
 
               <label for="specialRequests">
+
                 Special requests
+
               </label>
 
               <textarea
+
                 id="specialRequests"
+
                 name="specialRequests"
+
                 maxlength="3000"
+
                 placeholder="Tell us about any special requests or preferences..."
+
               ></textarea>
 
               <small>
+
                 Please note that special requests are subject to availability.
+
               </small>
 
             </div>
@@ -1537,123 +2402,160 @@
 
         </section>
 
-
         <!-- =====================================================
+
              RIGHT / SUMMARY
+
         ====================================================== -->
 
         <aside class="card summary-card">
 
           <h2>
+
             Booking summary
+
           </h2>
 
           <p class="summary-subtitle">
+
             Your displayed total is an estimate.
+
             The server performs the final calculation.
+
           </p>
 
-
           <div
+
             id="summaryRoom"
+
             class="summary-room"
+
           >
 
             <div
+
               id="summaryRoomName"
+
               class="summary-room-name"
+
             >
+
               No room selected
+
             </div>
 
             <div
+
               id="summaryRoomMeta"
+
               class="summary-room-meta"
+
             >
+
               Choose an accommodation to continue.
+
             </div>
 
           </div>
-
 
           <div class="price-lines">
 
             <div class="price-line">
 
               <span>
+
                 Room
+
               </span>
 
               <strong id="roomSubtotal">
+
                 ₱0
+
               </strong>
 
             </div>
 
-
             <div class="price-line">
 
               <span>
+
                 Add-ons
+
               </span>
 
               <strong id="addOnSubtotal">
+
                 ₱0
+
               </strong>
 
             </div>
-
 
             <div class="price-line">
 
               <span>
+
                 Nights
+
               </span>
 
               <strong id="nightCount">
+
                 0
+
               </strong>
 
             </div>
 
-
             <div class="price-divider"></div>
-
 
             <div class="total-line">
 
               <span>
+
                 Estimated total
+
               </span>
 
               <strong id="estimatedTotal">
+
                 ₱0
+
               </strong>
 
             </div>
 
           </div>
 
-
           <div
+
             id="validationMessage"
+
             class="validation-message"
+
           ></div>
 
-
           <button
-            type="submit"
-            id="submitButton"
-            class="submit-button"
-          >
-            Submit Booking Request
-          </button>
 
+            type="submit"
+
+            id="submitButton"
+
+            class="submit-button"
+
+          >
+
+            Submit Booking Request
+
+          </button>
 
           <div class="security-note">
 
             Your submitted total is not trusted by the server.
+
             The booking system recalculates the price from the
+
             current resort catalog before saving the reservation.
 
           </div>
@@ -1664,21 +2566,25 @@
 
     </form>
 
-
     <!-- =========================================================
+
          BOOKING HISTORY
+
     ========================================================== -->
 
     <section class="card booking-history">
 
       <h2>
+
         Your reservations
+
       </h2>
 
       <p>
-        Review your recent booking requests and their current status.
-      </p>
 
+        Review your recent booking requests and their current status.
+
+      </p>
 
       <% if (appointments && appointments.length > 0) { %>
 
@@ -1691,51 +2597,62 @@
               <div>
 
                 <h3 class="history-name">
-                  <%= appointment.room || "Accommodation" %>
-                </h3>
 
+                  <%= appointment.room || "Accommodation" %>
+
+                </h3>
 
                 <div class="history-meta">
 
                   <% if (appointment.checkin) { %>
 
                     <%= new Date(appointment.checkin).toLocaleDateString("en-PH", {
+
                       year: "numeric",
+
                       month: "short",
+
                       day: "numeric"
+
                     }) %>
 
                   <% } %>
-
 
                   <% if (appointment.checkout) { %>
 
                     —
+
                     <%= new Date(appointment.checkout).toLocaleDateString("en-PH", {
+
                       year: "numeric",
+
                       month: "short",
+
                       day: "numeric"
+
                     }) %>
 
                   <% } %>
 
-
                   ·
 
                   <%= Number(appointment.guests || 0) %>
-                  guest<%= Number(appointment.guests || 0) === 1 ? "" : "s" %>
+
+                  gues&#x74;<%= Number(appointment.guests || 0) === 1 ? "" : "s" %>
 
                 </div>
 
-
                 <span
-                  class="status status-<%= String(appointment.status || "pending").toLowerCase().replace(/\s+/g, "-") %>"
+
+                  class="status status-<%= String(appointment.status || 'pending').toLowerCase().replace(/\s+/g, '-') %>"
+
                 >
+
                   <%= appointment.status || "pending" %>
+
                 </span>
 
               </div>
-
 
               <div class="history-price">
 
@@ -1752,7 +2669,9 @@
       <% } else { %>
 
         <div class="empty-history">
+
           You have no reservations yet.
+
         </div>
 
       <% } %>
@@ -1761,745 +2680,1156 @@
 
   </main>
 
-
   <script>
+
     (() => {
+
       "use strict";
 
       const form =
+
         document.getElementById(
+
           "bookingForm"
+
         );
 
       const roomInputs =
+
         document.querySelectorAll(
+
           'input[name="room"]'
+
         );
 
       const addOnInputs =
+
         document.querySelectorAll(
+
           'input[name="addOns[]"]'
+
         );
 
       const checkInInput =
+
         document.getElementById(
+
           "checkin"
+
         );
 
       const checkOutInput =
+
         document.getElementById(
+
           "checkout"
+
         );
 
       const guestsInput =
+
         document.getElementById(
+
           "guests"
+
         );
 
       const capacityHelp =
+
         document.getElementById(
+
           "capacityHelp"
+
         );
 
       const summaryRoomName =
+
         document.getElementById(
+
           "summaryRoomName"
+
         );
 
       const summaryRoomMeta =
+
         document.getElementById(
+
           "summaryRoomMeta"
+
         );
 
       const roomSubtotalElement =
+
         document.getElementById(
+
           "roomSubtotal"
+
         );
 
       const addOnSubtotalElement =
+
         document.getElementById(
+
           "addOnSubtotal"
+
         );
 
       const nightCountElement =
+
         document.getElementById(
+
           "nightCount"
+
         );
 
       const estimatedTotalElement =
+
         document.getElementById(
+
           "estimatedTotal"
+
         );
 
       const validationMessage =
+
         document.getElementById(
+
           "validationMessage"
+
         );
 
       const submitButton =
+
         document.getElementById(
+
           "submitButton"
+
         );
 
-
       /*
+
        * ----------------------------------------------------------
+
        * MONEY
+
        * ----------------------------------------------------------
+
        */
 
       function formatMoney(
+
         value
+
       ) {
+
         const amount =
+
           Number(value) || 0;
 
         return (
+
           "₱" +
+
           amount.toLocaleString(
+
             "en-PH",
+
             {
+
               maximumFractionDigits: 2,
+
             }
+
           )
+
         );
+
       }
 
-
       /*
+
        * ----------------------------------------------------------
+
        * DATE
+
        * ----------------------------------------------------------
+
        */
 
       function parseDate(
+
         value
+
       ) {
+
         if (!value) {
+
           return null;
+
         }
 
         const date =
+
           new Date(
+
             value + "T00:00:00"
+
           );
 
         if (
+
           Number.isNaN(
+
             date.getTime()
+
           )
+
         ) {
+
           return null;
+
         }
 
         return date;
+
       }
 
-
       function getNights() {
+
         const checkIn =
+
           parseDate(
+
             checkInInput.value
+
           );
 
         const checkOut =
+
           parseDate(
+
             checkOutInput.value
+
           );
 
         if (
+
           !checkIn ||
+
           !checkOut ||
+
           checkOut <= checkIn
+
         ) {
+
           return 0;
+
         }
 
         const milliseconds =
+
           checkOut.getTime() -
+
           checkIn.getTime();
 
         return Math.ceil(
+
           milliseconds /
+
             (1000 * 60 * 60 * 24)
+
         );
+
       }
 
-
       /*
+
        * ----------------------------------------------------------
+
        * TODAY
+
        * ----------------------------------------------------------
+
        */
 
       function getTodayInputValue() {
+
         const now =
+
           new Date();
 
         const year =
+
           now.getFullYear();
 
         const month =
+
           String(
+
             now.getMonth() + 1
+
           ).padStart(
+
             2,
+
             "0"
+
           );
 
         const day =
+
           String(
+
             now.getDate()
+
           ).padStart(
+
             2,
+
             "0"
+
           );
 
         return `${year}-${month}-${day}`;
+
       }
 
-
       checkInInput.min =
+
         getTodayInputValue();
 
       checkOutInput.min =
+
         getTodayInputValue();
 
-
       /*
+
        * ----------------------------------------------------------
+
        * SELECTED ROOM
+
        * ----------------------------------------------------------
+
        */
 
       function getSelectedRoom() {
+
         return Array.from(
+
           roomInputs
+
         ).find(
+
           (input) =>
+
             input.checked
+
         );
+
       }
 
-
       /*
+
        * ----------------------------------------------------------
+
        * SELECTED ADD-ONS
+
        * ----------------------------------------------------------
+
        */
 
       function getSelectedAddOns() {
+
         return Array.from(
+
           addOnInputs
+
         ).filter(
+
           (input) =>
+
             input.checked
+
         );
+
       }
 
-
       /*
+
        * ----------------------------------------------------------
+
        * CAPACITY
+
        * ----------------------------------------------------------
+
        */
 
       function updateGuestCapacity() {
+
         const selectedRoom =
+
           getSelectedRoom();
 
         if (!selectedRoom) {
+
           guestsInput.removeAttribute(
+
             "max"
+
           );
 
           capacityHelp.textContent =
+
             "Select a room to see its maximum capacity.";
 
           return;
+
         }
 
         const capacity =
+
           Number(
+
             selectedRoom.dataset.roomCapacity ||
+
               1
+
           );
 
         guestsInput.max =
+
           String(capacity);
 
         capacityHelp.textContent =
+
           `Maximum capacity: ${capacity} guest${
+
             capacity === 1
+
               ? ""
+
               : "s"
+
           }.`;
 
         const currentGuests =
+
           Number(
+
             guestsInput.value
+
           );
 
         if (
+
           currentGuests > capacity
+
         ) {
+
           guestsInput.value =
+
             String(
+
               capacity
+
             );
+
         }
+
       }
 
-
       /*
+
        * ----------------------------------------------------------
+
        * SUMMARY
+
        * ----------------------------------------------------------
+
        */
 
       function updateSummary() {
+
         const selectedRoom =
+
           getSelectedRoom();
 
         const nights =
+
           getNights();
 
         let roomPrice =
+
           0;
 
         let roomName =
+
           "No room selected";
 
         let roomCapacity =
+
           0;
 
         if (selectedRoom) {
+
           roomPrice =
+
             Number(
+
               selectedRoom.dataset.roomPrice ||
+
                 0
+
             );
 
           roomName =
+
             selectedRoom.dataset.roomName ||
+
             "Selected room";
 
           roomCapacity =
+
             Number(
+
               selectedRoom.dataset.roomCapacity ||
+
                 0
+
             );
+
         }
 
-
         let addOnSubtotal =
+
           0;
 
         getSelectedAddOns().forEach(
+
           (input) => {
+
             const price =
+
               Number(
+
                 input.dataset.addonPrice ||
+
                   0
+
               );
 
             const pricingType =
+
               input.dataset.addonPricingType ||
+
               "once";
 
             if (
+
               pricingType ===
+
               "perNight"
+
             ) {
+
               addOnSubtotal +=
+
                 price *
+
                 nights;
+
             } else {
+
               addOnSubtotal +=
+
                 price;
+
             }
+
           }
+
         );
 
-
         const roomSubtotal =
+
           roomPrice *
+
           nights;
 
         const estimatedTotal =
+
           roomSubtotal +
+
           addOnSubtotal;
 
-
         summaryRoomName.textContent =
+
           roomName;
 
         if (selectedRoom) {
 
           summaryRoomMeta.textContent =
+
             `₱${roomPrice.toLocaleString(
+
               "en-PH"
+
             )} per night · Up to ${roomCapacity} guest${
+
               roomCapacity === 1
+
                 ? ""
+
                 : "s"
+
             }`;
 
         } else {
 
           summaryRoomMeta.textContent =
+
             "Choose an accommodation to continue.";
 
         }
 
-
         roomSubtotalElement.textContent =
+
           formatMoney(
+
             roomSubtotal
+
           );
 
         addOnSubtotalElement.textContent =
+
           formatMoney(
+
             addOnSubtotal
+
           );
 
         nightCountElement.textContent =
+
           String(
+
             nights
+
           );
 
         estimatedTotalElement.textContent =
+
           formatMoney(
+
             estimatedTotal
+
           );
+
       }
 
-
       /*
+
        * ----------------------------------------------------------
+
        * VALIDATION MESSAGE
+
        * ----------------------------------------------------------
+
        */
 
       function showValidation(
+
         message
+
       ) {
+
         validationMessage.textContent =
+
           message;
 
         validationMessage.style.display =
+
           "block";
+
       }
 
-
       function clearValidation() {
+
         validationMessage.textContent =
+
           "";
 
         validationMessage.style.display =
+
           "none";
+
       }
 
-
       /*
+
        * ----------------------------------------------------------
+
        * FORM VALIDATION
+
        * ----------------------------------------------------------
+
        */
 
       function validateForm() {
+
         clearValidation();
 
         const selectedRoom =
+
           getSelectedRoom();
 
         if (!selectedRoom) {
+
           showValidation(
+
             "Please select an accommodation."
+
           );
 
           return false;
+
         }
 
-
         const checkIn =
+
           parseDate(
+
             checkInInput.value
+
           );
 
         const checkOut =
+
           parseDate(
+
             checkOutInput.value
+
           );
 
         if (!checkIn) {
+
           showValidation(
+
             "Please select a valid check-in date."
+
           );
 
           return false;
-        }
 
+        }
 
         if (!checkOut) {
+
           showValidation(
+
             "Please select a valid check-out date."
+
           );
 
           return false;
-        }
 
+        }
 
         const today =
+
           parseDate(
+
             getTodayInputValue()
+
           );
 
         if (
+
           today &&
+
           checkIn < today
+
         ) {
+
           showValidation(
+
             "Check-in cannot be in the past."
+
           );
 
           return false;
-        }
 
+        }
 
         if (
+
           checkOut <= checkIn
+
         ) {
+
           showValidation(
+
             "Check-out must be after check-in."
+
           );
 
           return false;
-        }
 
+        }
 
         const nights =
+
           getNights();
 
         if (
+
           nights < 1
+
         ) {
+
           showValidation(
+
             "Your stay must be at least one night."
+
           );
 
           return false;
+
         }
 
-
         const guests =
+
           Number(
+
             guestsInput.value
+
           );
 
         const capacity =
+
           Number(
+
             selectedRoom.dataset.roomCapacity ||
+
               0
+
           );
 
         if (
+
           !Number.isInteger(
+
             guests
+
           ) ||
+
           guests < 1
+
         ) {
+
           showValidation(
+
             "Please enter a valid number of guests."
+
           );
 
           return false;
-        }
 
+        }
 
         if (
+
           capacity > 0 &&
+
           guests > capacity
+
         ) {
+
           showValidation(
+
             `This accommodation allows a maximum of ${capacity} guest${
+
               capacity === 1
+
                 ? ""
+
                 : "s"
+
             }.`
+
           );
 
           return false;
-        }
 
+        }
 
         const contact =
+
           document
+
             .getElementById(
+
               "contact"
+
             )
+
             .value
+
             .trim();
 
         if (
+
           contact.length < 3
+
         ) {
+
           showValidation(
+
             "Please provide a valid contact number."
+
           );
 
           return false;
+
         }
 
-
         return true;
+
       }
 
-
       /*
+
        * ----------------------------------------------------------
+
        * ROOM CHANGE
+
        * ----------------------------------------------------------
+
        */
 
       roomInputs.forEach(
+
         (input) => {
+
           input.addEventListener(
+
             "change",
+
             () => {
+
               updateGuestCapacity();
+
               updateSummary();
+
               clearValidation();
+
             }
+
           );
+
         }
+
       );
 
-
       /*
+
        * ----------------------------------------------------------
+
        * ADD-ON CHANGE
+
        * ----------------------------------------------------------
+
        */
 
       addOnInputs.forEach(
+
         (input) => {
+
           input.addEventListener(
+
             "change",
+
             () => {
+
               updateSummary();
+
               clearValidation();
+
             }
+
           );
+
         }
+
       );
 
-
       /*
+
        * ----------------------------------------------------------
+
        * DATE CHANGE
+
        * ----------------------------------------------------------
+
        */
 
       checkInInput.addEventListener(
+
         "change",
+
         () => {
+
           const checkIn =
+
             parseDate(
+
               checkInInput.value
+
             );
 
           if (checkIn) {
+
             checkOutInput.min =
+
               checkInInput.value;
+
           } else {
+
             checkOutInput.min =
+
               getTodayInputValue();
+
           }
 
           updateSummary();
-        }
-      );
 
+        }
+
+      );
 
       checkOutInput.addEventListener(
+
         "change",
+
         updateSummary
+
       );
 
-
       /*
+
        * ----------------------------------------------------------
+
        * GUEST CHANGE
+
        * ----------------------------------------------------------
+
        */
 
       guestsInput.addEventListener(
+
         "input",
+
         () => {
+
           updateSummary();
+
           clearValidation();
+
         }
+
       );
 
-
       /*
+
        * ----------------------------------------------------------
+
        * SUBMIT
+
        * ----------------------------------------------------------
+
        */
 
       form.addEventListener(
+
         "submit",
+
         (event) => {
+
           if (
+
             !validateForm()
+
           ) {
+
             event.preventDefault();
 
             window.scrollTo({
+
               top:
+
                 validationMessage
+
                   .getBoundingClientRect()
+
                   .top +
+
                 window.scrollY -
+
                 120,
 
               behavior:
+
                 "smooth",
+
             });
 
             return;
+
           }
 
           submitButton.disabled =
+
             true;
 
           submitButton.textContent =
+
             "Submitting booking...";
 
           /*
+
            * IMPORTANT:
+
            * We intentionally do NOT create or submit
+
            * totalPrice as a trusted form value.
+
            *
+
            * The server calculates the final amount.
+
            */
+
         }
+
       );
 
-
       /*
+
        * ----------------------------------------------------------
+
        * INITIAL STATE
+
        * ----------------------------------------------------------
+
        */
 
       updateGuestCapacity();
+
       updateSummary();
 
     })();
+
   </script>
 
 </body>
+
 </html>

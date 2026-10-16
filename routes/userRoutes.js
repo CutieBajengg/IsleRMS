@@ -38,6 +38,26 @@ const mongoose = require("mongoose");
 
 const router = express.Router();
 
+const csrf = require("../middleware/csrf");
+const verifyCsrfToken = csrf.verifyCsrfToken || csrf.verifyCsrf;
+
+if (typeof verifyCsrfToken !== "function") {
+  throw new Error("CSRF middleware is missing a compatible verification function.");
+}
+
+/*
+ * Apply CSRF protection to customer-side mutations consistently. Let
+ * unauthenticated requests reach requireLogin so they receive the expected
+ * login response instead of a confusing CSRF error.
+ */
+router.use((req, res, next) => {
+  if (!["POST", "PUT", "PATCH", "DELETE"].includes(req.method)) {
+    return next();
+  }
+  if (!req.session?.user) return next();
+  return verifyCsrfToken(req, res, next);
+});
+
 const Appointment = require("../models/Appointment");
 const User = require("../models/User");
 const Notification = require("../models/Notification");
@@ -4192,22 +4212,42 @@ router.post(
       /*
        * Lock the same room resource used by booking creation.
        *
-       * This prevents a cancellation from racing with an admin
-       * acceptance/confirmation operation.
+       * New appointments carry roomId, but legacy records may not.
+       * When roomId is absent, resolve the current catalog room by its
+       * name before falling back to the legacy name-based mutex. This
+       * makes cancellation and booking/status updates coordinate on the
+       * same resource whenever the catalog match is available.
        */
+      const roomNameForLock =
+        existing.room ||
+        existing.roomName ||
+        existing.roomType ||
+        existing.accommodation ||
+        "";
+
+      let roomIdForLock = existing.roomId || null;
+
+      if (!isValidObjectId(roomIdForLock) && roomNameForLock) {
+        const matchingRoom = await Room.findOne({
+          name: new RegExp(
+            "^" + String(roomNameForLock).replace(/[.*+?^${}()|[\]\\]/g, "\\$&") + "$",
+            "i"
+          ),
+        }).select("_id name").lean();
+
+        if (matchingRoom?._id) {
+          roomIdForLock = matchingRoom._id;
+        }
+      }
+
       const result =
         await withRoomLock(
           {
             _id:
-              existing.roomId ||
-              null,
+              roomIdForLock,
 
             name:
-              existing.room ||
-              existing.roomName ||
-              existing.roomType ||
-              existing.accommodation ||
-              "",
+              roomNameForLock,
           },
           async () => {
             const latest =
