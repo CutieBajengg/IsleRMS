@@ -164,51 +164,53 @@
       letter-spacing: 0.5px;
     }
 
-    .street-controls {
+    .compass-hud {
       position: absolute;
+      z-index: 6;
       inset: 0;
-      z-index: 5;
-      display: block;
       pointer-events: none;
-      opacity: 0;
-      transition: opacity .25s ease;
     }
 
-    .viewer-wrapper:hover .street-controls,
-    .viewer-wrapper:focus-within .street-controls {
-      opacity: 1;
+    .compass-rose {
+      position: absolute;
+      inset: 0;
     }
+
+    .compass-rose::before { display: none; }
 
     .street-control {
       position: absolute;
-      min-width: 0;
-      width: 48px;
-      height: 48px;
-      padding: 0;
-      border: 1px solid rgba(255,255,255,.7);
-      border-radius: 50%;
-      background: rgba(0,0,0,.55);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      min-width: 82px;
+      max-width: min(190px, 42vw);
+      height: 42px;
+      padding: 0 12px;
+      border: 1px solid rgba(255,255,255,.82);
+      border-radius: 22px;
+      background: rgba(0,0,0,.88);
       color: white;
       font: inherit;
       font-weight: 700;
+      font-size: .78rem;
       cursor: pointer;
       pointer-events: auto;
-      transition: background .2s ease, transform .2s ease, opacity .2s ease;
+      box-shadow: 0 3px 12px rgba(0,0,0,.45);
+      transform: translate(-50%, -50%);
+      transition: background .2s ease, transform .2s ease, box-shadow .2s ease;
     }
 
-    .viewer-wrapper canvas,
-    .viewer-wrapper a-scene {
-      cursor: default;
-    }
-
+    .street-control-arrow { flex: 0 0 auto; font-size: 1.2rem; line-height: 1; }
+    .street-control-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     .street-control:hover:not(:disabled) {
-      background: rgba(0,0,0,.8);
-      transform: scale(1.08);
+      background: var(--accent-teal);
+      color: #071416;
+      box-shadow: 0 5px 16px rgba(0,0,0,.55);
+      transform: translate(-50%, -50%) scale(1.08);
     }
-
-    .street-control:disabled {
-      display: none;
-    }
+    .street-control:disabled { display: none; }
 
     .a-enter-vr-button,
     .a-fullscreen-button {
@@ -232,7 +234,8 @@
       .viewer-wrapper { height: 50vh; border-width: 6px; }
       .btn { padding: 12px 25px; font-size: 0.8rem; }
       .tour-header h1 { font-size: 1.8rem; }
-      .street-controls { opacity: 1; }
+      .street-control { min-width: 74px; height: 38px; padding: 0 9px; font-size: .7rem; }
+      .street-control-arrow { font-size: 1.05rem; }
     }
   </style>
 </head>
@@ -251,6 +254,10 @@
     class="viewer-wrapper"
     data-scenes='<%- JSON.stringify(galleryImages && galleryImages.length ? galleryImages.map((item) => item.image) : ["/images/pano.jpg", "/images/pano2.jpg", "/images/pano3.jpg", "/images/pano4.jpg"]) %>'
     data-navigation='<%- JSON.stringify(galleryImages && galleryImages.length ? galleryImages.map((item) => ({ left: item.left ?? null, right: item.right ?? null, forward: item.forward ?? null, backward: item.backward ?? null })) : []) %>'
+    data-headings='<%- JSON.stringify(galleryImages && galleryImages.length ? galleryImages.map((item) => Number.isFinite(Number(item.heading)) ? Number(item.heading) : 0) : [0, 0, 0, 0]) %>'
+    data-pitches='<%- JSON.stringify(galleryImages && galleryImages.length ? galleryImages.map((item) => Number.isFinite(Number(item.pitch)) ? Number(item.pitch) : 0) : [0, 0, 0, 0]) %>'
+    data-titles="<%= JSON.stringify(galleryImages && galleryImages.length ? galleryImages.map((item) => item.title || 'Resort Photo') : []) %>"
+    data-button-positions='<%- JSON.stringify(galleryImages && galleryImages.length ? galleryImages.map((item) => item.buttonPositions || {}) : []) %>'
   >
     <a-scene embedded vr-mode-ui="enabled: false">
       <a-assets>
@@ -264,11 +271,12 @@
       <a-sky id="sky" src="#pano1" rotation="0 -90 0" transparent="true" opacity="1"></a-sky>
     </a-scene>
 
-    <div class="street-controls" aria-label="Street View navigation">
-      <button class="street-control" id="leftBtn" type="button" aria-label="Go left">←</button>
-      <button class="street-control" id="forwardBtn" type="button" aria-label="Go forward">↑</button>
-      <button class="street-control" id="rightBtn" type="button" aria-label="Go right">→</button>
-      <button class="street-control" id="backwardBtn" type="button" aria-label="Go backward">↓</button>
+    <div class="compass-hud" role="group" aria-label="Directional gallery navigation">
+      <div class="compass-rose" id="compassRose">
+        <button class="street-control" id="leftBtn" type="button" disabled><span class="street-control-arrow" aria-hidden="true">←</span><span class="street-control-label">Left</span></button>
+        <button class="street-control" id="forwardBtn" type="button" disabled><span class="street-control-arrow" aria-hidden="true">↑</span><span class="street-control-label">Forward</span></button>
+        <button class="street-control" id="rightBtn" type="button" disabled><span class="street-control-arrow" aria-hidden="true">→</span><span class="street-control-label">Right</span></button>
+        <button class="street-control" id="backwardBtn" type="button" disabled><span class="street-control-arrow" aria-hidden="true">↓</span><span class="street-control-label">Back</span></button>
     </div>
   </div>
 
@@ -306,8 +314,26 @@
   const backwardBtn = document.getElementById('backwardBtn');
 
   const viewer = document.querySelector('.viewer-wrapper');
+  const compassRose = document.getElementById('compassRose');
   const scenes = JSON.parse(viewer.dataset.scenes || '[]');
   const navigation = JSON.parse(viewer.dataset.navigation || '[]');
+  const forwardHeadings = JSON.parse(viewer.dataset.headings || '[]');
+  const forwardPitches = JSON.parse(viewer.dataset.pitches || '[]');
+  const sceneTitles = JSON.parse(viewer.dataset.titles || '[]');
+  const sceneButtonPositions = JSON.parse(viewer.dataset.buttonPositions || '[]');
+  const normalizeHeading = (heading) => ((heading % 360) + 360) % 360;
+  const compassDirections = [
+    { button: leftBtn, key: 'left', label: 'Left' },
+    { button: forwardBtn, key: 'forward', label: 'Forward' },
+    { button: rightBtn, key: 'right', label: 'Right' },
+    { button: backwardBtn, key: 'backward', label: 'Back' }
+  ];
+  const defaultButtonHeadingOffsets = {
+    left: 90,
+    forward: 0,
+    right: 270,
+    backward: 180
+  };
 
   let currentIndex = 0;
 
@@ -318,21 +344,137 @@
     prevBtn.disabled = (currentIndex === 0);
     nextBtn.disabled = (currentIndex === scenes.length - 1);
     const currentNavigation = navigation[currentIndex] || {};
-    leftBtn.disabled = !Number.isInteger(currentNavigation.left);
-    rightBtn.disabled = !Number.isInteger(currentNavigation.right);
-    forwardBtn.disabled = !Number.isInteger(currentNavigation.forward);
-    backwardBtn.disabled = !Number.isInteger(currentNavigation.backward);
+    compassDirections.forEach(({ button, key, label }) => {
+      const targetIndex = currentNavigation[key];
+      const isConnected = Number.isInteger(targetIndex) && targetIndex >= 0 && targetIndex < scenes.length;
+      const targetTitle = isConnected ? sceneTitles[targetIndex] : '';
+      button.disabled = !isConnected;
+      button.querySelector('.street-control-label').textContent = targetTitle
+        ? `Go to ${targetTitle}`
+        : label;
+      button.setAttribute('aria-label', isConnected
+        ? `Go ${label.toLowerCase()} to ${targetTitle || `location ${targetIndex + 1}`}`
+        : `${label} destination is not connected`);
+      button.title = isConnected
+        ? `Go ${label.toLowerCase()} to ${targetTitle || `location ${targetIndex + 1}`}`
+        : `${label} destination is not connected`;
+    });
+    updateCompass();
+  }
+
+  function updateCompass() {
+    const cameraWorldRotation = camera.object3D.getWorldQuaternion(new AFRAME.THREE.Quaternion());
+    const width = viewer.clientWidth;
+    const height = viewer.clientHeight;
+    if (!cameraWorldRotation || !width || !height) {
+      return;
+    }
+
+    const cameraForward = new AFRAME.THREE.Vector3(0, 0, -1)
+      .applyQuaternion(cameraWorldRotation)
+      .normalize();
+    const inverseCameraRotation = cameraWorldRotation.clone().invert();
+    const fov = AFRAME.THREE.MathUtils.degToRad(Number(camera.getAttribute('fov')));
+    const focalLength = (height / 2) / Math.tan(fov / 2);
+    const currentButtonPositions = sceneButtonPositions[currentIndex] || {};
+    let closestButton = null;
+    let closestAlignment = -Infinity;
+
+    compassDirections.forEach(({ button, key }) => {
+      if (button.disabled) {
+        button.style.visibility = 'hidden';
+        return;
+      }
+
+      const savedPin = currentButtonPositions[key];
+      const pinHeading = Number.isFinite(savedPin && savedPin.heading)
+        ? savedPin.heading
+        : normalizeHeading((forwardHeadings[currentIndex] || 0) + defaultButtonHeadingOffsets[key]);
+      const pinPitch = Number.isFinite(savedPin && savedPin.pitch)
+        ? Math.min(89, Math.max(-89, savedPin.pitch))
+        : Math.min(89, Math.max(0, forwardPitches[currentIndex] || 0));
+      const headingRadians = AFRAME.THREE.MathUtils.degToRad(pinHeading);
+      const pitchRadians = AFRAME.THREE.MathUtils.degToRad(pinPitch);
+      const worldDirection = new AFRAME.THREE.Vector3(
+        -Math.sin(headingRadians) * Math.cos(pitchRadians),
+        Math.sin(pitchRadians),
+        -Math.cos(headingRadians) * Math.cos(pitchRadians)
+      ).normalize();
+      const localDirection = worldDirection.clone().applyQuaternion(inverseCameraRotation);
+      if (localDirection.z >= 0) {
+        button.style.visibility = 'hidden';
+        return;
+      }
+
+      const screenX = width / 2 + (localDirection.x / -localDirection.z) * focalLength;
+      const screenY = height / 2 - (localDirection.y / -localDirection.z) * focalLength;
+      if (screenX < 0 || screenX > width || screenY < 0 || screenY > height) {
+        button.style.visibility = 'hidden';
+        return;
+      }
+
+      button.style.left = `${(screenX / width) * 100}%`;
+      button.style.top = `${(screenY / height) * 100}%`;
+      const alignment = cameraForward.dot(worldDirection);
+      if (alignment > closestAlignment) {
+        closestAlignment = alignment;
+        closestButton = button;
+      }
+    });
+
+    const directionViewThreshold = Math.cos(AFRAME.THREE.MathUtils.degToRad(32));
+    if (closestAlignment < directionViewThreshold) {
+      closestButton = null;
+    }
+
+    compassDirections.forEach(({ button }) => {
+      button.style.visibility = button === closestButton ? 'visible' : 'hidden';
+    });
+  }
+
+  function applySceneHeading(index) {
+    const lookControls = camera.components['look-controls'];
+    const yawObject = lookControls && lookControls.yawObject;
+    const pitchObject = lookControls && lookControls.pitchObject;
+
+    if (!yawObject || !pitchObject) {
+      return false;
+    }
+
+    const heading = Number.isFinite(forwardHeadings[index])
+      ? normalizeHeading(forwardHeadings[index])
+      : 0;
+    yawObject.rotation.y = AFRAME.THREE.MathUtils.degToRad(heading);
+    const pitch = Number.isFinite(forwardPitches[index])
+      ? Math.min(89, Math.max(0, forwardPitches[index]))
+      : 0;
+    pitchObject.rotation.x = AFRAME.THREE.MathUtils.degToRad(pitch);
+    lookControls.updateOrientation();
+    camera.object3D.updateMatrixWorld(true);
+    return true;
+  }
+
+  function applySceneHeadingWhenReady(index, attempts = 0) {
+    if (index !== currentIndex) {
+      return;
+    }
+
+    if (applySceneHeading(index) || attempts >= 10) {
+      return;
+    }
+
+    requestAnimationFrame(() => applySceneHeadingWhenReady(index, attempts + 1));
   }
 
   function goTo(index) {
     if (Number.isInteger(index) && index >= 0 && index < scenes.length) {
       currentIndex = index;
-      fadeTo(scenes[currentIndex]);
+      fadeTo(scenes[currentIndex], currentIndex);
       updateUI();
     }
   }
 
-  function fadeTo(image) {
+  function fadeTo(image, headingIndex) {
     // Smooth Fade Sequence
     sky.setAttribute('animation', {
       property: 'components.material.material.opacity',
@@ -342,7 +484,13 @@
     });
     
     setTimeout(() => {
+      if (headingIndex !== currentIndex) {
+        return;
+      }
+
       sky.setAttribute('src', image);
+      applySceneHeadingWhenReady(headingIndex);
+      requestAnimationFrame(() => applySceneHeadingWhenReady(headingIndex));
       sky.setAttribute('animation', {
         property: 'components.material.material.opacity',
         to: 1,
@@ -364,10 +512,9 @@
     }
   };
 
-  leftBtn.onclick = () => goTo(navigation[currentIndex]?.left);
-  forwardBtn.onclick = () => goTo(navigation[currentIndex]?.forward);
-  rightBtn.onclick = () => goTo(navigation[currentIndex]?.right);
-  backwardBtn.onclick = () => goTo(navigation[currentIndex]?.backward);
+  compassDirections.forEach(({ button, key }) => {
+    button.onclick = () => goTo(navigation[currentIndex]?.[key]);
+  });
 
   function clampLookingDown() {
     const lookControls = camera.components['look-controls'];
@@ -377,6 +524,7 @@
       pitchObject.rotation.x = 0;
     }
 
+    updateCompass();
     requestAnimationFrame(clampLookingDown);
   }
 
@@ -412,6 +560,35 @@
 
   viewer.addEventListener('dblclick', toggleViewerFullscreen);
 
+  let galleryControlsInitialized = false;
+
+  function initializeGalleryControls(attempt = 0) {
+    if (galleryControlsInitialized) {
+      return;
+    }
+
+    const lookControls = camera.components['look-controls'];
+    if (camera.hasLoaded && lookControls && lookControls.yawObject && lookControls.pitchObject) {
+      galleryControlsInitialized = true;
+      applySceneHeadingWhenReady(currentIndex);
+      updateUI();
+      return;
+    }
+
+    if (attempt < 120) {
+      requestAnimationFrame(() => initializeGalleryControls(attempt + 1));
+      return;
+    }
+
+    console.error('Gallery controls could not initialize; directional navigation remains disabled.');
+  }
+
+  initializeGalleryControls();
+  camera.addEventListener('loaded', () => initializeGalleryControls());
+  document.querySelector('a-scene').addEventListener('loaded', () => initializeGalleryControls());
+  window.addEventListener('load', () => initializeGalleryControls(), { once: true });
+  window.setTimeout(() => initializeGalleryControls(), 250);
+
   let lastTapAt = 0;
   viewer.addEventListener('touchend', (event) => {
     const now = Date.now();
@@ -424,7 +601,6 @@
     }
   }, { passive: false });
 
-  updateUI();
 </script>
 
 </body>

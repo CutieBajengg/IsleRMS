@@ -456,6 +456,48 @@ function parseJson(
 }
 
 
+function normalizeButtonPositions(value) {
+
+  const parsed = parseJson(value, null);
+
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    return null;
+  }
+
+  const directions = ["left", "forward", "right", "backward"];
+  const normalized = {};
+
+  for (const direction of directions) {
+    const pin = parsed[direction];
+
+    if (!pin || typeof pin !== "object" || Array.isArray(pin)) {
+      return null;
+    }
+
+    const heading = Number(pin.heading);
+    const pitch = Number(pin.pitch);
+
+    if (
+      !Number.isFinite(heading) ||
+      heading < 0 ||
+      heading > 360 ||
+      !Number.isFinite(pitch) ||
+      pitch < -89 ||
+      pitch > 89
+    ) {
+      return null;
+    }
+
+    normalized[direction] = {
+      heading: Math.round((((heading % 360) + 360) % 360) * 100) / 100,
+      pitch: Math.round(pitch * 100) / 100,
+    };
+  }
+
+  return normalized;
+}
+
+
 function getFirst(
   body,
   keys
@@ -3155,6 +3197,13 @@ router.get(
               galleryItemToPlain
             ),
 
+          viewIndex:
+            typeof req.query?.view === "string" &&
+            req.query.view.trim() !== "" &&
+            Number.isInteger(Number(req.query.view))
+              ? Number(req.query.view)
+              : null,
+
           success:
             normalizeString(
               req.query?.success,
@@ -3228,6 +3277,12 @@ async function saveGalleryLocation(
       req.body ||
       {};
 
+    // Keep the same scene open after a Panorama Studio save or validation error.
+    const returnViewIndex = parseInteger(body.returnViewIndex, null);
+    res.locals.galleryReturnViewIndex =
+      Number.isInteger(returnViewIndex) && returnViewIndex >= 0
+        ? returnViewIndex
+        : null;
 
     const {
       gallery,
@@ -3728,6 +3783,21 @@ async function saveGalleryLocation(
         ).trim();
 
 
+      if (hasOwn(body, "buttonPositions")) {
+        const normalizedButtonPositions =
+          normalizeButtonPositions(body.buttonPositions);
+
+        if (!normalizedButtonPositions) {
+          return redirectGalleryError(
+            res,
+            "invalid_button_positions"
+          );
+        }
+
+        target.buttonPositions = normalizedButtonPositions;
+      }
+
+
       applySceneMetadata(
         target,
         body,
@@ -3938,13 +4008,24 @@ async function saveGalleryLocation(
           slug:
             target.slug ||
             "",
+
+          buttonPositionsSaved:
+            Boolean(
+              target.buttonPositions &&
+              ["left", "forward", "right", "backward"].every(
+                (direction) =>
+                  Number.isFinite(Number(target.buttonPositions?.[direction]?.heading)) &&
+                  Number.isFinite(Number(target.buttonPositions?.[direction]?.pitch))
+              )
+            ),
         }
       );
 
 
       return redirectGallerySuccess(
         res,
-        "Gallery location saved."
+        "Gallery location saved.",
+        hasOwn(body, "returnViewIndex") ? targetIndex : undefined
       );
     }
 
@@ -4008,6 +4089,65 @@ async function saveGalleryLocation(
     );
   }
 }
+
+
+
+
+/* ============================================================
+   LEGACY PANORAMA URL COMPATIBILITY
+
+   Both old /gallery-editor/view/:imageIndex links and the new
+   /gallery-editor?view=:imageIndex format now use the same EJS.
+   The POST adapter forwards older forms to the unified save path.
+============================================================ */
+
+router.get(
+  "/gallery-editor/view/:imageIndex",
+  requireGalleryAdmin,
+  async (req, res) => {
+    try {
+      const imageIndex = Number(req.params.imageIndex);
+      const { galleryImages } = await getGalleryForEditor();
+
+      if (
+        !Number.isInteger(imageIndex) ||
+        imageIndex < 0 ||
+        imageIndex >= galleryImages.length
+      ) {
+        return redirectGalleryError(res, "invalid_image");
+      }
+
+      const params = new URLSearchParams({ view: String(imageIndex) });
+      const success = normalizeString(req.query?.success || "", 300);
+      const error = normalizeString(req.query?.error || "", 500);
+      if (success) params.set("success", success);
+      if (error) params.set("error", error);
+
+      return res.redirect(`/admin/gallery-editor?${params.toString()}`);
+    } catch (error) {
+      console.error(
+        `[GALLERY VIEW REDIRECT ERROR] requestId=${getRequestId(req) || "none"}`,
+        error.stack || error.message || error
+      );
+      return redirectGalleryError(res, "Unable to open the panorama editor.");
+    }
+  }
+);
+
+router.post(
+  "/gallery-editor/view/:imageIndex",
+  requireGalleryMutation,
+  galleryUploadMiddleware,
+  (req, res) => {
+    req.body = {
+      ...(req.body || {}),
+      action: "edit",
+      imageIndex: req.params.imageIndex,
+      returnViewIndex: req.params.imageIndex,
+    };
+    return saveGalleryLocation(req, res);
+  }
+);
 
 
 /* ============================================================
@@ -4342,31 +4482,48 @@ router.get(
    RESPONSE HELPERS
 ============================================================ */
 
+function getGalleryRedirectViewIndex(res, explicitIndex) {
+  const candidate = Number.isInteger(explicitIndex)
+    ? explicitIndex
+    : parseInteger(res.locals?.galleryReturnViewIndex, null);
+
+  return Number.isInteger(candidate) && candidate >= 0
+    ? candidate
+    : null;
+}
+
+
 function redirectGallerySuccess(
   res,
-  message
+  message,
+  viewIndex
 ) {
+  let destination =
+    "/admin/gallery-editor?success=" + encodeURIComponent(message);
 
-  return res.redirect(
-    "/admin/gallery-editor?success=" +
-      encodeURIComponent(
-        message
-      )
-  );
+  const selectedIndex = getGalleryRedirectViewIndex(res, viewIndex);
+  if (selectedIndex !== null) {
+    destination += "&view=" + encodeURIComponent(selectedIndex);
+  }
+
+  return res.redirect(destination);
 }
 
 
 function redirectGalleryError(
   res,
-  message
+  message,
+  viewIndex
 ) {
+  let destination =
+    "/admin/gallery-editor?error=" + encodeURIComponent(message);
 
-  return res.redirect(
-    "/admin/gallery-editor?error=" +
-      encodeURIComponent(
-        message
-      )
-  );
+  const selectedIndex = getGalleryRedirectViewIndex(res, viewIndex);
+  if (selectedIndex !== null) {
+    destination += "&view=" + encodeURIComponent(selectedIndex);
+  }
+
+  return res.redirect(destination);
 }
 
 

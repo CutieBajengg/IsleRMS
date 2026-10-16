@@ -1,77 +1,915 @@
+<%
+  /*
+   * ============================================================
+   * PUFFER ISLE RESORT | IsleRMS
+   * File: views/admin/gallery-editor.ejs
+   *
+   * CENTRALIZED 360° GALLERY STUDIO
+   * - Add panorama scenes
+   * - Edit scene titles and replace images
+   * - Choose each direction button's destination
+   * - Drag each direction button directly on the panorama
+   * - Set the opening camera view
+   * - Delete scenes
+   * - Includes the shared admin navigation
+   *
+   * Expected server data:
+   * - galleryImages, success, error, csrfToken, viewIndex
+   * ============================================================
+   */
+  const galleryScenes = Array.isArray(galleryImages) ? galleryImages : [];
+  const successMessage = typeof success !== "undefined" ? String(success || "") : "";
+  const errorMessage = typeof error !== "undefined" ? String(error || "") : "";
+  const adminCsrfToken = typeof csrfToken !== "undefined" ? String(csrfToken || "") : "";
+  const safeTitle = typeof title !== "undefined" && title ? String(title) : "360° Gallery Studio | IsleRMS";
+  const requestedViewIndex = typeof viewIndex !== "undefined" && viewIndex !== null && String(viewIndex).trim() !== "" ? Number(viewIndex) : NaN;
+  const isViewMode = Number.isInteger(requestedViewIndex) && requestedViewIndex >= 0 && requestedViewIndex < galleryScenes.length;
+  const imageIndex = isViewMode ? requestedViewIndex : -1;
+  const activeScene = isViewMode ? galleryScenes[imageIndex] : null;
+
+  function getSceneTitle(scene, index) {
+    const value = scene && scene.title != null ? String(scene.title).trim() : "";
+    return value || ("Resort View " + (index + 1));
+  }
+
+  function isSelected(value, targetIndex) {
+    return value !== null && value !== undefined && String(value).trim() !== "" && Number(value) === targetIndex;
+  }
+
+  function wrapHeading(value) {
+    const number = Number(value);
+    return Number.isFinite(number) ? ((number % 360) + 360) % 360 : 0;
+  }
+
+  const directionMeta = [
+    ["left", "←", "Left"],
+    ["forward", "↑", "Forward"],
+    ["right", "→", "Right"],
+    ["backward", "↓", "Back"]
+  ];
+
+  let navigationLinks = 0;
+  let connectedScenes = 0;
+  galleryScenes.forEach(function(scene) {
+    let connected = false;
+    directionMeta.forEach(function(meta) {
+      const value = scene ? scene[meta[0]] : null;
+      if (value !== null && value !== undefined && String(value).trim() !== "" && Number.isInteger(Number(value))) {
+        navigationLinks += 1;
+        connected = true;
+      }
+    });
+    if (connected) connectedScenes += 1;
+  });
+
+  const baseHeading = activeScene && Number.isFinite(Number(activeScene.heading)) ? Number(activeScene.heading) : 0;
+  // Use the same world-yaw convention as the drag math and legacy editor defaults.
+  // The pin's world heading follows the camera yaw, then each direction adds its offset.
+  const defaultPins = {
+    left: { heading: wrapHeading(baseHeading + 90), pitch: 0 },
+    forward: { heading: wrapHeading(baseHeading), pitch: 0 },
+    right: { heading: wrapHeading(baseHeading - 90), pitch: 0 },
+    backward: { heading: wrapHeading(baseHeading + 180), pitch: 0 }
+  };
+  const suppliedPins = activeScene && activeScene.buttonPositions && typeof activeScene.buttonPositions === "object" ? activeScene.buttonPositions : {};
+  const viewButtonPositions = {};
+  directionMeta.forEach(function(meta) {
+    const direction = meta[0];
+    const candidate = suppliedPins[direction];
+    const fallback = defaultPins[direction];
+    const heading = candidate && Number.isFinite(Number(candidate.heading)) ? Number(candidate.heading) : fallback.heading;
+    const pitch = candidate && Number.isFinite(Number(candidate.pitch)) ? Number(candidate.pitch) : fallback.pitch;
+    viewButtonPositions[direction] = {
+      heading: Math.round(wrapHeading(heading) * 100) / 100,
+      pitch: Math.round(Math.max(-89, Math.min(89, pitch)) * 100) / 100
+    };
+  });
+
+  const errorMessages = {
+    invalid_heading: "The forward-view heading is invalid.",
+    invalid_pitch: "The forward-view pitch is invalid.",
+    invalid_button_positions: "One or more direction-button positions are invalid. Reposition the buttons and try saving again.",
+    invalid_image: "That gallery location could not be found.",
+    save_failed: "The gallery changes could not be saved. Please try again."
+  };
+  const shownError = errorMessage ? (errorMessages[errorMessage] || errorMessage) : "";
+%>
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title><%= title %></title>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="dark">
+  <meta name="theme-color" content="#070a0c">
+  <link rel="icon" type="image/png" href="/images/islelogo.png">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@600;700;800&family=Poppins:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" crossorigin="anonymous" referrerpolicy="no-referrer">
+  <% if (isViewMode) { %>
+    <script src="https://aframe.io/releases/1.5.0/aframe.min.js"></script>
+  <% } %>
+  <title><%= safeTitle %></title>
   <style>
-    :root { --bg: #071416; --panel: #102326; --line: rgba(255,255,255,.12); --text: #f7fbfb; --muted: #a9bcbd; --gold: #f6d365; --teal: #35d0c5; --danger: #ff7777; }
+    :root {
+      color-scheme: dark;
+      --gallery-bg: #070a0c;
+      --gallery-deep: #070a0c;
+      --gallery-panel: rgba(255, 255, 255, 0.045);
+      --gallery-panel-raised: rgba(255, 255, 255, 0.065);
+      --gallery-panel-soft: rgba(255, 255, 255, 0.035);
+      --gallery-white: #ffffff;
+      --gallery-text: #dce4e6;
+      --gallery-muted: #8e999e;
+      --gallery-muted-soft: #758188;
+      --gallery-teal: #00a6a6;
+      --gallery-teal-light: #1fc7c7;
+      --gallery-teal-deep: #006f70;
+      --gallery-gold: #ffd700;
+      --gallery-gold-light: #f2cf36;
+      --gallery-gold-deep: #b78c21;
+      --gallery-line: rgba(255, 255, 255, 0.085);
+      --gallery-line-strong: rgba(255, 255, 255, 0.14);
+      --gallery-line-gold: rgba(0, 166, 166, 0.30);
+      --gallery-success: rgba(46, 204, 113, 0.09);
+      --gallery-success-ink: #2ecc71;
+      --gallery-danger: rgba(232, 93, 93, 0.09);
+      --gallery-danger-ink: #e85d5d;
+      --gallery-shadow: 0 24px 70px rgba(0,0,0,.36);
+      --gallery-shadow-soft: 0 12px 32px rgba(0,0,0,.22);
+      --gallery-radius-xl: 26px;
+      --gallery-radius-lg: 19px;
+      --gallery-radius-md: 13px;
+    }
     * { box-sizing: border-box; }
-    body { margin: 0; color: var(--text); background: radial-gradient(circle at top right, #1b4142, var(--bg) 54%); font: 15px/1.5 Arial, sans-serif; }
-    .page { max-width: 1200px; margin: auto; padding: 36px 20px 70px; }
-    .topbar, .actions { display: flex; align-items: center; justify-content: space-between; gap: 14px; flex-wrap: wrap; }
-    h1 { margin: 0 0 8px; font-size: clamp(1.8rem, 4vw, 2.8rem); }
-    .intro, .muted { color: var(--muted); }
-    .back { color: var(--gold); text-decoration: none; font-weight: 700; }
-    .notice { margin: 22px 0; padding: 12px 16px; border-radius: 10px; background: rgba(53,208,197,.14); color: var(--teal); }
-    .notice.error { background: rgba(255,119,119,.14); color: var(--danger); }
-    .grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 20px; margin-top: 28px; }
-    .card { overflow: hidden; border: 1px solid var(--line); border-radius: 14px; background: rgba(16,35,38,.9); box-shadow: 0 18px 40px rgba(0,0,0,.2); }
-    .preview { width: 100%; aspect-ratio: 16 / 9; object-fit: cover; display: block; background: #020606; }
-    .form { padding: 18px; }
-    label { display: block; margin: 12px 0 6px; color: var(--muted); font-size: .78rem; font-weight: 700; text-transform: uppercase; letter-spacing: .06em; }
-    input, select { width: 100%; padding: 11px 12px; border: 1px solid var(--line); border-radius: 8px; background: #091719; color: var(--text); font: inherit; }
-    input[type="file"] { padding: 8px; }
-    .save { margin-top: 16px; padding: 11px 16px; border: 0; border-radius: 8px; background: var(--gold); color: #171717; font-weight: 700; cursor: pointer; }
-    .save:hover { filter: brightness(1.08); }
-    @media (max-width: 560px) { .page { padding: 24px 14px 50px; } }
+    html { min-height: 100%; scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      overflow-x: hidden;
+      color: var(--gallery-white);
+      background:
+        radial-gradient(circle at 8% 5%, rgba(0, 166, 166, 0.12), transparent 26%),
+        radial-gradient(circle at 92% 88%, rgba(255, 215, 0, 0.045), transparent 25%),
+        linear-gradient(145deg, #070a0c 0%, #0a0e10 56%, #080b0d 100%);
+      font: 14px/1.55 "Poppins", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      opacity: .24;
+      background-image: linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+      background-size: 48px 48px;
+      mask-image: linear-gradient(to bottom, #000, transparent 88%);
+    }
+    ::selection { background: var(--gallery-gold); color: #071011; }
+    ::-webkit-scrollbar { width: 10px; }
+    ::-webkit-scrollbar-track { background: var(--gallery-deep); }
+    ::-webkit-scrollbar-thumb { background: linear-gradient(180deg, var(--gallery-teal), var(--gallery-teal-deep)); border-radius: 999px; }
+    button, input, select { font: inherit; }
+    a, button, input, select { -webkit-tap-highlight-color: transparent; }
+    :focus-visible { outline: 2px solid var(--gallery-gold); outline-offset: 3px; }
+    h1, h2, h3, h4, p { margin-top: 0; }
+    .gallery-page { position: relative; width: min(1440px, calc(100% - 34px)); margin: 0 auto; padding: 118px 0 60px; }
+
+    /* Shared page heading */
+    .gallery-header { display:flex; align-items:flex-end; justify-content:space-between; gap:24px; margin-bottom:20px; }
+    .gallery-heading { min-width:0; }
+    .eyebrow { display:inline-flex; align-items:center; gap:9px; margin-bottom:11px; color:var(--gallery-teal-light); font-size:.7rem; font-weight:800; letter-spacing:.16em; text-transform:uppercase; }
+    .eyebrow::before { content:""; width:25px; height:2px; border-radius:999px; background:linear-gradient(90deg,var(--gallery-teal),var(--gallery-teal-deep)); }
+    .gallery-heading h1 { margin:0; font-family:"Playfair Display",Georgia,serif; font-size:clamp(2.2rem,4.3vw,3.8rem); line-height:1; letter-spacing:-.035em; }
+    .gallery-heading h1 span { color:var(--gallery-teal); }
+    .gallery-heading p { max-width:850px; margin:13px 0 0; color:var(--gallery-muted); font-size:.88rem; line-height:1.75; }
+    .header-actions { display:flex; align-items:center; justify-content:flex-end; flex-wrap:wrap; gap:9px; }
+    .status-card { display:inline-flex; align-items:center; gap:10px; min-height:43px; padding:0 13px; border:1px solid var(--gallery-line); border-radius:13px; background:rgba(255,255,255,.035); color:var(--gallery-text); font-size:.7rem; font-weight:700; }
+    .status-dot { display:inline-block; width:8px; height:8px; flex:0 0 8px; border-radius:50%; background:var(--gallery-teal); box-shadow:0 0 0 4px rgba(0,166,166,.09),0 0 14px rgba(0,166,166,.3); }
+    .btn, .save-btn { display:inline-flex; align-items:center; justify-content:center; gap:8px; min-height:43px; padding:0 15px; border:1px solid transparent; border-radius:12px; font-size:.72rem; font-weight:800; text-decoration:none; white-space:nowrap; cursor:pointer; transition:transform .18s ease,background .18s ease,border-color .18s ease,filter .18s ease; }
+    .btn:hover, .save-btn:hover { transform:translateY(-1px); }
+    .btn:disabled, .save-btn:disabled { cursor:wait; opacity:.6; transform:none; }
+    .btn-gold { background:linear-gradient(135deg,var(--gallery-gold-light),var(--gallery-gold)); color:#15130a; box-shadow:0 9px 24px rgba(255,215,0,.13); }
+    .save-btn { background:linear-gradient(135deg,var(--gallery-teal-light),var(--gallery-teal)); color:#061718; box-shadow:0 9px 24px rgba(0,166,166,.17); }
+    .btn-secondary { border-color:var(--gallery-line-strong); background:rgba(255,255,255,.035); color:var(--gallery-white); }
+    .btn-danger { background:linear-gradient(135deg,#e85d5d,#a83d3d); color:#fff; }
+    .btn-small { min-height:37px; padding:0 11px; font-size:.65rem; }
+    .notice { display:flex; align-items:flex-start; gap:10px; margin:0 0 17px; padding:13px 15px; border:1px solid rgba(46,204,113,.25); border-radius:13px; background:var(--gallery-success); color:var(--gallery-success-ink); font-size:.75rem; font-weight:700; }
+    .notice.error { border-color:rgba(232,93,93,.25); background:var(--gallery-danger); color:var(--gallery-danger-ink); }
+    .notice i { margin-top:2px; }
+
+    /* Overview metrics */
+    .metric-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:14px; margin:22px 0 21px; }
+    .metric-card { position:relative; overflow:hidden; min-height:118px; padding:17px 18px; border:1px solid var(--gallery-line); border-radius:var(--gallery-radius-lg); background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.018)); box-shadow:var(--gallery-shadow-soft); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+    .metric-card::after { content:""; position:absolute; width:110px; height:110px; right:-48px; bottom:-64px; border-radius:50%; background:rgba(0,166,166,.075); filter:blur(8px); pointer-events:none; }
+    .metric-top { display:flex; align-items:center; justify-content:space-between; gap:10px; }
+    .metric-label { color:var(--gallery-muted); font-size:.63rem; font-weight:800; letter-spacing:.1em; text-transform:uppercase; }
+    .metric-icon { display:grid; place-items:center; width:36px; height:36px; border:1px solid rgba(0,166,166,.19); border-radius:11px; background:rgba(0,166,166,.07); color:var(--gallery-teal); }
+    .metric-value { display:block; margin-top:11px; font-size:1.72rem; line-height:1.1; font-weight:800; letter-spacing:-.04em; }
+    .metric-note { display:block; margin-top:4px; color:var(--gallery-muted-soft); font-size:.63rem; }
+    .live-strip { display:flex; align-items:center; gap:10px; margin-bottom:19px; padding:12px 15px; border:1px solid var(--gallery-line); border-radius:13px; background:linear-gradient(90deg,rgba(0,166,166,.055),rgba(255,255,255,.015)); color:var(--gallery-muted); font-size:.72rem; }
+    .live-strip strong { color:var(--gallery-white); }
+
+    /* Management panel */
+    .operation-panel { overflow:hidden; border:1px solid var(--gallery-line); border-radius:var(--gallery-radius-xl); background:linear-gradient(145deg,rgba(255,255,255,.043),rgba(255,255,255,.017)); box-shadow:var(--gallery-shadow); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+    .panel-head { display:flex; align-items:flex-start; justify-content:space-between; gap:18px; padding:23px 23px 17px; border-bottom:1px solid var(--gallery-line); }
+    .panel-title { margin:0; font-family:"Playfair Display",Georgia,serif; font-size:1.6rem; line-height:1.15; }
+    .panel-subtitle { margin:7px 0 0; max-width:850px; color:var(--gallery-muted); font-size:.73rem; line-height:1.7; }
+    .panel-tools { display:flex; align-items:center; justify-content:flex-end; gap:8px; flex-wrap:wrap; }
+    .add-section { margin:18px 22px 0; padding:19px; border:1px solid var(--gallery-line); border-radius:18px; background:rgba(255,255,255,.018); }
+    .add-header { display:flex; align-items:flex-start; justify-content:space-between; gap:16px; margin-bottom:15px; }
+    .add-title { margin:0; font-family:"Playfair Display",Georgia,serif; font-size:1.3rem; }
+    .add-description { margin:6px 0 0; color:var(--gallery-muted); font-size:.69rem; line-height:1.6; }
+    .format-badge, .meta-pill { display:inline-flex; align-items:center; gap:6px; min-height:28px; padding:0 9px; border:1px solid var(--gallery-line-gold); border-radius:999px; background:rgba(0,166,166,.045); color:var(--gallery-teal-light); font-size:.58rem; font-weight:800; white-space:nowrap; }
+    .add-form { display:grid; grid-template-columns:minmax(180px,.9fr) minmax(260px,1.4fr) auto; align-items:end; gap:12px; }
+    .field { display:flex; flex-direction:column; gap:7px; min-width:0; }
+    .field-label, label { display:block; margin:0; color:var(--gallery-text); font-size:.66rem; font-weight:800; }
+    .help-text { display:block; color:var(--gallery-muted-soft); font-size:.59rem; line-height:1.55; }
+    .field input, .field select, .scene-form input:not([type="hidden"]), .scene-form select, .view-form input:not([type="hidden"]), .view-form select { width:100%; min-width:0; min-height:43px; padding:10px 11px; border:1px solid var(--gallery-line); border-radius:11px; outline:none; background:rgba(255,255,255,.028); color:var(--gallery-white); transition:border-color .18s ease,background .18s ease,box-shadow .18s ease; }
+    .field input::placeholder, .scene-form input::placeholder, .view-form input::placeholder { color:#6f7a7f; }
+    .field input:focus, .field select:focus, .scene-form input:focus, .scene-form select:focus, .view-form input:focus, .view-form select:focus { border-color:rgba(0,166,166,.5); background:rgba(0,166,166,.035); box-shadow:0 0 0 4px rgba(0,166,166,.08); }
+    select option { background:#0c1113; color:var(--gallery-white); }
+    input[type="file"] { padding:7px !important; color:var(--gallery-muted); font-size:.69rem; }
+    input[type="file"]::file-selector-button { margin-right:8px; padding:7px 9px; border:0; border-radius:8px; background:rgba(0,166,166,.10); color:var(--gallery-teal-light); font:inherit; font-weight:800; cursor:pointer; }
+    .add-submit { min-height:43px; }
+    .scene-section { padding:22px; }
+    .scene-section-head { display:flex; align-items:center; justify-content:space-between; gap:12px; margin-bottom:15px; }
+    .scene-section-title { margin:0; font-family:"Playfair Display",Georgia,serif; font-size:1.32rem; }
+    .scene-section-count { color:var(--gallery-muted); font-size:.66rem; font-weight:700; }
+    .scene-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr)); gap:18px; }
+    .scene-card { min-width:0; overflow:hidden; border:1px solid var(--gallery-line); border-radius:19px; background:linear-gradient(145deg,rgba(255,255,255,.05),rgba(255,255,255,.018)); box-shadow:var(--gallery-shadow-soft); transition:border-color .18s ease,transform .18s ease; }
+    .scene-card:hover { transform:translateY(-2px); border-color:rgba(0,166,166,.24); }
+    .preview-area { position:relative; overflow:hidden; background:#050505; }
+    .scene-image { display:block; width:100%; aspect-ratio:16/9; object-fit:cover; background:#050505; transition:transform .32s ease; }
+    .scene-card:hover .scene-image { transform:scale(1.025); }
+    .preview-area::after { content:""; position:absolute; inset:35% 0 0; background:linear-gradient(transparent,rgba(0,0,0,.72)); pointer-events:none; }
+    .scene-number { position:absolute; z-index:1; top:11px; left:11px; display:inline-flex; align-items:center; gap:7px; min-height:29px; padding:0 10px; border:1px solid rgba(255,255,255,.16); border-radius:999px; background:rgba(10,10,10,.77); color:#fff; font-size:.59rem; font-weight:800; text-transform:uppercase; letter-spacing:.04em; backdrop-filter:blur(10px); }
+    .scene-number i { color:var(--gallery-teal); }
+    .preview-open { position:absolute; z-index:2; top:10px; right:10px; display:inline-flex; align-items:center; gap:7px; min-height:30px; padding:0 10px; border:1px solid rgba(0,166,166,.32); border-radius:999px; background:rgba(18,18,18,.88); color:var(--gallery-teal-light); font-size:.59rem; font-weight:800; text-decoration:none; backdrop-filter:blur(8px); }
+    .preview-open:hover { background:var(--gallery-teal); color:#071011; }
+    .scene-overlay { position:absolute; z-index:1; right:12px; bottom:12px; left:12px; display:flex; align-items:flex-end; justify-content:space-between; gap:10px; pointer-events:none; }
+    .scene-name { min-width:0; }
+    .scene-name strong { display:block; overflow:hidden; font-size:.86rem; font-weight:800; text-overflow:ellipsis; white-space:nowrap; text-shadow:0 2px 10px rgba(0,0,0,.7); }
+    .scene-name span { display:block; margin-top:3px; color:rgba(255,255,255,.68); font-size:.59rem; }
+    .scene-type { display:inline-flex; align-items:center; flex:0 0 auto; min-height:27px; padding:0 9px; border:1px solid rgba(0,166,166,.22); border-radius:999px; background:rgba(0,166,166,.09); color:var(--gallery-teal-light); font-size:.55rem; font-weight:800; }
+    .scene-body { padding:17px; }
+    .scene-form { display:grid; gap:12px; }
+    .replace-box { padding:12px; border:1px solid var(--gallery-line); border-radius:13px; background:rgba(255,255,255,.018); }
+    .replace-heading, .directions-heading { display:flex; align-items:center; gap:8px; margin-bottom:9px; color:var(--gallery-teal-light); font-size:.64rem; font-weight:800; }
+    .navigation-grid { display:grid; grid-template-columns:1fr 1fr; gap:9px; }
+    .navigation-item { min-width:0; padding:10px; border:1px solid rgba(255,255,255,.06); border-radius:11px; background:rgba(255,255,255,.018); }
+    .navigation-item label { display:flex; align-items:center; gap:7px; margin-bottom:7px; font-size:.59rem; }
+    .navigation-item label i { width:15px; text-align:center; color:var(--gallery-teal); }
+    .navigation-item select { min-height:39px; padding:8px; font-size:.65rem; }
+    .scene-actions { display:flex; align-items:center; gap:8px; }
+    .scene-actions .save-btn { flex:1; }
+    .delete-form { margin-top:9px; }
+    .delete-form button { width:100%; }
+    .empty-state { display:flex; align-items:center; justify-content:center; min-height:340px; padding:38px 24px; border:1px dashed var(--gallery-line-strong); border-radius:19px; background:rgba(255,255,255,.017); text-align:center; }
+    .empty-inner { max-width:540px; }
+    .empty-icon { display:grid; place-items:center; width:58px; height:58px; margin:0 auto 15px; border:1px solid var(--gallery-line-gold); border-radius:17px; background:rgba(0,166,166,.055); color:var(--gallery-teal); font-size:1.2rem; }
+    .empty-state h3 { margin:0; font-family:"Playfair Display",Georgia,serif; font-size:1.45rem; }
+    .empty-state p { margin:8px 0 0; color:var(--gallery-muted); font-size:.73rem; line-height:1.7; }
+    .panel-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:14px 22px; border-top:1px solid var(--gallery-line); color:var(--gallery-muted-soft); font-size:.62rem; }
+    .panel-footer strong { color:var(--gallery-white); }
+
+    /* Full panorama editor: drag the arrows in the scene AND edit their targets below it. */
+    .studio-shell { overflow:hidden; border:1px solid var(--gallery-line); border-radius:var(--gallery-radius-xl); background:linear-gradient(145deg,rgba(255,255,255,.043),rgba(255,255,255,.017)); box-shadow:var(--gallery-shadow); backdrop-filter:blur(18px); -webkit-backdrop-filter:blur(18px); }
+    .studio-top { display:flex; align-items:flex-start; justify-content:space-between; gap:20px; padding:20px 22px; border-bottom:1px solid var(--gallery-line); }
+    .studio-top-main { flex:1; min-width:0; }
+    .studio-top-main h2 { margin:0; font-family:"Playfair Display",Georgia,serif; font-size:1.45rem; overflow-wrap:anywhere; }
+    .studio-top-main p { margin:7px 0 0; color:var(--gallery-muted); font-size:.72rem; line-height:1.7; }
+    .studio-badge { display:inline-flex; align-items:center; gap:7px; min-height:29px; margin-top:10px; padding:0 10px; border:1px solid var(--gallery-line-gold); border-radius:999px; background:rgba(0,166,166,.05); color:var(--gallery-teal-light); font-size:.59rem; font-weight:800; }
+    .view-toolbar-fields { display:grid; grid-template-columns:minmax(0,1.2fr) minmax(230px,.8fr); gap:14px; padding:18px 22px; border-bottom:1px solid var(--gallery-line); background:rgba(0,0,0,.12); }
+    .preview-stage { position:relative; width:calc(100% - 44px); height:min(67vh,700px); min-height:360px; margin:20px 22px 0; overflow:hidden; border:1px solid rgba(0,166,166,.40); border-radius:19px; background:#040909; box-shadow:0 18px 46px rgba(0,0,0,.34),0 0 0 1px rgba(0,166,166,.06) inset; isolation:isolate; }
+    .scene { position:relative; z-index:1; display:block; width:100%; height:100%; touch-action:none; }
+    .scene canvas.a-canvas { cursor:grab; touch-action:none; }
+    .scene canvas.a-canvas:active { cursor:grabbing; }
+    .button-layer { position:absolute; z-index:20; inset:0; pointer-events:none; }
+    .place-button { position:absolute; z-index:21; display:flex; align-items:center; gap:8px; max-width:min(240px,54vw); min-height:43px; padding:0 12px 0 8px; transform:translate(-50%,-50%); border:2px solid rgba(255,255,255,.95); border-radius:999px; background:rgba(20,20,20,.92); color:#fff; box-shadow:0 5px 19px rgba(0,0,0,.55); font:inherit; font-size:.73rem; font-weight:800; cursor:grab; user-select:none; touch-action:none; pointer-events:auto; backdrop-filter:blur(9px); }
+    .place-button:active, .place-button[data-dragging="true"] { cursor:grabbing; border-color:var(--gallery-teal-light); background:var(--gallery-teal); color:#071011; box-shadow:0 0 0 4px rgba(0,166,166,.22),0 8px 25px rgba(0,0,0,.55); }
+    .place-button-arrow { display:grid; place-items:center; width:28px; height:28px; flex:0 0 28px; border-radius:50%; background:var(--gallery-teal); color:#071011; font-size:1.05rem; line-height:1; }
+    .place-button-label { display:block; overflow:hidden; max-width:176px; text-overflow:ellipsis; white-space:nowrap; }
+    .stage-instruction { display:flex; align-items:center; gap:9px; margin:11px 22px 0; color:var(--gallery-muted); font-size:.68rem; }
+    .stage-instruction i { color:var(--gallery-teal); }
+    .view-status { min-height:22px; margin:9px 22px 0; color:var(--gallery-teal-light); font-size:.7rem; text-align:left; }
+    .view-settings { padding:21px 22px 22px; }
+    .view-settings-head { display:flex; align-items:flex-end; justify-content:space-between; gap:15px; margin-bottom:13px; }
+    .view-settings-head h3 { margin:0; font-family:"Playfair Display",Georgia,serif; font-size:1.28rem; }
+    .view-settings-head p { margin:5px 0 0; color:var(--gallery-muted); font-size:.68rem; }
+    .view-settings-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:11px; }
+    .view-direction-card { min-width:0; padding:13px; border:1px solid var(--gallery-line); border-radius:13px; background:rgba(255,255,255,.018); }
+    .view-direction-head { display:flex; align-items:center; gap:9px; margin-bottom:10px; }
+    .view-direction-icon { display:grid; place-items:center; width:32px; height:32px; flex:0 0 32px; border:1px solid var(--gallery-line-gold); border-radius:10px; background:rgba(0,166,166,.075); color:var(--gallery-teal); }
+    .view-direction-title { display:block; font-size:.68rem; font-weight:800; }
+    .view-direction-subtitle { display:block; color:var(--gallery-muted-soft); font-size:.57rem; }
+    .view-direction-card select { font-size:.65rem; }
+    .view-footer { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:15px 22px; border-top:1px solid var(--gallery-line); background:rgba(0,0,0,.14); }
+    .view-footer-note { color:var(--gallery-muted); font-size:.65rem; line-height:1.55; }
+    .view-footer-actions { display:flex; align-items:center; gap:9px; }
+    .view-tips { display:grid; grid-template-columns:repeat(3,minmax(0,1fr)); gap:12px; margin-top:17px; }
+    .tip { padding:13px 14px; border:1px solid var(--gallery-line); border-radius:12px; background:rgba(255,255,255,.02); }
+    .tip strong { display:block; margin-bottom:4px; color:var(--gallery-teal-light); font-size:.7rem; }
+    .tip span { color:var(--gallery-muted); font-size:.64rem; line-height:1.6; }
+    .a-enter-vr-button, .a-fullscreen-button { display:none !important; }
+
+    @media (max-width:1160px) {
+      .metric-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+      .add-form { grid-template-columns:1fr 1fr; }
+      .add-submit { width:100%; }
+      .view-settings-grid { grid-template-columns:repeat(2,minmax(0,1fr)); }
+    }
+    @media (max-width:900px) {
+      .gallery-page { width:min(calc(100% - 22px),1440px); padding-top:105px; }
+      .gallery-header { align-items:flex-start; flex-direction:column; }
+      .header-actions { justify-content:flex-start; }
+      .panel-head { flex-direction:column; }
+      .panel-tools { justify-content:flex-start; }
+      .studio-top { flex-direction:column; }
+      .view-toolbar-fields { grid-template-columns:1fr; }
+      .preview-stage { height:61vh; min-height:320px; }
+      .view-tips { grid-template-columns:1fr; }
+    }
+    @media (max-width:650px) {
+      .gallery-page { width:min(calc(100% - 16px),1440px); padding-top:94px; padding-bottom:34px; }
+      .metric-grid { grid-template-columns:1fr; gap:9px; }
+      .metric-card { display:flex; align-items:center; justify-content:space-between; gap:12px; min-height:82px; padding:13px 15px; }
+      .metric-top { flex:1; }
+      .metric-value { margin:0; font-size:1.3rem; }
+      .metric-note { display:none; }
+      .add-section { margin:14px; padding:15px; }
+      .add-header { flex-direction:column; }
+      .add-form { grid-template-columns:1fr; }
+      .scene-section { padding:15px; }
+      .scene-grid { grid-template-columns:1fr; }
+      .panel-head, .panel-footer { padding-left:15px; padding-right:15px; }
+      .navigation-grid { grid-template-columns:1fr; }
+      .scene-actions { align-items:stretch; flex-direction:column; }
+      .scene-actions .btn, .scene-actions .save-btn { width:100%; }
+      .panel-footer { align-items:flex-start; flex-direction:column; }
+      .view-toolbar-fields { padding:15px; }
+      .preview-stage { width:calc(100% - 30px); height:58vh; min-height:290px; margin:15px 15px 0; }
+      .place-button { min-height:38px; gap:6px; padding:0 9px 0 6px; font-size:.64rem; }
+      .place-button-arrow { width:24px; height:24px; flex-basis:24px; font-size:.9rem; }
+      .place-button-label { max-width:135px; }
+      .stage-instruction, .view-status { margin-left:15px; margin-right:15px; }
+      .view-settings { padding:16px 15px; }
+      .view-settings-grid { grid-template-columns:1fr; }
+      .view-footer { align-items:stretch; flex-direction:column; padding:14px 15px; }
+      .view-footer-actions { width:100%; }
+      .view-footer-actions .btn, .view-footer-actions .save-btn { flex:1; }
+      .status-card { width:100%; }
+    }
+    @media (max-width:420px) {
+      .gallery-heading h1 { font-size:2rem; }
+      .place-button-label { max-width:100px; }
+      .view-footer-actions { flex-direction:column; }
+      .view-footer-actions .btn, .view-footer-actions .save-btn { width:100%; }
+    }
+    @media (prefers-reduced-motion:reduce) {
+      *, *::before, *::after { scroll-behavior:auto !important; transition-duration:.01ms !important; animation-duration:.01ms !important; animation-iteration-count:1 !important; }
+    }
   </style>
 </head>
 <body>
-  <main class="page">
-    <div class="topbar">
-      <div>
-        <h1>Street View Editor</h1>
-        <div class="intro">Choose the image shown at each location, then connect its Left, Forward, and Right arrows.</div>
-      </div>
-      <a class="back" href="/admin/content">Back to content manager</a>
-    </div>
+  <%- include("../partials/navadmin") %>
+  <style id="gallery-admin-nav-theme">
+    :root {
+      --admin-nav-bg:#070a0c;
+      --admin-nav-surface:#0c1113;
+      --admin-nav-surface-hover:rgba(255,255,255,.085);
+      --admin-nav-border:rgba(255,255,255,.085);
+      --admin-nav-text:#ffffff;
+      --admin-nav-muted:#8e999e;
+      --admin-nav-teal:#00a6a6;
+      --admin-nav-teal-dark:#006f70;
+      --admin-nav-gold:#ffd700;
+      --admin-nav-success:#2ecc71;
+    }
+    .admin-topbar { background:rgba(7,10,12,.97) !important; }
+    .admin-sidebar { background:#0c1113 !important; border-color:rgba(0,166,166,.18) !important; }
+    .admin-nav-item.active a { background:rgba(0,166,166,.11) !important; color:#1fc7c7 !important; }
+    .admin-nav-item.active a::before { background:#00a6a6 !important; }
+    .admin-nav-icon { background:rgba(0,166,166,.09) !important; }
+    .admin-avatar { background:linear-gradient(135deg,#00a6a6,#006f70) !important; color:#071011 !important; }
+    .admin-security-title { color:#1fc7c7 !important; }
+  </style>
 
-    <% if (success) { %><div class="notice">Gallery location saved.</div><% } %>
-    <% if (error) { %><div class="notice error">Could not save that gallery location.</div><% } %>
+  <main class="gallery-page">
+    <% if (successMessage) { %>
+      <div class="notice" role="status"><i class="fa-solid fa-circle-check" aria-hidden="true"></i><span><%= successMessage === "saved" ? "Gallery changes saved successfully." : successMessage %></span></div>
+    <% } %>
+    <% if (shownError) { %>
+      <div class="notice error" role="alert"><i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i><span><%= shownError %></span></div>
+    <% } %>
 
-    <% if (galleryImages.length) { %>
-      <div class="grid">
-        <% galleryImages.forEach((item, index) => { %>
-          <article class="card">
-            <img class="preview" src="<%= item.image %>" alt="<%= item.title || 'Gallery image' %>" />
-            <form class="form" method="POST" action="/admin/gallery-editor" enctype="multipart/form-data">
-              <input type="hidden" name="imageIndex" value="<%= index %>" />
-              <label for="title-<%= index %>">Location name</label>
-              <input id="title-<%= index %>" name="title" value="<%= item.title || '' %>" required />
-              <label for="image-<%= index %>">Replace image</label>
-              <input id="image-<%= index %>" name="imageFile" type="file" accept="image/*" />
+    <% if (isViewMode) { %>
+      <!-- =====================================================
+           PANORAMA + NAVIGATION BUTTON STUDIO
+      ====================================================== -->
+      <header class="gallery-header">
+        <div class="gallery-heading">
+          <div class="eyebrow">Puffer Isle Resort · Interactive Gallery Studio</div>
+          <h1>Panorama <span>Studio</span></h1>
+          <p>Set the opening view and configure each direction button in one place. Drag the compass buttons directly over the 360° panorama, then choose where each one takes guests.</p>
+        </div>
+        <div class="header-actions">
+          <div class="status-card"><span class="status-dot" aria-hidden="true"></span><span>Editing scene <%= imageIndex + 1 %> of <%= galleryScenes.length %></span></div>
+          <a class="btn btn-secondary" href="/admin/gallery-editor"><i class="fa-solid fa-arrow-left"></i> All gallery scenes</a>
+        </div>
+      </header>
 
-              <% [ ['left', 'Left arrow'], ['forward', 'Forward arrow'], ['right', 'Right arrow'], ['backward', 'Backward arrow'] ].forEach(([direction, labelText]) => { %>
-                <label for="<%= direction %>-<%= index %>"><%= labelText %> destination</label>
-                <select id="<%= direction %>-<%= index %>" name="<%= direction %>">
-                  <option value="">No destination</option>
-                  <% galleryImages.forEach((target, targetIndex) => { %>
-                    <option value="<%= targetIndex %>" <%= item[direction] !== null && item[direction] !== undefined && Number(item[direction]) === targetIndex ? 'selected' : '' %>>
-                      <%= targetIndex + 1 %>. <%= target.title || 'Resort Photo' %>
-                    </option>
-                  <% }); %>
-                </select>
+      <form class="view-form" id="viewForm" method="POST" action="/admin/gallery-editor" enctype="multipart/form-data">
+        <% if (adminCsrfToken) { %><input type="hidden" name="_csrf" value="<%= adminCsrfToken %>"><% } %>
+        <input type="hidden" name="action" value="edit">
+        <input type="hidden" name="imageIndex" value="<%= imageIndex %>">
+        <input type="hidden" name="returnViewIndex" value="<%= imageIndex %>">
+        <% if (activeScene._id) { %><input type="hidden" name="imageId" value="<%= activeScene._id %>"><% } %>
+        <input type="hidden" name="heading" id="headingInput" value="<%= Number.isFinite(Number(activeScene.heading)) ? activeScene.heading : 0 %>">
+        <input type="hidden" name="pitch" id="pitchInput" value="<%= Number.isFinite(Number(activeScene.pitch)) ? activeScene.pitch : 0 %>">
+        <input type="hidden" name="buttonPositions" id="buttonPositionsInput" value="<%= JSON.stringify(viewButtonPositions) %>">
+
+        <section class="studio-shell" aria-labelledby="studioSceneTitle">
+          <div class="studio-top">
+            <div class="studio-top-main">
+              <h2 id="studioSceneTitle"><%= getSceneTitle(activeScene, imageIndex) %></h2>
+              <p>Drag the panorama to look around. Drag any visible direction button to place it where it makes sense in the scene. The destination selectors below control what happens when a guest follows each button.</p>
+              <span class="studio-badge"><i class="fa-solid fa-arrows-up-down-left-right"></i> Drag to position · Choose destinations below</span>
+            </div>
+            <div class="header-actions">
+              <a class="btn btn-secondary" href="/gallery" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-eye"></i> Preview guest view</a>
+            </div>
+          </div>
+
+          <div class="view-toolbar-fields">
+            <div class="field">
+              <label class="field-label" for="viewTitle">Location name</label>
+              <input id="viewTitle" name="title" type="text" value="<%= activeScene.title || '' %>" minlength="2" maxlength="150" required>
+              <span class="help-text">This name identifies the location in the gallery editor and guest experience.</span>
+            </div>
+            <div class="field">
+              <label class="field-label" for="viewImageFile">Replace panorama image (optional)</label>
+              <input id="viewImageFile" name="imageFile" type="file" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp">
+              <span class="help-text">Leave empty to keep the current panorama. JPG, PNG, or WEBP, up to 25 MB.</span>
+            </div>
+          </div>
+
+          <div class="preview-stage" id="previewStage">
+            <a-scene class="scene" id="viewScene" embedded vr-mode-ui="enabled: false" loading-screen="enabled: false">
+              <a-entity position="0 0 0">
+                <a-camera id="viewCamera" fov="80" look-controls="reverseMouseDrag: false" wasd-controls="enabled: false"></a-camera>
+              </a-entity>
+              <a-sky id="viewSky" src="<%= activeScene.image %>" rotation="0 -90 0"></a-sky>
+            </a-scene>
+            <div class="button-layer" aria-label="Draggable guest navigation buttons">
+              <% directionMeta.forEach(function(meta) { const direction = meta[0]; const arrow = meta[1]; const label = meta[2]; const linkedIndex = Number(activeScene[direction]); const linkedScene = activeScene[direction] !== null && activeScene[direction] !== undefined && Number.isInteger(linkedIndex) ? galleryScenes[linkedIndex] : null; %>
+                <button class="place-button" type="button" data-direction="<%= direction %>" data-direction-label="<%= label %>" style="visibility:hidden" aria-label="Drag the <%= label %> navigation button to reposition it" title="Drag to reposition the <%= label %> button">
+                  <span class="place-button-arrow" aria-hidden="true"><%= arrow %></span>
+                  <span class="place-button-label"><%= label %> · <%= linkedScene ? getSceneTitle(linkedScene, linkedIndex) : "Unlinked" %></span>
+                </button>
               <% }); %>
+            </div>
+          </div>
 
-              <button class="save" type="submit">Save location</button>
-            </form>
-          </article>
-        <% }); %>
+          <p class="stage-instruction"><i class="fa-solid fa-circle-info" aria-hidden="true"></i><span>Buttons can be dragged only when they are visible in the current camera view. Rotate the panorama to find buttons around the other sides.</span></p>
+          <p class="view-status" id="viewStatus" aria-live="polite">Loading the panorama controls…</p>
+
+          <section class="view-settings" aria-labelledby="viewSettingsTitle">
+            <div class="view-settings-head">
+              <div>
+                <h3 id="viewSettingsTitle">Configure navigation buttons</h3>
+                <p>Each arrow has two settings: where it appears in the panorama and which scene it opens.</p>
+              </div>
+              <span class="meta-pill"><i class="fa-solid fa-route" aria-hidden="true"></i> 4 directions</span>
+            </div>
+            <div class="view-settings-grid">
+              <% directionMeta.forEach(function(meta) { const direction = meta[0]; const label = meta[2]; const icon = direction === "left" ? "fa-arrow-left" : direction === "forward" ? "fa-arrow-up" : direction === "right" ? "fa-arrow-right" : "fa-arrow-down"; %>
+                <div class="view-direction-card">
+                  <div class="view-direction-head">
+                    <span class="view-direction-icon"><i class="fa-solid <%= icon %>" aria-hidden="true"></i></span>
+                    <span><span class="view-direction-title"><%= label %> button</span><span class="view-direction-subtitle">Guest destination</span></span>
+                  </div>
+                  <label class="field-label" for="destination-<%= direction %>">When selected, go to…</label>
+                  <select class="destination-select" id="destination-<%= direction %>" name="<%= direction %>" data-direction="<%= direction %>">
+                    <option value="">No destination / disabled</option>
+                    <% galleryScenes.forEach(function(target, targetIndex) { if (targetIndex !== imageIndex) { %>
+                      <option value="<%= targetIndex %>" data-scene-title="<%= getSceneTitle(target, targetIndex) %>" <%= isSelected(activeScene[direction], targetIndex) ? "selected" : "" %>>Scene <%= targetIndex + 1 %> — <%= getSceneTitle(target, targetIndex) %></option>
+                    <% } }); %>
+                  </select>
+                  <span class="help-text">Drag the matching <%= label.toLowerCase() %> arrow above to change its position.</span>
+                </div>
+              <% }); %>
+            </div>
+          </section>
+
+          <div class="view-footer">
+            <div class="view-footer-note"><strong>Note:</strong> Your destination links, button positions, scene name, replacement image, and opening camera view are saved together.</div>
+            <div class="view-footer-actions">
+              <a class="btn btn-secondary" href="/admin/gallery-editor"><i class="fa-solid fa-xmark"></i> Cancel</a>
+              <button class="save-btn" id="saveView" type="submit"><i class="fa-solid fa-floppy-disk"></i> Save panorama & buttons</button>
+            </div>
+          </div>
+        </section>
+      </form>
+
+      <div class="view-tips" aria-label="Panorama editor steps">
+        <div class="tip"><strong>1. Arrange the view</strong><span>Drag the panorama to set the guest's initial camera angle. Use scroll or pinch to zoom.</span></div>
+        <div class="tip"><strong>2. Arrange each arrow</strong><span>Drag the visible arrows. Rotate the panorama to reach arrows currently behind the camera.</span></div>
+        <div class="tip"><strong>3. Set where arrows go</strong><span>Choose a destination for every direction below the panorama, then save all changes together.</span></div>
       </div>
+
     <% } else { %>
-      <p class="muted">No gallery images exist yet. Add one from the content manager first.</p>
+      <!-- =====================================================
+           CENTRALIZED GALLERY MANAGEMENT DASHBOARD
+      ====================================================== -->
+      <header class="gallery-header">
+        <div class="gallery-heading">
+          <div class="eyebrow">Puffer Isle Resort · IsleRMS</div>
+          <h1>360° <span>Gallery</span></h1>
+          <p>Manage every panorama location, image, and guest navigation pathway here. Open any location's panoramic studio to place the arrows directly in the scene and configure exactly where each arrow takes guests.</p>
+        </div>
+        <div class="header-actions">
+          <div class="status-card"><span class="status-dot" aria-hidden="true"></span><span>Gallery studio available</span></div>
+          <button class="btn btn-secondary" type="button" id="refreshBtn"><i class="fa-solid fa-rotate-right"></i> Refresh</button>
+          <a class="btn btn-gold" href="/gallery" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-eye"></i> View public gallery</a>
+        </div>
+      </header>
+
+      <div class="live-strip"><span class="status-dot" aria-hidden="true"></span><span><strong>Centralized gallery controls:</strong> add, update, link, reposition, preview, and delete scenes without a separate editor template.</span></div>
+
+      <section class="metric-grid" aria-label="Gallery metrics">
+        <article class="metric-card"><div class="metric-top"><span class="metric-label">360° scenes</span><span class="metric-icon"><i class="fa-solid fa-panorama" aria-hidden="true"></i></span></div><strong class="metric-value"><%= galleryScenes.length %></strong><span class="metric-note">Configured panorama locations</span></article>
+        <article class="metric-card"><div class="metric-top"><span class="metric-label">Connected scenes</span><span class="metric-icon"><i class="fa-solid fa-link" aria-hidden="true"></i></span></div><strong class="metric-value"><%= connectedScenes %></strong><span class="metric-note">Scenes with one or more destinations</span></article>
+        <article class="metric-card"><div class="metric-top"><span class="metric-label">Navigation links</span><span class="metric-icon"><i class="fa-solid fa-arrows-up-down-left-right" aria-hidden="true"></i></span></div><strong class="metric-value"><%= navigationLinks %></strong><span class="metric-note">Configured guest pathways</span></article>
+        <article class="metric-card"><div class="metric-top"><span class="metric-label">Gallery status</span><span class="metric-icon"><i class="fa-solid fa-globe" aria-hidden="true"></i></span></div><strong class="metric-value" style="font-size:1.38rem"><%= galleryScenes.length ? "ONLINE" : "EMPTY" %></strong><span class="metric-note"><%= galleryScenes.length ? "Scenes available to configure" : "Add your first panorama" %></span></article>
+      </section>
+
+      <section class="operation-panel" aria-labelledby="galleryManagementTitle">
+        <div class="panel-head">
+          <div>
+            <h2 class="panel-title" id="galleryManagementTitle">Gallery Management</h2>
+            <p class="panel-subtitle">Add and maintain 360° panorama scenes, link the four navigation directions, and use the Panorama Studio to place each visible arrow directly over the image.</p>
+          </div>
+          <div class="panel-tools"><a class="btn btn-secondary btn-small" href="/gallery" target="_blank" rel="noopener noreferrer"><i class="fa-solid fa-arrow-up-right-from-square"></i> Open guest experience</a></div>
+        </div>
+
+        <section class="add-section" aria-labelledby="addSceneTitle">
+          <div class="add-header">
+            <div><h3 class="add-title" id="addSceneTitle">Add a new 360° panorama</h3><p class="add-description">Create a new location. Once it is added, open its Panorama Studio to set the opening view, arrow positions, and destinations.</p></div>
+            <span class="format-badge">JPG · PNG · WEBP · MAX 25 MB</span>
+          </div>
+          <form class="add-form" method="POST" action="/admin/gallery-editor" enctype="multipart/form-data">
+            <% if (adminCsrfToken) { %><input type="hidden" name="_csrf" value="<%= adminCsrfToken %>"><% } %>
+            <input type="hidden" name="action" value="add">
+            <div class="field"><label class="field-label" for="newGalleryTitle">Location name</label><input id="newGalleryTitle" type="text" name="title" minlength="2" maxlength="150" placeholder="Example: Main Beach" required></div>
+            <div class="field"><label class="field-label" for="newGalleryImage">Panorama image</label><input id="newGalleryImage" type="file" name="imageFile" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp" required><span class="help-text">Use a full equirectangular 360° image for the best immersive result.</span></div>
+            <button class="btn btn-gold add-submit" type="submit"><i class="fa-solid fa-plus"></i> Add panorama</button>
+          </form>
+        </section>
+
+        <section class="scene-section" aria-labelledby="sceneListTitle">
+          <div class="scene-section-head"><h3 class="scene-section-title" id="sceneListTitle">Resort scenes</h3><span class="scene-section-count"><%= galleryScenes.length %> <%= galleryScenes.length === 1 ? "scene" : "scenes" %></span></div>
+
+          <% if (galleryScenes.length > 0) { %>
+            <div class="scene-grid">
+              <% galleryScenes.forEach(function(item, index) { %>
+                <article class="scene-card">
+                  <div class="preview-area">
+                    <img class="scene-image" src="<%= item.image %>" alt="<%= getSceneTitle(item, index) %>" loading="lazy">
+                    <span class="scene-number"><i class="fa-solid fa-panorama" aria-hidden="true"></i> Scene <%= index + 1 %></span>
+                    <a class="preview-open" href="/admin/gallery-editor?view=<%= index %>" aria-label="Open Panorama Studio for <%= getSceneTitle(item, index) %>"><i class="fa-solid fa-arrows-up-down-left-right" aria-hidden="true"></i> Edit in panorama</a>
+                    <div class="scene-overlay"><div class="scene-name"><strong><%= getSceneTitle(item, index) %></strong><span>360° resort location</span></div><span class="scene-type">Street View</span></div>
+                  </div>
+                  <div class="scene-body">
+                    <div class="scene-section-head"><div><span class="scene-section-count">LOCATION <%= String(index + 1).padStart(2, "0") %></span><h3><%= getSceneTitle(item, index) %></h3></div><span class="meta-pill"><i class="fa-solid fa-route" aria-hidden="true"></i> Navigation</span></div>
+                    <form class="scene-form" method="POST" action="/admin/gallery-editor" enctype="multipart/form-data">
+                      <% if (adminCsrfToken) { %><input type="hidden" name="_csrf" value="<%= adminCsrfToken %>"><% } %>
+                      <input type="hidden" name="action" value="edit">
+                      <input type="hidden" name="imageIndex" value="<%= index %>">
+                      <% if (item._id) { %><input type="hidden" name="imageId" value="<%= item._id %>"><% } %>
+                      <input type="hidden" name="heading" value="<%= Number.isFinite(Number(item.heading)) ? item.heading : 0 %>">
+                      <input type="hidden" name="pitch" value="<%= Number.isFinite(Number(item.pitch)) ? item.pitch : 0 %>">
+                      <div class="field"><label class="field-label" for="sceneTitle-<%= index %>">Location name</label><input id="sceneTitle-<%= index %>" type="text" name="title" value="<%= item.title || '' %>" minlength="2" maxlength="150" required></div>
+                      <div class="replace-box"><div class="replace-heading"><i class="fa-solid fa-image" aria-hidden="true"></i> Replace panorama image</div><div class="field"><input id="sceneImage-<%= index %>" type="file" name="imageFile" accept=".jpg,.jpeg,.png,.webp,image/jpeg,image/png,image/webp"><span class="help-text">Leave empty to keep the existing image.</span></div></div>
+                      <div class="directions-heading"><i class="fa-solid fa-route" aria-hidden="true"></i> Quick destination settings</div>
+                      <div class="navigation-grid">
+                        <% directionMeta.forEach(function(meta) { const direction = meta[0]; const label = meta[2]; const icon = direction === "left" ? "fa-arrow-left" : direction === "forward" ? "fa-arrow-up" : direction === "right" ? "fa-arrow-right" : "fa-arrow-down"; %>
+                          <div class="navigation-item"><label for="<%= direction %>-<%= index %>"><i class="fa-solid <%= icon %>" aria-hidden="true"></i> <%= label %> destination</label><select id="<%= direction %>-<%= index %>" name="<%= direction %>"><option value="">No destination</option><% galleryScenes.forEach(function(target, targetIndex) { if (targetIndex !== index) { %><option value="<%= targetIndex %>" <%= isSelected(item[direction], targetIndex) ? "selected" : "" %>>Scene <%= targetIndex + 1 %> — <%= getSceneTitle(target, targetIndex) %></option><% } }); %></select></div>
+                        <% }); %>
+                      </div>
+                      <div class="scene-actions"><button class="save-btn" type="submit"><i class="fa-solid fa-floppy-disk" aria-hidden="true"></i> Save scene</button><a class="btn btn-secondary btn-small" href="/admin/gallery-editor?view=<%= index %>"><i class="fa-solid fa-panorama" aria-hidden="true"></i> Position arrows</a></div>
+                    </form>
+                    <form class="delete-form" method="POST" action="/admin/gallery-editor" data-delete-scene="<%= index + 1 %>">
+                      <% if (adminCsrfToken) { %><input type="hidden" name="_csrf" value="<%= adminCsrfToken %>"><% } %>
+                      <input type="hidden" name="action" value="delete"><input type="hidden" name="imageIndex" value="<%= index %>"><% if (item._id) { %><input type="hidden" name="imageId" value="<%= item._id %>"><% } %>
+                      <button class="btn btn-danger btn-small" type="submit"><i class="fa-solid fa-trash" aria-hidden="true"></i> Delete scene</button>
+                    </form>
+                  </div>
+                </article>
+              <% }); %>
+            </div>
+          <% } else { %>
+            <div class="empty-state"><div class="empty-inner"><div class="empty-icon"><i class="fa-solid fa-panorama" aria-hidden="true"></i></div><h3>No gallery scenes yet</h3><p>Your 360° gallery is empty. Upload your first panorama above to start building the resort's virtual guest experience. All scene operations are managed from this page.</p></div></div>
+          <% } %>
+        </section>
+
+        <div class="panel-footer"><span><strong>IsleRMS Guest Experience</strong> · 360° panorama management</span><span><i class="fa-solid fa-shield-halved" aria-hidden="true"></i> Protected admin operations · <%= galleryScenes.length ? "Gallery ready to configure" : "Waiting for the first scene" %></span></div>
+      </section>
     <% } %>
   </main>
+
+  <% if (isViewMode) { %>
+    <script>
+      (() => {
+        'use strict';
+        const viewScene = document.getElementById('viewScene');
+        const viewCamera = document.getElementById('viewCamera');
+        const viewSky = document.getElementById('viewSky');
+        const viewForm = document.getElementById('viewForm');
+        const headingInput = document.getElementById('headingInput');
+        const pitchInput = document.getElementById('pitchInput');
+        const buttonPositionsInput = document.getElementById('buttonPositionsInput');
+        const previewStage = document.getElementById('previewStage');
+        const positionButtons = Array.from(document.querySelectorAll('.place-button'));
+        const destinationSelects = Array.from(document.querySelectorAll('.destination-select'));
+        const saveButton = document.getElementById('saveView');
+        const viewStatus = document.getElementById('viewStatus');
+        let pinnedButtons = {};
+        const fallbackPins = {
+          left: { heading: wrapHeading(90 - (Number(headingInput.value) || 0)), pitch: 0 },
+          forward: { heading: wrapHeading(-(Number(headingInput.value) || 0)), pitch: 0 },
+          right: { heading: wrapHeading(-90 - (Number(headingInput.value) || 0)), pitch: 0 },
+          backward: { heading: wrapHeading(180 - (Number(headingInput.value) || 0)), pitch: 0 }
+        };
+        try {
+          const parsed = JSON.parse(buttonPositionsInput.value || '{}');
+          ['left', 'forward', 'right', 'backward'].forEach((direction) => {
+            const candidate = parsed && parsed[direction];
+            pinnedButtons[direction] = candidate && Number.isFinite(Number(candidate.heading)) && Number.isFinite(Number(candidate.pitch))
+              ? { heading: Number(candidate.heading), pitch: Number(candidate.pitch) }
+              : fallbackPins[direction];
+          });
+        } catch (_) {
+          pinnedButtons = { ...fallbackPins };
+        }
+
+        let cameraReady = false;
+        let animationFrame = 0;
+
+        function wrapHeading(value) {
+          return ((Number(value) % 360) + 360) % 360;
+        }
+
+        function updateButtonLabels() {
+          positionButtons.forEach((button) => {
+            const direction = button.dataset.direction;
+            const select = document.getElementById(`destination-${direction}`);
+            const label = button.querySelector('.place-button-label');
+            const directionName = button.dataset.directionLabel || direction;
+            if (!label) return;
+            let targetName = 'Unlinked';
+            if (select && select.value !== '') {
+              const option = select.options[select.selectedIndex];
+              targetName = option && option.dataset.sceneTitle ? option.dataset.sceneTitle : (option ? option.textContent.trim() : 'Selected scene');
+            }
+            label.textContent = `${directionName} · ${targetName}`;
+            button.title = `${directionName} button → ${targetName}. Drag to reposition.`;
+            button.setAttribute('aria-label', `Drag the ${directionName} button; destination: ${targetName}`);
+          });
+        }
+
+        destinationSelects.forEach((select) => select.addEventListener('change', updateButtonLabels));
+        updateButtonLabels();
+
+        function applySavedView() {
+          const lookControls = viewCamera.components && viewCamera.components['look-controls'];
+          if (!lookControls || !lookControls.yawObject || !lookControls.pitchObject) return false;
+          lookControls.yawObject.rotation.y = AFRAME.THREE.MathUtils.degToRad(-(Number(headingInput.value) || 0));
+          lookControls.pitchObject.rotation.x = AFRAME.THREE.MathUtils.degToRad(Math.max(0, Math.min(89, Number(pitchInput.value) || 0)));
+          if (typeof lookControls.updateOrientation === 'function') lookControls.updateOrientation();
+          viewCamera.object3D.updateMatrixWorld(true);
+          return true;
+        }
+
+        function syncViewToForm() {
+          if (!cameraReady) return false;
+          const lookControls = viewCamera.components && viewCamera.components['look-controls'];
+          if (!lookControls || !lookControls.yawObject || !lookControls.pitchObject) return false;
+          headingInput.value = wrapHeading(-AFRAME.THREE.MathUtils.radToDeg(lookControls.yawObject.rotation.y)).toFixed(2);
+          pitchInput.value = Math.max(0, Math.min(89, AFRAME.THREE.MathUtils.radToDeg(lookControls.pitchObject.rotation.x))).toFixed(2);
+          buttonPositionsInput.value = JSON.stringify(pinnedButtons);
+          return true;
+        }
+
+        function projectButtonPins() {
+          if (!cameraReady) return;
+          const width = previewStage.clientWidth;
+          const height = previewStage.clientHeight;
+          if (!width || !height) return;
+          const cameraRotation = viewCamera.object3D.getWorldQuaternion(new AFRAME.THREE.Quaternion());
+          const inverseCameraRotation = cameraRotation.clone().invert();
+          const fov = AFRAME.THREE.MathUtils.degToRad(Number(viewCamera.getAttribute('fov')) || 80);
+          const focalLength = (height / 2) / Math.tan(fov / 2);
+
+          positionButtons.forEach((button) => {
+            if (button.dataset.dragging === 'true') return;
+            const pin = pinnedButtons[button.dataset.direction];
+            if (!pin) { button.style.visibility = 'hidden'; return; }
+            const pinHeading = AFRAME.THREE.MathUtils.degToRad(pin.heading);
+            const pinPitch = AFRAME.THREE.MathUtils.degToRad(pin.pitch);
+            const direction = new AFRAME.THREE.Vector3(
+              -Math.sin(pinHeading) * Math.cos(pinPitch),
+              Math.sin(pinPitch),
+              -Math.cos(pinHeading) * Math.cos(pinPitch)
+            ).applyQuaternion(inverseCameraRotation);
+            if (direction.z >= -0.015) { button.style.visibility = 'hidden'; return; }
+            const x = width / 2 + (direction.x / -direction.z) * focalLength;
+            const y = height / 2 - (direction.y / -direction.z) * focalLength;
+            button.style.left = `${(x / width) * 100}%`;
+            button.style.top = `${(y / height) * 100}%`;
+            button.style.visibility = x >= 8 && x <= width - 8 && y >= 8 && y <= height - 8 ? 'visible' : 'hidden';
+          });
+        }
+
+        function pinButtonAtCoordinates(button, x, y) {
+          const width = previewStage.clientWidth;
+          const height = previewStage.clientHeight;
+          if (!width || !height) return;
+          x = Math.min(width - 4, Math.max(4, x));
+          y = Math.min(height - 4, Math.max(4, y));
+          const fov = AFRAME.THREE.MathUtils.degToRad(Number(viewCamera.getAttribute('fov')) || 80);
+          const focalLength = (height / 2) / Math.tan(fov / 2);
+          const cameraRotation = viewCamera.object3D.getWorldQuaternion(new AFRAME.THREE.Quaternion());
+          const worldDirection = new AFRAME.THREE.Vector3(
+            (x - width / 2) / focalLength,
+            -(y - height / 2) / focalLength,
+            -1
+          ).normalize().applyQuaternion(cameraRotation);
+          pinnedButtons[button.dataset.direction] = {
+            heading: Number(wrapHeading(AFRAME.THREE.MathUtils.radToDeg(Math.atan2(-worldDirection.x, -worldDirection.z))).toFixed(2)),
+            pitch: Number(Math.max(-89, Math.min(89, AFRAME.THREE.MathUtils.radToDeg(Math.asin(worldDirection.y)))).toFixed(2))
+          };
+          buttonPositionsInput.value = JSON.stringify(pinnedButtons);
+          projectButtonPins();
+        }
+
+        function pinButtonAtPointer(button, event) {
+          const rect = previewStage.getBoundingClientRect();
+          pinButtonAtCoordinates(button, event.clientX - rect.left, event.clientY - rect.top);
+        }
+
+        let activeDrag = null;
+
+        positionButtons.forEach((button) => {
+          button.addEventListener('pointerdown', (event) => {
+            if (!cameraReady) {
+              viewStatus.textContent = 'The panorama is still initializing. Try dragging again in a moment.';
+              return;
+            }
+            event.preventDefault();
+            event.stopPropagation();
+            activeDrag = { button, pointerId: event.pointerId };
+            button.dataset.dragging = 'true';
+            button.style.visibility = 'visible';
+            try { button.setPointerCapture(event.pointerId); } catch (_) { /* Global pointer handling remains as a fallback. */ }
+            viewStatus.textContent = `Moving the ${button.dataset.directionLabel || button.dataset.direction} button. Release to set its position.`;
+          });
+        });
+
+        function moveActiveDrag(event) {
+          if (!activeDrag || event.pointerId !== activeDrag.pointerId) return;
+          event.preventDefault();
+          const button = activeDrag.button;
+          const rect = previewStage.getBoundingClientRect();
+          const x = Math.min(rect.width - 4, Math.max(4, event.clientX - rect.left));
+          const y = Math.min(rect.height - 4, Math.max(4, event.clientY - rect.top));
+          button.style.left = `${(x / rect.width) * 100}%`;
+          button.style.top = `${(y / rect.height) * 100}%`;
+          button.style.visibility = 'visible';
+          pinButtonAtCoordinates(button, x, y);
+        }
+
+        function finishActiveDrag(event) {
+          if (!activeDrag || (event.pointerId !== undefined && event.pointerId !== activeDrag.pointerId)) return;
+          const { button, pointerId } = activeDrag;
+          const rect = previewStage.getBoundingClientRect();
+          const x = Math.min(rect.width - 4, Math.max(4, event.clientX - rect.left));
+          const y = Math.min(rect.height - 4, Math.max(4, event.clientY - rect.top));
+          if (Number.isFinite(x) && Number.isFinite(y)) pinButtonAtCoordinates(button, x, y);
+          button.dataset.dragging = 'false';
+          activeDrag = null;
+          projectButtonPins();
+          viewStatus.textContent = `${button.dataset.directionLabel || button.dataset.direction} button position updated. Save to keep this change.`;
+          try { if (button.hasPointerCapture(pointerId)) button.releasePointerCapture(pointerId); } catch (_) { /* Already released by browser. */ }
+        }
+
+        window.addEventListener('pointermove', moveActiveDrag, { passive: false });
+        window.addEventListener('pointerup', finishActiveDrag);
+        window.addEventListener('pointercancel', finishActiveDrag);
+        positionButtons.forEach((button) => {
+          button.addEventListener('lostpointercapture', (event) => {
+            if (activeDrag && activeDrag.button === button && event.pointerId === activeDrag.pointerId) {
+              finishActiveDrag(event);
+            }
+          });
+        });
+
+        function enforceCameraPitchRange() {
+          if (!viewScene.isConnected || !cameraReady) return;
+          const lookControls = viewCamera.components && viewCamera.components['look-controls'];
+          if (lookControls && lookControls.pitchObject && lookControls.pitchObject.rotation.x < 0) {
+            lookControls.pitchObject.rotation.x = 0;
+          }
+          projectButtonPins();
+          animationFrame = requestAnimationFrame(enforceCameraPitchRange);
+        }
+
+        function initializeCamera(attempt = 0) {
+          if (applySavedView()) {
+            cameraReady = true;
+            try {
+              if (typeof viewScene.resize === 'function') viewScene.resize();
+            } catch (_) {
+              /* A-Frame can already be sized correctly; continue initializing the editor. */
+            }
+            if (viewCamera.object3D && typeof viewCamera.object3D.updateWorldMatrix === 'function') {
+              viewCamera.object3D.updateWorldMatrix(true, false);
+            }
+            projectButtonPins();
+            cancelAnimationFrame(animationFrame);
+            animationFrame = requestAnimationFrame(enforceCameraPitchRange);
+            viewStatus.textContent = 'Panorama ready. Drag the view to look around, drag the arrows to reposition, then set destinations below.';
+            return;
+          }
+          if (attempt < 60) {
+            requestAnimationFrame(() => initializeCamera(attempt + 1));
+            return;
+          }
+          viewStatus.textContent = 'Panorama controls did not finish loading. Check your connection and refresh the page before saving.';
+          saveButton.disabled = true;
+        }
+
+        viewScene.addEventListener('loaded', () => initializeCamera());
+        if (viewScene.hasLoaded) requestAnimationFrame(() => initializeCamera());
+        viewScene.addEventListener('wheel', (event) => {
+          event.preventDefault();
+          let fov = Number.parseFloat(viewCamera.getAttribute('fov')) || 80;
+          fov += event.deltaY > 0 ? 3 : -3;
+          viewCamera.setAttribute('fov', Math.min(Math.max(fov, 30), 95));
+          projectButtonPins();
+        }, { passive: false });
+        window.addEventListener('resize', projectButtonPins);
+
+        viewForm.addEventListener('submit', (event) => {
+          if (!syncViewToForm()) {
+            event.preventDefault();
+            viewStatus.textContent = 'The panorama is still loading. Wait for it to finish before saving.';
+            return;
+          }
+          buttonPositionsInput.value = JSON.stringify(pinnedButtons);
+          saveButton.disabled = true;
+          saveButton.innerHTML = '<i class="fa-solid fa-circle-notch fa-spin" aria-hidden="true"></i> Saving…';
+          viewStatus.textContent = 'Saving the scene, navigation destinations, opening view, and button positions…';
+        });
+      })();
+    </script>
+  <% } else { %>
+    <script>
+      (() => {
+        'use strict';
+        const refreshButton = document.getElementById('refreshBtn');
+        if (refreshButton) {
+          refreshButton.addEventListener('click', () => {
+            refreshButton.disabled = true;
+            refreshButton.innerHTML = '<i class="fa-solid fa-rotate-right fa-spin" aria-hidden="true"></i> Refreshing…';
+            window.location.reload();
+          });
+        }
+        document.querySelectorAll('input[type="file"][name="imageFile"]').forEach((input) => {
+          input.addEventListener('change', () => {
+            const file = input.files && input.files[0];
+            if (!file) return;
+            const allowedTypes = ['image/jpeg', 'image/png', 'image/webp'];
+            if (!allowedTypes.includes(file.type)) {
+              window.alert('Please choose a JPG, PNG, or WEBP image.');
+              input.value = '';
+              return;
+            }
+            if (file.size > 25 * 1024 * 1024) {
+              window.alert('The selected image is larger than 25 MB.');
+              input.value = '';
+            }
+          });
+        });
+        document.querySelectorAll('[data-delete-scene]').forEach((form) => {
+          form.addEventListener('submit', (event) => {
+            const sceneNumber = form.dataset.deleteScene || 'this';
+            if (!window.confirm(`Delete scene ${sceneNumber}? Navigation links connected to this scene may be adjusted by the server.`)) {
+              event.preventDefault();
+            }
+          });
+        });
+      })();
+    </script>
+  <% } %>
 </body>
 </html>

@@ -35,6 +35,10 @@
 
 const express = require("express");
 const mongoose = require("mongoose");
+const fs = require("fs");
+const path = require("path");
+const crypto = require("crypto");
+const multer = require("multer");
 
 const router = express.Router();
 
@@ -66,6 +70,201 @@ const AddOn = require("../models/AddOn");
 
 // Dedicated 360° gallery.
 const Gallery = require("../models/Gallery");
+
+/* ============================================================
+   PROFILE PICTURE UPLOAD CONFIGURATION
+============================================================ */
+
+const MAX_PROFILE_PICTURE_BYTES = 5 * 1024 * 1024;
+const PROFILE_UPLOAD_DIR = path.join(
+  __dirname,
+  "..",
+  "public",
+  "uploads",
+  "profiles"
+);
+const PROFILE_UPLOAD_URL_PREFIX = "/uploads/profiles/";
+
+const PROFILE_IMAGE_EXTENSIONS = Object.freeze({
+  "image/jpeg": ".jpg",
+  "image/png": ".png",
+  "image/webp": ".webp",
+});
+
+const profilePictureStorage = multer.diskStorage({
+  destination(req, file, callback) {
+    fs.mkdir(PROFILE_UPLOAD_DIR, { recursive: true }, (error) => {
+      callback(error, PROFILE_UPLOAD_DIR);
+    });
+  },
+  filename(req, file, callback) {
+    const extension = PROFILE_IMAGE_EXTENSIONS[file.mimetype];
+    if (!extension) {
+      const error = new Error("Only JPG, PNG, and WebP images are allowed.");
+      error.code = "INVALID_IMAGE_TYPE";
+      return callback(error);
+    }
+
+    // Never trust a user-supplied filename or extension.
+    return callback(
+      null,
+      `${crypto.randomBytes(24).toString("hex")}${extension}`
+    );
+  },
+});
+
+const profilePictureUpload = multer({
+  storage: profilePictureStorage,
+  limits: {
+    fileSize: MAX_PROFILE_PICTURE_BYTES,
+    files: 1,
+    fields: 2,
+    parts: 3,
+  },
+  fileFilter(req, file, callback) {
+    if (!Object.prototype.hasOwnProperty.call(PROFILE_IMAGE_EXTENSIONS, file.mimetype)) {
+      const error = new Error("Only JPG, PNG, and WebP images are allowed.");
+      error.code = "INVALID_IMAGE_TYPE";
+      return callback(error);
+    }
+
+    return callback(null, true);
+  },
+});
+
+/**
+ * Remove a file only when it resolves inside the profile-upload directory.
+ * This prevents a database value from being used to delete arbitrary files.
+ */
+function getOwnedProfileUploadPath(storedValue) {
+  if (typeof storedValue !== "string") return null;
+
+  const value = storedValue.trim();
+  if (!/^\/uploads\/profiles\/[A-Za-z0-9_-]+\.(?:jpg|png|webp)$/i.test(value)) {
+    return null;
+  }
+
+  const filename = path.basename(value);
+  const absolutePath = path.resolve(PROFILE_UPLOAD_DIR, filename);
+  const expectedDirectory = path.resolve(PROFILE_UPLOAD_DIR) + path.sep;
+
+  return absolutePath.startsWith(expectedDirectory) ? absolutePath : null;
+}
+
+async function unlinkProfileUploadQuietly(filePath) {
+  if (!filePath) return;
+
+  try {
+    await fs.promises.unlink(filePath);
+  } catch (error) {
+    if (error.code !== "ENOENT") {
+      console.warn("Profile picture cleanup warning:", error.message);
+    }
+  }
+}
+
+/**
+ * Check the bytes on disk, not just the browser-supplied MIME type.
+ * This rejects files renamed to .jpg/.png/.webp that are not those formats.
+ */
+async function detectProfileImageMime(filePath) {
+  const handle = await fs.promises.open(filePath, "r");
+  try {
+    const header = Buffer.alloc(12);
+    const { bytesRead } = await handle.read(header, 0, header.length, 0);
+
+    if (
+      bytesRead >= 3 &&
+      header[0] === 0xff &&
+      header[1] === 0xd8 &&
+      header[2] === 0xff
+    ) {
+      return "image/jpeg";
+    }
+
+    if (
+      bytesRead >= 8 &&
+      header.subarray(0, 8).equals(
+        Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a])
+      )
+    ) {
+      return "image/png";
+    }
+
+    if (
+      bytesRead >= 12 &&
+      header.toString("ascii", 0, 4) === "RIFF" &&
+      header.toString("ascii", 8, 12) === "WEBP"
+    ) {
+      return "image/webp";
+    }
+
+    return null;
+  } finally {
+    await handle.close();
+  }
+}
+
+/**
+ * Multer runs before the route handler, so handle its errors here to ensure
+ * the photo API always returns JSON rather than an HTML error page.
+ */
+function handleProfilePictureUpload(req, res, next) {
+  profilePictureUpload.single("profilePicture")(req, res, async (error) => {
+    if (!error) return next();
+
+    if (req.file?.path) {
+      await unlinkProfileUploadQuietly(req.file.path);
+    }
+
+    if (error instanceof multer.MulterError) {
+      if (error.code === "LIMIT_FILE_SIZE") {
+        return jsonError(
+          res,
+          413,
+          "Your profile picture must be 5 MB or smaller.",
+          "PROFILE_PICTURE_TOO_LARGE"
+        );
+      }
+
+      if (
+        error.code === "LIMIT_FILE_COUNT" ||
+        error.code === "LIMIT_UNEXPECTED_FILE"
+      ) {
+        return jsonError(
+          res,
+          400,
+          "Upload one profile picture at a time.",
+          "INVALID_PROFILE_PICTURE_UPLOAD"
+        );
+      }
+
+      return jsonError(
+        res,
+        400,
+        "The profile picture upload request is invalid. Please try again.",
+        "INVALID_PROFILE_PICTURE_UPLOAD"
+      );
+    }
+
+    if (error.code === "INVALID_IMAGE_TYPE") {
+      return jsonError(
+        res,
+        415,
+        "Only JPG, PNG, and WebP images are allowed.",
+        "INVALID_IMAGE_TYPE"
+      );
+    }
+
+    console.error("Profile picture upload middleware error:", error);
+    return jsonError(
+      res,
+      500,
+      "Unable to receive your profile picture right now. Please try again.",
+      "PROFILE_PICTURE_UPLOAD_ERROR"
+    );
+  });
+}
 
 // Shared booking/inventory engine.
 // IMPORTANT: This is the single source of truth for availability.
@@ -4546,6 +4745,152 @@ router.get(
         res,
         500,
         "Unable to load the current accommodation catalog."
+      );
+    }
+  }
+);
+
+/* ============================================================
+   PROFILE PICTURE UPDATE / REMOVAL
+============================================================ */
+
+router.post(
+  "/profile/update-picture",
+  requireLogin,
+  handleProfilePictureUpload,
+  async (req, res) => {
+    let uploadedPath = req.file?.path || null;
+
+    try {
+      // Validate the current session and account status against MongoDB.
+      const sessionUser = await currentUser(req, res);
+      if (!sessionUser) {
+        await unlinkProfileUploadQuietly(uploadedPath);
+        return;
+      }
+
+      const user = await User.findById(sessionUser._id).select("-password");
+      if (!user) {
+        await unlinkProfileUploadQuietly(uploadedPath);
+        return jsonError(
+          res,
+          401,
+          "Your account session is no longer valid. Please log in again.",
+          "INVALID_SESSION"
+        );
+      }
+
+      // Fail clearly until the schema field is added to models/User.js.
+      if (!user.schema.path("profilePicture")) {
+        await unlinkProfileUploadQuietly(uploadedPath);
+        return jsonError(
+          res,
+          500,
+          "Profile picture storage is not configured yet. Please contact the site administrator.",
+          "PROFILE_PICTURE_NOT_CONFIGURED"
+        );
+      }
+
+      const removeRequested =
+        String(req.body?.removeProfilePicture || "")
+          .trim()
+          .toLowerCase() === "true";
+
+      if (removeRequested && req.file) {
+        await unlinkProfileUploadQuietly(uploadedPath);
+        uploadedPath = null;
+        return jsonError(
+          res,
+          400,
+          "Choose either a new profile picture or remove the current picture, not both.",
+          "INVALID_PROFILE_PICTURE_REQUEST"
+        );
+      }
+
+      if (!removeRequested && !req.file) {
+        return jsonError(
+          res,
+          400,
+          "Choose a JPG, PNG, or WebP image to upload.",
+          "PROFILE_PICTURE_REQUIRED"
+        );
+      }
+
+      if (req.file) {
+        if (!req.file.size || req.file.size > MAX_PROFILE_PICTURE_BYTES) {
+          await unlinkProfileUploadQuietly(uploadedPath);
+          uploadedPath = null;
+          return jsonError(
+            res,
+            req.file.size > MAX_PROFILE_PICTURE_BYTES ? 413 : 400,
+            "Choose a non-empty image no larger than 5 MB.",
+            req.file.size > MAX_PROFILE_PICTURE_BYTES
+              ? "PROFILE_PICTURE_TOO_LARGE"
+              : "INVALID_IMAGE_CONTENT"
+          );
+        }
+
+        const detectedMime = await detectProfileImageMime(req.file.path);
+        if (!detectedMime || detectedMime !== req.file.mimetype) {
+          await unlinkProfileUploadQuietly(uploadedPath);
+          uploadedPath = null;
+          return jsonError(
+            res,
+            415,
+            "The selected file is not a valid JPG, PNG, or WebP image.",
+            "INVALID_IMAGE_CONTENT"
+          );
+        }
+      }
+
+      const previousPicturePath = getOwnedProfileUploadPath(user.profilePicture);
+      const nextPictureUrl = req.file
+        ? `${PROFILE_UPLOAD_URL_PREFIX}${path.basename(req.file.filename)}`
+        : null;
+
+      user.profilePicture = removeRequested ? null : nextPictureUrl;
+
+      try {
+        await user.save();
+      } catch (saveError) {
+        // Do not leave an orphaned file if MongoDB rejects the update.
+        await unlinkProfileUploadQuietly(uploadedPath);
+        uploadedPath = null;
+        throw saveError;
+      }
+
+      // Only delete the former local profile upload after the DB save succeeds.
+      if (previousPicturePath && previousPicturePath !== uploadedPath) {
+        await unlinkProfileUploadQuietly(previousPicturePath);
+      }
+
+      uploadedPath = null; // The new upload is now referenced by MongoDB.
+
+      return res.status(200).json({
+        success: true,
+        message: removeRequested
+          ? "Your profile picture has been removed."
+          : "Your profile picture has been updated successfully.",
+        profilePicture: removeRequested ? "" : nextPictureUrl,
+      });
+    } catch (error) {
+      await unlinkProfileUploadQuietly(uploadedPath);
+      console.error("Profile picture update error:", error);
+
+      if (error?.name === "ValidationError") {
+        return jsonError(
+          res,
+          400,
+          "The profile picture update could not be saved. Please choose another image and try again.",
+          "PROFILE_PICTURE_VALIDATION_ERROR"
+        );
+      }
+
+      return jsonError(
+        res,
+        500,
+        "Unable to update your profile picture right now. Please try again.",
+        "PROFILE_PICTURE_UPDATE_ERROR"
       );
     }
   }

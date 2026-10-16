@@ -329,6 +329,42 @@ const userSchema =
         default: null,
       },
 
+
+      /**
+       * Locally uploaded customer profile photo.
+       *
+       * Kept separate from avatarUrl so an uploaded photo does not
+       * overwrite the optional Google profile image. Only local
+       * paths produced by the profile upload endpoint are accepted.
+       */
+      profilePicture: {
+        type: String,
+
+        trim: true,
+
+        maxlength: [
+          255,
+          "Profile picture path is too long.",
+        ],
+
+        default: null,
+
+        validate: {
+          validator(value) {
+            if (value == null || value === "") {
+              return true;
+            }
+
+            return /^\/uploads\/profiles\/[A-Za-z0-9_-]+\.(?:jpg|png|webp)$/i.test(
+              value
+            );
+          },
+
+          message:
+            "Profile picture must use a valid local upload path.",
+        },
+      },
+
       /* --------------------------------------------------------
          PASSWORD
       -------------------------------------------------------- */

@@ -177,6 +177,31 @@ const galleryImageSchema =
         default: 1,
       },
 
+      /** Camera starting orientation used by the unified view editor. */
+      heading: {
+        type: Number,
+        min: -360,
+        max: 360,
+        default: 0,
+      },
+
+      pitch: {
+        type: Number,
+        min: -89,
+        max: 89,
+        default: 0,
+      },
+
+      /**
+       * Spatial button pins saved by the unified 360-degree editor.
+       * Values are normalized and validated in routes/galleryRoutes.js.
+       * Mixed keeps this additive to existing Gallery documents.
+       */
+      buttonPositions: {
+        type: mongoose.Schema.Types.Mixed,
+        default: undefined,
+      },
+
       /**
        * Navigation values are zero-based scene indexes.
        *
