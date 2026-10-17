@@ -1328,49 +1328,19 @@ async function findAddOn(
   }).lean();
 }
 
-function addOnResponse(
-  addOn
-) {
+function addOnResponse(addOn) {
   return {
-    id:
-      String(
-        addOn._id
-      ),
+    _id: String(addOn._id), // Add this line
+    id: String(addOn._id),
 
-    name:
-      addOn.name ||
-      "",
-
-    slug:
-      addOn.slug ||
-      "",
-
-    price:
-      number(
-        addOn.price
-      ),
-
-    pricingType:
-      addOn.pricingType ||
-      "once",
-
-    image:
-      addOn.image ||
-      "",
-
-    description:
-      addOn.description ||
-      "",
-
-    active:
-      addOn.active !==
-      false,
-
-    sortOrder:
-      integer(
-        addOn.sortOrder,
-        0
-      ),
+    name: addOn.name || "",
+    slug: addOn.slug || "",
+    price: number(addOn.price),
+    pricingType: addOn.pricingType || "once",
+    image: addOn.image || "",
+    description: addOn.description || "",
+    active: addOn.active !== false,
+    sortOrder: integer(addOn.sortOrder, 0),
   };
 }
 
@@ -1382,11 +1352,20 @@ function normalizeAddOnSelections(
 
   for (
     const item of [
+      // Standard parsed names (express.urlencoded extended: true).
       body?.addOns,
       body?.addOnIds,
       body?.addonIds,
       body?.addOn,
       body?.addon,
+
+      // Literal bracketed names (extended: false / querystring parser).
+      // The booking form currently submits checkboxes as name="addOns[]".
+      body?.["addOns[]"],
+      body?.["addOnIds[]"],
+      body?.["addonIds[]"],
+      body?.["addOn[]"],
+      body?.["addon[]"],
     ]
   ) {
     if (
